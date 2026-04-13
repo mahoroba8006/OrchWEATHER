@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X } from 'lucide-react';
-import { LineChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
+import { LineChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from 'recharts';
 import { useAppStore } from './store';
 import { SettingsModal } from './SettingsModal';
 import { useWeatherData, type CompareTarget } from './hooks/useWeather';
