@@ -259,22 +259,14 @@ function App() {
     return overlay;
   }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
 
-  const chartData = useMemo(() => {
-    if (gddData.size === 0) return baseChartData;
-    return baseChartData.map(entry => {
-      const gdd = gddData.get(entry.dateStr);
-      return gdd ? { ...entry, ...gdd } : entry;
-    });
-  }, [baseChartData, gddData]);
-
-  const filteredChartData = useMemo(() => {
+  const filteredBaseChartData = useMemo(() => {
     const startMM = displayRange.startMM;
     const endMM   = displayRange.endMM;
 
     const mainStart = `${String(startMM).padStart(2,'0')}-01`;
     const mainEnd   = `${String(endMM).padStart(2,'0')}-${String(lastDayOfMonth(endMM)).padStart(2,'0')}`;
 
-    return chartData.filter(d => {
+    return baseChartData.filter((d: any) => {
       if (d.dateStr >= mainStart && d.dateStr <= mainEnd) return true;
       // 前日: 開始月の前月末（startMM > 1 のみ — 同年内に存在する）
       if (startMM > 1) {
@@ -289,7 +281,15 @@ function App() {
       }
       return false;
     });
-  }, [chartData, displayRange]);
+  }, [baseChartData, displayRange]);
+
+  const filteredGddChartData = useMemo(() => {
+    if (gddData.size === 0) return filteredBaseChartData;
+    return filteredBaseChartData.map(entry => {
+      const gdd = gddData.get(entry.dateStr);
+      return gdd ? { ...entry, ...gdd } : entry;
+    });
+  }, [filteredBaseChartData, gddData]);
 
   const filteredFirstOfMonths = useMemo(() => {
     const startKey = `${String(displayRange.startMM).padStart(2,'0')}-01`;
@@ -560,7 +560,7 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
@@ -605,7 +605,7 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
@@ -683,7 +683,7 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
@@ -770,7 +770,7 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredGddChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
@@ -835,7 +835,7 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />

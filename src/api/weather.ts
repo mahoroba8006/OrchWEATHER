@@ -1,5 +1,11 @@
 import { format } from 'date-fns';
 
+const weatherCache = new Map<string, WeatherData>();
+
+function buildCacheKey(lat: number, lon: number, year: number): string {
+  return `${lat},${lon},${year}`;
+}
+
 export interface DailyWeather {
   date: string;
   tempMean: number;
@@ -44,6 +50,9 @@ async function fetchBoundaryMonthMeans(
 }
 
 export async function fetchWeatherData(lat: number, lon: number, year: number): Promise<WeatherData> {
+  const key = buildCacheKey(lat, lon, year);
+  if (weatherCache.has(key)) return weatherCache.get(key)!;
+
   const currentYear = new Date().getFullYear();
   const isCurrentYear = year === currentYear;
 
@@ -107,10 +116,12 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     fetchBoundaryMonthMeans(lat, lon, `${year + 1}-01-01`, `${year + 1}-01-31`),
   ]);
 
-  return {
+  const result: WeatherData = {
     year,
     daily: processedData,
     prevDecMeans: prevDecMeans ?? undefined,
     nextJanMeans: nextJanMeans ?? undefined,
   };
+  weatherCache.set(key, result);
+  return result;
 }
