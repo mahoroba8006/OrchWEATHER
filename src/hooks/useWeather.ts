@@ -37,10 +37,9 @@ export function useWeatherData(targets: CompareTarget[]) {
           }
           
           const result = await fetchWeatherData(
-            loc.lat, 
-            loc.lon, 
-            target.year, 
-            loc.baseTemp
+            loc.lat,
+            loc.lon,
+            target.year
           );
           
           return { id: target.id, result };

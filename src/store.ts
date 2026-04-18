@@ -1,48 +1,100 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import type { User } from 'firebase/auth';
+import {
+  fetchLocations,
+  addLocationToFirestore,
+  updateLocationInFirestore,
+  deleteLocationFromFirestore,
+} from './lib/locationRepository';
+import { ensureUserDocument, getUserSettings, updateBaseTempSettings } from './lib/userRepository';
 
 export interface LocationInfo {
   id: string;
   name: string;
   lat: number;
   lon: number;
-  baseTemp: number;
 }
+
+export interface UserSettings {
+  baseTempSettings: [number, number];
+}
+
+const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 
 interface AppState {
+  user: User | null;
+  authLoading: boolean;
   locations: LocationInfo[];
-  addLocation: (loc: Omit<LocationInfo, 'id'>) => void;
-  updateLocation: (id: string, loc: Partial<LocationInfo>) => void;
-  deleteLocation: (id: string) => void;
+  locationsLoading: boolean;
+  userSettings: UserSettings | null;
+
+  setUser: (user: User | null) => void;
+  setAuthLoading: (loading: boolean) => void;
+  loadLocations: (uid: string) => Promise<void>;
+  loadUserSettings: (uid: string) => Promise<void>;
+  updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
+  addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
+  updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
+  deleteLocation: (id: string) => Promise<void>;
 }
 
-const defaultLocations: LocationInfo[] = [
-  { id: '1', name: 'A農場 (山梨)', lat: 35.66, lon: 138.56, baseTemp: 10 },
-  { id: '2', name: 'B畑 (長野)', lat: 36.64, lon: 138.19, baseTemp: 4 },
-];
+export const useAppStore = create<AppState>()((set, get) => ({
+  user: null,
+  authLoading: true,
+  locations: [],
+  locationsLoading: false,
+  userSettings: null,
 
-export const useAppStore = create<AppState>()(
-  persist(
-    (set) => ({
-      locations: defaultLocations,
-      
-      addLocation: (loc) => set((state) => {
-        const newId = Date.now().toString();
-        return {
-          locations: [...state.locations, { ...loc, id: newId }]
-        };
-      }),
-      
-      updateLocation: (id, loc) => set((state) => ({
-        locations: state.locations.map(l => l.id === id ? { ...l, ...loc } : l)
-      })),
-      
-      deleteLocation: (id) => set((state) => ({
-        locations: state.locations.filter(l => l.id !== id)
-      })),
-    }),
-    {
-      name: 'agri-weather-storage',
-    }
-  )
-);
+  setUser: (user) => set({ user }),
+  setAuthLoading: (loading) => set({ authLoading: loading }),
+
+  loadLocations: async (uid) => {
+    set({ locationsLoading: true });
+    await ensureUserDocument(uid);
+    const locations = await fetchLocations(uid);
+    set({ locations, locationsLoading: false });
+  },
+
+  loadUserSettings: async (uid) => {
+    const settings = await getUserSettings(uid);
+    set({ userSettings: settings });
+  },
+
+  updateBaseTempSettings: async (settings) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateBaseTempSettings(uid, settings);
+    set((state) => ({
+      userSettings: { ...state.userSettings, baseTempSettings: settings },
+    }));
+  },
+
+  addLocation: async (loc) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    const id = await addLocationToFirestore(uid, loc);
+    set((state) => ({
+      locations: [...state.locations, { ...loc, id }],
+    }));
+  },
+
+  updateLocation: async (id, loc) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateLocationInFirestore(uid, id, loc);
+    set((state) => ({
+      locations: state.locations.map((l) => (l.id === id ? { ...l, ...loc } : l)),
+    }));
+  },
+
+  deleteLocation: async (id) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await deleteLocationFromFirestore(uid, id);
+    set((state) => ({
+      locations: state.locations.filter((l) => l.id !== id),
+    }));
+  },
+}));
+
+export { DEFAULT_BASE_TEMP_SETTINGS };

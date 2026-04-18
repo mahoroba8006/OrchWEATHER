@@ -1,3 +1,6 @@
+# Environment variables (Firebase config)
+.env
+
 # Logs
 logs
 *.log

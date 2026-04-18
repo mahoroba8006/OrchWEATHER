@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X } from 'lucide-react';
-import { LineChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from 'recharts';
+import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X, LogOut } from 'lucide-react';
+import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from 'recharts';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsModal } from './SettingsModal';
 import { useWeatherData, type CompareTarget } from './hooks/useWeather';
 import { MonthsTable } from './components/MonthsTable';
+import { LoginScreen } from './components/LoginScreen';
+import { auth } from './lib/firebase';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -46,9 +49,24 @@ const CustomRangeBar = (props: any) => {
 };
 
 function App() {
-  const { locations } = useAppStore();
+  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
+  const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        await Promise.all([
+          loadLocations(firebaseUser.uid),
+          loadUserSettings(firebaseUser.uid),
+        ]);
+      }
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
   const initialLocation = locations.length > 0 ? locations[0].id : '';
   const [targets, setTargets] = useState<CompareTarget[]>([
     { id: `t_${Date.now()}`, locationId: initialLocation, year: new Date().getFullYear() }
@@ -108,8 +126,10 @@ function App() {
   // Convert raw API data into Recharts format grouped by MM-DD
   const chartData = useMemo(() => {
     if (Object.keys(weatherData).length === 0) return [];
-    
+
+    const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
     const map = new Map<string, any>();
+
     targets.forEach((target, index) => {
       const data = weatherData[target.id];
       if (!data) return;
@@ -123,7 +143,7 @@ function App() {
         if (daysInMonth.length > 0) {
           const sumTemp = daysInMonth.reduce((acc, d) => acc + d.tempMean, 0);
           monthlyMean.set(monthStr, sumTemp / daysInMonth.length);
-          
+
           const sumPrecip = daysInMonth.reduce((acc, d) => acc + d.precipSum, 0);
           monthlyPrecipSum.set(monthStr, sumPrecip);
 
@@ -131,9 +151,10 @@ function App() {
           monthlyHumidMean.set(monthStr, sumHumid / daysInMonth.length);
         }
       }
-      
+
       const plotDayStr = index === 0 ? '09' : index === 1 ? '16' : '23';
-      
+      let runningAccumTemp = 0;
+
       data.daily.forEach(day => {
         const mmdd = day.date.substring(5); // 'MM-DD'
         const monthStr = day.date.substring(5, 7); // 'MM'
@@ -144,7 +165,7 @@ function App() {
         const entry = map.get(mmdd)!;
         entry[`t_${target.id}_temp`] = day.tempMean;
         entry[`t_${target.id}_tempRange`] = [day.tempMin, day.tempMax];
-        
+
         // 滑らかな曲線にするため、毎月15日にのみ代表値としてプロットする
         if (dayStr === '15' && monthlyMean.has(monthStr)) {
           entry[`t_${target.id}_monthlyMeanTemp`] = monthlyMean.get(monthStr);
@@ -152,14 +173,21 @@ function App() {
             entry[`monthlyHumid_${target.id}`] = monthlyHumidMean.get(monthStr);
           }
         }
-        
+
+        entry[`humidRange_${target.id}`] = [day.humidMin, day.humidMax];
+
         // 月合計を背景の太い棒として描画するためのデータ。indexによってプロット日を散らす
         if (dayStr === plotDayStr && monthlyPrecipSum.has(monthStr)) {
           entry[`monthlyPrecip_${target.id}`] = monthlyPrecipSum.get(monthStr);
         }
-        
-        entry[`dailyAccum_${target.id}`] = day.dailyAccumTemp;
-        entry[`accum_${target.id}`] = day.accumTemp;
+
+        // GDD 計算（クライアント側・選択中の基準温度を使用）
+        const diff = day.tempMean - selectedBaseTemp;
+        const dailyAccum = diff > 0 ? diff : 0;
+        runningAccumTemp += dailyAccum;
+        entry[`dailyAccum_${target.id}`] = dailyAccum;
+        entry[`accum_${target.id}`] = runningAccumTemp;
+
         entry[`precip_${target.id}`] = day.precipSum;
         entry[`accumPrecip_${target.id}`] = day.accumPrecip;
         entry[`humid_${target.id}`] = day.humidMean;
@@ -169,18 +197,17 @@ function App() {
     });
 
     return Array.from(map.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-  }, [weatherData, targets]);
+  }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
 
 
 
   const monthlyStats = useMemo(() => {
     if (Object.keys(weatherData).length === 0) return {};
     const stats: Record<string, any> = {};
-    
+    const baseT = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+
     targets.forEach(target => {
       const data = weatherData[target.id];
-      const loc = locations.find(l => l.id === target.locationId);
-      const baseT = loc ? loc.baseTemp : 10;
       
       if (!data) return;
       stats[target.id] = {};
@@ -229,7 +256,7 @@ function App() {
       }
     });
     return stats;
-  }, [weatherData, targets, locations]);
+  }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
 
   const getYearColor = (index: number, _baseColor: string) => {
     const targetColors = [
@@ -307,6 +334,18 @@ function App() {
     );
   };
 
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Leaf size={28} color="var(--accent-color)" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
+
   return (
     <div className="app-container">
       <header className="header" style={{ flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
@@ -314,12 +353,12 @@ function App() {
           <Leaf size={28} color="var(--accent-color)" />
           Orch.Weather
         </h1>
-        
+
         <div className="controls-bar" style={{ flexGrow: 1, flexDirection: 'column', alignItems: 'stretch', background: 'var(--card-bg)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>比較する対象 (最大3件)</span>
-            <button className="secondary" title="地点の管理" onClick={() => setIsSettingsOpen(true)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
-              <Settings size={14} /> 地点設定
+            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>表示対象 (最大3件)</span>
+            <button className="secondary" title="設定" onClick={() => setIsSettingsOpen(true)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+              <Settings size={14} /> 設定
             </button>
           </div>
           
@@ -369,6 +408,26 @@ function App() {
               </button>
             )}
           </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+          {user.photoURL && (
+            <img
+              src={user.photoURL}
+              alt={user.displayName ?? ''}
+              width={28}
+              height={28}
+              style={{ borderRadius: '50%' }}
+            />
+          )}
+          <button
+            className="secondary"
+            onClick={() => signOut(auth)}
+            title="ログアウト"
+            style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+          >
+            <LogOut size={14} /> ログアウト
+          </button>
         </div>
       </header>
 
@@ -571,7 +630,29 @@ function App() {
 
         {/* 4. 有効積算温度 (Accumulated Temperature) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Leaf size={18} /> 有効積算温度 の推移</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h2 className="chart-title" style={{ marginBottom: 0 }}><Leaf size={18} /> 有効積算温度 の推移</h2>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedBaseTempIndex(i as 0 | 1)}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    fontSize: '0.85rem',
+                    background: i === selectedBaseTempIndex ? '#f4a7b9' : 'rgba(244,167,185,0.25)',
+                    color: i === selectedBaseTempIndex ? '#7a2840' : 'var(--text-secondary)',
+                    border: '1px solid rgba(244,167,185,0.6)',
+                    borderRadius: 'var(--radius-md, 6px)',
+                    fontWeight: i === selectedBaseTempIndex ? 600 : 400,
+                    cursor: 'pointer',
+                  }}
+                >
+                  基準温度 {temp}℃
+                </button>
+              ))}
+            </div>
+          </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
@@ -643,7 +724,7 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={firstOfMonths} />
                     <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={[0, 100]} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
@@ -653,33 +734,16 @@ function App() {
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
                         <React.Fragment key={target.id}>
-                          <Line 
-                            type="monotone" 
-                            dataKey={`humid_${target.id}`} 
-                            name={`${name} 日別湿度`} 
-                            stroke={color} 
-                            dot={false}
-                            strokeWidth={1.5}
-                            strokeDasharray="2 2"
-                            opacity={0.6}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey={`monthlyHumid_${target.id}`} 
-                            name={`${name} 月平均湿度`} 
-                            stroke={color} 
-                            dot={false}
-                            strokeWidth={2.5}
-                            connectNulls={true}
-                          />
+                          <Bar dataKey={`humidRange_${target.id}`} name={`${name} 湿度(最低-最高)`} fill={color} shape={<CustomRangeBar />} isAnimationActive={false} />
+                          <Line type="monotone" dataKey={`monthlyHumid_${target.id}`} name={`${name} 月平均湿度`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} />
                         </React.Fragment>
                       );
                     })}
-                  </LineChart>
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
               {renderCustomLegend([
-                { label: '毎日の平均湿度', type: 'dashed' },
+                { label: '毎日の湿度(最低～最高)', type: 'range-bar' },
                 { label: '月の平均湿度', type: 'solid' }
               ])}
               <MonthsTable 
