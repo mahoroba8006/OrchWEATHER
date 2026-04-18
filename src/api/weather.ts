@@ -17,6 +17,30 @@ export interface DailyWeather {
 export interface WeatherData {
   year: number;
   daily: DailyWeather[];
+  prevDecMeans?: { tempMean: number; humidMean: number };
+  nextJanMeans?: { tempMean: number; humidMean: number };
+}
+
+async function fetchBoundaryMonthMeans(
+  lat: number, lon: number, startDate: string, endDate: string
+): Promise<{ tempMean: number; humidMean: number } | null> {
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}`
+    + `&start_date=${startDate}&end_date=${endDate}`
+    + `&daily=temperature_2m_mean,relative_humidity_2m_mean&timezone=Asia%2FTokyo`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const raw = await res.json();
+    const temps: number[] = (raw.daily.temperature_2m_mean as (number | null)[]).filter((v): v is number => v !== null);
+    const humids: number[] = (raw.daily.relative_humidity_2m_mean as (number | null)[]).filter((v): v is number => v !== null);
+    if (temps.length === 0) return null;
+    return {
+      tempMean: temps.reduce((a, b) => a + b, 0) / temps.length,
+      humidMean: humids.reduce((a, b) => a + b, 0) / humids.length,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchWeatherData(lat: number, lon: number, year: number): Promise<WeatherData> {
@@ -78,5 +102,15 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     });
   });
 
-  return { year, daily: processedData };
+  const [prevDecMeans, nextJanMeans] = await Promise.all([
+    fetchBoundaryMonthMeans(lat, lon, `${year - 1}-12-01`, `${year - 1}-12-31`),
+    fetchBoundaryMonthMeans(lat, lon, `${year + 1}-01-01`, `${year + 1}-01-31`),
+  ]);
+
+  return {
+    year,
+    daily: processedData,
+    prevDecMeans: prevDecMeans ?? undefined,
+    nextJanMeans: nextJanMeans ?? undefined,
+  };
 }

@@ -52,6 +52,7 @@ function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -90,6 +91,16 @@ function App() {
 
   const firstOfMonths = Array.from({length: 12}, (_, i) => `${String(i + 1).padStart(2, '0')}-01`);
 
+  const lastDayOfMonth = (mm: number) => new Date(2000, mm, 0).getDate();
+
+  const handleRangeChange = (field: 'startMM' | 'endMM', value: number) => {
+    setDisplayRange(prev => {
+      const next = { ...prev, [field]: value };
+      if (next.startMM > next.endMM) return prev;
+      return next;
+    });
+  };
+
   const { data: weatherData, loading, error } = useWeatherData(targets);
 
   const addTarget = () => {
@@ -124,10 +135,9 @@ function App() {
   };
 
   // Convert raw API data into Recharts format grouped by MM-DD
-  const chartData = useMemo(() => {
+  const baseChartData = useMemo(() => {
     if (Object.keys(weatherData).length === 0) return [];
 
-    const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
     const map = new Map<string, any>();
 
     targets.forEach((target, index) => {
@@ -153,12 +163,11 @@ function App() {
       }
 
       const plotDayStr = index === 0 ? '09' : index === 1 ? '16' : '23';
-      let runningAccumTemp = 0;
 
       data.daily.forEach(day => {
-        const mmdd = day.date.substring(5); // 'MM-DD'
-        const monthStr = day.date.substring(5, 7); // 'MM'
-        const dayStr = day.date.substring(8, 10); // 'DD'
+        const mmdd = day.date.substring(5);
+        const monthStr = day.date.substring(5, 7);
+        const dayStr = day.date.substring(8, 10);
         if (!map.has(mmdd)) {
           map.set(mmdd, { dateStr: mmdd });
         }
@@ -166,27 +175,40 @@ function App() {
         entry[`t_${target.id}_temp`] = day.tempMean;
         entry[`t_${target.id}_tempRange`] = [day.tempMin, day.tempMax];
 
-        // 滑らかな曲線にするため、毎月15日にのみ代表値としてプロットする
-        if (dayStr === '15' && monthlyMean.has(monthStr)) {
-          entry[`t_${target.id}_monthlyMeanTemp`] = monthlyMean.get(monthStr);
+        // 15日：当月の月平均値をプロット
+        if (dayStr === '15') {
+          if (monthlyMean.has(monthStr)) {
+            entry[`t_${target.id}_monthlyMeanTemp`] = monthlyMean.get(monthStr);
+          }
           if (monthlyHumidMean.has(monthStr)) {
             entry[`monthlyHumid_${target.id}`] = monthlyHumidMean.get(monthStr);
           }
         }
 
+        // 1日：前月と当月の月平均の中間値をプロット
+        if (dayStr === '01') {
+          const prevMM = String(parseInt(monthStr) - 1).padStart(2, '0');
+          const prevTemp = monthStr === '01'
+            ? data.prevDecMeans?.tempMean
+            : monthlyMean.get(prevMM);
+          const prevHumid = monthStr === '01'
+            ? data.prevDecMeans?.humidMean
+            : monthlyHumidMean.get(prevMM);
+          const curTemp = monthlyMean.get(monthStr);
+          const curHumid = monthlyHumidMean.get(monthStr);
+          if (prevTemp !== undefined && curTemp !== undefined) {
+            entry[`t_${target.id}_monthlyMeanTemp`] = (prevTemp + curTemp) / 2;
+          }
+          if (prevHumid !== undefined && curHumid !== undefined) {
+            entry[`monthlyHumid_${target.id}`] = (prevHumid + curHumid) / 2;
+          }
+        }
+
         entry[`humidRange_${target.id}`] = [day.humidMin, day.humidMax];
 
-        // 月合計を背景の太い棒として描画するためのデータ。indexによってプロット日を散らす
         if (dayStr === plotDayStr && monthlyPrecipSum.has(monthStr)) {
           entry[`monthlyPrecip_${target.id}`] = monthlyPrecipSum.get(monthStr);
         }
-
-        // GDD 計算（クライアント側・選択中の基準温度を使用）
-        const diff = day.tempMean - selectedBaseTemp;
-        const dailyAccum = diff > 0 ? diff : 0;
-        runningAccumTemp += dailyAccum;
-        entry[`dailyAccum_${target.id}`] = dailyAccum;
-        entry[`accum_${target.id}`] = runningAccumTemp;
 
         entry[`precip_${target.id}`] = day.precipSum;
         entry[`accumPrecip_${target.id}`] = day.accumPrecip;
@@ -194,10 +216,86 @@ function App() {
         entry[`radiation_${target.id}`] = day.radiation;
         entry[`accumRadiation_${target.id}`] = day.accumRadiation;
       });
+
+      // 12/31：12月と翌年1月の中間値（翌年データがある場合のみ）
+      if (data.nextJanMeans) {
+        const dec31Entry = map.get('12-31');
+        if (dec31Entry) {
+          const decTemp  = monthlyMean.get('12');
+          const decHumid = monthlyHumidMean.get('12');
+          if (decTemp !== undefined) {
+            dec31Entry[`t_${target.id}_monthlyMeanTemp`] = (decTemp + data.nextJanMeans.tempMean) / 2;
+          }
+          if (decHumid !== undefined) {
+            dec31Entry[`monthlyHumid_${target.id}`] = (decHumid + data.nextJanMeans.humidMean) / 2;
+          }
+        }
+      }
     });
 
     return Array.from(map.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+  }, [weatherData, targets]);
+
+  const gddData = useMemo(() => {
+    const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const overlay = new Map<string, Record<string, number>>();
+
+    targets.forEach((target) => {
+      const data = weatherData[target.id];
+      if (!data) return;
+      let runningAccumTemp = 0;
+      data.daily.forEach(day => {
+        const mmdd = day.date.substring(5);
+        const diff = day.tempMean - selectedBaseTemp;
+        const dailyAccum = diff > 0 ? diff : 0;
+        runningAccumTemp += dailyAccum;
+        const existing = overlay.get(mmdd) ?? {};
+        existing[`dailyAccum_${target.id}`] = dailyAccum;
+        existing[`accum_${target.id}`] = runningAccumTemp;
+        overlay.set(mmdd, existing);
+      });
+    });
+
+    return overlay;
   }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
+
+  const chartData = useMemo(() => {
+    if (gddData.size === 0) return baseChartData;
+    return baseChartData.map(entry => {
+      const gdd = gddData.get(entry.dateStr);
+      return gdd ? { ...entry, ...gdd } : entry;
+    });
+  }, [baseChartData, gddData]);
+
+  const filteredChartData = useMemo(() => {
+    const startMM = displayRange.startMM;
+    const endMM   = displayRange.endMM;
+
+    const mainStart = `${String(startMM).padStart(2,'0')}-01`;
+    const mainEnd   = `${String(endMM).padStart(2,'0')}-${String(lastDayOfMonth(endMM)).padStart(2,'0')}`;
+
+    return chartData.filter(d => {
+      if (d.dateStr >= mainStart && d.dateStr <= mainEnd) return true;
+      // 前日: 開始月の前月末（startMM > 1 のみ — 同年内に存在する）
+      if (startMM > 1) {
+        const prevMM  = startMM - 1;
+        const prevKey = `${String(prevMM).padStart(2,'0')}-${String(lastDayOfMonth(prevMM)).padStart(2,'0')}`;
+        if (d.dateStr === prevKey) return true;
+      }
+      // 翌日: 終了月の翌月1日（endMM < 12 のみ — 同年内に存在する）
+      if (endMM < 12) {
+        const nextKey = `${String(endMM + 1).padStart(2,'0')}-01`;
+        if (d.dateStr === nextKey) return true;
+      }
+      return false;
+    });
+  }, [chartData, displayRange]);
+
+  const filteredFirstOfMonths = useMemo(() => {
+    const startKey = `${String(displayRange.startMM).padStart(2,'0')}-01`;
+    const endKey   = `${String(displayRange.endMM).padStart(2,'0')}-01`;
+    return firstOfMonths.filter(m => m >= startKey && m <= endKey);
+  }, [firstOfMonths, displayRange]);
 
 
 
@@ -433,6 +531,19 @@ function App() {
 
       <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
+        {/* 表示期間 */}
+        <div className="glass-panel" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>表示期間</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <select value={displayRange.startMM} onChange={e => handleRangeChange('startMM', +e.target.value)} style={{ padding: '0.3rem 0.5rem' }}>
+              {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{i+1}月</option>)}
+            </select>
+            <span>〜</span>
+            <select value={displayRange.endMM} onChange={e => handleRangeChange('endMM', +e.target.value)} style={{ padding: '0.3rem 0.5rem' }}>
+              {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{i+1}月</option>)}
+            </select>
+          </div>
+        </div>
 
         {error && (
           <div style={{ padding: '1rem', background: 'rgba(244, 63, 94, 0.2)', border: '1px solid var(--chart-temp)', borderRadius: '8px', color: 'var(--text-primary)' }}>
@@ -449,9 +560,9 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={firstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
@@ -494,9 +605,9 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={firstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
@@ -572,9 +683,9 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={firstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
@@ -659,9 +770,9 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={firstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
@@ -673,8 +784,8 @@ function App() {
                           yAxisId="left"
                           dataKey={`dailyAccum_${target.id}`} 
                           name={`${name} 日別積算`} 
-                          fill={getYearColor(index, 'var(--chart-accum)')} 
-                          opacity={index === 0 ? 0.9 : 0.6}
+                          fill={getYearColor(index, 'var(--chart-sunshine)')}
+                          opacity={index === 0 ? 0.5 : 0.3}
                         />
                       );
                     })}
@@ -687,7 +798,7 @@ function App() {
                           type="monotone" 
                           dataKey={`accum_${target.id}`} 
                           name={`${name} 累積積算`} 
-                          stroke={getYearColor(index, 'var(--chart-accum)')} 
+                          stroke={getYearColor(index, 'var(--chart-sunshine)')}
                           dot={false}
                           strokeWidth={index === 0 ? 3 : 2}
                           opacity={index === 0 ? 1 : 0.7}
@@ -724,10 +835,10 @@ function App() {
             <>
               <div style={{ height: '350px', width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={filteredChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={firstOfMonths} />
-                    <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={[0, 100]} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
+                    <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
