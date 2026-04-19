@@ -448,10 +448,10 @@ function App() {
     <div className="app-container">
       <header className="header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 className="title">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <img src="/icon.png" alt="Orch.Weather" style={{ width: 32, height: 32 }} />
-            Orch.Weather
-          </h1>
+            <h1 className="title">Orch.Weather</h1>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {user.photoURL && (
               <img
