@@ -435,7 +435,7 @@ function App() {
   if (authLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Leaf size={28} color="var(--accent-color)" />
+        <img src="/icon.png" alt="loading" style={{ width: 40, height: 40 }} />
       </div>
     );
   }
@@ -449,7 +449,7 @@ function App() {
       <header className="header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1 className="title">
-            <Leaf size={28} color="var(--accent-color)" />
+            <img src="/icon.png" alt="Orch.Weather" style={{ width: 32, height: 32 }} />
             Orch.Weather
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
