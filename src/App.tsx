@@ -446,26 +446,47 @@ function App() {
 
   return (
     <div className="app-container">
-      <header className="header" style={{ flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
-        <h1 className="title" style={{ marginTop: '0.5rem' }}>
-          <Leaf size={28} color="var(--accent-color)" />
-          Orch.Weather
-        </h1>
+      <header className="header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 className="title">
+            <Leaf size={28} color="var(--accent-color)" />
+            Orch.Weather
+          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {user.photoURL && (
+              <img
+                src={user.photoURL}
+                alt={user.displayName ?? ''}
+                width={28}
+                height={28}
+                style={{ borderRadius: '50%' }}
+              />
+            )}
+            <button
+              className="secondary"
+              onClick={() => signOut(auth)}
+              title="ログアウト"
+              style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+            >
+              <LogOut size={14} /> ログアウト
+            </button>
+          </div>
+        </div>
 
-        <div className="controls-bar" style={{ flexGrow: 1, flexDirection: 'column', alignItems: 'stretch', background: 'var(--card-bg)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
+        <div className="controls-bar" style={{ flexDirection: 'column', alignItems: 'stretch', background: 'var(--card-bg)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>表示対象 (最大3件)</span>
             <button className="secondary" title="設定" onClick={() => setIsSettingsOpen(true)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
               <Settings size={14} /> 設定
             </button>
           </div>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
             {targets.map((target, index) => (
               <div key={target.id} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <div style={{ width: '4px', height: '100%', minHeight: '36px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
-                <select 
-                  value={target.locationId} 
+                <select
+                  value={target.locationId}
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
                   style={{ flex: 2, minWidth: '150px' }}
                 >
@@ -485,9 +506,9 @@ function App() {
                   })}
                 </select>
                 {targets.length > 1 && (
-                  <button 
-                    className="secondary" 
-                    onClick={() => removeTarget(target.id)} 
+                  <button
+                    className="secondary"
+                    onClick={() => removeTarget(target.id)}
                     style={{ color: 'var(--chart-temp)', padding: '0.6rem', border: 'none' }}
                     title="この行を削除"
                   >
@@ -497,35 +518,15 @@ function App() {
               </div>
             ))}
             {targets.length < 3 && (
-              <button 
-                onClick={addTarget} 
-                className="secondary" 
+              <button
+                onClick={addTarget}
+                className="secondary"
                 style={{ alignSelf: 'flex-start', marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
               >
                 <Plus size={16} /> 表示を追加
               </button>
             )}
           </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-          {user.photoURL && (
-            <img
-              src={user.photoURL}
-              alt={user.displayName ?? ''}
-              width={28}
-              height={28}
-              style={{ borderRadius: '50%' }}
-            />
-          )}
-          <button
-            className="secondary"
-            onClick={() => signOut(auth)}
-            title="ログアウト"
-            style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
-          >
-            <LogOut size={14} /> ログアウト
-          </button>
         </div>
       </header>
 
@@ -542,6 +543,12 @@ function App() {
             <select value={displayRange.endMM} onChange={e => handleRangeChange('endMM', +e.target.value)} style={{ padding: '0.3rem 0.5rem' }}>
               {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{i+1}月</option>)}
             </select>
+            <button
+              onClick={() => setDisplayRange({ startMM: 1, endMM: 12 })}
+              style={{ marginLeft: '0.75rem', padding: '0.35rem 0.8rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid rgba(244,167,185,0.6)', background: 'rgba(244,167,185,0.25)', color: 'var(--text-secondary)', cursor: 'pointer' }}
+            >
+              年間表示
+            </button>
           </div>
         </div>
 
@@ -553,12 +560,12 @@ function App() {
 
         {/* 1. 気温 (Temperature) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Thermometer size={18} /> 気温 の推移 (日平均)</h2>
+          <h2 className="chart-title" style={{marginBottom: 0}}><Thermometer size={18} /> 気温</h2>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ height: '350px', width: '100%' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
@@ -576,10 +583,10 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div>
+              </div></div>
               {renderCustomLegend([
-                { label: '毎日の気温(最低～最高)', type: 'range-bar' },
-                { label: '月の平均気温', type: 'solid' }
+                { label: '最低～最高', type: 'range-bar' },
+                { label: '月間平均', type: 'solid' }
               ])}
               <MonthsTable 
                 rowsDef={[
@@ -598,12 +605,12 @@ function App() {
 
         {/* 2. 降水量 (Precipitation) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><CloudRain size={18} /> 降水量・累積降水量 の推移</h2>
+          <h2 className="chart-title" style={{marginBottom: 0}}><CloudRain size={18} /> 降水量</h2>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ height: '350px', width: '100%' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
@@ -655,10 +662,10 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div>
+              </div></div>
               {renderCustomLegend([
-                { label: '毎日の降水量', type: 'thin-bar' },
-                { label: '月合計降水量', type: 'thick-bar' },
+                { label: '降水量', type: 'thin-bar' },
+                { label: '月間降水量', type: 'thick-bar' },
                 { label: '累積降水量', type: 'solid' }
               ])}
               <MonthsTable 
@@ -676,12 +683,12 @@ function App() {
 
         {/* 3. 日射量 (Solar Radiation) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Sun size={18} /> 日射量・累積日射量 の推移</h2>
+          <h2 className="chart-title" style={{marginBottom: 0}}><Sun size={18} /> 日射量</h2>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ height: '350px', width: '100%' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
@@ -720,9 +727,9 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div>
+              </div></div>
               {renderCustomLegend([
-                { label: '毎日の日射量', type: 'thin-bar' },
+                { label: '日射量', type: 'thin-bar' },
                 { label: '累積日射量', type: 'solid' }
               ])}
               <MonthsTable 
@@ -742,7 +749,7 @@ function App() {
         {/* 4. 有効積算温度 (Accumulated Temperature) */}
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0 }}><Leaf size={18} /> 有効積算温度 の推移</h2>
+            <h2 className="chart-title" style={{ marginBottom: 0 }}><Leaf size={18} /> 有効積算温度</h2>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => (
                 <button
@@ -768,7 +775,7 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ height: '350px', width: '100%' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={filteredGddChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
@@ -807,10 +814,10 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div>
+              </div></div>
               {renderCustomLegend([
-                { label: '毎日の積算', type: 'thin-bar' },
-                { label: '累積積算', type: 'solid' }
+                { label: '有効積算温度', type: 'thin-bar' },
+                { label: '累積有効積算温度', type: 'solid' }
               ])}
               <MonthsTable 
                 rowsDef={[
@@ -828,12 +835,12 @@ function App() {
 
         {/* 5. 湿度 (Humidity) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Droplets size={18} /> 平均湿度 の推移</h2>
+          <h2 className="chart-title" style={{marginBottom: 0}}><Droplets size={18} /> 湿度</h2>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ height: '350px', width: '100%' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
@@ -852,10 +859,10 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div>
+              </div></div>
               {renderCustomLegend([
-                { label: '毎日の湿度(最低～最高)', type: 'range-bar' },
-                { label: '月の平均湿度', type: 'solid' }
+                { label: '最低～最高', type: 'range-bar' },
+                { label: '月間平均', type: 'solid' }
               ])}
               <MonthsTable 
                 rowsDef={[
