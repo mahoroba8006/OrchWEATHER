@@ -58,3 +58,30 @@
 ### 未完了・次回への引き継ぎ
 - Firestoreセキュリティルールの設定（Firebase Console で手動設定が必要）
 - 今後の拡張候補: 作物マスター、レポート機能など（サブコレクションで追加可能）
+
+---
+
+## 2026-04-20 セッション
+
+### 作業内容
+- Cloudflare ↔ GitHub連携の復旧確認（空コミットpushでWebhook動作確認）
+- リモートURLを `orchweather` → `OrchWEATHER` に修正
+- Firebase AuthorizationドメインにOrchWeather本番URL（orchweather.pages.dev）を追加
+- Firestoreセキュリティルールが本番モード（認証済みユーザーのみ）であることを確認
+- 年間表示ボタンを表示期間セレクトの隣に追加（押すと1月〜12月にリセット）
+- グラフタイトルをシンプル化（気温 / 降水量 / 日射量 / 有効積算温度 / 湿度）
+- グラフ凡例ラベルを整理（最低～最高・月間平均 など）
+- モバイル対応: ヘッダーを縦並びに変更（アイコン・ログアウトを常に右上に固定）
+- モバイル対応: 全5チャートに横スクロール＋minWidth:700px を追加
+- icon.pngをヘッダー・favicon・PWAマニフェストに設定（public/icon.png, manifest.json新規作成）
+- ヘッダーをstickyの白背景バー（Orch.RECITと同デザイン）に変更
+- タイトルフォントサイズを1.8rem→1.3remに縮小
+- Orch.RECIT: 「カメラで撮影」ボタンをslate-800→blue-600に統一
+
+### 決定事項
+- アプリのブランドアイコンはicon.pngに統一（Leafアイコン廃止）
+- ヘッダーデザインはOrch.RECITと統一（白背景・sticky・backdrop-blur）
+
+### 未完了・次回への引き継ぎ
+- 特になし（本番環境正常稼働中）
+- 将来の拡張候補: 作物マスター、レポート機能（Firestoreサブコレクションで追加）
