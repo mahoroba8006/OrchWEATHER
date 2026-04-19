@@ -445,9 +445,9 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <header className="header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid var(--card-border)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <img src="/icon.png" alt="Orch.Weather" style={{ width: 32, height: 32 }} />
             <h1 className="title">Orch.Weather</h1>
@@ -472,7 +472,9 @@ function App() {
             </button>
           </div>
         </div>
+      </header>
 
+      <div className="app-container">
         <div className="controls-bar" style={{ flexDirection: 'column', alignItems: 'stretch', background: 'var(--card-bg)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>表示対象 (最大3件)</span>
@@ -528,7 +530,6 @@ function App() {
             )}
           </div>
         </div>
-      </header>
 
       <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
@@ -880,7 +881,8 @@ function App() {
       </main>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-    </div>
+      </div>
+    </>
   );
 }
 
