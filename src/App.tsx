@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X, LogOut } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -215,6 +215,8 @@ function App() {
         entry[`humid_${target.id}`] = day.humidMean;
         entry[`radiation_${target.id}`] = day.radiation;
         entry[`accumRadiation_${target.id}`] = day.accumRadiation;
+        entry[`sunshine_${target.id}`] = day.sunshineDuration;
+        entry[`accumSunshine_${target.id}`] = day.accumSunshineDuration;
       });
 
       // 12/31：12月と翌年1月の中間値（翌年データがある場合のみ）
@@ -328,6 +330,9 @@ function App() {
         
         const sumRad = monthDays.reduce((sum, d) => sum + d.radiation, 0);
         const meanRad = sumRad / monthDays.length;
+
+        const sumSunshine = monthDays.reduce((sum, d) => sum + d.sunshineDuration, 0);
+        const meanSunshine = sumSunshine / monthDays.length;
         
         let monthAccumSum = 0;
         monthDays.forEach(d => {
@@ -347,6 +352,8 @@ function App() {
           sumPrecip,
           meanRad,
           sumRad,
+          meanSunshine,
+          sumSunshine,
           monthAccumSum,
           monthMeanAccum,
           meanHumid
@@ -375,6 +382,7 @@ function App() {
             if (entry.name.includes('降水')) unit = 'mm';
             if (entry.name.includes('湿度')) unit = '%';
             if (entry.name.includes('日射')) unit = 'MJ/m²';
+            if (entry.name.includes('日照')) unit = 'h';
             let valueStr = typeof entry.value === 'number' ? entry.value.toFixed(1) : '--';
             if (Array.isArray(entry.value) && entry.value.length === 2) {
               valueStr = `${entry.value[0]?.toFixed(1)} ～ ${entry.value[1]?.toFixed(1)}`;
@@ -682,7 +690,72 @@ function App() {
           )}
         </section>
 
-        {/* 3. 日射量 (Solar Radiation) */}
+        {/* 3. 日照時間 (Sunshine Duration) */}
+        <section className="glass-panel" style={sectionStyle}>
+          <h2 className="chart-title" style={{marginBottom: 0}}><Clock size={18} /> 日照時間</h2>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+          ) : (
+            <>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
+                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(h/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(h)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    {targets.map((target, index) => {
+                      const name = `${getLocationName(target.locationId)} ${target.year}年`;
+                      return (
+                        <Bar
+                          key={`sunshine_${target.id}`}
+                          yAxisId="left"
+                          dataKey={`sunshine_${target.id}`}
+                          name={`${name} 日別日照`}
+                          fill={getYearColor(index, 'var(--chart-sunshine)')}
+                          opacity={index === 0 ? 0.5 : 0.3}
+                        />
+                      );
+                    })}
+                    {targets.map((target, index) => {
+                      const name = `${getLocationName(target.locationId)} ${target.year}年`;
+                      return (
+                        <Line
+                          key={`accumSunshine_${target.id}`}
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`accumSunshine_${target.id}`}
+                          name={`${name} 累積日照`}
+                          stroke={getYearColor(index, 'var(--chart-sunshine)')}
+                          dot={false}
+                          strokeWidth={index === 0 ? 3 : 2}
+                          opacity={index === 0 ? 1 : 0.7}
+                        />
+                      );
+                    })}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div></div>
+              {renderCustomLegend([
+                { label: '日照時間', type: 'thin-bar' },
+                { label: '累積日照時間', type: 'solid' }
+              ])}
+              <MonthsTable
+                rowsDef={[
+                  { key: 'meanSunshine', label: '月平均日照時間 (h/日)' },
+                  { key: 'sumSunshine', label: '月合計日照時間 (h)' }
+                ]}
+                targets={targets}
+                stats={monthlyStats}
+                getYearColor={getYearColor}
+                getLocationName={getLocationName}
+              />
+            </>
+          )}
+        </section>
+
+        {/* 4. 日射量 (Solar Radiation) */}
         <section className="glass-panel" style={sectionStyle}>
           <h2 className="chart-title" style={{marginBottom: 0}}><Sun size={18} /> 日射量</h2>
           {loading ? (

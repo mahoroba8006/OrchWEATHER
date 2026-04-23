@@ -16,8 +16,10 @@ export interface DailyWeather {
   humidMax: number;
   humidMin: number;
   radiation: number; // 日射量(MJ/m²)
+  sunshineDuration: number; // 日照時間(h)
   accumPrecip: number;
   accumRadiation: number;
+  accumSunshineDuration: number; // 累積日照時間(h)
 }
 
 export interface WeatherData {
@@ -66,7 +68,7 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
   }
 
   const baseUrl = 'https://archive-api.open-meteo.com/v1/archive';
-  const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum&timezone=Asia%2FTokyo`;
+  const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,sunshine_duration&timezone=Asia%2FTokyo`;
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -78,6 +80,7 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
 
   let currentAccumPrecip = 0;
   let currentAccumRadiation = 0;
+  let currentAccumSunshineDuration = 0;
 
   const processedData: DailyWeather[] = [];
 
@@ -92,9 +95,11 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     const humidMax = daily.relative_humidity_2m_max ? daily.relative_humidity_2m_max[index] : 0;
     const humidMin = daily.relative_humidity_2m_min ? daily.relative_humidity_2m_min[index] : 0;
     const radiation = daily.shortwave_radiation_sum ? daily.shortwave_radiation_sum[index] : 0;
+    const sunshineDuration = daily.sunshine_duration ? (daily.sunshine_duration[index] ?? 0) / 3600 : 0;
 
     currentAccumPrecip += precipSum;
     currentAccumRadiation += radiation;
+    currentAccumSunshineDuration += sunshineDuration;
 
     processedData.push({
       date: timeStr,
@@ -106,8 +111,10 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
       humidMax,
       humidMin,
       radiation,
+      sunshineDuration,
       accumPrecip: currentAccumPrecip,
       accumRadiation: currentAccumRadiation,
+      accumSunshineDuration: currentAccumSunshineDuration,
     });
   });
 
