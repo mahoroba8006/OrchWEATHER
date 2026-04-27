@@ -2,6 +2,21 @@ import { format } from 'date-fns';
 
 const weatherCache = new Map<string, WeatherData>();
 
+const JMA_START_YEAR = 2016;
+
+function getApiConfig(year: number) {
+  if (year >= JMA_START_YEAR) {
+    return {
+      baseUrl: 'https://historical-forecast-api.open-meteo.com/v1/forecast',
+      modelParam: '&models=jma_msm',
+    };
+  }
+  return {
+    baseUrl: 'https://archive-api.open-meteo.com/v1/archive',
+    modelParam: '&models=era5_land',
+  };
+}
+
 function buildCacheKey(lat: number, lon: number, year: number): string {
   return `${lat},${lon},${year}`;
 }
@@ -30,11 +45,12 @@ export interface WeatherData {
 }
 
 async function fetchBoundaryMonthMeans(
-  lat: number, lon: number, startDate: string, endDate: string
+  lat: number, lon: number, startDate: string, endDate: string, year: number
 ): Promise<{ tempMean: number; humidMean: number } | null> {
-  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}`
+  const { baseUrl, modelParam } = getApiConfig(year);
+  const url = `${baseUrl}?latitude=${lat}&longitude=${lon}`
     + `&start_date=${startDate}&end_date=${endDate}`
-    + `&daily=temperature_2m_mean,relative_humidity_2m_mean&timezone=Asia%2FTokyo`;
+    + `&daily=temperature_2m_mean,relative_humidity_2m_mean&timezone=Asia%2FTokyo${modelParam}`;
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -67,8 +83,8 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     endDate = format(yesterday, 'yyyy-MM-dd');
   }
 
-  const baseUrl = 'https://archive-api.open-meteo.com/v1/archive';
-  const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,sunshine_duration&timezone=Asia%2FTokyo`;
+  const { baseUrl, modelParam } = getApiConfig(year);
+  const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,sunshine_duration&timezone=Asia%2FTokyo${modelParam}`;
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -119,8 +135,8 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
   });
 
   const [prevDecMeans, nextJanMeans] = await Promise.all([
-    fetchBoundaryMonthMeans(lat, lon, `${year - 1}-12-01`, `${year - 1}-12-31`),
-    fetchBoundaryMonthMeans(lat, lon, `${year + 1}-01-01`, `${year + 1}-01-31`),
+    fetchBoundaryMonthMeans(lat, lon, `${year - 1}-12-01`, `${year - 1}-12-31`, year - 1),
+    fetchBoundaryMonthMeans(lat, lon, `${year + 1}-01-01`, `${year + 1}-01-31`, year + 1),
   ]);
 
   const result: WeatherData = {
