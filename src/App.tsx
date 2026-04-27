@@ -493,12 +493,12 @@ function App() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
             {targets.map((target, index) => (
-              <div key={target.id} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ width: '4px', height: '100%', minHeight: '36px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
+              <div key={target.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ flexShrink: 0, width: '4px', height: '100%', minHeight: '36px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
                 <select
                   value={target.locationId}
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
-                  style={{ flex: 2, minWidth: '150px' }}
+                  style={{ flex: 2, minWidth: 0 }}
                 >
                   {locations.map(loc => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
@@ -508,7 +508,7 @@ function App() {
                 <select
                   value={target.year}
                   onChange={(e) => updateTarget(target.id, 'year', parseInt(e.target.value, 10))}
-                  style={{ flex: 1, minWidth: '100px' }}
+                  style={{ flex: 1, minWidth: 0 }}
                 >
                   {[...Array(new Date().getFullYear() - 2000 + 1)].map((_, i) => {
                     const y = new Date().getFullYear() - i;
@@ -519,7 +519,7 @@ function App() {
                   <button
                     className="secondary"
                     onClick={() => removeTarget(target.id)}
-                    style={{ color: 'var(--chart-temp)', padding: '0.6rem', border: 'none' }}
+                    style={{ flexShrink: 0, color: 'var(--chart-temp)', padding: '0.6rem', border: 'none' }}
                     title="この行を削除"
                   >
                     <X size={18} />
