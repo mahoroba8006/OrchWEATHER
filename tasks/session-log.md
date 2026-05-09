@@ -86,3 +86,72 @@
 ### 未完了・次回への引き継ぎ
 - 特になし（本番環境正常稼働中）
 - 将来の拡張候補: 作物マスター、レポート機能（Firestoreサブコレクションで追加）
+
+---
+
+## 2026-04-23 セッション
+
+### 作業内容
+- 日照時間チャートを追加（降水量と日射量の間に挿入）
+- Open-Meteo APIに `sunshine_duration` パラメータを追加（秒→時間換算）
+- `DailyWeather` 型に `sunshineDuration` / `accumSunshineDuration` を追加
+- baseChartData・monthlyStats に日照時間データを組み込み
+- チャートは日射量と同パターン（棒グラフ：日別 + 折線：累積）
+- 月間統計テーブル（月平均日照時間/日・月合計日照時間）を追加
+- ツールチップ単位に「日照」→ `h` を追加
+- lucide-react の `Clock` アイコンをチャートタイトルに使用
+
+### 決定事項
+- チャート順序: 気温 → 降水量 → **日照時間** → 日射量 → 有効積算温度 → 湿度
+- アイコン: Clock（時間・duration を象徴）
+- 単位: 時間 (h)、累積は年間合計時間
+
+### 未完了・次回への引き継ぎ
+- 特になし（本番デプロイ済み・Cloudflare Pages 自動反映）
+- 将来の拡張候補: 作物マスター、レポート機能（Firestoreサブコレクションで追加）
+
+---
+
+## 2026-04-27 セッション
+
+### 作業内容
+- Open-MeteoのJMA MSM/LFMモデル移行可否を調査・分析
+- 現在設定（ERA5グローバル、models未指定）を確認
+- JMAモデルはアーカイブAPIでは利用不可・historical-forecast-api経由で2016年〜のみ利用可能であることを確認
+- 全9変数（気温max/min/mean・降水・湿度max/min/mean・日射量・日照時間）がJMA MSMでも取得可能であることを確認
+
+### 決定事項
+- **ハイブリッドモデル切替を採用予定:**
+  - 2016年〜: `historical-forecast-api.open-meteo.com` + `models=jma_msm`（5km解像度）
+  - 2015年以前: `archive-api.open-meteo.com` + `models=era5_land`（9km解像度）
+- 切替ロジックは `getApiConfig(year)` ヘルパー関数で一元管理
+- 変更対象ファイルは `src/api/weather.ts` のみ（約20行の変更）
+
+### 未完了・次回への引き継ぎ
+- ハイブリッドモデル切替の実装（プランはC:\Users\kazma\.claude\plans\vectorized-tinkering-parnas.md に保存済み）
+- 実装後の検証: DevToolsでリクエスト先URLを確認（年別に正しいエンドポイントへ飛ぶか）
+
+---
+
+## 2026-04-27 セッション②
+
+### 作業内容
+- ハイブリッドモデル切替（JMA MSM 2016+ / ERA5-Land 2015-）を実装・デプロイ
+  - `src/api/weather.ts` に `getApiConfig(year)` ヘルパーを追加（約20行）
+  - `fetchWeatherData` / `fetchBoundaryMonthMeans` のURLを切替対応
+  - コミット: 4ced5cc / Cloudflare Pages 自動デプロイ済み
+- モバイルのセレクター行の折り返し問題を修正
+  - `flexWrap: 'wrap'` 削除・`minWidth: 0`・`gap: 0.5rem` に変更
+  - コミット: c541069 / デプロイ済み
+- モバイルチャート視認性改善の調査・案出し（プラン作成、未決定）
+
+### 決定事項
+- ハイブリッドモデル切替: 完了・本番稼働中
+- モバイルセレクター折り返し修正: 完了
+
+### 未完了・次回への引き継ぎ
+- モバイルチャート視認性改善: 3案を検討中（未決定）
+  - 案A: 月次/日次 切替ボタン（推奨）
+  - 案B: エラーバーの太さ・不透明度強調
+  - 案C: モバイルでは折線のみ表示
+  - プランファイル: `C:\Users\kazma\.claude\plans\pc-purrfect-clock.md`
