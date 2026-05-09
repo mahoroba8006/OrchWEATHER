@@ -369,8 +369,12 @@ function App() {
   }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
 
   // 月次表示用のチャートデータ（monthlyStats から12エントリを生成）
+  // 現在年の進行中の月以降は累積値（折線）を出力しない（partial合計で線が低く見える問題を回避）
   const monthlyChartData = useMemo(() => {
     if (Object.keys(monthlyStats).length === 0) return [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
     const entries: any[] = [];
     const accumPrecip: Record<string, number> = {};
     const accumSunshine: Record<string, number> = {};
@@ -383,27 +387,32 @@ function App() {
         const s = monthlyStats[target.id]?.[m];
         if (!s) return;
 
+        const isInProgressMonth = target.year === currentYear && m >= currentMonth;
+
         entry[`t_${target.id}_tempRange`] = [s.minTemp, s.maxTemp];
         entry[`t_${target.id}_monthlyMeanTemp`] = s.meanTemp;
 
         entry[`monthlyPrecip_${target.id}`] = s.sumPrecip;
-        accumPrecip[target.id] = (accumPrecip[target.id] || 0) + s.sumPrecip;
-        entry[`accumPrecip_${target.id}`] = accumPrecip[target.id];
-
         entry[`sunshine_${target.id}`] = s.sumSunshine;
-        accumSunshine[target.id] = (accumSunshine[target.id] || 0) + s.sumSunshine;
-        entry[`accumSunshine_${target.id}`] = accumSunshine[target.id];
-
         entry[`radiation_${target.id}`] = s.sumRad;
-        accumRadiation[target.id] = (accumRadiation[target.id] || 0) + s.sumRad;
-        entry[`accumRadiation_${target.id}`] = accumRadiation[target.id];
-
         entry[`dailyAccum_${target.id}`] = s.monthAccumSum;
-        accumGdd[target.id] = (accumGdd[target.id] || 0) + s.monthAccumSum;
-        entry[`accum_${target.id}`] = accumGdd[target.id];
 
         entry[`humidRange_${target.id}`] = [s.minHumid, s.maxHumid];
         entry[`monthlyHumid_${target.id}`] = s.meanHumid;
+
+        if (!isInProgressMonth) {
+          accumPrecip[target.id] = (accumPrecip[target.id] || 0) + s.sumPrecip;
+          entry[`accumPrecip_${target.id}`] = accumPrecip[target.id];
+
+          accumSunshine[target.id] = (accumSunshine[target.id] || 0) + s.sumSunshine;
+          entry[`accumSunshine_${target.id}`] = accumSunshine[target.id];
+
+          accumRadiation[target.id] = (accumRadiation[target.id] || 0) + s.sumRad;
+          entry[`accumRadiation_${target.id}`] = accumRadiation[target.id];
+
+          accumGdd[target.id] = (accumGdd[target.id] || 0) + s.monthAccumSum;
+          entry[`accum_${target.id}`] = accumGdd[target.id];
+        }
       });
       entries.push(entry);
     }
