@@ -53,6 +53,7 @@ function App() {
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
+  const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -343,7 +344,9 @@ function App() {
         const monthMeanAccum = monthAccumSum / monthDays.length;
         
         const meanHumid = monthDays.reduce((sum, d) => sum + d.humidMean, 0) / monthDays.length;
-        
+        const maxHumid = Math.max(...monthDays.map(d => d.humidMax));
+        const minHumid = Math.min(...monthDays.map(d => d.humidMin));
+
         stats[target.id][m] = {
           meanTemp,
           maxTemp,
@@ -356,12 +359,73 @@ function App() {
           sumSunshine,
           monthAccumSum,
           monthMeanAccum,
-          meanHumid
+          meanHumid,
+          maxHumid,
+          minHumid
         };
       }
     });
     return stats;
   }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
+
+  // 月次表示用のチャートデータ（monthlyStats から12エントリを生成）
+  const monthlyChartData = useMemo(() => {
+    if (Object.keys(monthlyStats).length === 0) return [];
+    const entries: any[] = [];
+    const accumPrecip: Record<string, number> = {};
+    const accumSunshine: Record<string, number> = {};
+    const accumRadiation: Record<string, number> = {};
+    const accumGdd: Record<string, number> = {};
+
+    for (let m = 1; m <= 12; m++) {
+      const entry: any = { dateStr: String(m).padStart(2, '0') };
+      targets.forEach(target => {
+        const s = monthlyStats[target.id]?.[m];
+        if (!s) return;
+
+        entry[`t_${target.id}_tempRange`] = [s.minTemp, s.maxTemp];
+        entry[`t_${target.id}_monthlyMeanTemp`] = s.meanTemp;
+
+        entry[`monthlyPrecip_${target.id}`] = s.sumPrecip;
+        accumPrecip[target.id] = (accumPrecip[target.id] || 0) + s.sumPrecip;
+        entry[`accumPrecip_${target.id}`] = accumPrecip[target.id];
+
+        entry[`sunshine_${target.id}`] = s.sumSunshine;
+        accumSunshine[target.id] = (accumSunshine[target.id] || 0) + s.sumSunshine;
+        entry[`accumSunshine_${target.id}`] = accumSunshine[target.id];
+
+        entry[`radiation_${target.id}`] = s.sumRad;
+        accumRadiation[target.id] = (accumRadiation[target.id] || 0) + s.sumRad;
+        entry[`accumRadiation_${target.id}`] = accumRadiation[target.id];
+
+        entry[`dailyAccum_${target.id}`] = s.monthAccumSum;
+        accumGdd[target.id] = (accumGdd[target.id] || 0) + s.monthAccumSum;
+        entry[`accum_${target.id}`] = accumGdd[target.id];
+
+        entry[`humidRange_${target.id}`] = [s.minHumid, s.maxHumid];
+        entry[`monthlyHumid_${target.id}`] = s.meanHumid;
+      });
+      entries.push(entry);
+    }
+    return entries;
+  }, [monthlyStats, targets]);
+
+  const filteredMonthlyChartData = useMemo(() => {
+    return monthlyChartData.filter(d => {
+      const m = parseInt(d.dateStr, 10);
+      return m >= displayRange.startMM && m <= displayRange.endMM;
+    });
+  }, [monthlyChartData, displayRange]);
+
+  // チャート切替用ヘルパー
+  const isMonthly = chartViewMode === 'monthly';
+  const chartData = isMonthly ? filteredMonthlyChartData : filteredBaseChartData;
+  const gddChartData = isMonthly ? filteredMonthlyChartData : filteredGddChartData;
+  const xTicks = isMonthly ? undefined : filteredFirstOfMonths;
+  const xTickFormatter = isMonthly
+    ? (val: string) => `${parseInt(val, 10)}月`
+    : (val: string) => val.split('-').join('/');
+  const chartMinWidth = isMonthly ? '350px' : '700px';
 
   const getYearColor = (index: number, _baseColor: string) => {
     const targetColors = [
@@ -559,6 +623,28 @@ function App() {
               年間表示
             </button>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: 'auto' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>表示単位</span>
+            <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid rgba(244,167,185,0.6)' }}>
+              {(['daily', 'monthly'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setChartViewMode(mode)}
+                  style={{
+                    padding: '0.35rem 0.8rem',
+                    fontSize: '0.85rem',
+                    background: chartViewMode === mode ? '#f4a7b9' : 'rgba(244,167,185,0.15)',
+                    color: chartViewMode === mode ? '#7a2840' : 'var(--text-secondary)',
+                    border: 'none',
+                    fontWeight: chartViewMode === mode ? 600 : 400,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {mode === 'daily' ? '日次' : '月次'}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -574,18 +660,18 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
                       const color = getYearColor(index, 'var(--chart-temp)');
                       return (
                         <React.Fragment key={target.id}>
-                          <Bar dataKey={`t_${target.id}_tempRange`} name={`${getLocationName(target.locationId)} ${target.year}年 気温(最低-最高)`} fill={color} shape={<CustomRangeBar />} isAnimationActive={false} />
+                          <Bar dataKey={`t_${target.id}_tempRange`} name={`${getLocationName(target.locationId)} ${target.year}年 気温(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
                           <Line type="monotone" dataKey={`t_${target.id}_monthlyMeanTemp`} name={`${getLocationName(target.locationId)} ${target.year}年 月平均気温`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} />
                         </React.Fragment>
                       );
@@ -594,7 +680,7 @@ function App() {
                 </ResponsiveContainer>
               </div></div>
               {renderCustomLegend([
-                { label: '最低～最高', type: 'range-bar' },
+                { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' }
               ])}
               <MonthsTable 
@@ -619,36 +705,37 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
-                        <Bar 
+                        <Bar
                           key={`monthlyPrecip_${target.id}`}
                           yAxisId="left"
-                          dataKey={`monthlyPrecip_${target.id}`} 
-                          name={`${name} 月合計降水`} 
-                          fill={getYearColor(index, 'var(--chart-precip)')} 
-                          shape={<CustomWideBar />}
+                          dataKey={`monthlyPrecip_${target.id}`}
+                          name={`${name} 月合計降水`}
+                          fill={getYearColor(index, 'var(--chart-precip)')}
+                          fillOpacity={isMonthly ? 0.5 : 1}
+                          shape={isMonthly ? undefined : <CustomWideBar />}
                         />
                       );
                     })}
-                    {targets.map((target, index) => {
+                    {!isMonthly && targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
-                        <Bar 
+                        <Bar
                           key={`precip_${target.id}`}
                           yAxisId="left"
-                          dataKey={`precip_${target.id}`} 
-                          name={`${name} 日別降水`} 
-                          fill={getYearColor(index, 'var(--chart-precip)')} 
+                          dataKey={`precip_${target.id}`}
+                          name={`${name} 日別降水`}
+                          fill={getYearColor(index, 'var(--chart-precip)')}
                           opacity={index === 0 ? 0.9 : 0.6}
                         />
                       );
@@ -656,13 +743,13 @@ function App() {
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
-                        <Line 
+                        <Line
                           key={`accumPrecip_${target.id}`}
                           yAxisId="right"
-                          type="monotone" 
-                          dataKey={`accumPrecip_${target.id}`} 
-                          name={`${name} 累積降水`} 
-                          stroke={getYearColor(index, 'var(--chart-precip)')} 
+                          type="monotone"
+                          dataKey={`accumPrecip_${target.id}`}
+                          name={`${name} 累積降水`}
+                          stroke={getYearColor(index, 'var(--chart-precip)')}
                           dot={false}
                           strokeWidth={index === 0 ? 3 : 2}
                           opacity={index === 0 ? 1 : 0.7}
@@ -672,7 +759,10 @@ function App() {
                   </ComposedChart>
                 </ResponsiveContainer>
               </div></div>
-              {renderCustomLegend([
+              {renderCustomLegend(isMonthly ? [
+                { label: '月間降水量', type: 'thick-bar' },
+                { label: '累積降水量', type: 'solid' }
+              ] : [
                 { label: '降水量', type: 'thin-bar' },
                 { label: '月間降水量', type: 'thick-bar' },
                 { label: '累積降水量', type: 'solid' }
@@ -697,12 +787,12 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
-                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(h/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: isMonthly ? '(h/月)' : '(h/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(h)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
@@ -712,7 +802,7 @@ function App() {
                           key={`sunshine_${target.id}`}
                           yAxisId="left"
                           dataKey={`sunshine_${target.id}`}
-                          name={`${name} 日別日照`}
+                          name={isMonthly ? `${name} 月合計日照` : `${name} 日別日照`}
                           fill={getYearColor(index, 'var(--chart-sunshine)')}
                           opacity={index === 0 ? 0.5 : 0.3}
                         />
@@ -762,23 +852,23 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
-                        <Bar 
+                        <Bar
                           key={`radiation_${target.id}`}
                           yAxisId="left"
-                          dataKey={`radiation_${target.id}`} 
-                          name={`${name} 日別日射`} 
-                          fill={getYearColor(index, 'var(--chart-sunshine)')} 
+                          dataKey={`radiation_${target.id}`}
+                          name={isMonthly ? `${name} 月合計日射` : `${name} 日別日射`}
+                          fill={getYearColor(index, 'var(--chart-sunshine)')}
                           opacity={index === 0 ? 0.5 : 0.3}
                         />
                       );
@@ -849,22 +939,22 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredGddChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={gddChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
-                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: isMonthly ? '(℃/月)' : '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
-                        <Bar 
+                        <Bar
                           key={`dailyAccum_${target.id}`}
                           yAxisId="left"
-                          dataKey={`dailyAccum_${target.id}`} 
-                          name={`${name} 日別積算`} 
+                          dataKey={`dailyAccum_${target.id}`}
+                          name={isMonthly ? `${name} 月合計積算` : `${name} 日別積算`}
                           fill={getYearColor(index, 'var(--chart-sunshine)')}
                           opacity={index === 0 ? 0.5 : 0.3}
                         />
@@ -914,11 +1004,11 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: '700px' }}>
+              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={filteredBaseChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={(val) => val.split('-').join('/')} ticks={filteredFirstOfMonths} />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
                     {targets.map((target, index) => {
@@ -926,7 +1016,7 @@ function App() {
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
                         <React.Fragment key={target.id}>
-                          <Bar dataKey={`humidRange_${target.id}`} name={`${name} 湿度(最低-最高)`} fill={color} shape={<CustomRangeBar />} isAnimationActive={false} />
+                          <Bar dataKey={`humidRange_${target.id}`} name={`${name} 湿度(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
                           <Line type="monotone" dataKey={`monthlyHumid_${target.id}`} name={`${name} 月平均湿度`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} />
                         </React.Fragment>
                       );
@@ -935,7 +1025,7 @@ function App() {
                 </ResponsiveContainer>
               </div></div>
               {renderCustomLegend([
-                { label: '最低～最高', type: 'range-bar' },
+                { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' }
               ])}
               <MonthsTable 
