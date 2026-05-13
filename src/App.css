@@ -1,1 +1,56 @@
-/* App specific overrides if any */
+/* App specific overrides */
+
+/* タップ時のオレンジ枠（モバイル既定 tap-highlight）を消す */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Rechartsチャートをタップした際のフォーカス枠を消す */
+.recharts-wrapper,
+.recharts-wrapper svg,
+.recharts-surface,
+.recharts-wrapper:focus,
+.recharts-wrapper svg:focus,
+.recharts-surface:focus,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible,
+section:focus,
+section *:focus {
+  outline: none !important;
+}
+
+/* モバイル: チャートを viewport 端から端まで広げる */
+@media (max-width: 700px) {
+  .app-container {
+    padding: 0.5rem 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* チャートを含むsection: glass-panel の枠線・背景を消し、左右padding を 0 に */
+  main > section.glass-panel {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  main > section.glass-panel:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* sectionの直接子のうち、chart本体以外（タイトル/凡例/表）には横padding を付与 */
+  main > section.glass-panel > *:not(.chart-bleed) {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* chart-bleedは完全に親に広げる */
+  .chart-bleed {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+}

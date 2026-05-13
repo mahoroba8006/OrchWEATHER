@@ -155,3 +155,142 @@
   - 案B: エラーバーの太さ・不透明度強調
   - 案C: モバイルでは折線のみ表示
   - プランファイル: `C:\Users\kazma\.claude\plans\pc-purrfect-clock.md`
+
+---
+
+## 2026-05-10 セッション
+
+### 作業内容
+- **モバイルチャート視認性改善: A案（月次/日次切替）を実装・デプロイ** (1c7315b)
+  - `chartViewMode` state を追加（'daily' | 'monthly'）
+  - 表示期間バー右側に「日次/月次」トグルUIを追加
+  - `monthlyStats` を拡張（`minHumid`, `maxHumid` を追加）
+  - `monthlyChartData` / `filteredMonthlyChartData` useMemo を新設（12エントリ＋累積値）
+  - 切替ヘルパー（`isMonthly`, `chartData`, `xTicks`, `xTickFormatter`, `chartMinWidth`）を導入し全6チャートの分岐を最小化
+  - 月次時: minWidth `350px`（モバイル幅に収まる）、X軸は「1月〜12月」
+  - 気温・湿度の範囲バー: 月次時は `shape={undefined}` でデフォルトバー＋fillOpacity 0.3
+  - 降水量の日別バー: 月次時は非表示（月合計バーと冗長なため）
+- **session-log.md と todo.md のバックフィルコミット** (0a8bf4c)
+  - 04-23、04-27、04-27② の3セッション分のログが未コミットで残っていたため、まとめて `docs:` コミット
+- **月次累積折線の修正** (b80f5ef)
+  - 現在年の進行中月以降は累積系（`accumPrecip`/`accumSunshine`/`accumRadiation`/`accum`）を `undefined` にして折線を前月末で終了
+  - running total にも加算しないため、累積値が partial 月で歪まない
+  - バーは partial データのまま表示（ユーザー要望が「線グラフ」のみだったため）
+  - 日次モードは未変更
+- 予報データ取得可否を調査 → JMA MSM ネイティブ4日／JMA Seamless 11日まで可能だが、本アプリは過去データ可視化が主目的のため**実装見送り**
+
+### 決定事項
+- 月次/日次切替（A案）: 完了・本番稼働中
+- 月次の累積折線は「現在年の進行中月から先は描画しない」方針（partial月で値が歪むのを回避）
+- 予報機能は当面追加しない
+
+### 未完了・次回への引き継ぎ
+- 特になし（本番デプロイ済み・Cloudflare Pages 自動反映）
+- 将来の拡張候補: 作物マスター、レポート機能（Firestoreサブコレクションで追加）
+
+---
+
+## 2026-05-10 セッション②
+
+### 作業内容
+- ユーザーからモバイル表示の見にくさを再指摘（スクリーンショット共有）
+  - 真の問題: tooltipが横にはみ出て見切れる、touch UXが曖昧、tooltipがチャートに被る
+- 水平思考で6案を提案し、**案①+④+⑥** を採用
+  - 案① ヘッダー右側に固定の値表示（Apple Health/Yahoo!天気パターン）
+  - 案④ 横幅100%化（minWidth/overflow撤去・ChartFrame共通化）
+  - 案⑥ 月次バーに数値ラベル直接刻印（タップ不要で値が見える）
+
+### 実装内容（**未コミット**）
+- `ChartFrame` 共通コンポーネントを追加（月次=width 100%、日次=従来通り700px+横スクロール）
+- 6チャートの `<div style={{ overflowX: 'auto' }}><div style={{ minWidth: chartMinWidth }}>` を `<ChartFrame>` に統一
+- `LabelList` を import し、月次モード時のみバー/折線に数値ラベルを表示
+  - 単一値バー（降水/日照/日射/積算）: 全target に整数ラベル
+  - 月平均線（気温/湿度）: target[0] のみラベル（複数target重なり回避）
+  - 範囲バー（気温tempRange/湿度humidRange）はスキップ
+- Recharts標準 Tooltip を `content={() => null}` でブロックに変更（カーソル線は残す）
+- `hover` state（`{ chartId, payload, label }`）を追加
+- 各 ComposedChart に `{...makeHoverHandlers(chartId)}` を spread → onMouseMove/onMouseLeave で hover 更新
+- 各セクションのタイトル行に `renderActivePanel(chartId)` を追加
+  - 形式: `[月日] [target色] メトリック名 [値+単位]` (横並び flexWrap)
+- `CustomTooltip` 関数は廃止（`formatHoverEntry` / `formatHoverLabel` ヘルパーに置換）
+
+### 決定事項
+- 標準 tooltip は完全廃止（モバイル touch UX対策として）
+- ヘッダー値表示はチャートタイトル右側に固定
+- 月次バーに数値ラベル → 単純な傾向把握はタップ不要に
+
+### 未完了・次回への引き継ぎ
+- **コードは全てローカル実装済みだが未コミット**（`src/App.tsx` modified）
+  - ユーザーが実機確認後に判断する流れ
+  - 確認OKなら `feat: improve mobile chart UX (header-fixed values, label inscriptions, full-width)` 等でコミット → push
+  - 不具合あれば追加修正してから commit
+- 案④の追加圧縮（Y軸幅/フォント・凡例コンパクト化）は未着手 → 必要なら別タスクで
+- ビルド・型チェックは通過済み（`npm run build` OK）
+- dev server は停止済み
+
+### 確認ポイント（次回）
+- モバイル DevTools 375px で:
+  - 月次バーの数値ラベル可読性
+  - タップ時のヘッダー値表示が正しく出るか
+  - 標準 tooltip が出ていないか確認
+  - 値表示が見切れていないか（複数targetで横幅が足りるか）
+- 日次モードでも値表示パネルが機能するか（onMouseMove でtouch対応）
+
+---
+
+## 2026-05-13 セッション
+
+### 作業内容
+- 前回トークン切れセッションの現状確認・整理
+- B案（Bitgo風モバイルチャートUX）の実装状況を `git diff` + `npm run build` で確認
+  - ビルド通過確認済み（型エラーなし）
+
+### 判明した実装済み内容（未コミット）
+- `ChartFrame` コンポーネント：全モード `width: 100%`、pointer events でパン検出内蔵
+- `dailyViewport` state（90日ウィンドウ、データ読み込み完了時に末尾90日にリセット）
+- `visibleChartData` / `visibleGddChartData`：viewport スライスで表示範囲を絞り込み
+- `handlePointerDown` / `handlePointerMove` / `handlePointerUp`：drag/tap 分離（閾値5px）
+- `makeHoverHandlers`：onMouseMove/onClick で hover state 更新（onClick はタッチフォールバック）
+- `makeCrosshair`（Customized）：横点線 + X軸日付タグ（黒ボックス）
+- `renderActivePanel`：チャートタイトル右の値表示パネル
+- `LabelList` 月次バー数値刻印（step 6）
+- Y軸 `mirror: true` + `width: 30` でチャートを画面端から端まで拡張
+- `ResizeObserver` でチャートピクセル幅を計測（パン時のdx→indices換算用）
+
+### 決定事項
+- B案の実装はほぼ完了（todo ステップ1〜7 完了、ステップ8〜9 未実施）
+
+### 未完了・次回への引き継ぎ
+- **dev server での実機確認（375px DevTools）が未実施**
+  - 日次モード: 100%幅・初期末尾90日・ドラッグでパン・タップで値表示・crosshair
+  - 月次モード: 変化なし（12点固定）
+- 確認OKなら `feat: Bitgo-style mobile chart UX (pan viewport, crosshair, full-width)` でコミット → push
+- 不具合あれば追加修正してから commit
+
+---
+
+## 2026-05-13 セッション②
+
+### 作業内容
+- **日次モードの表示変更（3項目）**
+  - 気温チャート「月平均気温」: 日次モードではパネルに値を表示しないよう `renderActivePanel` フィルタを追加
+  - 湿度チャート「月平均湿度」: 同上
+  - 降水量チャート「月合計降水量」: 同上 + 日次モードでも棒グラフ上部に数値表示（LabelList の `isMonthly &&` 条件を撤廃）
+- **ホバーパネルがすぐ消える問題を修正**
+  - `handlePointerMove` から `setHover(null)` を削除（5px移動でパネルが消えていたのが原因）
+  - `handlePointerUp` でパン完了後のみ `setHover(null)`（パン後は古い値をクリア）
+  - `handlePointerLeave` 追加（`pointerType !== 'touch'` のみクリア）
+  - `chartFrame` に `onPointerLeave={handlePointerLeave}` を追加
+  - ビルド通過確認済み
+
+### 決定事項
+- 日次モードの月平均気温・月平均湿度・月合計降水はパネル非表示（日次で月値を見る必要性が低い）
+- 降水量の月合計バーは日次でも数値刻印（月次と同様）
+- ホバーパネルの維持ロジック：タッチはタップ後も表示維持、マウスはチャート外に出たらクリア
+
+### 未完了・次回への引き継ぎ
+- **動作確認がまだ未実施**（dev server で実機確認が必要）
+  - ホバーパネルがカーソルを当てている間維持されるか
+  - 日次モードで月合計降水バーに数値が表示されるか
+  - 気温・湿度の月平均線はパネルに出ないか
+- 確認OKなら commit & push

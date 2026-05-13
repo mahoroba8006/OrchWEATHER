@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
-import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from 'recharts';
+import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsModal } from './SettingsModal';
@@ -54,6 +54,29 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
+  const [hover, setHover] = useState<{ chartId: string; payload: any[]; label: string } | null>(null);
+  const pendingHoverRef = useRef<{ chartId: string; payload: any[]; label: string } | null>(null);
+  const hoverRafRef = useRef<number>(0);
+
+  // Bitgo風: 日次モードのパン可能ウィンドウ（365日）
+  const DAILY_WINDOW = 365;
+  const [dailyViewport, setDailyViewport] = useState<{ start: number; end: number } | null>(null);
+  const panRef = useRef<{ startX: number; startViewportStart: number; dragging: boolean; chartId: string } | null>(null);
+  const panRafRef = useRef<number>(0);
+  const pendingViewportRef = useRef<{ start: number; end: number } | null>(null);
+  const chartFrameRef = useRef<HTMLDivElement | null>(null);
+  const [chartPixelWidth, setChartPixelWidth] = useState(300);
+
+  // チャート幅をresizeに合わせて計測（pan時の dx → indices 換算用）
+  // 計測対象は first ChartFrame（loading解除後にmountするため callback ref で観測開始）
+  const chartFrameCbRef = useCallback((el: HTMLDivElement | null) => {
+    chartFrameRef.current = el;
+    if (!el) return;
+    setChartPixelWidth(el.offsetWidth);
+    const obs = new ResizeObserver(() => setChartPixelWidth(el.offsetWidth));
+    obs.observe(el);
+    (el as any).__obs = obs;
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -430,11 +453,129 @@ function App() {
   const isMonthly = chartViewMode === 'monthly';
   const chartData = isMonthly ? filteredMonthlyChartData : filteredBaseChartData;
   const gddChartData = isMonthly ? filteredMonthlyChartData : filteredGddChartData;
-  const xTicks = isMonthly ? undefined : filteredFirstOfMonths;
-  const xTickFormatter = isMonthly
+  const xTickFormatterBase = isMonthly
     ? (val: string) => `${parseInt(val, 10)}月`
     : (val: string) => val.split('-').join('/');
-  const chartMinWidth = isMonthly ? '350px' : '700px';
+
+  // 日次データのレンジが変わるたびに viewport を末尾90日にリセット
+  useEffect(() => {
+    const total = filteredBaseChartData.length;
+    if (total === 0) { setDailyViewport(null); return; }
+    const w = Math.min(DAILY_WINDOW, total);
+    setDailyViewport({ start: total - w, end: total });
+  }, [filteredBaseChartData.length]);
+
+  // pan用: 表示中サブセット（月次はそのまま）
+  const visibleChartData = useMemo(() => {
+    if (isMonthly || !dailyViewport) return chartData;
+    return chartData.slice(dailyViewport.start, dailyViewport.end);
+  }, [chartData, isMonthly, dailyViewport]);
+
+  const visibleGddChartData = useMemo(() => {
+    if (isMonthly || !dailyViewport) return gddChartData;
+    return gddChartData.slice(dailyViewport.start, dailyViewport.end);
+  }, [gddChartData, isMonthly, dailyViewport]);
+
+  // X軸の月始ティックも表示範囲内に絞る（範囲外はラベル消す）
+  const xTicks = useMemo(() => {
+    if (isMonthly) return undefined;
+    if (!dailyViewport) return filteredFirstOfMonths;
+    const visibleSet = new Set(visibleChartData.map((d: any) => d.dateStr));
+    return filteredFirstOfMonths.filter(t => visibleSet.has(t));
+  }, [filteredFirstOfMonths, visibleChartData, dailyViewport, isMonthly]);
+
+  const xTickFormatter = xTickFormatterBase;
+
+  // Y軸を mirror 表示にしてチャートを画面端から端まで拡張するための共通props
+  // (グラフ上にラベルが重なるが、ユーザー要望でOK)
+  // ※ SVG fill は CSS変数を解決しないので実色を直接指定する
+  const yAxisCommon = {
+    width: 30,
+    mirror: true,
+    axisLine: false,
+    tickLine: false,
+    tick: { fontSize: 10, fill: '#94a3b8' },
+  } as const;
+  const yAxisCommonRight = { ...yAxisCommon } as const;
+  const chartMargin = { top: 25, right: 0, left: 0, bottom: 0 };
+
+  // Pointer events によるパンハンドラ
+  // Recharts は onMouseDown/Up を発火しないため、ChartFrameのラッパdivで検出する。
+  const justDraggedRef = useRef(false);
+
+  const handlePointerDown = (chartId: string) => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isMonthly || !dailyViewport) return;
+    panRef.current = {
+      startX: e.clientX,
+      startViewportStart: dailyViewport.start,
+      dragging: false,
+      chartId,
+    };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!panRef.current || !dailyViewport) return;
+    const dx = e.clientX - panRef.current.startX;
+    if (!panRef.current.dragging && Math.abs(dx) > 5) {
+      panRef.current.dragging = true;
+      try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+    }
+    if (panRef.current.dragging) {
+      e.preventDefault();
+      const windowSize = dailyViewport.end - dailyViewport.start;
+      const totalLen = chartData.length;
+      const plotWidth = Math.max(1, chartPixelWidth - 8);
+      const shift = Math.round(-dx / plotWidth * windowSize);
+      const newStart = Math.max(0, Math.min(totalLen - windowSize, panRef.current.startViewportStart + shift));
+      pendingViewportRef.current = { start: newStart, end: newStart + windowSize };
+      if (!panRafRef.current) {
+        panRafRef.current = requestAnimationFrame(() => {
+          panRafRef.current = 0;
+          const v = pendingViewportRef.current;
+          if (v) setDailyViewport(v);
+        });
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (panRef.current?.dragging) {
+      justDraggedRef.current = true;
+      window.setTimeout(() => { justDraggedRef.current = false; }, 150);
+      try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+      setHover(null); // パン後は表示位置がずれるのでクリア
+    }
+    panRef.current = null;
+  };
+
+  // マウスがチャート外へ出たらパネルをクリア（タッチはタップ後も値を維持するためスキップ）
+  const handlePointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
+    setHover(null);
+  };
+
+  // 全モード 横幅100%。render ヘルパー（コンポーネントでなく関数）にすることで
+  // state 更新時の App 再描画でもアンマウント→マウントが起きないようにしている
+  const chartFrame = (chartId: string, children: React.ReactNode, measure?: boolean) => (
+    <div
+      ref={measure ? chartFrameCbRef : undefined}
+      className="chart-bleed"
+      onPointerDown={handlePointerDown(chartId)}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
+      style={{
+        position: 'relative',
+        width: '100%',
+        touchAction: isMonthly ? 'auto' : 'pan-y',
+      }}
+    >
+      <div style={{ height: '350px', width: '100%' }}>
+        {children}
+      </div>
+    </div>
+  );
 
   const getYearColor = (index: number, _baseColor: string) => {
     const targetColors = [
@@ -445,32 +586,90 @@ function App() {
     return targetColors[index % targetColors.length];
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', padding: '10px', borderRadius: '8px', boxShadow: 'var(--shadow-md)' }}>
-          <p style={{ margin: '0 0 5px', fontWeight: 'bold' }}>{label}</p>
-          {payload.map((entry: any, index: number) => {
-            let unit = '℃';
-            if (entry.name.includes('降水')) unit = 'mm';
-            if (entry.name.includes('湿度')) unit = '%';
-            if (entry.name.includes('日射')) unit = 'MJ/m²';
-            if (entry.name.includes('日照')) unit = 'h';
-            let valueStr = typeof entry.value === 'number' ? entry.value.toFixed(1) : '--';
-            if (Array.isArray(entry.value) && entry.value.length === 2) {
-              valueStr = `${entry.value[0]?.toFixed(1)} ～ ${entry.value[1]?.toFixed(1)}`;
-            }
-            return (
-              <div key={index} style={{ color: entry.color, fontSize: '0.875rem' }}>
-                {entry.name}: {valueStr} {unit}
-              </div>
-            );
-          })}
-        </div>
-      );
+  // ホバー状態 → ヘッダーに表示する固定値パネルへ流し込むためのヘルパー
+  const formatHoverLabel = (label: string) => {
+    if (!label) return '';
+    if (label.includes('-')) {
+      const [mm, dd] = label.split('-');
+      return `${parseInt(mm, 10)}/${parseInt(dd, 10)}`;
+    }
+    return `${parseInt(label, 10)}月`;
+  };
+
+  const formatHoverEntry = (entry: any) => {
+    let unit = '℃';
+    if (entry.name.includes('降水')) unit = 'mm';
+    else if (entry.name.includes('湿度')) unit = '%';
+    else if (entry.name.includes('日射')) unit = 'MJ/m²';
+    else if (entry.name.includes('日照')) unit = 'h';
+    if (Array.isArray(entry.value) && entry.value.length === 2) {
+      return `${entry.value[0]?.toFixed(1)}～${entry.value[1]?.toFixed(1)}${unit}`;
+    }
+    if (typeof entry.value !== 'number') return '--';
+    const isIntegerLike = entry.name.includes('降水') || entry.name.includes('日照') || entry.name.includes('日射') || entry.name.includes('積算');
+    return `${isIntegerLike ? Math.round(entry.value) : entry.value.toFixed(1)}${unit}`;
+  };
+
+  const renderActivePanel = (chartId: string) => {
+    // デバッグ: hover未設定でも一目で状態が分かるよう簡易インジケータ
+    if (hover?.chartId !== chartId) return <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', color: '#94a3b8' }}>（タップして値表示）</span>;
+    if (!hover.payload?.length) return <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', color: '#94a3b8' }}>(payload空 label={String(hover.label)})</span>;
+    const items = hover.payload.filter((p: any) => {
+      if (p.value == null || p.value === undefined) return false;
+      if (!isMonthly && (
+        p.name?.includes('月平均気温') ||
+        p.name?.includes('月平均湿度') ||
+        p.name?.includes('月合計降水')
+      )) return false;
+      return true;
+    });
+    if (items.length === 0) return <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', color: '#94a3b8' }}>(値なし label={String(hover.label)})</span>;
+    return (
+      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.25rem 0.6rem', marginLeft: '0.5rem', flex: 1, justifyContent: 'flex-end' }}>
+        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{formatHoverLabel(hover.label)}</span>
+        {items.map((p: any, i: number) => {
+          const metric = p.name.split(' ').slice(2).join(' ') || p.name;
+          return (
+            <span key={i} style={{ color: p.color, whiteSpace: 'nowrap' }}>
+              {metric} <strong>{formatHoverEntry(p)}</strong>
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Recharts v3 では onMouseMove から activePayload が削除されたため、
+  // <Tooltip content={fn}> 経由でペイロードを受け取る方式に変更。
+  // setHover は RAF でスロットリング（最大 60fps）し、render中の setState 連鎖を防ぐ。
+  const makeTooltipContent = useCallback((chartId: string) => (props: any) => {
+    const { payload, label, active } = props;
+    if (active && payload?.length && label != null) {
+      pendingHoverRef.current = { chartId, payload: payload as any[], label };
+      if (!hoverRafRef.current) {
+        hoverRafRef.current = requestAnimationFrame(() => {
+          hoverRafRef.current = 0;
+          const p = pendingHoverRef.current;
+          if (p) setHover(prev =>
+            prev?.chartId === p.chartId && prev?.label === p.label ? prev
+              : { chartId: p.chartId, payload: p.payload, label: p.label }
+          );
+        });
+      }
     }
     return null;
-  };
+  }, []);
+
+  // tooltip content 関数をメモ化：JSX 内でインライン呼び出しすると毎描画で新参照になり
+  // Recharts が cascade 再描画するため、useMemo で安定させる。
+  const tooltipContents = useMemo(() => ({
+    temp: makeTooltipContent('temp'),
+    precip: makeTooltipContent('precip'),
+    sunshine: makeTooltipContent('sunshine'),
+    radiation: makeTooltipContent('radiation'),
+    gdd: makeTooltipContent('gdd'),
+    humid: makeTooltipContent('humid'),
+  }), [makeTooltipContent]);
 
   const sectionStyle = {
     padding: '1.5rem',
@@ -664,30 +863,39 @@ function App() {
 
         {/* 1. 気温 (Temperature) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Thermometer size={18} /> 気温</h2>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
+            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Thermometer size={18} /> 気温</h2>
+            {renderActivePanel('temp')}
+          </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
+              {chartFrame('temp', (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
+                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={tooltipContents.temp} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+
+
                     {targets.map((target, index) => {
                       const color = getYearColor(index, 'var(--chart-temp)');
                       return (
                         <React.Fragment key={target.id}>
                           <Bar dataKey={`t_${target.id}_tempRange`} name={`${getLocationName(target.locationId)} ${target.year}年 気温(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
-                          <Line type="monotone" dataKey={`t_${target.id}_monthlyMeanTemp`} name={`${getLocationName(target.locationId)} ${target.year}年 月平均気温`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} />
+                          <Line type="monotone" dataKey={`t_${target.id}_monthlyMeanTemp`} name={`${getLocationName(target.locationId)} ${target.year}年 月平均気温`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                            {isMonthly && index === 0 && (
+                              <LabelList dataKey={`t_${target.id}_monthlyMeanTemp`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(1) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                            )}
+                          </Line>
                         </React.Fragment>
                       );
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div></div>
+              ), true)}
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' }
@@ -709,31 +917,38 @@ function App() {
 
         {/* 2. 降水量 (Precipitation) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><CloudRain size={18} /> 降水量</h2>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
+            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><CloudRain size={18} /> 降水量</h2>
+            {renderActivePanel('precip')}
+          </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
+              {chartFrame('precip', (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
+                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={tooltipContents.precip} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
+                      const color = getYearColor(index, 'var(--chart-precip)');
                       return (
                         <Bar
                           key={`monthlyPrecip_${target.id}`}
                           yAxisId="left"
                           dataKey={`monthlyPrecip_${target.id}`}
                           name={`${name} 月合計降水`}
-                          fill={getYearColor(index, 'var(--chart-precip)')}
+                          fill={color}
                           fillOpacity={isMonthly ? 0.5 : 1}
                           shape={isMonthly ? undefined : <CustomWideBar />}
-                        />
+                        >
+                          <LabelList dataKey={`monthlyPrecip_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                        </Bar>
                       );
                     })}
                     {!isMonthly && targets.map((target, index) => {
@@ -762,12 +977,13 @@ function App() {
                           dot={false}
                           strokeWidth={index === 0 ? 3 : 2}
                           opacity={index === 0 ? 1 : 0.7}
+                          isAnimationActive={false}
                         />
                       );
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div></div>
+              ))}
               {renderCustomLegend(isMonthly ? [
                 { label: '月間降水量', type: 'thick-bar' },
                 { label: '累積降水量', type: 'solid' }
@@ -791,30 +1007,39 @@ function App() {
 
         {/* 3. 日照時間 (Sunshine Duration) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Clock size={18} /> 日照時間</h2>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
+            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Clock size={18} /> 日照時間</h2>
+            {renderActivePanel('sunshine')}
+          </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
+              {chartFrame('sunshine', (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: isMonthly ? '(h/月)' : '(h/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(h)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
+                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: isMonthly ? '(h/月)' : '(h/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(h)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={tooltipContents.sunshine} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
+                      const color = getYearColor(index, 'var(--chart-sunshine)');
                       return (
                         <Bar
                           key={`sunshine_${target.id}`}
                           yAxisId="left"
                           dataKey={`sunshine_${target.id}`}
                           name={isMonthly ? `${name} 月合計日照` : `${name} 日別日照`}
-                          fill={getYearColor(index, 'var(--chart-sunshine)')}
+                          fill={color}
                           opacity={index === 0 ? 0.5 : 0.3}
-                        />
+                        >
+                          {isMonthly && (
+                            <LabelList dataKey={`sunshine_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                          )}
+                        </Bar>
                       );
                     })}
                     {targets.map((target, index) => {
@@ -830,12 +1055,13 @@ function App() {
                           dot={false}
                           strokeWidth={index === 0 ? 3 : 2}
                           opacity={index === 0 ? 1 : 0.7}
+                          isAnimationActive={false}
                         />
                       );
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div></div>
+              ))}
               {renderCustomLegend([
                 { label: '日照時間', type: 'thin-bar' },
                 { label: '累積日照時間', type: 'solid' }
@@ -856,51 +1082,61 @@ function App() {
 
         {/* 4. 日射量 (Solar Radiation) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Sun size={18} /> 日射量</h2>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
+            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Sun size={18} /> 日射量</h2>
+            {renderActivePanel('radiation')}
+          </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
+              {chartFrame('radiation', (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
+                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={tooltipContents.radiation} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
+                      const color = getYearColor(index, 'var(--chart-sunshine)');
                       return (
                         <Bar
                           key={`radiation_${target.id}`}
                           yAxisId="left"
                           dataKey={`radiation_${target.id}`}
                           name={isMonthly ? `${name} 月合計日射` : `${name} 日別日射`}
-                          fill={getYearColor(index, 'var(--chart-sunshine)')}
+                          fill={color}
                           opacity={index === 0 ? 0.5 : 0.3}
-                        />
+                        >
+                          {isMonthly && (
+                            <LabelList dataKey={`radiation_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                          )}
+                        </Bar>
                       );
                     })}
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
-                        <Line 
+                        <Line
                           key={`accumRadiation_${target.id}`}
                           yAxisId="right"
-                          type="monotone" 
-                          dataKey={`accumRadiation_${target.id}`} 
-                          name={`${name} 累積日射`} 
-                          stroke={getYearColor(index, 'var(--chart-sunshine)')} 
+                          type="monotone"
+                          dataKey={`accumRadiation_${target.id}`}
+                          name={`${name} 累積日射`}
+                          stroke={getYearColor(index, 'var(--chart-sunshine)')}
                           dot={false}
                           strokeWidth={index === 0 ? 3 : 2}
                           opacity={index === 0 ? 1 : 0.7}
+                          isAnimationActive={false}
                         />
                       );
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div></div>
+              ))}
               {renderCustomLegend([
                 { label: '日射量', type: 'thin-bar' },
                 { label: '累積日射量', type: 'solid' }
@@ -922,7 +1158,10 @@ function App() {
         {/* 4. 有効積算温度 (Accumulated Temperature) */}
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0 }}><Leaf size={18} /> 有効積算温度</h2>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem', flex: 1 }}>
+              <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Leaf size={18} /> 有効積算温度</h2>
+              {renderActivePanel('gdd')}
+            </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => (
                 <button
@@ -948,46 +1187,53 @@ function App() {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
+              {chartFrame('gdd', (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={gddChartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={visibleGddChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: isMonthly ? '(℃/月)' : '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" stroke="var(--text-secondary)" tick={{fontSize: 12}} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
+                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: isMonthly ? '(℃/月)' : '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={tooltipContents.gdd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
+                      const color = getYearColor(index, 'var(--chart-sunshine)');
                       return (
                         <Bar
                           key={`dailyAccum_${target.id}`}
                           yAxisId="left"
                           dataKey={`dailyAccum_${target.id}`}
                           name={isMonthly ? `${name} 月合計積算` : `${name} 日別積算`}
-                          fill={getYearColor(index, 'var(--chart-sunshine)')}
+                          fill={color}
                           opacity={index === 0 ? 0.5 : 0.3}
-                        />
+                        >
+                          {isMonthly && (
+                            <LabelList dataKey={`dailyAccum_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                          )}
+                        </Bar>
                       );
                     })}
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
-                        <Line 
+                        <Line
                           key={`accum_${target.id}`}
                           yAxisId="right"
-                          type="monotone" 
-                          dataKey={`accum_${target.id}`} 
-                          name={`${name} 累積積算`} 
+                          type="monotone"
+                          dataKey={`accum_${target.id}`}
+                          name={`${name} 累積積算`}
                           stroke={getYearColor(index, 'var(--chart-sunshine)')}
                           dot={false}
                           strokeWidth={index === 0 ? 3 : 2}
                           opacity={index === 0 ? 1 : 0.7}
+                          isAnimationActive={false}
                         />
                       );
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div></div>
+              ))}
               {renderCustomLegend([
                 { label: '有効積算温度', type: 'thin-bar' },
                 { label: '累積有効積算温度', type: 'solid' }
@@ -1008,31 +1254,39 @@ function App() {
 
         {/* 5. 湿度 (Humidity) */}
         <section className="glass-panel" style={sectionStyle}>
-          <h2 className="chart-title" style={{marginBottom: 0}}><Droplets size={18} /> 湿度</h2>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
+            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Droplets size={18} /> 湿度</h2>
+            {renderActivePanel('humid')}
+          </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
           ) : (
             <>
-              <div style={{ overflowX: 'auto' }}><div style={{ height: '350px', minWidth: chartMinWidth }}>
+              {chartFrame('humid', (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
+                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={tooltipContents.humid} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
                         <React.Fragment key={target.id}>
                           <Bar dataKey={`humidRange_${target.id}`} name={`${name} 湿度(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
-                          <Line type="monotone" dataKey={`monthlyHumid_${target.id}`} name={`${name} 月平均湿度`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} />
+                          <Line type="monotone" dataKey={`monthlyHumid_${target.id}`} name={`${name} 月平均湿度`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                            {isMonthly && index === 0 && (
+                              <LabelList dataKey={`monthlyHumid_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                            )}
+                          </Line>
                         </React.Fragment>
                       );
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              </div></div>
+              ))}
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' }
