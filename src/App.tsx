@@ -48,13 +48,23 @@ const CustomRangeBar = (props: any) => {
   );
 };
 
+type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid';
+
+const CHART_TABS: { id: ChartId; label: string }[] = [
+  { id: 'temp',      label: '気温' },
+  { id: 'precip',    label: '降水量' },
+  { id: 'sunshine',  label: '日照時間' },
+  { id: 'radiation', label: '日射量' },
+  { id: 'gdd',       label: '積算温度' },
+  { id: 'humid',     label: '湿度' },
+];
+
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
-  type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid';
   const [activeChart, setActiveChart] = useState<ChartId>('temp');
   const [hover, setHover] = useState<{ chartId: string; payload: any[]; label: string } | null>(null);
   const pendingHoverRef = useRef<{ chartId: string; payload: any[]; label: string } | null>(null);
@@ -891,55 +901,43 @@ function App() {
         </div>
 
         {/* チャート選択タブ */}
-        {(() => {
-          const CHART_TABS: { id: ChartId; label: string }[] = [
-            { id: 'temp',      label: '気温' },
-            { id: 'precip',    label: '降水量' },
-            { id: 'sunshine',  label: '日照時間' },
-            { id: 'radiation', label: '日射量' },
-            { id: 'gdd',       label: '積算温度' },
-            { id: 'humid',     label: '湿度' },
-          ];
-          return (
-            <div
-              className="glass-panel"
+        <div
+          className="glass-panel"
+          style={{
+            padding: '0.5rem 1rem',
+            display: 'flex',
+            gap: '0.5rem',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {CHART_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveChart(tab.id)}
               style={{
-                padding: '0.5rem 1rem',
-                display: 'flex',
-                gap: '0.5rem',
-                overflowX: 'auto',
-                scrollbarWidth: 'none',
+                flexShrink: 0,
+                padding: '0.3rem 0.9rem',
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                border: activeChart === tab.id
+                  ? '1px solid #f4a7b9'
+                  : '1px solid rgba(244,167,185,0.35)',
+                background: activeChart === tab.id
+                  ? '#f4a7b9'
+                  : 'transparent',
+                color: activeChart === tab.id
+                  ? '#7a2840'
+                  : 'var(--text-secondary)',
+                fontWeight: activeChart === tab.id ? 700 : 400,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
-              {CHART_TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveChart(tab.id)}
-                  style={{
-                    flexShrink: 0,
-                    padding: '0.3rem 0.9rem',
-                    borderRadius: '20px',
-                    fontSize: '0.85rem',
-                    border: activeChart === tab.id
-                      ? '1px solid #f4a7b9'
-                      : '1px solid rgba(244,167,185,0.35)',
-                    background: activeChart === tab.id
-                      ? '#f4a7b9'
-                      : 'transparent',
-                    color: activeChart === tab.id
-                      ? '#7a2840'
-                      : 'var(--text-secondary)',
-                    fontWeight: activeChart === tab.id ? 700 : 400,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          );
-        })()}
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
         {error && (
           <div style={{ padding: '1rem', background: 'rgba(244, 63, 94, 0.2)', border: '1px solid var(--chart-temp)', borderRadius: '8px', color: 'var(--text-primary)' }}>
@@ -1069,7 +1067,7 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              ))}
+              ), true)}
               {renderCustomLegend(isMonthly ? [
                 { label: '月間降水量', type: 'thick-bar' },
                 { label: '累積降水量', type: 'solid' }
@@ -1149,7 +1147,7 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              ))}
+              ), true)}
               {renderCustomLegend([
                 { label: '日照時間', type: 'thin-bar' },
                 { label: '累積日照時間', type: 'solid' }
@@ -1226,7 +1224,7 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              ))}
+              ), true)}
               {renderCustomLegend([
                 { label: '日射量', type: 'thin-bar' },
                 { label: '累積日射量', type: 'solid' }
@@ -1325,7 +1323,7 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              ))}
+              ), true)}
               {renderCustomLegend([
                 { label: '有効積算温度', type: 'thin-bar' },
                 { label: '累積有効積算温度', type: 'solid' }
