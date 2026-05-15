@@ -698,7 +698,8 @@ function App() {
       if (!isMonthly && (
         p.name?.includes('月平均気温') ||
         p.name?.includes('月平均湿度') ||
-        p.name?.includes('月合計降水')
+        p.name?.includes('月合計降水') ||
+        p.name?.includes('月平均最高飽差')
       )) return false;
       return true;
     });
