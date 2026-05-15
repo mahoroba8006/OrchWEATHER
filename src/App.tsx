@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
-import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
+import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList, ReferenceArea } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsModal } from './SettingsModal';
@@ -193,7 +193,8 @@ function App() {
       const monthlyMean = new Map<string, number>();
       const monthlyPrecipSum = new Map<string, number>();
       const monthlyHumidMean = new Map<string, number>();
-      const monthlyVpdMinMean = new Map<string, number>();
+      const monthlyVpdMeanMap = new Map<string, number>();
+      const monthlyVpdMaxMean = new Map<string, number>();
       for (let m = 1; m <= 12; m++) {
         const monthStr = m.toString().padStart(2, '0');
         const daysInMonth = data.daily.filter(d => d.date.substring(5, 7) === monthStr);
@@ -207,8 +208,11 @@ function App() {
           const sumHumid = daysInMonth.reduce((acc, d) => acc + d.humidMean, 0);
           monthlyHumidMean.set(monthStr, sumHumid / daysInMonth.length);
 
-          const sumVpdMin = daysInMonth.reduce((acc, d) => acc + calcVPD(d.tempMin, d.humidMax), 0);
-          monthlyVpdMinMean.set(monthStr, sumVpdMin / daysInMonth.length);
+          const sumVpdMean = daysInMonth.reduce((acc, d) => acc + calcVPD(d.tempMean, d.humidMean), 0);
+          monthlyVpdMeanMap.set(monthStr, sumVpdMean / daysInMonth.length);
+
+          const sumVpdMax = daysInMonth.reduce((acc, d) => acc + calcVPD(d.tempMax, d.humidMin), 0);
+          monthlyVpdMaxMean.set(monthStr, sumVpdMax / daysInMonth.length);
         }
       }
 
@@ -233,8 +237,8 @@ function App() {
           if (monthlyHumidMean.has(monthStr)) {
             entry[`monthlyHumid_${target.id}`] = monthlyHumidMean.get(monthStr);
           }
-          if (monthlyVpdMinMean.has(monthStr)) {
-            entry[`monthlyMeanVpdMin_${target.id}`] = monthlyVpdMinMean.get(monthStr);
+          if (monthlyVpdMaxMean.has(monthStr)) {
+            entry[`monthlyMeanVpdMax_${target.id}`] = monthlyVpdMaxMean.get(monthStr);
           }
         }
 
@@ -247,25 +251,26 @@ function App() {
           const prevHumid = monthStr === '01'
             ? data.prevDecMeans?.humidMean
             : monthlyHumidMean.get(prevMM);
-          const prevVpdMin = monthStr === '01'
+          const prevVpdMax = monthStr === '01'
             ? (data.prevDecMeans ? calcVPD(data.prevDecMeans.tempMean, data.prevDecMeans.humidMean) : undefined)
-            : monthlyVpdMinMean.get(prevMM);
+            : monthlyVpdMaxMean.get(prevMM);
           const curTemp = monthlyMean.get(monthStr);
           const curHumid = monthlyHumidMean.get(monthStr);
-          const curVpdMin = monthlyVpdMinMean.get(monthStr);
+          const curVpdMax = monthlyVpdMaxMean.get(monthStr);
           if (prevTemp !== undefined && curTemp !== undefined) {
             entry[`t_${target.id}_monthlyMeanTemp`] = (prevTemp + curTemp) / 2;
           }
           if (prevHumid !== undefined && curHumid !== undefined) {
             entry[`monthlyHumid_${target.id}`] = (prevHumid + curHumid) / 2;
           }
-          if (prevVpdMin !== undefined && curVpdMin !== undefined) {
-            entry[`monthlyMeanVpdMin_${target.id}`] = (prevVpdMin + curVpdMin) / 2;
+          if (prevVpdMax !== undefined && curVpdMax !== undefined) {
+            entry[`monthlyMeanVpdMax_${target.id}`] = (prevVpdMax + curVpdMax) / 2;
           }
         }
 
         entry[`humidRange_${target.id}`] = [day.humidMin, day.humidMax];
         entry[`vpdRange_${target.id}`] = [calcVPD(day.tempMin, day.humidMax), calcVPD(day.tempMax, day.humidMin)];
+        entry[`vpdMean_${target.id}`] = calcVPD(day.tempMean, day.humidMean);
 
         if (dayStr === plotDayStr && monthlyPrecipSum.has(monthStr)) {
           entry[`monthlyPrecip_${target.id}`] = monthlyPrecipSum.get(monthStr);
@@ -286,16 +291,16 @@ function App() {
         if (dec31Entry) {
           const decTemp  = monthlyMean.get('12');
           const decHumid = monthlyHumidMean.get('12');
-          const decVpdMin = monthlyVpdMinMean.get('12');
+          const decVpdMax = monthlyVpdMaxMean.get('12');
           if (decTemp !== undefined) {
             dec31Entry[`t_${target.id}_monthlyMeanTemp`] = (decTemp + data.nextJanMeans.tempMean) / 2;
           }
           if (decHumid !== undefined) {
             dec31Entry[`monthlyHumid_${target.id}`] = (decHumid + data.nextJanMeans.humidMean) / 2;
           }
-          if (decVpdMin !== undefined) {
-            const nextVpdMin = calcVPD(data.nextJanMeans.tempMean, data.nextJanMeans.humidMean);
-            dec31Entry[`monthlyMeanVpdMin_${target.id}`] = (decVpdMin + nextVpdMin) / 2;
+          if (decVpdMax !== undefined) {
+            const nextVpdMax = calcVPD(data.nextJanMeans.tempMean, data.nextJanMeans.humidMean);
+            dec31Entry[`monthlyMeanVpdMax_${target.id}`] = (decVpdMax + nextVpdMax) / 2;
           }
         }
       }
@@ -414,6 +419,7 @@ function App() {
 
         const meanVpdMin = monthDays.reduce((sum, d) => sum + calcVPD(d.tempMin, d.humidMax), 0) / monthDays.length;
         const meanVpdMax = monthDays.reduce((sum, d) => sum + calcVPD(d.tempMax, d.humidMin), 0) / monthDays.length;
+        const meanVpd = monthDays.reduce((sum, d) => sum + calcVPD(d.tempMean, d.humidMean), 0) / monthDays.length;
 
         stats[target.id][m] = {
           meanTemp,
@@ -432,6 +438,7 @@ function App() {
           minHumid,
           meanVpdMin,
           meanVpdMax,
+          meanVpd,
         };
       }
     });
@@ -471,7 +478,8 @@ function App() {
         entry[`monthlyHumid_${target.id}`] = s.meanHumid;
 
         entry[`vpdRange_${target.id}`] = [s.meanVpdMin, s.meanVpdMax];
-        entry[`monthlyMeanVpdMin_${target.id}`] = s.meanVpdMin;
+        entry[`vpdMean_${target.id}`] = s.meanVpd;
+        entry[`monthlyMeanVpdMax_${target.id}`] = s.meanVpdMax;
 
         if (!isInProgressMonth) {
           accumPrecip[target.id] = (accumPrecip[target.id] || 0) + s.sumPrecip;
@@ -1450,17 +1458,19 @@ function App() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(kPa)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.vpd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <ReferenceArea y1={0.8} y2={1.2} fill="rgba(134,239,172,0.12)" ifOverflow="visible" />
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
                         <React.Fragment key={target.id}>
                           <Bar dataKey={`vpdRange_${target.id}`} name={`${name} 飽差(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
-                          <Line type="monotone" dataKey={`monthlyMeanVpdMin_${target.id}`} name={`${name} 月平均最低飽差`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                          <Line type="monotone" dataKey={`vpdMean_${target.id}`} name={`${name} 日平均飽差`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
                             {isMonthly && index === 0 && (
-                              <LabelList dataKey={`monthlyMeanVpdMin_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(2) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                              <LabelList dataKey={`vpdMean_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(2) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
+                          <Line type="monotone" dataKey={`monthlyMeanVpdMax_${target.id}`} name={`${name} 月平均最高飽差`} stroke={color} strokeWidth={1.5} strokeDasharray="5 3" dot={false} connectNulls={true} isAnimationActive={false} />
                         </React.Fragment>
                       );
                     })}
@@ -1469,12 +1479,13 @@ function App() {
               ), true)}
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
-                { label: '月平均最低飽差', type: 'solid' }
+                { label: isMonthly ? '月平均飽差' : '日平均飽差', type: 'solid' },
+                { label: '月平均最高飽差', type: 'dashed' },
               ])}
               {renderValueBox('vpd')}
               <MonthsTable
                 rowsDef={[
-                  { key: 'meanVpdMin', label: '月平均最低飽差 (kPa)' },
+                  { key: 'meanVpd', label: '月平均飽差 (kPa)' },
                   { key: 'meanVpdMax', label: '月平均最高飽差 (kPa)' },
                 ]}
                 targets={targets}
