@@ -1465,12 +1465,11 @@ function App() {
                       return (
                         <React.Fragment key={target.id}>
                           <Bar dataKey={`vpdRange_${target.id}`} name={`${name} 飽差(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
-                          <Line type="monotone" dataKey={`vpdMean_${target.id}`} name={`${name} 日平均飽差`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                          <Line type="monotone" dataKey={`monthlyMeanVpdMax_${target.id}`} name={`${name} 月平均最高飽差`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
                             {isMonthly && index === 0 && (
-                              <LabelList dataKey={`vpdMean_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(2) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                              <LabelList dataKey={`monthlyMeanVpdMax_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(2) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
-                          <Line type="monotone" dataKey={`monthlyMeanVpdMax_${target.id}`} name={`${name} 月平均最高飽差`} stroke={color} strokeWidth={1.5} strokeDasharray="5 3" dot={false} connectNulls={true} isAnimationActive={false} />
                         </React.Fragment>
                       );
                     })}
@@ -1479,8 +1478,7 @@ function App() {
               ), true)}
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
-                { label: isMonthly ? '月平均飽差' : '日平均飽差', type: 'solid' },
-                { label: '月平均最高飽差', type: 'dashed' },
+                { label: '月平均最高飽差', type: 'solid' },
               ])}
               {renderValueBox('vpd')}
               <MonthsTable
