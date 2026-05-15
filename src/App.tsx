@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
-import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList, ReferenceArea } from 'recharts';
+import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsModal } from './SettingsModal';
@@ -1458,8 +1458,7 @@ function App() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(kPa)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.vpd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
-                    <ReferenceArea y1={0.8} y2={1.2} fill="rgba(134,239,172,0.12)" ifOverflow="visible" />
-                    {targets.map((target, index) => {
+{targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
