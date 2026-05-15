@@ -48,7 +48,7 @@ const CustomRangeBar = (props: any) => {
   );
 };
 
-type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid';
+type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid' | 'vpd';
 
 const CHART_TABS: { id: ChartId; label: string }[] = [
   { id: 'temp',      label: '気温' },
@@ -57,7 +57,12 @@ const CHART_TABS: { id: ChartId; label: string }[] = [
   { id: 'radiation', label: '日射量' },
   { id: 'gdd',       label: '積算温度' },
   { id: 'humid',     label: '湿度' },
+  { id: 'vpd',       label: '飽差' },
 ];
+
+// 飽差（VPD）= 飽和水蒸気圧 × (1 - RH/100) [kPa]
+const calcVPD = (tempC: number, humidPct: number): number =>
+  0.6108 * Math.exp(17.27 * tempC / (tempC + 237.3)) * (1 - humidPct / 100);
 
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
@@ -188,6 +193,7 @@ function App() {
       const monthlyMean = new Map<string, number>();
       const monthlyPrecipSum = new Map<string, number>();
       const monthlyHumidMean = new Map<string, number>();
+      const monthlyVpdMinMean = new Map<string, number>();
       for (let m = 1; m <= 12; m++) {
         const monthStr = m.toString().padStart(2, '0');
         const daysInMonth = data.daily.filter(d => d.date.substring(5, 7) === monthStr);
@@ -200,6 +206,9 @@ function App() {
 
           const sumHumid = daysInMonth.reduce((acc, d) => acc + d.humidMean, 0);
           monthlyHumidMean.set(monthStr, sumHumid / daysInMonth.length);
+
+          const sumVpdMin = daysInMonth.reduce((acc, d) => acc + calcVPD(d.tempMin, d.humidMax), 0);
+          monthlyVpdMinMean.set(monthStr, sumVpdMin / daysInMonth.length);
         }
       }
 
@@ -224,6 +233,9 @@ function App() {
           if (monthlyHumidMean.has(monthStr)) {
             entry[`monthlyHumid_${target.id}`] = monthlyHumidMean.get(monthStr);
           }
+          if (monthlyVpdMinMean.has(monthStr)) {
+            entry[`monthlyMeanVpdMin_${target.id}`] = monthlyVpdMinMean.get(monthStr);
+          }
         }
 
         // 1日：前月と当月の月平均の中間値をプロット
@@ -235,17 +247,25 @@ function App() {
           const prevHumid = monthStr === '01'
             ? data.prevDecMeans?.humidMean
             : monthlyHumidMean.get(prevMM);
+          const prevVpdMin = monthStr === '01'
+            ? (data.prevDecMeans ? calcVPD(data.prevDecMeans.tempMean, data.prevDecMeans.humidMean) : undefined)
+            : monthlyVpdMinMean.get(prevMM);
           const curTemp = monthlyMean.get(monthStr);
           const curHumid = monthlyHumidMean.get(monthStr);
+          const curVpdMin = monthlyVpdMinMean.get(monthStr);
           if (prevTemp !== undefined && curTemp !== undefined) {
             entry[`t_${target.id}_monthlyMeanTemp`] = (prevTemp + curTemp) / 2;
           }
           if (prevHumid !== undefined && curHumid !== undefined) {
             entry[`monthlyHumid_${target.id}`] = (prevHumid + curHumid) / 2;
           }
+          if (prevVpdMin !== undefined && curVpdMin !== undefined) {
+            entry[`monthlyMeanVpdMin_${target.id}`] = (prevVpdMin + curVpdMin) / 2;
+          }
         }
 
         entry[`humidRange_${target.id}`] = [day.humidMin, day.humidMax];
+        entry[`vpdRange_${target.id}`] = [calcVPD(day.tempMin, day.humidMax), calcVPD(day.tempMax, day.humidMin)];
 
         if (dayStr === plotDayStr && monthlyPrecipSum.has(monthStr)) {
           entry[`monthlyPrecip_${target.id}`] = monthlyPrecipSum.get(monthStr);
@@ -266,11 +286,16 @@ function App() {
         if (dec31Entry) {
           const decTemp  = monthlyMean.get('12');
           const decHumid = monthlyHumidMean.get('12');
+          const decVpdMin = monthlyVpdMinMean.get('12');
           if (decTemp !== undefined) {
             dec31Entry[`t_${target.id}_monthlyMeanTemp`] = (decTemp + data.nextJanMeans.tempMean) / 2;
           }
           if (decHumid !== undefined) {
             dec31Entry[`monthlyHumid_${target.id}`] = (decHumid + data.nextJanMeans.humidMean) / 2;
+          }
+          if (decVpdMin !== undefined) {
+            const nextVpdMin = calcVPD(data.nextJanMeans.tempMean, data.nextJanMeans.humidMean);
+            dec31Entry[`monthlyMeanVpdMin_${target.id}`] = (decVpdMin + nextVpdMin) / 2;
           }
         }
       }
@@ -387,6 +412,9 @@ function App() {
         const maxHumid = Math.max(...monthDays.map(d => d.humidMax));
         const minHumid = Math.min(...monthDays.map(d => d.humidMin));
 
+        const meanVpdMin = monthDays.reduce((sum, d) => sum + calcVPD(d.tempMin, d.humidMax), 0) / monthDays.length;
+        const meanVpdMax = monthDays.reduce((sum, d) => sum + calcVPD(d.tempMax, d.humidMin), 0) / monthDays.length;
+
         stats[target.id][m] = {
           meanTemp,
           maxTemp,
@@ -401,7 +429,9 @@ function App() {
           monthMeanAccum,
           meanHumid,
           maxHumid,
-          minHumid
+          minHumid,
+          meanVpdMin,
+          meanVpdMax,
         };
       }
     });
@@ -439,6 +469,9 @@ function App() {
 
         entry[`humidRange_${target.id}`] = [s.minHumid, s.maxHumid];
         entry[`monthlyHumid_${target.id}`] = s.meanHumid;
+
+        entry[`vpdRange_${target.id}`] = [s.meanVpdMin, s.meanVpdMax];
+        entry[`monthlyMeanVpdMin_${target.id}`] = s.meanVpdMin;
 
         if (!isInProgressMonth) {
           accumPrecip[target.id] = (accumPrecip[target.id] || 0) + s.sumPrecip;
@@ -619,12 +652,14 @@ function App() {
     else if (entry.name.includes('湿度')) unit = '%';
     else if (entry.name.includes('日射')) unit = 'MJ/m²';
     else if (entry.name.includes('日照')) unit = 'h';
+    else if (entry.name.includes('飽差')) unit = 'kPa';
     if (Array.isArray(entry.value) && entry.value.length === 2) {
-      return `${entry.value[0]?.toFixed(1)}～${entry.value[1]?.toFixed(1)}${unit}`;
+      return `${entry.value[0]?.toFixed(2)}～${entry.value[1]?.toFixed(2)}${unit}`;
     }
     if (typeof entry.value !== 'number') return '--';
     const isIntegerLike = entry.name.includes('降水') || entry.name.includes('日照') || entry.name.includes('日射') || entry.name.includes('積算');
-    return `${isIntegerLike ? Math.round(entry.value) : entry.value.toFixed(1)}${unit}`;
+    const isVpd = entry.name.includes('飽差');
+    return `${isIntegerLike ? Math.round(entry.value) : isVpd ? entry.value.toFixed(2) : entry.value.toFixed(1)}${unit}`;
   };
 
   const renderValueBox = (chartId: string) => {
@@ -714,6 +749,7 @@ function App() {
     radiation: makeTooltipContent('radiation'),
     gdd: makeTooltipContent('gdd'),
     humid: makeTooltipContent('humid'),
+    vpd: makeTooltipContent('vpd'),
   }), [makeTooltipContent]);
 
   const sectionStyle = {
@@ -1396,7 +1432,61 @@ function App() {
           )}
         </section>
         )}
-        
+
+        {/* 7. 飽差 (VPD) */}
+        {activeChart === 'vpd' && (
+        <section className="glass-panel" style={sectionStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
+            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}>💧 飽差</h2>
+          </div>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+          ) : (
+            <>
+              {chartFrame('vpd', (
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={visibleChartData} margin={chartMargin}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
+                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(kPa)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <Tooltip content={tooltipContents.vpd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    {targets.map((target, index) => {
+                      const name = `${getLocationName(target.locationId)} ${target.year}年`;
+                      const color = getYearColor(index, 'var(--chart-humid)');
+                      return (
+                        <React.Fragment key={target.id}>
+                          <Bar dataKey={`vpdRange_${target.id}`} name={`${name} 飽差(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
+                          <Line type="monotone" dataKey={`monthlyMeanVpdMin_${target.id}`} name={`${name} 月平均最低飽差`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                            {isMonthly && index === 0 && (
+                              <LabelList dataKey={`monthlyMeanVpdMin_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(2) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                            )}
+                          </Line>
+                        </React.Fragment>
+                      );
+                    })}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              ), true)}
+              {renderCustomLegend([
+                { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
+                { label: '月平均最低飽差', type: 'solid' }
+              ])}
+              {renderValueBox('vpd')}
+              <MonthsTable
+                rowsDef={[
+                  { key: 'meanVpdMin', label: '月平均最低飽差 (kPa)' },
+                  { key: 'meanVpdMax', label: '月平均最高飽差 (kPa)' },
+                ]}
+                targets={targets}
+                stats={monthlyStats}
+                getYearColor={getYearColor}
+                getLocationName={getLocationName}
+              />
+            </>
+          )}
+        </section>
+        )}
+
       </main>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
