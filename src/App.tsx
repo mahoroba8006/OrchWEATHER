@@ -54,6 +54,8 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
+  type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid';
+  const [activeChart, setActiveChart] = useState<ChartId>('temp');
   const [hover, setHover] = useState<{ chartId: string; payload: any[]; label: string } | null>(null);
   const pendingHoverRef = useRef<{ chartId: string; payload: any[]; label: string } | null>(null);
   const hoverRafRef = useRef<number>(0);
@@ -77,6 +79,11 @@ function App() {
     obs.observe(el);
     (el as any).__obs = obs;
   }, []);
+
+  // チャートを切り替えたとき前のホバー値をクリア
+  useEffect(() => {
+    setHover(null);
+  }, [activeChart]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -610,10 +617,29 @@ function App() {
     return `${isIntegerLike ? Math.round(entry.value) : entry.value.toFixed(1)}${unit}`;
   };
 
-  const renderActivePanel = (chartId: string) => {
-    // デバッグ: hover未設定でも一目で状態が分かるよう簡易インジケータ
-    if (hover?.chartId !== chartId) return <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', color: '#94a3b8' }}>（タップして値表示）</span>;
-    if (!hover.payload?.length) return <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', color: '#94a3b8' }}>(payload空 label={String(hover.label)})</span>;
+  const renderValueBox = (chartId: string) => {
+    const boxStyle: React.CSSProperties = {
+      marginTop: '0.5rem',
+      marginBottom: '0.5rem',
+      borderRadius: '8px',
+      padding: '0.6rem 0.75rem',
+      fontSize: '0.78rem',
+    };
+
+    if (hover?.chartId !== chartId) {
+      return (
+        <div style={{
+          ...boxStyle,
+          border: '1px dashed rgba(255,255,255,0.12)',
+          color: '#475569',
+          textAlign: 'center',
+        }}>
+          タップして値を表示
+        </div>
+      );
+    }
+    if (!hover.payload?.length) return null;
+
     const items = hover.payload.filter((p: any) => {
       if (p.value == null || p.value === undefined) return false;
       if (!isMonthly && (
@@ -623,18 +649,27 @@ function App() {
       )) return false;
       return true;
     });
-    if (items.length === 0) return <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', color: '#94a3b8' }}>(値なし label={String(hover.label)})</span>;
+    if (items.length === 0) return null;
+
     return (
-      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.25rem 0.6rem', marginLeft: '0.5rem', flex: 1, justifyContent: 'flex-end' }}>
-        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>{formatHoverLabel(hover.label)}</span>
-        {items.map((p: any, i: number) => {
-          const metric = p.name.split(' ').slice(2).join(' ') || p.name;
-          return (
-            <span key={i} style={{ color: p.color, whiteSpace: 'nowrap' }}>
-              {metric} <strong>{formatHoverEntry(p)}</strong>
-            </span>
-          );
-        })}
+      <div style={{
+        ...boxStyle,
+        background: 'rgba(244,167,185,0.07)',
+        border: '1px solid rgba(244,167,185,0.2)',
+      }}>
+        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 700 }}>
+          {formatHoverLabel(hover.label)}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.75rem' }}>
+          {items.map((p: any, i: number) => {
+            const metric = p.name.split(' ').slice(2).join(' ') || p.name;
+            return (
+              <span key={i} style={{ color: p.color, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
+                {metric} <strong>{formatHoverEntry(p)}</strong>
+              </span>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -855,6 +890,57 @@ function App() {
           </div>
         </div>
 
+        {/* チャート選択タブ */}
+        {(() => {
+          const CHART_TABS: { id: ChartId; label: string }[] = [
+            { id: 'temp',      label: '気温' },
+            { id: 'precip',    label: '降水量' },
+            { id: 'sunshine',  label: '日照時間' },
+            { id: 'radiation', label: '日射量' },
+            { id: 'gdd',       label: '積算温度' },
+            { id: 'humid',     label: '湿度' },
+          ];
+          return (
+            <div
+              className="glass-panel"
+              style={{
+                padding: '0.5rem 1rem',
+                display: 'flex',
+                gap: '0.5rem',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+              }}
+            >
+              {CHART_TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveChart(tab.id)}
+                  style={{
+                    flexShrink: 0,
+                    padding: '0.3rem 0.9rem',
+                    borderRadius: '20px',
+                    fontSize: '0.85rem',
+                    border: activeChart === tab.id
+                      ? '1px solid #f4a7b9'
+                      : '1px solid rgba(244,167,185,0.35)',
+                    background: activeChart === tab.id
+                      ? '#f4a7b9'
+                      : 'transparent',
+                    color: activeChart === tab.id
+                      ? '#7a2840'
+                      : 'var(--text-secondary)',
+                    fontWeight: activeChart === tab.id ? 700 : 400,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+
         {error && (
           <div style={{ padding: '1rem', background: 'rgba(244, 63, 94, 0.2)', border: '1px solid var(--chart-temp)', borderRadius: '8px', color: 'var(--text-primary)' }}>
             ⚠️ エラーが発生しました: {error}
@@ -862,10 +948,10 @@ function App() {
         )}
 
         {/* 1. 気温 (Temperature) */}
+        {activeChart === 'temp' && (
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Thermometer size={18} /> 気温</h2>
-            {renderActivePanel('temp')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -878,8 +964,6 @@ function App() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.temp} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
-
-
                     {targets.map((target, index) => {
                       const color = getYearColor(index, 'var(--chart-temp)');
                       return (
@@ -900,7 +984,8 @@ function App() {
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' }
               ])}
-              <MonthsTable 
+              {renderValueBox('temp')}
+              <MonthsTable
                 rowsDef={[
                   { key: 'meanTemp', label: '月平均気温 (℃)' },
                   { key: 'maxTemp', label: '月最高気温 (℃)' },
@@ -914,12 +999,13 @@ function App() {
             </>
           )}
         </section>
+        )}
 
         {/* 2. 降水量 (Precipitation) */}
+        {activeChart === 'precip' && (
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><CloudRain size={18} /> 降水量</h2>
-            {renderActivePanel('precip')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -992,7 +1078,8 @@ function App() {
                 { label: '月間降水量', type: 'thick-bar' },
                 { label: '累積降水量', type: 'solid' }
               ])}
-              <MonthsTable 
+              {renderValueBox('precip')}
+              <MonthsTable
                 rowsDef={[
                   { key: 'sumPrecip', label: '月合計降水量 (mm)' }
                 ]}
@@ -1004,12 +1091,13 @@ function App() {
             </>
           )}
         </section>
+        )}
 
         {/* 3. 日照時間 (Sunshine Duration) */}
+        {activeChart === 'sunshine' && (
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Clock size={18} /> 日照時間</h2>
-            {renderActivePanel('sunshine')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -1066,6 +1154,7 @@ function App() {
                 { label: '日照時間', type: 'thin-bar' },
                 { label: '累積日照時間', type: 'solid' }
               ])}
+              {renderValueBox('sunshine')}
               <MonthsTable
                 rowsDef={[
                   { key: 'meanSunshine', label: '月平均日照時間 (h/日)' },
@@ -1079,12 +1168,13 @@ function App() {
             </>
           )}
         </section>
+        )}
 
         {/* 4. 日射量 (Solar Radiation) */}
+        {activeChart === 'radiation' && (
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Sun size={18} /> 日射量</h2>
-            {renderActivePanel('radiation')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -1141,7 +1231,8 @@ function App() {
                 { label: '日射量', type: 'thin-bar' },
                 { label: '累積日射量', type: 'solid' }
               ])}
-              <MonthsTable 
+              {renderValueBox('radiation')}
+              <MonthsTable
                 rowsDef={[
                   { key: 'meanRad', label: '月平均日射量 (MJ/m²)' },
                   { key: 'sumRad', label: '月合計日射量 (MJ/m²)' }
@@ -1154,13 +1245,14 @@ function App() {
             </>
           )}
         </section>
+        )}
 
         {/* 4. 有効積算温度 (Accumulated Temperature) */}
+        {activeChart === 'gdd' && (
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem', flex: 1 }}>
               <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Leaf size={18} /> 有効積算温度</h2>
-              {renderActivePanel('gdd')}
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => (
@@ -1238,7 +1330,8 @@ function App() {
                 { label: '有効積算温度', type: 'thin-bar' },
                 { label: '累積有効積算温度', type: 'solid' }
               ])}
-              <MonthsTable 
+              {renderValueBox('gdd')}
+              <MonthsTable
                 rowsDef={[
                   { key: 'monthMeanAccum', label: '月平均積算温度 (℃)' },
                   { key: 'monthAccumSum', label: '月合計積算温度 (℃)' }
@@ -1251,12 +1344,13 @@ function App() {
             </>
           )}
         </section>
+        )}
 
         {/* 5. 湿度 (Humidity) */}
+        {activeChart === 'humid' && (
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Droplets size={18} /> 湿度</h2>
-            {renderActivePanel('humid')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -1269,7 +1363,6 @@ function App() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.humid} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
-
                     {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
@@ -1286,12 +1379,13 @@ function App() {
                     })}
                   </ComposedChart>
                 </ResponsiveContainer>
-              ))}
+              ), true)}
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' }
               ])}
-              <MonthsTable 
+              {renderValueBox('humid')}
+              <MonthsTable
                 rowsDef={[
                   { key: 'meanHumid', label: '月平均湿度 (%)' }
                 ]}
@@ -1303,6 +1397,7 @@ function App() {
             </>
           )}
         </section>
+        )}
         
       </main>
 
