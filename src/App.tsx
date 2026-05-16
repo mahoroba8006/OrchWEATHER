@@ -87,6 +87,9 @@ const findDateByAccum = (
 // GDD序盤の Δ日 表示を抑制する閾値（℃）
 const GDD_DELTA_DAYS_MIN_V0 = 30;
 
+// 累積日射量 序盤の Δ日 表示を抑制する閾値（MJ/m²）
+const RADIATION_DELTA_DAYS_MIN_V0 = 100;
+
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
@@ -358,6 +361,22 @@ function App() {
 
     return { overlay, seriesByTarget };
   }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
+
+  // 日射量チャート Δ日 逆引き用：累積日射量の MM-DD 系列
+  // overlay は既存の baseChartData の accumRadiation_${id} を流用するため不要
+  const radiationData = useMemo(() => {
+    const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
+    targets.forEach((target) => {
+      const data = weatherData[target.id];
+      if (!data) return;
+      const series: Array<{ mmdd: string; accum: number }> = [];
+      data.daily.forEach(day => {
+        series.push({ mmdd: day.date.substring(5), accum: day.accumRadiation });
+      });
+      seriesByTarget.set(target.id, series);
+    });
+    return { seriesByTarget };
+  }, [weatherData, targets]);
 
   const filteredBaseChartData = useMemo(() => {
     const startMM = displayRange.startMM;
@@ -748,53 +767,73 @@ function App() {
             groups.get(p.color)!.push(p);
           });
 
-          // GDD専用: 1本目を基準とした Δ℃ / Δ日 注釈の準備
-          const isGdd = chartId === 'gdd';
-          const refId = isGdd && targets.length > 1 ? targets[0]?.id : null;
-          const refAccumKey = refId ? `accum_${refId}` : null;
-          const v0 = refAccumKey
-            ? hover.payload.find((p: any) => p.dataKey === refAccumKey)?.value
-            : undefined;
-          const hoverDoy = isGdd && !isMonthly ? mmddToDoy(hover.label) : null;
+          // 1本目を基準とした Δ値 / Δ日 注釈（GDD / 累積日射量に対応）
+          const accumDiffConfig: {
+            refKeyPrefix: string;
+            seriesByTarget: Map<string, Array<{ mmdd: string; accum: number }>>;
+            threshold: number;
+            formatDelta: (d: number) => string;
+          } | null =
+            chartId === 'gdd' ? {
+              refKeyPrefix: 'accum_',
+              seriesByTarget: gddData.seriesByTarget,
+              threshold: GDD_DELTA_DAYS_MIN_V0,
+              formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d))}℃`,
+            }
+            : chartId === 'radiation' ? {
+              refKeyPrefix: 'accumRadiation_',
+              seriesByTarget: radiationData.seriesByTarget,
+              threshold: RADIATION_DELTA_DAYS_MIN_V0,
+              formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d))} MJ/m²`,
+            }
+            : null;
 
-          const computeGddDiff = (p: any): string | null => {
-            if (!isGdd || !refId || typeof v0 !== 'number') return null;
-            if (typeof p.dataKey !== 'string' || !p.dataKey.startsWith('accum_')) return null;
-            const targetId = p.dataKey.slice('accum_'.length);
+          const refId = accumDiffConfig && targets.length > 1 ? targets[0]?.id : null;
+          const refKey = refId && accumDiffConfig ? `${accumDiffConfig.refKeyPrefix}${refId}` : null;
+          const v0 = refKey
+            ? hover.payload.find((p: any) => p.dataKey === refKey)?.value
+            : undefined;
+          const hoverDoy = accumDiffConfig && !isMonthly ? mmddToDoy(hover.label) : null;
+
+          const computeAccumDiff = (p: any): string | null => {
+            if (!accumDiffConfig || !refId || typeof v0 !== 'number') return null;
+            const prefix = accumDiffConfig.refKeyPrefix;
+            if (typeof p.dataKey !== 'string' || !p.dataKey.startsWith(prefix)) return null;
+            const targetId = p.dataKey.slice(prefix.length);
             if (targetId === refId || typeof p.value !== 'number') return null;
 
-            const deltaT = p.value - v0;
-            const deltaTStr = `${deltaT >= 0 ? '+' : '−'}${Math.round(Math.abs(deltaT))}℃`;
+            const delta = p.value - v0;
+            const deltaStr = accumDiffConfig.formatDelta(delta);
 
-            // 月次モードは Δ℃ のみ
-            if (isMonthly) return `(${deltaTStr})`;
+            // 月次モードは Δ値 のみ
+            if (isMonthly) return `(${deltaStr})`;
 
             // 序盤ガード: V0 が小さすぎる場合は Δ日 を出さない
-            if (v0 < GDD_DELTA_DAYS_MIN_V0) return `(${deltaTStr})`;
-            if (hoverDoy == null) return `(${deltaTStr})`;
+            if (v0 < accumDiffConfig.threshold) return `(${deltaStr})`;
+            if (hoverDoy == null) return `(${deltaStr})`;
 
-            const series = gddData.seriesByTarget.get(targetId);
-            if (!series) return `(${deltaTStr})`;
+            const series = accumDiffConfig.seriesByTarget.get(targetId);
+            if (!series) return `(${deltaStr})`;
 
             const crossDate = findDateByAccum(series, v0);
-            if (!crossDate) return `(${deltaTStr} / 未到達)`;
+            if (!crossDate) return `(${deltaStr} / 未到達)`;
 
             const crossDoy = mmddToDoy(crossDate);
-            if (crossDoy == null) return `(${deltaTStr})`;
+            if (crossDoy == null) return `(${deltaStr})`;
 
             const deltaDays = hoverDoy - crossDoy;
             const daysStr =
               deltaDays === 0 ? '同日'
               : deltaDays > 0 ? `${deltaDays}日早い`
               : `${-deltaDays}日遅い`;
-            return `(${deltaTStr} / ${daysStr})`;
+            return `(${deltaStr} / ${daysStr})`;
           };
 
           return Array.from(groups.entries()).map(([color, groupItems], gi) => (
             <div key={gi} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.75rem', marginTop: gi > 0 ? '0.2rem' : 0 }}>
               {groupItems.map((p: any, i: number) => {
                 const metric = p.name.split(' ').slice(2).join(' ') || p.name;
-                const diffNote = computeGddDiff(p);
+                const diffNote = computeAccumDiff(p);
                 return (
                   <span key={i} style={{ color, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
                     {metric} <strong>{formatHoverEntry(p)}</strong>
