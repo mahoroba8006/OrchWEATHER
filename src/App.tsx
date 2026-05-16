@@ -714,16 +714,25 @@ function App() {
         <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 700 }}>
           {formatHoverLabel(hover.label)}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.75rem' }}>
-          {items.map((p: any, i: number) => {
-            const metric = p.name.split(' ').slice(2).join(' ') || p.name;
-            return (
-              <span key={i} style={{ color: p.color, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
-                {metric} <strong>{formatHoverEntry(p)}</strong>
-              </span>
-            );
-          })}
-        </div>
+        {(() => {
+          const groups = new Map<string, any[]>();
+          items.forEach((p: any) => {
+            if (!groups.has(p.color)) groups.set(p.color, []);
+            groups.get(p.color)!.push(p);
+          });
+          return Array.from(groups.entries()).map(([color, groupItems], gi) => (
+            <div key={gi} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.75rem', marginTop: gi > 0 ? '0.2rem' : 0 }}>
+              {groupItems.map((p: any, i: number) => {
+                const metric = p.name.split(' ').slice(2).join(' ') || p.name;
+                return (
+                  <span key={i} style={{ color, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
+                    {metric} <strong>{formatHoverEntry(p)}</strong>
+                  </span>
+                );
+              })}
+            </div>
+          ));
+        })()}
       </div>
     );
   };

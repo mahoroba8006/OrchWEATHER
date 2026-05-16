@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore, type LocationInfo } from './store';
 import { X, Save, Trash2, Plus } from 'lucide-react';
 
@@ -13,8 +13,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<LocationInfo>>({});
 
-  const currentBaseTempSettings = userSettings?.baseTempSettings ?? [10, 3.5];
-  const [baseTempForm, setBaseTempForm] = useState<[number, number]>(currentBaseTempSettings);
+  const [baseTempForm, setBaseTempForm] = useState<[number, number]>(
+    userSettings?.baseTempSettings ?? [10, 3.5]
+  );
+
+  useEffect(() => {
+    if (userSettings) {
+      setBaseTempForm([...userSettings.baseTempSettings]);
+    }
+  }, [userSettings]);
 
   if (!isOpen) return null;
 
