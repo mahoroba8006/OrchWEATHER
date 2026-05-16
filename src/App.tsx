@@ -64,6 +64,29 @@ const CHART_TABS: { id: ChartId; label: string }[] = [
 const calcVPD = (tempC: number, humidPct: number): number =>
   0.6108 * Math.exp(17.27 * tempC / (tempC + 237.3)) * (1 - humidPct / 100);
 
+// MM-DD → 日番号（非閏年ベース、2/29は便宜上60を返す）
+const MONTH_DAY_OFFSETS = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+const mmddToDoy = (mmdd: string): number | null => {
+  if (!mmdd || !mmdd.includes('-')) return null;
+  const [m, d] = mmdd.split('-').map(Number);
+  if (!Number.isFinite(m) || !Number.isFinite(d) || m < 1 || m > 12) return null;
+  return MONTH_DAY_OFFSETS[m - 1] + d;
+};
+
+// GDD逆引き: 累積系列 series で初めて accum >= v になる MM-DD を返す（未到達なら null）
+const findDateByAccum = (
+  series: Array<{ mmdd: string; accum: number }>,
+  v: number
+): string | null => {
+  for (const point of series) {
+    if (point.accum >= v) return point.mmdd;
+  }
+  return null;
+};
+
+// GDD序盤の Δ日 表示を抑制する閾値（℃）
+const GDD_DELTA_DAYS_MIN_V0 = 30;
+
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
@@ -312,11 +335,13 @@ function App() {
   const gddData = useMemo(() => {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
     const overlay = new Map<string, Record<string, number>>();
+    const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
 
     targets.forEach((target) => {
       const data = weatherData[target.id];
       if (!data) return;
       let runningAccumTemp = 0;
+      const series: Array<{ mmdd: string; accum: number }> = [];
       data.daily.forEach(day => {
         const mmdd = day.date.substring(5);
         const diff = day.tempMean - selectedBaseTemp;
@@ -326,10 +351,12 @@ function App() {
         existing[`dailyAccum_${target.id}`] = dailyAccum;
         existing[`accum_${target.id}`] = runningAccumTemp;
         overlay.set(mmdd, existing);
+        series.push({ mmdd, accum: runningAccumTemp });
       });
+      seriesByTarget.set(target.id, series);
     });
 
-    return overlay;
+    return { overlay, seriesByTarget };
   }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
 
   const filteredBaseChartData = useMemo(() => {
@@ -357,9 +384,9 @@ function App() {
   }, [baseChartData, displayRange]);
 
   const filteredGddChartData = useMemo(() => {
-    if (gddData.size === 0) return filteredBaseChartData;
+    if (gddData.overlay.size === 0) return filteredBaseChartData;
     return filteredBaseChartData.map(entry => {
-      const gdd = gddData.get(entry.dateStr);
+      const gdd = gddData.overlay.get(entry.dateStr);
       return gdd ? { ...entry, ...gdd } : entry;
     });
   }, [filteredBaseChartData, gddData]);
@@ -720,13 +747,62 @@ function App() {
             if (!groups.has(p.color)) groups.set(p.color, []);
             groups.get(p.color)!.push(p);
           });
+
+          // GDD専用: 1本目を基準とした Δ℃ / Δ日 注釈の準備
+          const isGdd = chartId === 'gdd';
+          const refId = isGdd && targets.length > 1 ? targets[0]?.id : null;
+          const refAccumKey = refId ? `accum_${refId}` : null;
+          const v0 = refAccumKey
+            ? hover.payload.find((p: any) => p.dataKey === refAccumKey)?.value
+            : undefined;
+          const hoverDoy = isGdd && !isMonthly ? mmddToDoy(hover.label) : null;
+
+          const computeGddDiff = (p: any): string | null => {
+            if (!isGdd || !refId || typeof v0 !== 'number') return null;
+            if (typeof p.dataKey !== 'string' || !p.dataKey.startsWith('accum_')) return null;
+            const targetId = p.dataKey.slice('accum_'.length);
+            if (targetId === refId || typeof p.value !== 'number') return null;
+
+            const deltaT = p.value - v0;
+            const deltaTStr = `${deltaT >= 0 ? '+' : '−'}${Math.round(Math.abs(deltaT))}℃`;
+
+            // 月次モードは Δ℃ のみ
+            if (isMonthly) return `(${deltaTStr})`;
+
+            // 序盤ガード: V0 が小さすぎる場合は Δ日 を出さない
+            if (v0 < GDD_DELTA_DAYS_MIN_V0) return `(${deltaTStr})`;
+            if (hoverDoy == null) return `(${deltaTStr})`;
+
+            const series = gddData.seriesByTarget.get(targetId);
+            if (!series) return `(${deltaTStr})`;
+
+            const crossDate = findDateByAccum(series, v0);
+            if (!crossDate) return `(${deltaTStr} / 未到達)`;
+
+            const crossDoy = mmddToDoy(crossDate);
+            if (crossDoy == null) return `(${deltaTStr})`;
+
+            const deltaDays = hoverDoy - crossDoy;
+            const daysStr =
+              deltaDays === 0 ? '同日'
+              : deltaDays > 0 ? `${deltaDays}日早い`
+              : `${-deltaDays}日遅い`;
+            return `(${deltaTStr} / ${daysStr})`;
+          };
+
           return Array.from(groups.entries()).map(([color, groupItems], gi) => (
             <div key={gi} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.75rem', marginTop: gi > 0 ? '0.2rem' : 0 }}>
               {groupItems.map((p: any, i: number) => {
                 const metric = p.name.split(' ').slice(2).join(' ') || p.name;
+                const diffNote = computeGddDiff(p);
                 return (
                   <span key={i} style={{ color, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
                     {metric} <strong>{formatHoverEntry(p)}</strong>
+                    {diffNote && (
+                      <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '0.72rem' }}>
+                        {diffNote}
+                      </span>
+                    )}
                   </span>
                 );
               })}
