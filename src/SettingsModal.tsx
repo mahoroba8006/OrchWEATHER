@@ -125,14 +125,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   const handleSaveAccumSettings = async () => {
-    const clamp = (v: number) => Math.min(500, Math.max(1, Math.round(v) || 1));
+    const clampInt = (v: number, max: number) => Math.min(max, Math.max(1, Math.round(v) || 1));
     setAccumStatus({ kind: 'saving' });
     try {
       await Promise.all([
         updateAccumStartDates(accumStartForm),
         updateAccumDeltaThresholds({
-          gdd: clamp(accumThresholdForm.gdd),
-          radiation: clamp(accumThresholdForm.radiation),
+          gdd: clampInt(accumThresholdForm.gdd, 500),
+          radiation: clampInt(accumThresholdForm.radiation, 2000),
         }),
       ]);
       setAccumStatus({ kind: 'saved', msg: '累積設定を保存しました' });
@@ -371,7 +371,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>日数差 表示開始閾値</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              累積値がこの値未満の期間は日数差を非表示にします（序盤の不安定な逆引きを抑制）。
+              累積値がこの値未満の期間は日数差を非表示にします（序盤の不安定な状況における表示を抑制）。
             </div>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <div className="form-group" style={{ flex: 1, minWidth: '140px' }}>
@@ -391,12 +391,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <input
                   type="number"
                   min={1}
-                  max={500}
-                  step={1}
+                  max={2000}
+                  step={10}
                   value={accumThresholdForm.radiation}
                   onChange={(e) => setAccumThresholdForm({ ...accumThresholdForm, radiation: parseInt(e.target.value, 10) || 1 })}
                 />
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>範囲: 1〜500</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>範囲: 1〜2000</div>
               </div>
             </div>
           </div>
@@ -423,6 +423,26 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <Save size={14} /> 保存
             </button>
           </div>
+        </div>
+
+        {/* モーダルを閉じる OK ボタン（×・余白クリックと同等、視覚的な完了動線） */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(244,167,185,0.55)',
+              color: '#7a2840',
+              border: '1px solid rgba(244,167,185,0.8)',
+              borderRadius: 'var(--radius-md, 6px)',
+              cursor: 'pointer',
+              padding: '0.55rem 2rem',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              minWidth: '120px',
+            }}
+          >
+            OK
+          </button>
         </div>
 
       </div>

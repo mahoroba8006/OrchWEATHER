@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -54,16 +54,21 @@ type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid' | 
 const CHART_TABS: { id: ChartId; label: string }[] = [
   { id: 'temp',      label: '気温' },
   { id: 'precip',    label: '降水量' },
-  { id: 'sunshine',  label: '日照時間' },
-  { id: 'radiation', label: '日射量' },
   { id: 'gdd',       label: '積算温度' },
+  { id: 'radiation', label: '日射量' },
+  { id: 'sunshine',  label: '日照時間' },
   { id: 'humid',     label: '湿度' },
   { id: 'vpd',       label: '飽差' },
 ];
 
-// 飽差（VPD）= 飽和水蒸気圧 × (1 - RH/100) [kPa]
-const calcVPD = (tempC: number, humidPct: number): number =>
-  0.6108 * Math.exp(17.27 * tempC / (tempC + 237.3)) * (1 - humidPct / 100);
+// 飽差 = 飽和水蒸気量 - 実水蒸気量 [g/m³]（施設園芸の現場標準単位）
+// e_s(T)[hPa] = 6.1078 × 10^(7.5T/(T+237.3))（Tetens式）
+// 飽和水蒸気量[g/m³] = 216.67 × e_s / (T + 273.15) （理想気体の状態方程式）
+const calcVPD = (tempC: number, humidPct: number): number => {
+  const e_s_hPa = 6.1078 * Math.pow(10, 7.5 * tempC / (tempC + 237.3));
+  const a_max = 216.67 * e_s_hPa / (tempC + 273.15);
+  return a_max * (1 - humidPct / 100);
+};
 
 // MM-DD → 日番号（非閏年ベース、2/29は便宜上60を返す）
 const MONTH_DAY_OFFSETS = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -790,14 +795,15 @@ function App() {
     else if (entry.name.includes('湿度')) unit = '%';
     else if (entry.name.includes('日射')) unit = 'MJ/m²';
     else if (entry.name.includes('日照')) unit = 'h';
-    else if (entry.name.includes('飽差')) unit = 'kPa';
+    else if (entry.name.includes('飽差')) unit = 'g/m³';
     if (Array.isArray(entry.value) && entry.value.length === 2) {
-      return `${entry.value[0]?.toFixed(2)}～${entry.value[1]?.toFixed(2)}${unit}`;
+      const isVpd = entry.name.includes('飽差');
+      const fmt = (v: number) => isVpd ? v.toFixed(1) : v.toFixed(2);
+      return `${fmt(entry.value[0])}～${fmt(entry.value[1])}${unit}`;
     }
     if (typeof entry.value !== 'number') return '--';
     const isIntegerLike = entry.name.includes('降水') || entry.name.includes('日照') || entry.name.includes('日射') || entry.name.includes('積算');
-    const isVpd = entry.name.includes('飽差');
-    return `${isIntegerLike ? Math.round(entry.value) : isVpd ? entry.value.toFixed(2) : entry.value.toFixed(1)}${unit}`;
+    return `${isIntegerLike ? Math.round(entry.value) : entry.value.toFixed(1)}${unit}`;
   };
 
   const renderValueBox = (chartId: string) => {
@@ -851,24 +857,43 @@ function App() {
             groups.get(p.color)!.push(p);
           });
 
-          // 1本目を基準とした Δ値 / Δ日 注釈（GDD / 累積日射量に対応）
+          // 1本目を基準とした Δ値 / Δ日 注釈
+          // - GDD / 累積日射量: Δ値 + Δ日（serisByTarget で逆引き）
+          // - 降水量 / 日照時間: Δ値のみ（showDays:false で逆引きをスキップ）
           const accumDiffConfig: {
             refKeyPrefix: string;
-            seriesByTarget: Map<string, Array<{ mmdd: string; accum: number }>>;
+            seriesByTarget: Map<string, Array<{ mmdd: string; accum: number }>> | null;
             threshold: number;
             formatDelta: (d: number) => string;
+            showDays: boolean;
           } | null =
             chartId === 'gdd' ? {
               refKeyPrefix: 'accum_',
               seriesByTarget: gddData.seriesByTarget,
               threshold: userSettings?.accumDeltaThresholds?.gdd ?? GDD_DELTA_DAYS_MIN_V0,
               formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d))}℃`,
+              showDays: true,
             }
             : chartId === 'radiation' ? {
               refKeyPrefix: 'accumRadiation_',
               seriesByTarget: radiationData.seriesByTarget,
               threshold: userSettings?.accumDeltaThresholds?.radiation ?? RADIATION_DELTA_DAYS_MIN_V0,
               formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d))} MJ/m²`,
+              showDays: true,
+            }
+            : chartId === 'precip' ? {
+              refKeyPrefix: 'accumPrecip_',
+              seriesByTarget: null,
+              threshold: 0,
+              formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d))}mm`,
+              showDays: false,
+            }
+            : chartId === 'sunshine' ? {
+              refKeyPrefix: 'accumSunshine_',
+              seriesByTarget: null,
+              threshold: 0,
+              formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d) * 10) / 10}h`,
+              showDays: false,
             }
             : null;
 
@@ -892,11 +917,14 @@ function App() {
             // 月次モードは Δ値 のみ
             if (isMonthly) return `(${deltaStr})`;
 
+            // Δ日 を出さない設定（降水量・日照時間）は Δ値 のみ
+            if (!accumDiffConfig.showDays) return `(${deltaStr})`;
+
             // 序盤ガード: V0 が小さすぎる場合は Δ日 を出さない
             if (v0 < accumDiffConfig.threshold) return `(${deltaStr})`;
             if (hoverDoy == null) return `(${deltaStr})`;
 
-            const series = accumDiffConfig.seriesByTarget.get(targetId);
+            const series = accumDiffConfig.seriesByTarget?.get(targetId);
             if (!series) return `(${deltaStr})`;
 
             const crossDate = findDateByAccum(series, v0);
@@ -1086,6 +1114,23 @@ function App() {
             {targets.map((target, index) => (
               <div key={target.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <div style={{ flexShrink: 0, width: '4px', height: '100%', minHeight: '36px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
+                <span
+                  title={index === 0 ? '比較の基準となる対象（差表示の基点）' : '基準との差が表示されます'}
+                  style={{
+                    flexShrink: 0,
+                    minWidth: '38px',
+                    textAlign: 'center',
+                    padding: '0.18rem 0.45rem',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    borderRadius: '999px',
+                    background: index === 0 ? 'rgba(244,167,185,0.55)' : 'rgba(0,0,0,0.06)',
+                    color: index === 0 ? '#7a2840' : 'var(--text-secondary)',
+                    border: index === 0 ? '1px solid rgba(244,167,185,0.8)' : '1px solid rgba(0,0,0,0.08)',
+                  }}
+                >
+                  {index === 0 ? '基準' : '比較'}
+                </span>
                 <select
                   value={target.locationId}
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
@@ -1679,7 +1724,7 @@ function App() {
         {activeChart === 'vpd' && (
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}>💧 飽差</h2>
+            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><DropletOff size={18} /> 飽差</h2>
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -1690,7 +1735,7 @@ function App() {
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(kPa)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
+                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(g/m³)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.vpd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
 {targets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -1700,7 +1745,7 @@ function App() {
                           <Bar dataKey={`vpdRange_${target.id}`} name={`${name} 飽差(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
                           <Line type="monotone" dataKey={`monthlyMeanVpdMax_${target.id}`} name={`${name} 月平均最高飽差`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
                             {isMonthly && index === 0 && (
-                              <LabelList dataKey={`monthlyMeanVpdMax_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(2) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
+                              <LabelList dataKey={`monthlyMeanVpdMax_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(1) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
                         </React.Fragment>
@@ -1716,8 +1761,8 @@ function App() {
               {renderValueBox('vpd')}
               <MonthsTable
                 rowsDef={[
-                  { key: 'meanVpd', label: '月平均飽差 (kPa)' },
-                  { key: 'meanVpdMax', label: '月平均最高飽差 (kPa)' },
+                  { key: 'meanVpd', label: '月平均飽差 (g/m³)' },
+                  { key: 'meanVpdMax', label: '月平均最高飽差 (g/m³)' },
                 ]}
                 targets={targets}
                 stats={monthlyStats}
