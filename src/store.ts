@@ -6,7 +6,12 @@ import {
   updateLocationInFirestore,
   deleteLocationFromFirestore,
 } from './lib/locationRepository';
-import { ensureUserDocument, getUserSettings, updateBaseTempSettings } from './lib/userRepository';
+import {
+  getUserSettings,
+  updateBaseTempSettings as updateBaseTempSettingsRemote,
+  updateAccumStartDates as updateAccumStartDatesRemote,
+  updateAccumDeltaThresholds as updateAccumDeltaThresholdsRemote,
+} from './lib/userRepository';
 
 export interface LocationInfo {
   id: string;
@@ -15,11 +20,37 @@ export interface LocationInfo {
   lon: number;
 }
 
+// 累積開始日（MM-DD）— precip/sunshine/radiation/gdd の4チャート分
+export interface AccumStartDates {
+  precip: string;
+  sunshine: string;
+  radiation: string;
+  gdd: string;
+}
+
+// Δ日 ガード閾値（序盤の不安定な逆引きを抑制）
+export interface AccumDeltaThresholds {
+  gdd: number;
+  radiation: number;
+}
+
 export interface UserSettings {
   baseTempSettings: [number, number];
+  accumStartDates: AccumStartDates;
+  accumDeltaThresholds: AccumDeltaThresholds;
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
+const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
+  precip: '01-01',
+  sunshine: '01-01',
+  radiation: '01-01',
+  gdd: '01-01',
+};
+const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
+  gdd: 30,
+  radiation: 100,
+};
 
 interface AppState {
   user: User | null;
@@ -33,6 +64,8 @@ interface AppState {
   loadLocations: (uid: string) => Promise<void>;
   loadUserSettings: (uid: string) => Promise<void>;
   updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
+  updateAccumStartDates: (dates: AccumStartDates) => Promise<void>;
+  updateAccumDeltaThresholds: (thresholds: AccumDeltaThresholds) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -50,7 +83,6 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   loadLocations: async (uid) => {
     set({ locationsLoading: true });
-    await ensureUserDocument(uid);
     const locations = await fetchLocations(uid);
     set({ locations, locationsLoading: false });
   },
@@ -63,9 +95,33 @@ export const useAppStore = create<AppState>()((set, get) => ({
   updateBaseTempSettings: async (settings) => {
     const uid = get().user?.uid;
     if (!uid) return;
-    await updateBaseTempSettings(uid, settings);
+    await updateBaseTempSettingsRemote(uid, settings);
     set((state) => ({
-      userSettings: { ...state.userSettings, baseTempSettings: settings },
+      userSettings: state.userSettings
+        ? { ...state.userSettings, baseTempSettings: settings }
+        : null,
+    }));
+  },
+
+  updateAccumStartDates: async (dates) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateAccumStartDatesRemote(uid, dates);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, accumStartDates: dates }
+        : null,
+    }));
+  },
+
+  updateAccumDeltaThresholds: async (thresholds) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateAccumDeltaThresholdsRemote(uid, thresholds);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, accumDeltaThresholds: thresholds }
+        : null,
     }));
   },
 
@@ -97,4 +153,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   },
 }));
 
-export { DEFAULT_BASE_TEMP_SETTINGS };
+export {
+  DEFAULT_BASE_TEMP_SETTINGS,
+  DEFAULT_ACCUM_START_DATES,
+  DEFAULT_ACCUM_DELTA_THRESHOLDS,
+};

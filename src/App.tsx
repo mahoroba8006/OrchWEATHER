@@ -8,6 +8,7 @@ import { useWeatherData, type CompareTarget } from './hooks/useWeather';
 import { MonthsTable } from './components/MonthsTable';
 import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
+import { ensureUserDocument } from './lib/userRepository';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -130,6 +131,9 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
+        // ensureUserDocument を直列で先に実行。getDocFromServer と並行すると
+        // setDoc 書き込み中のスナップショットを掴んで部分データが返る競合が起きる
+        await ensureUserDocument(firebaseUser.uid);
         await Promise.all([
           loadLocations(firebaseUser.uid),
           loadUserSettings(firebaseUser.uid),
@@ -244,6 +248,14 @@ function App() {
 
       const plotDayStr = index === 0 ? '09' : index === 1 ? '16' : '23';
 
+      // 累積開始日（MM-DD）— ユーザー設定。未設定はデフォルト '01-01'
+      const precipStart = userSettings?.accumStartDates?.precip ?? '01-01';
+      const sunshineStart = userSettings?.accumStartDates?.sunshine ?? '01-01';
+      const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
+      let accumPrecipRunning = 0;
+      let accumSunshineRunning = 0;
+      let accumRadiationRunning = 0;
+
       data.daily.forEach(day => {
         const mmdd = day.date.substring(5);
         const monthStr = day.date.substring(5, 7);
@@ -303,12 +315,29 @@ function App() {
         }
 
         entry[`precip_${target.id}`] = day.precipSum;
-        entry[`accumPrecip_${target.id}`] = day.accumPrecip;
         entry[`humid_${target.id}`] = day.humidMean;
         entry[`radiation_${target.id}`] = day.radiation;
-        entry[`accumRadiation_${target.id}`] = day.accumRadiation;
         entry[`sunshine_${target.id}`] = day.sunshineDuration;
-        entry[`accumSunshine_${target.id}`] = day.accumSunshineDuration;
+
+        // 累積系：開始日 (MM-DD) 以降のみ加算。開始日より前は折線非表示用に null
+        if (mmdd >= precipStart) {
+          accumPrecipRunning += day.precipSum;
+          entry[`accumPrecip_${target.id}`] = accumPrecipRunning;
+        } else {
+          entry[`accumPrecip_${target.id}`] = null;
+        }
+        if (mmdd >= sunshineStart) {
+          accumSunshineRunning += day.sunshineDuration;
+          entry[`accumSunshine_${target.id}`] = accumSunshineRunning;
+        } else {
+          entry[`accumSunshine_${target.id}`] = null;
+        }
+        if (mmdd >= radiationStart) {
+          accumRadiationRunning += day.radiation;
+          entry[`accumRadiation_${target.id}`] = accumRadiationRunning;
+        } else {
+          entry[`accumRadiation_${target.id}`] = null;
+        }
       });
 
       // 12/31：12月と翌年1月の中間値（翌年データがある場合のみ）
@@ -333,11 +362,12 @@ function App() {
     });
 
     return Array.from(map.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-  }, [weatherData, targets]);
+  }, [weatherData, targets, userSettings]);
 
   const gddData = useMemo(() => {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
-    const overlay = new Map<string, Record<string, number>>();
+    const gddStart = userSettings?.accumStartDates?.gdd ?? '01-01';
+    const overlay = new Map<string, Record<string, number | null>>();
     const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
 
     targets.forEach((target) => {
@@ -347,14 +377,21 @@ function App() {
       const series: Array<{ mmdd: string; accum: number }> = [];
       data.daily.forEach(day => {
         const mmdd = day.date.substring(5);
+        const inRange = mmdd >= gddStart;
         const diff = day.tempMean - selectedBaseTemp;
         const dailyAccum = diff > 0 ? diff : 0;
-        runningAccumTemp += dailyAccum;
         const existing = overlay.get(mmdd) ?? {};
-        existing[`dailyAccum_${target.id}`] = dailyAccum;
-        existing[`accum_${target.id}`] = runningAccumTemp;
+        if (inRange) {
+          runningAccumTemp += dailyAccum;
+          existing[`dailyAccum_${target.id}`] = dailyAccum;
+          existing[`accum_${target.id}`] = runningAccumTemp;
+          series.push({ mmdd, accum: runningAccumTemp });
+        } else {
+          // 開始日より前は折線非表示・バー非表示
+          existing[`dailyAccum_${target.id}`] = null;
+          existing[`accum_${target.id}`] = null;
+        }
         overlay.set(mmdd, existing);
-        series.push({ mmdd, accum: runningAccumTemp });
       });
       seriesByTarget.set(target.id, series);
     });
@@ -363,20 +400,25 @@ function App() {
   }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
 
   // 日射量チャート Δ日 逆引き用：累積日射量の MM-DD 系列
-  // overlay は既存の baseChartData の accumRadiation_${id} を流用するため不要
+  // 累積は baseChartData と同じ開始日ベースで自前計算
   const radiationData = useMemo(() => {
+    const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
     const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
     targets.forEach((target) => {
       const data = weatherData[target.id];
       if (!data) return;
       const series: Array<{ mmdd: string; accum: number }> = [];
+      let running = 0;
       data.daily.forEach(day => {
-        series.push({ mmdd: day.date.substring(5), accum: day.accumRadiation });
+        const mmdd = day.date.substring(5);
+        if (mmdd < radiationStart) return;
+        running += day.radiation;
+        series.push({ mmdd, accum: running });
       });
       seriesByTarget.set(target.id, series);
     });
     return { seriesByTarget };
-  }, [weatherData, targets]);
+  }, [weatherData, targets, userSettings]);
 
   const filteredBaseChartData = useMemo(() => {
     const startMM = displayRange.startMM;
@@ -422,39 +464,69 @@ function App() {
     if (Object.keys(weatherData).length === 0) return {};
     const stats: Record<string, any> = {};
     const baseT = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const precipStart = userSettings?.accumStartDates?.precip ?? '01-01';
+    const sunshineStart = userSettings?.accumStartDates?.sunshine ?? '01-01';
+    const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
+    const gddStart = userSettings?.accumStartDates?.gdd ?? '01-01';
+
+    // 月別合計の partial 計算
+    // 開始月より前 → null（月別バー非表示）
+    // 開始月 → 開始日以降のみ集計（半月分など）
+    // 開始月以降 → 全月の合計
+    const partialSum = <T extends { date: string }>(
+      monthDays: T[],
+      monthMM: string,
+      startMMDD: string,
+      mapper: (d: T) => number
+    ): number | null => {
+      const startMM = startMMDD.substring(0, 2);
+      if (monthMM < startMM) return null;
+      const days = monthMM > startMM ? monthDays : monthDays.filter(d => d.date.substring(5) >= startMMDD);
+      return days.reduce((s, d) => s + mapper(d), 0);
+    };
 
     targets.forEach(target => {
       const data = weatherData[target.id];
-      
+
       if (!data) return;
       stats[target.id] = {};
-      
+
       for (let m = 1; m <= 12; m++) {
-        const monthStr = `${target.year}-${String(m).padStart(2, '0')}`;
+        const monthMM = String(m).padStart(2, '0');
+        const monthStr = `${target.year}-${monthMM}`;
         const monthDays = data.daily.filter(d => d.date.startsWith(monthStr));
-        
+
         if (monthDays.length === 0) {
           stats[target.id][m] = null;
           continue;
         }
-        
+
         const meanTemp = monthDays.reduce((sum, d) => sum + d.tempMean, 0) / monthDays.length;
         const maxTemp = Math.max(...monthDays.map(d => d.tempMax));
         const minTemp = Math.min(...monthDays.map(d => d.tempMin));
-        
+
         const sumPrecip = monthDays.reduce((sum, d) => sum + d.precipSum, 0);
         const meanPrecip = sumPrecip / monthDays.length;
-        
+
         const sumRad = monthDays.reduce((sum, d) => sum + d.radiation, 0);
         const meanRad = sumRad / monthDays.length;
 
         const sumSunshine = monthDays.reduce((sum, d) => sum + d.sunshineDuration, 0);
         const meanSunshine = sumSunshine / monthDays.length;
-        
+
         let monthAccumSum = 0;
         monthDays.forEach(d => {
           const diff = d.tempMean - baseT;
           if (diff > 0) monthAccumSum += diff;
+        });
+
+        // 開始日適用版（月別バー・累積バー用）
+        const sumPrecipPartial = partialSum(monthDays, monthMM, precipStart, d => d.precipSum);
+        const sumSunshinePartial = partialSum(monthDays, monthMM, sunshineStart, d => d.sunshineDuration);
+        const sumRadPartial = partialSum(monthDays, monthMM, radiationStart, d => d.radiation);
+        const monthAccumSumPartial = partialSum(monthDays, monthMM, gddStart, d => {
+          const diff = d.tempMean - baseT;
+          return diff > 0 ? diff : 0;
         });
         
         const monthMeanAccum = monthAccumSum / monthDays.length;
@@ -485,6 +557,11 @@ function App() {
           meanVpdMin,
           meanVpdMax,
           meanVpd,
+          // 累積開始日に基づく partial 合計（開始月より前は null、開始月は半月分など）
+          sumPrecipPartial,
+          sumSunshinePartial,
+          sumRadPartial,
+          monthAccumSumPartial,
         };
       }
     });
@@ -515,10 +592,11 @@ function App() {
         entry[`t_${target.id}_tempRange`] = [s.minTemp, s.maxTemp];
         entry[`t_${target.id}_monthlyMeanTemp`] = s.meanTemp;
 
-        entry[`monthlyPrecip_${target.id}`] = s.sumPrecip;
-        entry[`sunshine_${target.id}`] = s.sumSunshine;
-        entry[`radiation_${target.id}`] = s.sumRad;
-        entry[`dailyAccum_${target.id}`] = s.monthAccumSum;
+        // 月別合計バー: 開始月より前は null（バー非表示）、開始月は partial 値
+        if (s.sumPrecipPartial !== null) entry[`monthlyPrecip_${target.id}`] = s.sumPrecipPartial;
+        if (s.sumSunshinePartial !== null) entry[`sunshine_${target.id}`] = s.sumSunshinePartial;
+        if (s.sumRadPartial !== null) entry[`radiation_${target.id}`] = s.sumRadPartial;
+        if (s.monthAccumSumPartial !== null) entry[`dailyAccum_${target.id}`] = s.monthAccumSumPartial;
 
         entry[`humidRange_${target.id}`] = [s.minHumid, s.maxHumid];
         entry[`monthlyHumid_${target.id}`] = s.meanHumid;
@@ -527,18 +605,24 @@ function App() {
         entry[`vpdMean_${target.id}`] = s.meanVpd;
         entry[`monthlyMeanVpdMax_${target.id}`] = s.meanVpdMax;
 
+        // 累積カウンタ: 開始月より前は null、開始月以降は partial 値を加算（進行中月は除外）
         if (!isInProgressMonth) {
-          accumPrecip[target.id] = (accumPrecip[target.id] || 0) + s.sumPrecip;
-          entry[`accumPrecip_${target.id}`] = accumPrecip[target.id];
-
-          accumSunshine[target.id] = (accumSunshine[target.id] || 0) + s.sumSunshine;
-          entry[`accumSunshine_${target.id}`] = accumSunshine[target.id];
-
-          accumRadiation[target.id] = (accumRadiation[target.id] || 0) + s.sumRad;
-          entry[`accumRadiation_${target.id}`] = accumRadiation[target.id];
-
-          accumGdd[target.id] = (accumGdd[target.id] || 0) + s.monthAccumSum;
-          entry[`accum_${target.id}`] = accumGdd[target.id];
+          if (s.sumPrecipPartial !== null) {
+            accumPrecip[target.id] = (accumPrecip[target.id] || 0) + s.sumPrecipPartial;
+            entry[`accumPrecip_${target.id}`] = accumPrecip[target.id];
+          }
+          if (s.sumSunshinePartial !== null) {
+            accumSunshine[target.id] = (accumSunshine[target.id] || 0) + s.sumSunshinePartial;
+            entry[`accumSunshine_${target.id}`] = accumSunshine[target.id];
+          }
+          if (s.sumRadPartial !== null) {
+            accumRadiation[target.id] = (accumRadiation[target.id] || 0) + s.sumRadPartial;
+            entry[`accumRadiation_${target.id}`] = accumRadiation[target.id];
+          }
+          if (s.monthAccumSumPartial !== null) {
+            accumGdd[target.id] = (accumGdd[target.id] || 0) + s.monthAccumSumPartial;
+            entry[`accum_${target.id}`] = accumGdd[target.id];
+          }
         }
       });
       entries.push(entry);
@@ -777,13 +861,13 @@ function App() {
             chartId === 'gdd' ? {
               refKeyPrefix: 'accum_',
               seriesByTarget: gddData.seriesByTarget,
-              threshold: GDD_DELTA_DAYS_MIN_V0,
+              threshold: userSettings?.accumDeltaThresholds?.gdd ?? GDD_DELTA_DAYS_MIN_V0,
               formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d))}℃`,
             }
             : chartId === 'radiation' ? {
               refKeyPrefix: 'accumRadiation_',
               seriesByTarget: radiationData.seriesByTarget,
-              threshold: RADIATION_DELTA_DAYS_MIN_V0,
+              threshold: userSettings?.accumDeltaThresholds?.radiation ?? RADIATION_DELTA_DAYS_MIN_V0,
               formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d))} MJ/m²`,
             }
             : null;
@@ -891,6 +975,27 @@ function App() {
     flexDirection: 'column' as const,
     gap: '1rem',
     marginTop: '1rem'
+  };
+
+  // 累積開始日が非デフォルト（01-01）のときだけ、タイトル横に「4/20〜」バッジを表示
+  const renderAccumBadge = (chart: 'precip' | 'sunshine' | 'radiation' | 'gdd') => {
+    const mmdd = userSettings?.accumStartDates?.[chart];
+    if (!mmdd || mmdd === '01-01') return null;
+    const [m, d] = mmdd.split('-').map(Number);
+    return (
+      <span style={{
+        marginLeft: '0.5rem',
+        padding: '0.15rem 0.55rem',
+        fontSize: '0.7rem',
+        background: 'rgba(0,0,0,0.06)',
+        borderRadius: '999px',
+        color: 'var(--text-secondary)',
+        whiteSpace: 'nowrap',
+        fontWeight: 600,
+      }}>
+        累積: {m}/{d}〜
+      </span>
+    );
   };
 
   const renderCustomLegend = (types: { label: string, type: 'dashed' | 'solid' | 'thin-bar' | 'thick-bar' | 'range-bar' }[]) => {
@@ -1173,6 +1278,7 @@ function App() {
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><CloudRain size={18} /> 降水量</h2>
+            {renderAccumBadge('precip')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -1265,6 +1371,7 @@ function App() {
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Clock size={18} /> 日照時間</h2>
+            {renderAccumBadge('sunshine')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -1342,6 +1449,7 @@ function App() {
         <section className="glass-panel" style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Sun size={18} /> 日射量</h2>
+            {renderAccumBadge('radiation')}
           </div>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
@@ -1420,6 +1528,7 @@ function App() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem', flex: 1 }}>
               <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Leaf size={18} /> 有効積算温度</h2>
+              {renderAccumBadge('gdd')}
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => (
