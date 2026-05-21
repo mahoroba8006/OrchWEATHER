@@ -18,6 +18,8 @@ export interface RiskBadge {
   borderColor: string;
 }
 
+const ARATEN_RISK_SET: ReadonlySet<RiskType> = new Set(['thunder', 'hail', 'wind', 'rain']);
+
 export const RISK_BADGES: Record<RiskType, RiskBadge> = {
   frost:   { type: 'frost',   emoji: '❄',  label: '霜',   badgeBg: '#fcefc4', badgeColor: '#a07825', borderColor: '#e6c478' },
   thunder: { type: 'thunder', emoji: '⚡', label: '雷雨', badgeBg: '#f7d4cf', badgeColor: '#a35047', borderColor: '#d99c93' },
@@ -55,7 +57,7 @@ function getTimePrefix(hour: number): string {
 }
 
 function buildComment(risks: RiskType[], firstHour?: number): string {
-  if (risks.includes('thunder') || risks.includes('hail') || risks.includes('wind') || risks.includes('rain')) {
+  if (risks.some(r => ARATEN_RISK_SET.has(r))) {
     const prefix = firstHour !== undefined ? getTimePrefix(firstHour) : '';
     return prefix ? `${prefix} 荒天` : '荒天';
   }
@@ -68,7 +70,6 @@ function buildComment(risks: RiskType[], firstHour?: number): string {
 
 // 日0-2: hourly 精密判定
 function detectHourlyRisks(hours: HourlyForecast[]): { risks: RiskType[]; firstHour: number | undefined } {
-  const ARATEN_RISKS: RiskType[] = ['thunder', 'hail', 'wind', 'rain'];
   const riskSet = new Set<RiskType>();
   let firstAratenHour: number | undefined;
 
@@ -85,7 +86,7 @@ function detectHourlyRisks(hours: HourlyForecast[]): { risks: RiskType[]; firstH
     if (h.humidity <= 30)                              detected.push('dry');
 
     if (detected.length > 0) {
-      if (detected.some(r => ARATEN_RISKS.includes(r)) && firstAratenHour === undefined) {
+      if (detected.some(r => ARATEN_RISK_SET.has(r)) && firstAratenHour === undefined) {
         firstAratenHour = hour;
       }
       detected.forEach(r => riskSet.add(r));

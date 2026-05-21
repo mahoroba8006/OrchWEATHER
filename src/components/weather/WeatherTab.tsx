@@ -41,7 +41,10 @@ export function WeatherTab() {
   }
 
   const timeStr = lastUpdated
-    ? `${String(lastUpdated.getHours()).padStart(2, '0')}:${String(lastUpdated.getMinutes()).padStart(2, '0')}`
+    ? (() => {
+        const jst = new Date(lastUpdated.getTime() + 9 * 60 * 60 * 1000);
+        return `${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}`;
+      })()
     : null;
 
   const dayRisks = data ? detectRisks(data.hourly, data.daily) : [];

@@ -68,6 +68,10 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   if (!res.ok) throw new Error(`予報データの取得に失敗しました (${res.status})`);
   const raw = await res.json();
 
+  if (!raw?.hourly?.time || !raw?.daily?.time) {
+    throw new Error('予報データの形式が不正です');
+  }
+
   const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({
     time: t,
     temperature:   raw.hourly.temperature_2m[i]             ?? 0,
