@@ -191,12 +191,6 @@ const ROWS: {
     isRisk: h => h.precipitation >= 30,
   },
   {
-    key: 'precipProb',
-    label: '降水確率(%)',
-    fmt: h => String(h.precipProb),
-    isRisk: () => false,
-  },
-  {
     key: 'dewPoint',
     label: '露点(℃)',
     fmt: h => h.dewPoint.toFixed(1),
