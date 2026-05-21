@@ -92,7 +92,7 @@ OrchWEATHER に「天気情報」タブを新設する。
 ```
 latitude={lat}&longitude={lon}
 &timezone=Asia/Tokyo
-&models=jma_seamless
+&models=jma_seamless,best_match
 &forecast_days=11
 &forecast_hours=72
 &hourly=temperature_2m,precipitation,precipitation_probability,
@@ -102,9 +102,12 @@ latitude={lat}&longitude={lon}
         weather_code,shortwave_radiation,snowfall
 &daily=weather_code,temperature_2m_max,temperature_2m_min,
        precipitation_probability_max,
+       precipitation_sum,relative_humidity_2m_min,
        sunrise,sunset,
        shortwave_radiation_sum,snowfall_sum,wind_gusts_10m_max
 ```
+
+> **NOTE:** `models=jma_seamless,best_match` とすることで、JMAが対応していない地域・期間は best_match モデルに自動フォールバックする。`forecast_hours=72` は時間別表示（72列）の範囲を指定するもので、11日分の日別データ取得（`forecast_days=11`）とは独立している。
 
 ### 型定義
 
@@ -132,6 +135,8 @@ interface DailyForecastData {
   tempMax: number;
   tempMin: number;
   precipProbMax: number;    // %
+  precipSum: number;        // mm（日合計）
+  humidMin: number;         // %（日最低湿度）
   sunrise: string;          // "2026-05-21T04:43"
   sunset: string;           // "2026-05-21T18:52"
   radiationSum: number;     // MJ/m²
@@ -164,17 +169,21 @@ const forecastCache = new Map<string, { data: ForecastData; fetchedAt: number }>
 
 ### 7リスクの判定条件
 
-| リスク | 判定（時間別データから） | バッジ | バッジ背景 | サマリカード左ボーダー |
-|---|---|---|---|---|
-| ❄ 霜 | dewPoint ≤ 0℃ AND temperature ≤ 3℃ | ❄ | #fcefc4 | #e6c478 |
-| ⚡ 雷雨 | cape ≥ 1000 OR weatherCode 95–99 | ⚡ | #f7d4cf | #d99c93 |
-| 🧊 雹 | cape ≥ 1500 AND freezingLevel ≤ 3500 | 🧊 | #f3d4e3 | #d693b3 |
-| 💨 強風 | windGusts ≥ 15 m/s | 💨 | #dee0ef | #9aa1bf |
-| 🌊 大雨 | precipitation ≥ 30 mm（1時間） | 🌊 | #e6dff0 | #ab98c8 |
-| ☀ 高温 | temperature ≥ 35℃ | ☀* | #fcdcc4 | #d39867 |
-| 🌵 乾燥 | humidity ≤ 30% | 🌵 | #ece6d4 | #b8a878 |
+リスク検出は **2段階** で行う。日0〜2（hourly データあり）は精密判定、日3〜10（hourly なし）は daily 変数で代替判定。
+
+| リスク | 日0-2：hourly 精密判定 | 日3-10：daily 代替判定 | バッジ | バッジ背景 | サマリカード左ボーダー |
+|---|---|---|---|---|---|
+| ❄ 霜 | dewPoint ≤ 0℃ AND temp ≤ 3℃ | tempMin ≤ 3℃ | ❄ | #fcefc4 | #e6c478 |
+| ⚡ 雷雨 | cape ≥ **500** OR weatherCode 95–99 | weatherCode 95–99 | ⚡ | #f7d4cf | #d99c93 |
+| 🧊 雹 | cape ≥ **1000** AND freezingLevel ≤ 3500 | weatherCode 96 or 99 | 🧊 | #f3d4e3 | #d693b3 |
+| 💨 強風 | windGusts ≥ 15 m/s | windGustsMax ≥ 15 m/s | 💨 | #dee0ef | #9aa1bf |
+| 🌊 大雨 | precipitation ≥ 30 mm（1時間） | precipSum ≥ 80 mm（日合計） | 🌊 | #e6dff0 | #ab98c8 |
+| ☀ 高温 | temperature ≥ 35℃ | tempMax ≥ 35℃ | ☀* | #fcdcc4 | #d39867 |
+| 🌵 乾燥 | humidity ≤ 30% | humidMin ≤ 30% | 🌵 | #ece6d4 | #b8a878 |
 
 *高温バッジの ☀ には `color:#c0392b; filter:drop-shadow(0 0 6px #f87171)` を適用する。
+
+> **CAPE閾値の根拠:** 日本の夏季は低CAPE（500〜1000 J/kg）でもゲリラ豪雨・落雷が発生するため、農業向け警戒優先で欧米標準より低めに設定。
 
 ### コメント自動生成ルール
 
@@ -196,7 +205,25 @@ function buildComment(risks: RiskType[]): string {
 
 ### 日別カードへの集約
 
-各日の hourly データ（0〜23時）をスキャンし、該当リスクが1件でも検出されたらバッジ＋コメントを表示。
+**タイムゾーン処理:** API は `timezone=Asia/Tokyo` を指定するため、返却される `time` 文字列はすでに JST。日付グルーピングは `time.slice(0, 10)`（`YYYY-MM-DD`）をキーとして行う。UTC変換は一切行わない。
+
+- **日0〜2（hourly あり）:** 各日に対応する hourly エントリ（`time.slice(0,10) === date`）を全件スキャンし、7リスクを判定。
+- **日3〜10（hourly なし）:** 対応する `DailyForecastData` の変数から代替判定（上表「daily 代替判定」列）。
+- 該当リスクが1件でも検出されたらバッジ＋コメントを表示。
+
+### 時間別コメントへの時間帯プレフィックス
+
+`buildComment` の返り値の前に、最初にリスクが発生した時刻から時間帯プレフィックスを付加する。
+
+```typescript
+function getTimePrefix(hour: number): string {
+  if (hour <= 9)  return '早朝';
+  if (hour <= 14) return '昼';
+  if (hour <= 18) return '午後';
+  return '夜';
+}
+// 例: "午後 荒天", "早朝 霜"
+```
 
 ---
 
@@ -277,6 +304,7 @@ src/
 ## 非機能要件
 
 - **パフォーマンス:** 予報フェッチは分析データとは独立。タブ表示時に初回フェッチ（遅延ロード）
-- **キャッシュ:** モジュールレベルの Map（`weatherCache` と同パターン）、TTL 30分
+- **キャッシュ:** モジュールレベルの Map（`weatherCache` と同パターン）、TTL 30分。地点数は最大10件程度なのでメモリ上限の設定は不要
 - **型安全:** TypeScript strict。`null` チェックを徹底
 - **リグレッション:** 分析タブの既存コードを変更しないため、分析機能への影響はゼロ
+- **モバイルスクロール衝突対策:** HourlyTable の横スクロールコンテナに `touch-action: pan-x` を設定し、縦スクロールと干渉しないようにする
