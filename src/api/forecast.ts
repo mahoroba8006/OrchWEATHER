@@ -104,10 +104,10 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     const hr = parseInt(h.time.slice(11, 13), 10);
     if (!dayAmPm.has(date)) dayAmPm.set(date, { amCode: null, pmCode: null, amProb: null, pmProb: null });
     const d = dayAmPm.get(date)!;
-    if (hr >= 6 && hr < 12) {
+    if (hr < 12) {
       d.amCode = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
       d.amProb = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
-    } else if (hr >= 12 && hr < 18) {
+    } else {
       d.pmCode = d.pmCode === null ? h.weatherCode : Math.max(d.pmCode, h.weatherCode);
       d.pmProb = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
     }
