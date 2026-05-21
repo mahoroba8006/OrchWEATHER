@@ -45,9 +45,7 @@ export function useForecast(lat: number | null, lon: number | null) {
         setError(message);
       }
     } finally {
-      if (activeKey.current === key) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [lat, lon]);
 
