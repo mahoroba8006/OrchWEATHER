@@ -30,6 +30,10 @@ export interface DailyForecastData {
   radiationSum: number;  // MJ/m²
   snowfallSum: number;   // cm
   windSpeedMax: number;  // m/s
+  amWeatherCode: number | null; // WMO max 06:00-11:00
+  pmWeatherCode: number | null; // WMO max 12:00-17:00
+  amPrecipProb:  number | null; // % max 06:00-11:00
+  pmPrecipProb:  number | null; // % max 12:00-17:00
 }
 
 export interface ForecastData {
@@ -90,6 +94,25 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     snowfall:      raw.hourly.snowfall?.[i]                    ?? 0,
   }));
 
+  // 午前(6-11時)・午後(12-17時)別に最大 weatherCode / precipProb を hourly から集計
+  const dayAmPm = new Map<string, {
+    amCode: number | null; pmCode: number | null;
+    amProb: number | null; pmProb: number | null;
+  }>();
+  for (const h of hourly) {
+    const date = h.time.slice(0, 10);
+    const hr = parseInt(h.time.slice(11, 13), 10);
+    if (!dayAmPm.has(date)) dayAmPm.set(date, { amCode: null, pmCode: null, amProb: null, pmProb: null });
+    const d = dayAmPm.get(date)!;
+    if (hr >= 6 && hr < 12) {
+      d.amCode = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
+      d.amProb = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
+    } else if (hr >= 12 && hr < 18) {
+      d.pmCode = d.pmCode === null ? h.weatherCode : Math.max(d.pmCode, h.weatherCode);
+      d.pmProb = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
+    }
+  }
+
   const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => ({
     date:          t,
     weatherCode:   raw.daily.weather_code?.[i]                   ?? 0,
@@ -103,6 +126,10 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     radiationSum:  raw.daily.shortwave_radiation_sum?.[i]        ?? 0,
     snowfallSum:   raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:  raw.daily.wind_speed_10m_max?.[i]             ?? 0,
+    amWeatherCode: dayAmPm.get(t)?.amCode ?? null,
+    pmWeatherCode: dayAmPm.get(t)?.pmCode ?? null,
+    amPrecipProb:  dayAmPm.get(t)?.amProb ?? null,
+    pmPrecipProb:  dayAmPm.get(t)?.pmProb ?? null,
   }));
 
   return { hourly, daily, fetchedAt: Date.now() };

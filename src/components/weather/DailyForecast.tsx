@@ -1,5 +1,4 @@
-// src/components/weather/DailyForecast.tsx
-import { type CSSProperties } from 'react';
+import { Fragment, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
 import type { DayRisk } from '../../lib/riskDetection';
 import { RISK_BADGES, weatherCodeToEmoji } from '../../lib/riskDetection';
@@ -10,8 +9,15 @@ interface Props {
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
-const CARD_W = 96;
+const CARD_W = 96;  // px per day — mini chart geometry depends on this
+const HALF_W = 48;  // px per AM / PM cell
 const CHART_H = 60;
+
+function probColor(p: number): string {
+  if (p >= 70) return '#2a6abf';
+  if (p >= 40) return '#5a8fd4';
+  return '#a8aebc';
+}
 
 function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
   const N = daily.length;
@@ -102,14 +108,38 @@ export function DailyForecast({ daily, dayRisks }: Props) {
     return undefined;
   };
 
-  const cell = (day: DailyForecastData, i: number): CSSProperties => ({
-    width: CARD_W,
-    minWidth: CARD_W,
-    borderRight: i < daily.length - 1 ? '1px solid #f3f4f8' : undefined,
+  // colSpan=2 per day (date / temp / risk rows)
+  const spanCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
     background: cellBg(day),
     textAlign: 'center',
     padding: '0.25rem 0.25rem',
     verticalAlign: 'middle',
+    borderRight: i < daily.length - 1 ? '1px solid #f3f4f8' : undefined,
+    ...extra,
+  });
+
+  // left half of each day
+  const amCell = (day: DailyForecastData, extra?: CSSProperties): CSSProperties => ({
+    width: HALF_W,
+    minWidth: HALF_W,
+    background: cellBg(day),
+    textAlign: 'center',
+    padding: '0.2rem 0.1rem',
+    verticalAlign: 'middle',
+    borderRight: '1px solid #eef0f6',
+    ...extra,
+  });
+
+  // right half of each day
+  const pmCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
+    width: HALF_W,
+    minWidth: HALF_W,
+    background: cellBg(day),
+    textAlign: 'center',
+    padding: '0.2rem 0.1rem',
+    verticalAlign: 'middle',
+    borderRight: i < daily.length - 1 ? '1px solid #f3f4f8' : undefined,
+    ...extra,
   });
 
   return (
@@ -120,15 +150,16 @@ export function DailyForecast({ daily, dayRisks }: Props) {
       <div style={{ overflowX: 'auto', background: '#fff', borderTop: '1px solid #ebeef5', borderBottom: '1px solid #ebeef5' }}>
         <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <tbody>
+            {/* 日付 */}
             <tr>
               {daily.map((day, i) => {
                 const isToday = day.date === today;
                 const dow = new Date(`${day.date}T00:00:00`).getDay();
                 const mm = parseInt(day.date.slice(5, 7), 10);
                 const dd = parseInt(day.date.slice(8, 10), 10);
-                const label = isToday ? `今日 ${mm}/${dd}` : `${mm}/${dd} (${DAY_NAMES[dow]})`;
+                const label = isToday ? `今日 ${mm}/${dd}` : `${mm}/${dd}(${DAY_NAMES[dow]})`;
                 return (
-                  <td key={day.date} style={{ ...cell(day, i), paddingTop: '0.6rem' }}>
+                  <td key={day.date} colSpan={2} style={{ ...spanCell(day, i), paddingTop: '0.6rem' }}>
                     <div style={{ fontSize: '0.72rem', color: isToday ? '#5e8ad1' : '#5b6478', fontWeight: isToday ? 600 : undefined }}>
                       {label}
                     </div>
@@ -136,16 +167,65 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                 );
               })}
             </tr>
+            {/* 午前・午後ラベル */}
             <tr>
               {daily.map((day, i) => (
-                <td key={day.date} style={cell(day, i)}>
-                  <div style={{ fontSize: '2rem', lineHeight: 1 }}>{weatherCodeToEmoji(day.weatherCode)}</div>
-                </td>
+                <Fragment key={day.date}>
+                  <td style={amCell(day)}>
+                    <span style={{ fontSize: '0.6rem', color: '#b0b5c4' }}>午前</span>
+                  </td>
+                  <td style={pmCell(day, i)}>
+                    <span style={{ fontSize: '0.6rem', color: '#b0b5c4' }}>午後</span>
+                  </td>
+                </Fragment>
               ))}
             </tr>
+            {/* 天気アイコン */}
             <tr>
               {daily.map((day, i) => (
-                <td key={day.date} style={cell(day, i)}>
+                <Fragment key={day.date}>
+                  <td style={amCell(day)}>
+                    <div style={{ fontSize: '1.5rem', lineHeight: 1 }}>
+                      {day.amWeatherCode !== null ? weatherCodeToEmoji(day.amWeatherCode) : '—'}
+                    </div>
+                  </td>
+                  <td style={pmCell(day, i)}>
+                    <div style={{ fontSize: '1.5rem', lineHeight: 1 }}>
+                      {day.pmWeatherCode !== null ? weatherCodeToEmoji(day.pmWeatherCode) : '—'}
+                    </div>
+                  </td>
+                </Fragment>
+              ))}
+            </tr>
+            {/* 降水確率 */}
+            <tr>
+              {daily.map((day, i) => (
+                <Fragment key={day.date}>
+                  <td style={amCell(day)}>
+                    <div style={{
+                      fontSize: '0.72rem',
+                      color: day.amPrecipProb !== null ? probColor(day.amPrecipProb) : '#c5c9d3',
+                      fontWeight: day.amPrecipProb !== null && day.amPrecipProb >= 70 ? 600 : undefined,
+                    }}>
+                      {day.amPrecipProb !== null ? `${day.amPrecipProb}%` : '—'}
+                    </div>
+                  </td>
+                  <td style={pmCell(day, i)}>
+                    <div style={{
+                      fontSize: '0.72rem',
+                      color: day.pmPrecipProb !== null ? probColor(day.pmPrecipProb) : '#c5c9d3',
+                      fontWeight: day.pmPrecipProb !== null && day.pmPrecipProb >= 70 ? 600 : undefined,
+                    }}>
+                      {day.pmPrecipProb !== null ? `${day.pmPrecipProb}%` : '—'}
+                    </div>
+                  </td>
+                </Fragment>
+              ))}
+            </tr>
+            {/* 最高・最低気温 */}
+            <tr>
+              {daily.map((day, i) => (
+                <td key={day.date} colSpan={2} style={spanCell(day, i)}>
                   <div style={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
                     <span style={{ color: '#e08a7f', fontWeight: 600 }}>{Math.round(day.tempMax)}</span>
                     {' / '}
@@ -154,24 +234,19 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                 </td>
               ))}
             </tr>
+            {/* ミニチャート */}
             <tr>
-              {daily.map((day, i) => (
-                <td key={day.date} style={{ ...cell(day, i), paddingBottom: '0.4rem' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#a8aebc' }}>降水 {day.precipProbMax}%</div>
-                </td>
-              ))}
-            </tr>
-            <tr>
-              <td colSpan={daily.length} style={{ padding: 0 }}>
+              <td colSpan={daily.length * 2} style={{ padding: 0 }}>
                 <DailyMiniChart daily={daily} />
               </td>
             </tr>
+            {/* リスク */}
             <tr>
               {daily.map((day, i) => {
                 const riskDay = dayRisks.find(r => r.date === day.date);
                 const hasRisk = riskDay !== undefined && riskDay.risks.length > 0;
                 return (
-                  <td key={day.date} style={{ ...cell(day, i), paddingBottom: '0.6rem', verticalAlign: 'top' }}>
+                  <td key={day.date} colSpan={2} style={{ ...spanCell(day, i), paddingBottom: '0.6rem', verticalAlign: 'top' }}>
                     {hasRisk && riskDay && (
                       <>
                         <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: '0.2rem', flexWrap: 'wrap' }}>
