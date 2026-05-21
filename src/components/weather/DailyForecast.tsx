@@ -11,7 +11,8 @@ interface Props {
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 
 export function DailyForecast({ daily, dayRisks }: Props) {
-  const today = new Date().toISOString().slice(0, 10);
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const today = jstNow.toISOString().slice(0, 10);
 
   return (
     <div>
@@ -24,7 +25,6 @@ export function DailyForecast({ daily, dayRisks }: Props) {
             const riskDay = dayRisks.find(r => r.date === day.date);
             const hasRisk = riskDay !== undefined && riskDay.risks.length > 0;
             const isToday = day.date === today;
-            // JST の日付文字列（"YYYY-MM-DD"）を直接パース（UTC変換しない）
             const dow = new Date(`${day.date}T00:00:00`).getDay();
             const mm = parseInt(day.date.slice(5, 7), 10);
             const dd = parseInt(day.date.slice(8, 10), 10);
@@ -47,7 +47,7 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                 <div style={{
                   fontSize: '0.72rem',
                   color: isToday ? '#5e8ad1' : '#5b6478',
-                  fontWeight: isToday ? 600 : undefined,
+                  ...(isToday ? { fontWeight: 600 } : {}),
                 }}>
                   {dayLabel}
                 </div>
@@ -73,7 +73,7 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                             style={{
                               fontSize: '0.6rem',
                               background: badge.badgeBg,
-                              color: r === 'heat' ? '#c0392b' : badge.badgeColor,
+                              color: badge.badgeColor,
                               borderRadius: 3,
                               padding: '1px 4px',
                               ...(r === 'heat' ? { filter: 'drop-shadow(0 0 3px #f87171)' } : {}),
