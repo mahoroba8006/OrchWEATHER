@@ -119,7 +119,9 @@ export function WeatherTab() {
         <>
           <DailyForecast daily={data.daily} dayRisks={dayRisks} />
           <RiskSummary dayRisks={dayRisks} />
-          <HourlyTable hourly={data.hourly} />
+          <HourlyTable hourly={data.hourly.filter(h =>
+            new Date(h.time + ':00+09:00').getTime() >= Date.now() - 6 * 60 * 60 * 1000
+          )} />
         </>
       )}
     </div>

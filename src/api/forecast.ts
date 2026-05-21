@@ -29,7 +29,7 @@ export interface DailyForecastData {
   sunset: string;        // "2026-05-21T18:52"
   radiationSum: number;  // MJ/m²
   snowfallSum: number;   // cm
-  windGustsMax: number;  // m/s
+  windSpeedMax: number;  // m/s
 }
 
 export interface ForecastData {
@@ -52,13 +52,14 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     'precipitation_probability_max',
     'precipitation_sum', 'relative_humidity_2m_min',
     'sunrise', 'sunset',
-    'shortwave_radiation_sum', 'snowfall_sum', 'wind_gusts_10m_max',
+    'shortwave_radiation_sum', 'snowfall_sum', 'wind_speed_10m_max',
   ].join(',');
 
   const url = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${lat}&longitude=${lon}`
     + '&timezone=Asia%2FTokyo'
-    + '&models=jma_seamless,best_match'
+    + '&models=best_match'
+    + '&past_hours=6'
     + '&forecast_days=11'
     + '&forecast_hours=72'
     + `&hourly=${hourlyParams}`
@@ -74,34 +75,34 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
 
   const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({
     time: t,
-    temperature:   raw.hourly.temperature_2m[i]             ?? 0,
-    precipitation: raw.hourly.precipitation[i]               ?? 0,
-    precipProb:    raw.hourly.precipitation_probability[i]   ?? 0,
-    dewPoint:      raw.hourly.dew_point_2m[i]                ?? 0,
-    humidity:      raw.hourly.relative_humidity_2m[i]        ?? 0,
-    windSpeed:     raw.hourly.wind_speed_10m[i]              ?? 0,
-    windGusts:     raw.hourly.wind_gusts_10m[i]              ?? 0,
-    cape:          raw.hourly.cape[i]                         ?? 0,
-    freezingLevel: raw.hourly.freezinglevel_height[i]        ?? 9999,
-    pressure:      raw.hourly.pressure_msl[i]                ?? 1013,
-    weatherCode:   raw.hourly.weather_code[i]                ?? 0,
-    radiation:     raw.hourly.shortwave_radiation[i]         ?? 0,
-    snowfall:      raw.hourly.snowfall[i]                    ?? 0,
+    temperature:   raw.hourly.temperature_2m?.[i]             ?? 0,
+    precipitation: raw.hourly.precipitation?.[i]               ?? 0,
+    precipProb:    raw.hourly.precipitation_probability?.[i]   ?? 0,
+    dewPoint:      raw.hourly.dew_point_2m?.[i]                ?? 0,
+    humidity:      raw.hourly.relative_humidity_2m?.[i]        ?? 0,
+    windSpeed:     raw.hourly.wind_speed_10m?.[i]              ?? 0,
+    windGusts:     raw.hourly.wind_gusts_10m?.[i]              ?? 0,
+    cape:          raw.hourly.cape?.[i]                         ?? 0,
+    freezingLevel: raw.hourly.freezinglevel_height?.[i]        ?? 9999,
+    pressure:      raw.hourly.pressure_msl?.[i]                ?? 1013,
+    weatherCode:   raw.hourly.weather_code?.[i]                ?? 0,
+    radiation:     raw.hourly.shortwave_radiation?.[i]         ?? 0,
+    snowfall:      raw.hourly.snowfall?.[i]                    ?? 0,
   }));
 
   const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => ({
     date:          t,
-    weatherCode:   raw.daily.weather_code[i]                   ?? 0,
-    tempMax:       raw.daily.temperature_2m_max[i]             ?? 0,
-    tempMin:       raw.daily.temperature_2m_min[i]             ?? 0,
-    precipProbMax: raw.daily.precipitation_probability_max[i]  ?? 0,
-    precipSum:     raw.daily.precipitation_sum[i]              ?? 0,
-    humidMin:      raw.daily.relative_humidity_2m_min[i]       ?? 100,
-    sunrise:       raw.daily.sunrise[i]                        ?? '',
-    sunset:        raw.daily.sunset[i]                         ?? '',
-    radiationSum:  raw.daily.shortwave_radiation_sum[i]        ?? 0,
-    snowfallSum:   raw.daily.snowfall_sum[i]                   ?? 0,
-    windGustsMax:  raw.daily.wind_gusts_10m_max[i]             ?? 0,
+    weatherCode:   raw.daily.weather_code?.[i]                   ?? 0,
+    tempMax:       raw.daily.temperature_2m_max?.[i]             ?? 0,
+    tempMin:       raw.daily.temperature_2m_min?.[i]             ?? 0,
+    precipProbMax: raw.daily.precipitation_probability_max?.[i]  ?? 0,
+    precipSum:     raw.daily.precipitation_sum?.[i]              ?? 0,
+    humidMin:      raw.daily.relative_humidity_2m_min?.[i]       ?? 100,
+    sunrise:       raw.daily.sunrise?.[i]                        ?? '',
+    sunset:        raw.daily.sunset?.[i]                         ?? '',
+    radiationSum:  raw.daily.shortwave_radiation_sum?.[i]        ?? 0,
+    snowfallSum:   raw.daily.snowfall_sum?.[i]                   ?? 0,
+    windSpeedMax:  raw.daily.wind_speed_10m_max?.[i]             ?? 0,
   }));
 
   return { hourly, daily, fetchedAt: Date.now() };

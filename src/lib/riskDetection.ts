@@ -80,7 +80,7 @@ function detectHourlyRisks(hours: HourlyForecast[]): { risks: RiskType[]; firstH
     if (h.dewPoint <= 0 && h.temperature <= 3)         detected.push('frost');
     if (h.cape >= 500 || (h.weatherCode >= 95 && h.weatherCode <= 99)) detected.push('thunder');
     if (h.cape >= 1000 && h.freezingLevel <= 3500)     detected.push('hail');
-    if (h.windGusts >= 15)                             detected.push('wind');
+    if (h.windSpeed >= 15)                             detected.push('wind');
     if (h.precipitation >= 30)                         detected.push('rain');
     if (h.temperature >= 35)                           detected.push('heat');
     if (h.humidity <= 30)                              detected.push('dry');
@@ -102,7 +102,7 @@ function detectDailyRisks(day: DailyForecastData): RiskType[] {
   if (day.tempMin <= 3)                                           risks.push('frost');
   if (day.weatherCode >= 95 && day.weatherCode <= 99)            risks.push('thunder');
   if (day.weatherCode === 96 || day.weatherCode === 99)          risks.push('hail');
-  if (day.windGustsMax >= 15)                                     risks.push('wind');
+  if (day.windSpeedMax >= 15)                                     risks.push('wind');
   if (day.precipSum >= 80)                                        risks.push('rain');
   if (day.tempMax >= 35)                                          risks.push('heat');
   if (day.humidMin <= 30)                                         risks.push('dry');

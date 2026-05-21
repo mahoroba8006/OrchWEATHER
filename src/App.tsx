@@ -1103,7 +1103,7 @@ function App() {
         </div>
       </header>
 
-      <div style={{ background: '#fff', borderBottom: '1px solid #ebeef5', display: 'flex', padding: '0 1rem', position: 'sticky', top: 64, zIndex: 40 }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #ebeef5', display: 'flex', justifyContent: 'center', padding: '0 1rem', position: 'sticky', top: 64, zIndex: 40 }}>
         {(['weather', 'analysis'] as const).map(tab => (
           <button
             key={tab}
