@@ -1,4 +1,3 @@
-// src/components/weather/HourlyTable.tsx
 import type { HourlyForecast } from '../../api/forecast';
 import { weatherCodeToEmoji } from '../../lib/riskDetection';
 
@@ -120,11 +119,11 @@ export function HourlyTable({ hourly }: Props) {
                 >
                   {row.label}
                 </td>
-                {hourly.map((h, i) => {
+                {hourly.map((h) => {
                   const risk = row.isRisk(h);
                   return (
                     <td
-                      key={i}
+                      key={h.time}
                       style={{
                         padding: '0.3rem 0.4rem',
                         textAlign: 'center',
