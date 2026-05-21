@@ -35,8 +35,11 @@ export function weatherCodeToEmoji(code: number): string {
   if (code === 3)                      return '☁️';
   if (code === 45 || code === 48)      return '🌫️';
   if (code >= 51 && code <= 55)        return '🌦️';
+  if (code === 56 || code === 57)      return '🌨️';
   if (code >= 61 && code <= 65)        return '🌧️';
+  if (code === 66 || code === 67)      return '🌨️';
   if (code >= 71 && code <= 75)        return '❄️';
+  if (code === 77)                     return '🌨️';
   if (code >= 80 && code <= 82)        return '🌦️';
   if (code >= 85 && code <= 86)        return '🌨️';
   if (code === 95)                     return '⛈️';
@@ -65,8 +68,9 @@ function buildComment(risks: RiskType[], firstHour?: number): string {
 
 // 日0-2: hourly 精密判定
 function detectHourlyRisks(hours: HourlyForecast[]): { risks: RiskType[]; firstHour: number | undefined } {
+  const ARATEN_RISKS: RiskType[] = ['thunder', 'hail', 'wind', 'rain'];
   const riskSet = new Set<RiskType>();
-  let firstHour: number | undefined;
+  let firstAratenHour: number | undefined;
 
   for (const h of hours) {
     const hour = parseInt(h.time.slice(11, 13), 10);
@@ -81,12 +85,14 @@ function detectHourlyRisks(hours: HourlyForecast[]): { risks: RiskType[]; firstH
     if (h.humidity <= 30)                              detected.push('dry');
 
     if (detected.length > 0) {
-      if (firstHour === undefined) firstHour = hour;
+      if (detected.some(r => ARATEN_RISKS.includes(r)) && firstAratenHour === undefined) {
+        firstAratenHour = hour;
+      }
       detected.forEach(r => riskSet.add(r));
     }
   }
 
-  return { risks: Array.from(riskSet), firstHour };
+  return { risks: Array.from(riskSet), firstHour: firstAratenHour };
 }
 
 // 日3-10: daily 代替判定
