@@ -532,3 +532,41 @@
 ### 未完了・次回への引き継ぎ
 - 特になし（全変更 main へ push 済み・Cloudflare Pages 自動デプロイ）
 - HEAD: 1405c68
+
+---
+
+## 2026-05-21 セッション④
+
+### 作業内容
+
+#### Field OS デザインリニューアル (0bd948a)
+
+**診断した問題点:**
+- glassmorphism（backdrop-filter + translateY hover）が 2020-21 年トレンドで野暮ったい
+- グラデーションタイトル文字（webkit-background-clip）がポートフォリオサイト感
+- ミント背景 `#f0fdf6` + ラジアルグラデーションが無料テンプレート的
+- ピンク/ローズ系のアクセントカラー（`#f4a7b9`）がブランドと不一致
+
+**`index.css` 全面刷新:**
+- 背景: ミント tint + ラジアルグラデーション → クリーン `#f8fafc`
+- カード: `backdrop-filter` glassmorphism → `#ffffff` + `border: #e2e8f0`
+- ホバー: `translateY(-2px)` アニメーション削除
+- アクセント: `#51c49f` → ロゴ由来グリーン `#2aaa6e` / ホバー `#228f5c`
+- モーダル背景: 白ぼかし → ダーク `rgba(15,23,42,0.35)`
+- 数値フォント: `font-variant-numeric: tabular-nums` 追加
+- シャドウ: 極めて薄く整理（データが主役）
+
+**`App.tsx` インラインカラー更新:**
+- ヘッダー: `backdropFilter` 削除 → `#ffffff` ソリッド
+- タブ下線 / 天気・分析タブ: `#6c9ee0` → `var(--accent-color)`
+- 「基準」バッジ: ピンク系 → グリーン系 `rgba(42,170,110,0.12)`
+- 日次/月次トグル・チャートタブ pill: `#f4a7b9` → `var(--accent-color)`
+- 年間表示ボタン: ピンクボーダー → `var(--card-border)`
+
+### 決定事項
+- **デザイン方針「Field OS」採用**: 白ベース・ロゴグリーン単色アクセント・装飾排除・データ主役
+- ロゴの2色（グリーン `#2aaa6e` / ブルー `#3a8fd4`）をシステムに組み込み色調統一
+
+### 未完了・次回への引き継ぎ
+- 特になし（全変更 main へ push 済み・Cloudflare Pages 自動デプロイ）
+- HEAD: 0bd948a
