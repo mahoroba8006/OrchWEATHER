@@ -1076,7 +1076,7 @@ function App() {
 
   return (
     <>
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', borderBottom: '1px solid var(--card-border)' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: '#ffffff', borderBottom: '1px solid var(--card-border)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <img src="/icon.png" alt="Orch.Weather" style={{ width: 32, height: 32 }} />
@@ -1113,8 +1113,8 @@ function App() {
               padding: '0.7rem 1.2rem',
               background: 'none',
               border: 'none',
-              borderBottom: `2px solid ${topTab === tab ? '#6c9ee0' : 'transparent'}`,
-              color: topTab === tab ? '#6c9ee0' : '#8a93a6',
+              borderBottom: `2px solid ${topTab === tab ? 'var(--accent-color)' : 'transparent'}`,
+              color: topTab === tab ? 'var(--accent-color)' : 'var(--text-tertiary)',
               fontWeight: topTab === tab ? 600 : undefined,
               fontSize: '0.9rem',
               cursor: 'pointer',
@@ -1151,9 +1151,9 @@ function App() {
                     fontSize: '0.7rem',
                     fontWeight: 700,
                     borderRadius: '999px',
-                    background: index === 0 ? 'rgba(244,167,185,0.55)' : 'rgba(0,0,0,0.06)',
-                    color: index === 0 ? '#7a2840' : 'var(--text-secondary)',
-                    border: index === 0 ? '1px solid rgba(244,167,185,0.8)' : '1px solid rgba(0,0,0,0.08)',
+                    background: index === 0 ? 'rgba(42,170,110,0.12)' : 'rgba(0,0,0,0.05)',
+                    color: index === 0 ? '#1a7a50' : 'var(--text-secondary)',
+                    border: index === 0 ? '1px solid rgba(42,170,110,0.3)' : '1px solid rgba(0,0,0,0.08)',
                   }}
                 >
                   {index === 0 ? '基準' : '比較'}
@@ -1217,14 +1217,14 @@ function App() {
             </select>
             <button
               onClick={() => setDisplayRange({ startMM: 1, endMM: 12 })}
-              style={{ marginLeft: '0.75rem', padding: '0.35rem 0.8rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid rgba(244,167,185,0.6)', background: 'rgba(244,167,185,0.25)', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              style={{ marginLeft: '0.75rem', padding: '0.35rem 0.8rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid var(--card-border)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
             >
               年間表示
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: 'auto' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>表示単位</span>
-            <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid rgba(244,167,185,0.6)' }}>
+            <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--card-border)' }}>
               {(['daily', 'monthly'] as const).map(mode => (
                 <button
                   key={mode}
@@ -1232,8 +1232,8 @@ function App() {
                   style={{
                     padding: '0.35rem 0.8rem',
                     fontSize: '0.85rem',
-                    background: chartViewMode === mode ? '#f4a7b9' : 'rgba(244,167,185,0.15)',
-                    color: chartViewMode === mode ? '#7a2840' : 'var(--text-secondary)',
+                    background: chartViewMode === mode ? 'var(--accent-color)' : 'transparent',
+                    color: chartViewMode === mode ? '#ffffff' : 'var(--text-secondary)',
                     border: 'none',
                     fontWeight: chartViewMode === mode ? 600 : 400,
                     cursor: 'pointer',
@@ -1266,15 +1266,9 @@ function App() {
                 padding: '0.3rem 0.9rem',
                 borderRadius: '20px',
                 fontSize: '0.85rem',
-                border: activeChart === tab.id
-                  ? '1px solid #f4a7b9'
-                  : '1px solid rgba(244,167,185,0.35)',
-                background: activeChart === tab.id
-                  ? '#f4a7b9'
-                  : 'transparent',
-                color: activeChart === tab.id
-                  ? '#7a2840'
-                  : 'var(--text-secondary)',
+                border: `1px solid ${activeChart === tab.id ? 'var(--accent-color)' : 'var(--card-border)'}`,
+                background: activeChart === tab.id ? 'var(--accent-color)' : 'transparent',
+                color: activeChart === tab.id ? '#ffffff' : 'var(--text-secondary)',
                 fontWeight: activeChart === tab.id ? 700 : 400,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
