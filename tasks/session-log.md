@@ -367,3 +367,168 @@
 ### 未完了・次回への引き継ぎ
 - 日射量へのΔ日適用は**栽培作物次第で再検討**（信州やままつ農園の作物が判明したら判断）
 - 検討予備: 着色期以降の積算日射量を別集計するUI（果樹品質管理向け、Δ日より直接的）
+
+---
+
+## 2026-05-17 セッション
+
+### 作業内容
+
+#### 1. 日射量チャートへの差注釈追加 (8e337a4)
+- GDD と同じパターンで「累積日射量の差 (ΔMJ/m²) / 日数差」を実装
+- `computeGddDiff` を `computeAccumDiff(p, chartId)` に汎用化（chartId別 config）
+- `radiationData` useMemo を追加（seriesByTarget のみ）
+- 閾値: `RADIATION_DELTA_DAYS_MIN_V0 = 100 MJ/m²`（序盤ガード）
+
+#### 2. 累積開始日 + 日数差ガード閾値の設定機能 (b011855)
+- **4チャート別の累積開始日**（precip/sunshine/radiation/gdd、デフォルト 01-01）
+  - 設定モーダルに MM-DD picker + プリセット（1/1, 4/1, 5/1, 6/1）
+  - チャートタイトル横に「累積: 4/1〜」バッジ表示
+  - partial月（開始日が月の途中）は半月分の値で描画（案a）
+- **日数差ガード閾値**：GDD 1〜500℃ / 日射量 1〜2000 MJ/m²（後で2000に拡張、初期は500）
+- **クライアント再計算方式**：API応答はそのまま、useMemo 内で開始日ベースで再計算
+  - baseChartData / monthlyStats / monthlyChartData / gddData / radiationData 全てに開始日適用
+- パフォーマンス影響：実質ゼロ（試算1〜3ms、人間の知覚閾値の1/50）
+
+#### 3. 設定保存の silent fail バグ修正 (b011855 内に同梱)
+- **症状**：基準温度・累積設定の保存が「保存できたように見えるが、リロードで戻る」
+- **真因究明プロセス**：
+  - 仮説1：Firestoreセキュリティルール拒否 → 否定（Console で書き込み確認）
+  - 仮説2：fire-and-forget による silent fail → 一部当たり
+  - 仮説3：ローカルキャッシュ問題 → 一部当たり
+  - **最終真因**：`onAuthStateChanged` の `Promise.all([loadLocations, loadUserSettings])` 並行実行で、`loadLocations` 内の `ensureUserDocument` の setDoc が `loadUserSettings` の getDoc に「createdAt のみ」の中間スナップショットを返す**競合状態**
+- **修正3点**：
+  - `await` + `try/catch` で書き込みを確実化、UI ステータス（保存中/保存しました/保存失敗）追加
+  - `ensureUserDocument` を「存在しなければ作る」のみに変更（毎回 setDoc しない）
+  - App.tsx で `ensureUserDocument` を最初に**直列**で実行、その後 Promise.all
+- **検証手法**：`getDocFromServer` でキャッシュバイパス確認、Firebase Console で実体確認
+
+#### 4. UI改善まとめ (499fd16)
+- **タブ順序**：気温 → 降水量 → **積算温度** → 日射量 → 日照時間 → 湿度 → 飽差
+- **飽差の単位**：kPa → **g/m³**（施設園芸の現場標準）
+  - 計算式：`216.67 × e_s(T) / (T + 273.15) × (1 − RH/100)`
+  - 1桁表示（kPaは2桁）
+- **飽差アイコン**：💧（絵文字）→ `DropletOff`（lucide-react、湿度Dropletsと対概念）
+- **累積降水量・累積日照時間のΔ値表示**：Δ値のみ（日数差なし、`showDays:false`）
+- **「基準/比較」バッジ**：表示対象選択UIに pill 追加、1番目が比較基準であることを明示
+- **設定モーダル**：
+  - 末尾に OK ボタン（onClose 呼び出し、安心感のための UX）
+  - 日射量閾値範囲を 1〜2000（step 10）に拡張
+  - 文言「逆引きを抑制」→「状況における表示を抑制」（技術用語回避）
+  - 「Δ日」→「日数差」（同上）
+
+### 決定事項
+- **飽差は g/m³（小数1桁）で表示**：施設園芸の現場標準。VPD kPa は気象学標準だが日本の現場では使われない
+- **Δ日・Δ値 のUI表記は「日数差」「+47℃」等の和語表現を優先**：技術用語ではなく現場が理解できる語に
+- **累積系の比較は常に targets[0] が基準**：UI上でも「基準」バッジで明示
+- **Firestoreへの書き込みは必ず await + try/catch + UI フィードバック**：fire-and-forget は禁止
+
+### 未完了・次回への引き継ぎ
+- 全変更コミット・プッシュ済み（HEAD=499fd16）
+- 信州やままつ農園の作物が判明したら、日射量Δ日の活用シーン（果樹品質管理など）を再評価
+- 将来拡張候補：累積終了日の設定（収穫期までの累積を切る用途）
+
+---
+
+## 2026-05-21 セッション
+
+### 作業内容
+
+#### 1. 天気情報タブの設計（ブレインストーミング → 設計書確定）
+- 前セッションから引き継ぎ: 天気情報タブの設計を完了
+- 設計書: `docs/superpowers/specs/2026-05-21-weather-forecast-tab-design.md` (commit 1d3a99b)
+- 主要決定事項:
+  - ハイブリッド粒度: 日別 11日 + 時間別 72時間
+  - 7種類リスク自動検出（霜・雷雨・雹・強風・大雨・高温・乾燥）の2段階判定
+  - 高温アイコン: ☀ CSS 赤グロー (`color:#c0392b; filter:drop-shadow(0 0 6px #f87171)`)
+  - 案A（最小侵襲7ファイル + App.tsx 約30行変更）を採用
+  - シニアプログラマーレビュー指摘を反映（CAPE閾値・2段階判定・JMAフォールバック等）
+
+#### 2. 実装プラン作成
+- `docs/superpowers/plans/2026-05-21-weather-forecast-tab.md` を作成
+- 8タスク構成（forecast.ts → riskDetection.ts → useForecast.ts → DailyForecast → RiskSummary → HourlyTable → WeatherTab → App.tsx）
+
+#### 3. サブエージェント駆動開発（git worktree: feature/weather-tab）
+- `.gitignore` に `.worktrees` を追加 (d54d3f7)
+- worktree 作成: `.worktrees/weather-tab`（ブランチ: `feature/weather-tab`）
+- **Task 1: forecast.ts** → 完了・スペック/品質レビュー通過 (commit cd7f4b7)
+- **Task 2: riskDetection.ts** → 完了・スペック/品質レビュー通過 (commit 90fe9dc)
+  - コードレビューで `firstHour` のバグを発見・修正: 荒天カテゴリ（雷雨/雹/強風/大雨）の最初の時刻のみ `firstAratenHour` で追跡するよう変更
+  - WMO コード 56/57/66/67/77（霧雨・凍雨・雪粒）の絵文字マッピングを追加
+- **Task 3: useForecast.ts** → ファイル作成済みだが**ビルド・コミット未実施**（中断）
+
+### 決定事項
+- 天気情報タブは `feature/weather-tab` ブランチで実装（worktree: `.worktrees/weather-tab`）
+- `riskDetection.ts` の `firstHour` は荒天カテゴリ専用に修正（`firstAratenHour`）
+
+### 未完了・次回への引き継ぎ
+- **Task 3 の完了**: `src/hooks/useForecast.ts` がワーキングツリーに存在（未コミット）→ `npm run build` → commit が必要
+- **Task 4〜8 未着手**: DailyForecast / RiskSummary / HourlyTable / WeatherTab / App.tsx 統合
+- 再開手順:
+  1. `cd c:\dev\気象アプリ\.worktrees\weather-tab`
+  2. Task 3 のビルド・コミットから再開（`npm run build` → `git add src/hooks/useForecast.ts` → commit）
+  3. サブエージェント駆動開発で Task 4〜8 を順次実施
+- 実装プラン: `docs/superpowers/plans/2026-05-21-weather-forecast-tab.md`
+
+---
+
+## 2026-05-21 セッション②（続き）
+
+### 作業内容
+
+#### 天気情報タブ — UI調整と品質修正（全変更 commit a406edc, push 済み）
+
+**バグ修正:**
+- `past_hours=6` を API URL に追加 → 「現在時刻の6時間前から表示」要件が機能するよう修正（Open-Meteo はデフォルトで未来データのみ返す）
+- HourlyTable SVGミニグラフが途中で切れる問題を修正：`width="100%"` + `viewBox` + `preserveAspectRatio="none"` に変更し、日付セルの幅超過による SVG 切れを解消
+- 降水量バー 0mm で薄い線が出る問題を修正：`Math.max(1, ...)` → `p === 0 ? 0 : Math.max(1, ...)` に変更
+
+**UI改善:**
+- HourlyTable COL_W: 50 → 40px（列幅を詰める）
+- 日付フォーマット: `5/24 (日)` → `5/24(日)` （スペース除去で幅節約）
+- 天気/分析タブをセンタリング（`justifyContent: 'center'`）
+- HourlyTable ミニグラフに降水量ラベル（バー頂上）・気温グリッド目盛りを追加
+- DailyForecast を `inline-flex` カード → テーブル構造にリファクタリング
+  - 降水行とリスク行の間にスパニングミニグラフ行を追加
+  - ミニグラフ: 最高気温（赤）・最低気温（青）の2本線 + 降水量バー + ラベル + グリッド目盛り
+
+### 決定事項
+- Open-Meteo の `forecast_hours` と `past_hours` は独立パラメータ（合計 78 エントリ）
+- DailyForecast のテーブル構造は `tableLayout: fixed` + `colSpan` で全幅 SVG を実現
+- 降水量ラベルは 0mm 非表示、微量（>0mm）は最低 1px バー＋ラベル表示
+
+### 未完了・次回への引き継ぎ
+- `feature/weather-tab` ブランチ push 済み（HEAD: a406edc）
+- PR 作成・main へのマージは未実施
+- GitHub PR URL: https://github.com/mahoroba8006/OrchWEATHER/pull/new/feature/weather-tab
+
+---
+
+## 2026-05-21 セッション③
+
+### 作業内容
+
+#### HourlyTable UI改善
+- **時刻表示**: `hh:mm` → `h`（時間のみ・ゼロ埋めなし）(2175256)
+- **過去列グレー表示**: `new Date(h.time) < now` で判定し文字色を `#c0c4cf` に変更、リスクバッジ行は `opacity: 0.35` (2175256)
+- **降水確率行を削除**（B案採用）: 時間別から `降水確率(%)` 行を削除し、日別サマリーでのみ表示 (8e30500)
+
+#### DailyForecast AM/PM分割
+- **午前・午後ラベル**: 日別カードに天気アイコン・降水確率を午前/午後で2分割表示 (e8885af)
+- **AM/PM集計**: `forecast.ts` で hourly データから各日の 0〜11時（午前）・12〜23時（午後）の `weatherCode` 最大値・`precipProb` 最大値を集計 (e8885af → da91e34)
+  - 当初 6〜11時/12〜17時 → ユーザー指示で 0〜11時/12〜23時 に修正 (da91e34)
+- **3日以内/以降で構造切替** (9da772f):
+  - 日0〜2（今日〜2日後）: 午前|午後 2列（HALF_W=48px）
+  - 日3〜10: 元の1列（CARD_W=96px、`降水 XX%`表示）
+  - `<colgroup>` で列幅を明示し混在テーブルを安定化
+  - ミニチャート colSpan = `3×2 + 8×1 = 14`（総幅 11×96px 不変）
+- **AM/PMアイコンサイズ**: `1.4rem` → `2rem`（単日と同等）(1405c68)
+
+### 決定事項
+- 降水確率は日別のみ表示（JMA/Yahoo!天気と同じ粒度設計）。時間別での高確率・低降水量の矛盾表示を回避
+- AM/PM集計は 0〜11時 / 12〜23時（深夜〜正午 / 正午〜深夜前）
+- 3日以内のみ AM/PM分割、4日目以降は元の1枠（hourly データが3日分しかない設計上の制約に合わせた）
+
+### 未完了・次回への引き継ぎ
+- 特になし（全変更 main へ push 済み・Cloudflare Pages 自動デプロイ）
+- HEAD: 1405c68
