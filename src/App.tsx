@@ -9,6 +9,7 @@ import { MonthsTable } from './components/MonthsTable';
 import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
+import { WeatherTab } from './components/weather/WeatherTab';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -98,6 +99,7 @@ const RADIATION_DELTA_DAYS_MIN_V0 = 100;
 
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
+  const [topTab, setTopTab] = useState<'weather' | 'analysis'>('weather');
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
@@ -1101,6 +1103,30 @@ function App() {
         </div>
       </header>
 
+      <div style={{ background: '#fff', borderBottom: '1px solid #ebeef5', display: 'flex', padding: '0 1rem', position: 'sticky', top: 64, zIndex: 40 }}>
+        {(['weather', 'analysis'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setTopTab(tab)}
+            style={{
+              padding: '0.7rem 1.2rem',
+              background: 'none',
+              border: 'none',
+              borderBottom: `2px solid ${topTab === tab ? '#6c9ee0' : 'transparent'}`,
+              color: topTab === tab ? '#6c9ee0' : '#8a93a6',
+              fontWeight: topTab === tab ? 600 : undefined,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+            }}
+          >
+            {tab === 'weather' ? '天気情報' : '分析'}
+          </button>
+        ))}
+      </div>
+
+      {topTab === 'weather' && <WeatherTab />}
+
+      {topTab === 'analysis' && (
       <div className="app-container">
         <div className="controls-bar" style={{ flexDirection: 'column', alignItems: 'stretch', background: 'var(--card-bg)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -1777,8 +1803,9 @@ function App() {
       </main>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
-      </div>
-    </>
+    </div>
+    )}
+  </>
   );
 }
 
