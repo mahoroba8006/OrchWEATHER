@@ -48,7 +48,6 @@ export function WeatherTab() {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-      {/* 地点セレクター + 更新UI */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -101,21 +100,18 @@ export function WeatherTab() {
         </button>
       </div>
 
-      {/* エラー */}
       {error && (
         <div style={{ padding: '1rem', color: '#c0392b', fontSize: '0.85rem', textAlign: 'center', background: '#fff9f8' }}>
           {error}。↻ で再試行してください。
         </div>
       )}
 
-      {/* ローディング（初回のみ、データ未取得時） */}
       {loading && !data && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, color: '#8a93a6' }}>
           取得中...
         </div>
       )}
 
-      {/* コンテンツ */}
       {data && (
         <>
           <DailyForecast daily={data.daily} dayRisks={dayRisks} />
