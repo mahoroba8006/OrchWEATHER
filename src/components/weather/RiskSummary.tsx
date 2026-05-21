@@ -10,7 +10,6 @@ export function RiskSummary({ dayRisks }: Props) {
   const riskyDays = dayRisks.filter(d => d.risks.length > 0);
   if (riskyDays.length === 0) return null;
 
-  // リスク種別ごとに発生日をまとめる
   const riskTypeMap = new Map<RiskType, string[]>();
   for (const day of riskyDays) {
     for (const r of day.risks) {
@@ -19,7 +18,6 @@ export function RiskSummary({ dayRisks }: Props) {
     }
   }
 
-  // RISK_BADGES の定義順（frost→thunder→hail→wind→rain→heat→dry）で表示
   const orderedTypes: RiskType[] = ['frost', 'thunder', 'hail', 'wind', 'rain', 'heat', 'dry'];
 
   return (
