@@ -1,6 +1,9 @@
 # Environment variables (Firebase config)
 .env
 
+# Git worktrees
+.worktrees
+
 # Logs
 logs
 *.log
