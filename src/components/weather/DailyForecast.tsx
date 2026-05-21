@@ -209,13 +209,13 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                     <Fragment key={day.date}>
                       <td style={amCell(day)}>
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午前</div>
-                        <div style={{ fontSize: '1.4rem', lineHeight: 1 }}>
+                        <div style={{ fontSize: '2rem', lineHeight: 1 }}>
                           {day.amWeatherCode !== null ? weatherCodeToEmoji(day.amWeatherCode) : '—'}
                         </div>
                       </td>
                       <td style={pmCell(day, i)}>
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午後</div>
-                        <div style={{ fontSize: '1.4rem', lineHeight: 1 }}>
+                        <div style={{ fontSize: '2rem', lineHeight: 1 }}>
                           {day.pmWeatherCode !== null ? weatherCodeToEmoji(day.pmWeatherCode) : '—'}
                         </div>
                       </td>
