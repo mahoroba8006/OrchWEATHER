@@ -35,12 +35,13 @@ const STICKY_LABEL_STYLE: CSSProperties = {
   verticalAlign: 'middle',
 };
 
-function RiskBadgesRow({ hourly }: { hourly: HourlyForecast[] }) {
+function RiskBadgesRow({ hourly, now }: { hourly: HourlyForecast[]; now: Date }) {
   return (
     <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
       <td style={STICKY_LABEL_STYLE}>リスク</td>
       {hourly.map(h => {
         const risks = detectHourRisks(h);
+        const isPast = new Date(h.time) < now;
         return (
           <td
             key={h.time}
@@ -50,6 +51,7 @@ function RiskBadgesRow({ hourly }: { hourly: HourlyForecast[] }) {
               background: risks.length > 0 ? '#fff0f5' : undefined,
               minWidth: COL_W,
               verticalAlign: 'middle',
+              opacity: isPast ? 0.35 : undefined,
             }}
           >
             {risks.map(r => (
@@ -167,7 +169,7 @@ const ROWS: {
   {
     key: 'time',
     label: '時刻',
-    fmt: h => h.time.slice(11, 16),
+    fmt: h => String(parseInt(h.time.slice(11, 13), 10)),
     isRisk: () => false,
   },
   {
@@ -233,6 +235,7 @@ const ROWS: {
 ];
 
 export function HourlyTable({ hourly }: Props) {
+  const now = new Date();
   return (
     <div>
       <div style={{ padding: '0.9rem 1rem 0.4rem', fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em' }}>
@@ -269,7 +272,9 @@ export function HourlyTable({ hourly }: Props) {
                   </td>
                   {hourly.map((h, i) => {
                     const risk = row.isRisk(h);
+                    const isPast = new Date(h.time) < now;
                     const isNewDay = row.key === 'date' && i > 0 && hourly[i - 1].time.slice(0, 10) !== h.time.slice(0, 10);
+                    const baseColor = row.key === 'date' ? '#5b6478' : '#4b5563';
                     return (
                       <td
                         key={h.time}
@@ -281,7 +286,7 @@ export function HourlyTable({ hourly }: Props) {
                           fontSize: row.key === 'date' ? '0.7rem' : row.key === 'weather' ? '1.5em' : undefined,
                           lineHeight: row.key === 'weather' ? 1 : undefined,
                           minWidth: COL_W,
-                          color: row.key === 'date' ? '#5b6478' : '#4b5563',
+                          color: isPast ? '#c0c4cf' : baseColor,
                           ...(isNewDay ? { borderLeft: '2px solid #ebeef5' } : {}),
                         }}
                       >
@@ -292,7 +297,7 @@ export function HourlyTable({ hourly }: Props) {
                 </tr>
               );
               if (row.key === 'weather') {
-                return [tr, <RiskBadgesRow key="risk-badges" hourly={hourly} />, <MiniChartRow key="mini-chart" hourly={hourly} />];
+                return [tr, <RiskBadgesRow key="risk-badges" hourly={hourly} now={now} />, <MiniChartRow key="mini-chart" hourly={hourly} />];
               }
               return [tr];
             })}
