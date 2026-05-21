@@ -10,6 +10,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
 import { WeatherTab } from './components/weather/WeatherTab';
+import { Footer } from './components/Footer';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -1800,6 +1801,7 @@ function App() {
         </section>
         )}
 
+      <Footer />
       </main>
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />

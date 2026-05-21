@@ -7,6 +7,7 @@ import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
 import { RiskSummary } from './RiskSummary';
 import { HourlyTable } from './HourlyTable';
+import { Footer } from '../Footer';
 
 export function WeatherTab() {
   const { locations } = useAppStore();
@@ -124,6 +125,7 @@ export function WeatherTab() {
           )} />
         </>
       )}
+      <Footer />
     </div>
   );
 }

@@ -1,6 +1,18 @@
 import { type CSSProperties } from 'react';
 import type { HourlyForecast } from '../../api/forecast';
-import { weatherCodeToEmoji } from '../../lib/riskDetection';
+import { weatherCodeToEmoji, RISK_BADGES, type RiskType } from '../../lib/riskDetection';
+
+function detectHourRisks(h: HourlyForecast): RiskType[] {
+  const risks: RiskType[] = [];
+  if (h.dewPoint <= 0 && h.temperature <= 3)                      risks.push('frost');
+  if (h.cape >= 500 || (h.weatherCode >= 95 && h.weatherCode <= 99)) risks.push('thunder');
+  if (h.cape >= 1000 && h.freezingLevel <= 3500)                  risks.push('hail');
+  if (h.windSpeed >= 15)                                           risks.push('wind');
+  if (h.precipitation >= 30)                                       risks.push('rain');
+  if (h.temperature >= 35)                                         risks.push('heat');
+  if (h.humidity <= 30)                                            risks.push('dry');
+  return risks;
+}
 
 interface Props {
   hourly: HourlyForecast[];
@@ -22,6 +34,35 @@ const STICKY_LABEL_STYLE: CSSProperties = {
   fontSize: '0.72rem',
   verticalAlign: 'middle',
 };
+
+function RiskBadgesRow({ hourly }: { hourly: HourlyForecast[] }) {
+  return (
+    <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
+      <td style={STICKY_LABEL_STYLE}>リスク</td>
+      {hourly.map(h => {
+        const risks = detectHourRisks(h);
+        return (
+          <td
+            key={h.time}
+            style={{
+              padding: '0.15rem 0.1rem',
+              textAlign: 'center',
+              background: risks.length > 0 ? '#fff0f5' : undefined,
+              minWidth: COL_W,
+              verticalAlign: 'middle',
+            }}
+          >
+            {risks.map(r => (
+              <span key={r} style={{ fontSize: '0.8rem', display: 'inline-block' }}>
+                {RISK_BADGES[r].emoji}
+              </span>
+            ))}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
 
 function MiniChartRow({ hourly }: { hourly: HourlyForecast[] }) {
   const W = hourly.length * COL_W;
@@ -235,9 +276,10 @@ export function HourlyTable({ hourly }: Props) {
                         style={{
                           padding: '0.3rem 0.4rem',
                           textAlign: 'center',
-                          background: risk ? '#fafaf6' : undefined,
+                          background: risk ? '#fff0f5' : undefined,
                           fontWeight: risk ? 700 : row.key === 'date' ? 600 : undefined,
-                          fontSize: row.key === 'date' ? '0.7rem' : undefined,
+                          fontSize: row.key === 'date' ? '0.7rem' : row.key === 'weather' ? '1.5em' : undefined,
+                          lineHeight: row.key === 'weather' ? 1 : undefined,
                           minWidth: COL_W,
                           color: row.key === 'date' ? '#5b6478' : '#4b5563',
                           ...(isNewDay ? { borderLeft: '2px solid #ebeef5' } : {}),
@@ -250,7 +292,7 @@ export function HourlyTable({ hourly }: Props) {
                 </tr>
               );
               if (row.key === 'weather') {
-                return [tr, <MiniChartRow key="mini-chart" hourly={hourly} />];
+                return [tr, <RiskBadgesRow key="risk-badges" hourly={hourly} />, <MiniChartRow key="mini-chart" hourly={hourly} />];
               }
               return [tr];
             })}
