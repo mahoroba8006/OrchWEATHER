@@ -12,6 +12,7 @@ export function useForecast(lat: number | null, lon: number | null) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   // stale レスポンスを無視するために、最後にリクエストしたキーを追跡する
   const activeKey = useRef<string | null>(null);
+  const inflightRef = useRef(0);
 
   const load = useCallback(async (force: boolean) => {
     if (lat === null || lon === null) {
@@ -30,6 +31,7 @@ export function useForecast(lat: number | null, lon: number | null) {
       }
     }
 
+    inflightRef.current++;
     setLoading(true);
     setError(null);
 
@@ -45,7 +47,10 @@ export function useForecast(lat: number | null, lon: number | null) {
         setError(message);
       }
     } finally {
-      setLoading(false);
+      inflightRef.current--;
+      if (inflightRef.current === 0) {
+        setLoading(false);
+      }
     }
   }, [lat, lon]);
 
