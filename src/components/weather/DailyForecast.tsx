@@ -6,6 +6,7 @@ import { RISK_BADGES, weatherCodeToEmoji } from '../../lib/riskDetection';
 interface Props {
   daily: DailyForecastData[];
   dayRisks: DayRisk[];
+  onHalfDayClick?: (date: string, ampm: 'am' | 'pm') => void;
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -105,7 +106,7 @@ function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
   );
 }
 
-export function DailyForecast({ daily, dayRisks }: Props) {
+export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const today = jstNow.toISOString().slice(0, 10);
 
@@ -213,13 +214,19 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                 if (i < SPLIT_DAYS) {
                   return (
                     <Fragment key={day.date}>
-                      <td style={amCell(day)}>
+                      <td
+                        style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
+                        onClick={() => onHalfDayClick?.(day.date, 'am')}
+                      >
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午前</div>
                         <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>
                           {day.amWeatherCode !== null ? weatherCodeToEmoji(day.amWeatherCode) : '—'}
                         </div>
                       </td>
-                      <td style={pmCell(day, i)}>
+                      <td
+                        style={{ ...pmCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
+                        onClick={() => onHalfDayClick?.(day.date, 'pm')}
+                      >
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午後</div>
                         <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>
                           {day.pmWeatherCode !== null ? weatherCodeToEmoji(day.pmWeatherCode) : '—'}

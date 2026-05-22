@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, type CSSProperties, type RefObject } from 'react';
 import type { HourlyForecast } from '../../api/forecast';
 import { weatherCodeToEmoji, RISK_BADGES, type RiskType } from '../../lib/riskDetection';
 
@@ -16,10 +16,11 @@ function detectHourRisks(h: HourlyForecast): RiskType[] {
 
 interface Props {
   hourly: HourlyForecast[];
+  scrollRef: RefObject<HTMLDivElement | null>;
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
-const COL_W = 40;
+export const COL_W = 40;
 
 const STICKY_LABEL_STYLE: CSSProperties = {
   position: 'sticky',
@@ -228,10 +229,9 @@ const ROWS: {
   },
 ];
 
-export function HourlyTable({ hourly }: Props) {
+export function HourlyTable({ hourly, scrollRef }: Props) {
   const now = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000); // 1時間前より古い列をグレーアウト
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!scrollRef.current || hourly.length === 0) return;

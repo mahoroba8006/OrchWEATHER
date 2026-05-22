@@ -1,17 +1,18 @@
 // src/components/weather/WeatherTab.tsx
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useAppStore } from '../../store';
 import { useForecast } from '../../hooks/useForecast';
 import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
 import { RiskSummary } from './RiskSummary';
-import { HourlyTable } from './HourlyTable';
+import { HourlyTable, COL_W } from './HourlyTable';
 import { Footer } from '../Footer';
 
 export function WeatherTab() {
   const { locations } = useAppStore();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
+  const hourlyScrollRef = useRef<HTMLDivElement>(null);
 
   // selectedLocationId が未設定の場合は最初の地点にフォールバック
   const location = locations.find(l => l.id === selectedLocationId) ?? locations[0] ?? null;
@@ -49,6 +50,19 @@ export function WeatherTab() {
     : null;
 
   const dayRisks = data ? detectRisks(data.hourly, data.daily) : [];
+
+  const filteredHourly = data
+    ? data.hourly.filter(h =>
+        new Date(h.time + ':00+09:00').getTime() >= Date.now() - 6 * 60 * 60 * 1000
+      )
+    : [];
+
+  const scrollToHour = (date: string, ampm: 'am' | 'pm') => {
+    if (!hourlyScrollRef.current) return;
+    const targetTime = `${date}T${ampm === 'am' ? '00' : '12'}:00`;
+    const idx = filteredHourly.findIndex(h => h.time === targetTime);
+    hourlyScrollRef.current.scrollLeft = (idx >= 0 ? idx : 0) * COL_W;
+  };
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -118,11 +132,9 @@ export function WeatherTab() {
 
       {data && (
         <>
-          <DailyForecast daily={data.daily} dayRisks={dayRisks} />
+          <DailyForecast daily={data.daily} dayRisks={dayRisks} onHalfDayClick={scrollToHour} />
           <RiskSummary dayRisks={dayRisks} />
-          <HourlyTable hourly={data.hourly.filter(h =>
-            new Date(h.time + ':00+09:00').getTime() >= Date.now() - 6 * 60 * 60 * 1000
-          )} />
+          <HourlyTable hourly={filteredHourly} scrollRef={hourlyScrollRef} />
         </>
       )}
       <Footer />
