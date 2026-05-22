@@ -58,10 +58,17 @@ export function WeatherTab() {
     : [];
 
   const scrollToHour = (date: string, ampm: 'am' | 'pm') => {
-    if (!hourlyScrollRef.current) return;
+    if (!hourlyScrollRef.current || filteredHourly.length === 0) return;
     const targetTime = `${date}T${ampm === 'am' ? '00' : '12'}:00`;
-    const idx = filteredHourly.findIndex(h => h.time === targetTime);
-    hourlyScrollRef.current.scrollLeft = (idx >= 0 ? idx : 0) * COL_W;
+    const firstTime  = filteredHourly[0].time;
+    // count sun events (sunrise/sunset) that appear before targetTime in the displayed range
+    const sunsBefore = (data?.daily ?? [])
+      .flatMap(d => [d.sunrise, d.sunset])
+      .filter(t => t >= firstTime && t < targetTime)
+      .length;
+    const hourlyIdx = filteredHourly.findIndex(h => h.time === targetTime);
+    if (hourlyIdx < 0) return;
+    hourlyScrollRef.current.scrollLeft = (hourlyIdx + sunsBefore) * COL_W;
   };
 
   return (
@@ -134,7 +141,7 @@ export function WeatherTab() {
         <>
           <DailyForecast daily={data.daily} dayRisks={dayRisks} onHalfDayClick={scrollToHour} />
           <RiskSummary dayRisks={dayRisks} />
-          <HourlyTable hourly={filteredHourly} scrollRef={hourlyScrollRef} />
+          <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} />
         </>
       )}
       <Footer />
