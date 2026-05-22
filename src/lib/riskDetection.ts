@@ -49,9 +49,9 @@ export function weatherCodeToEmoji(code: number): string {
   return '🌡️';
 }
 
-// WMO weather code → 絵文字（夜：晴れ・薄曇りを月に置換）
+// WMO weather code → 絵文字（夜：晴れ・薄曇りを星に置換）
 export function weatherCodeToNightEmoji(code: number): string {
-  if (code <= 2) return '🌙';
+  if (code <= 2) return '✨';
   return weatherCodeToEmoji(code);
 }
 
