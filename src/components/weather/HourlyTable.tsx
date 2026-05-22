@@ -20,6 +20,7 @@ interface Props {
   hourly: HourlyForecast[];
   daily: DailyForecastData[];
   scrollRef: RefObject<HTMLDivElement | null>;
+  scrollTarget?: string; // "YYYY-MM-DDTHH:00" — scroll this column to left edge
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -145,7 +146,7 @@ const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => strin
 ];
 
 // ── Main component ────────────────────────────────────────
-export function HourlyTable({ hourly, daily, scrollRef }: Props) {
+export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
 
@@ -174,6 +175,14 @@ export function HourlyTable({ hourly, daily, scrollRef }: Props) {
     }
     scrollRef.current.scrollLeft = targetLeft;
   }, [hourly]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!scrollTarget || !scrollRef.current) return;
+    const container = scrollRef.current;
+    const cell = container.querySelector(`[data-time="${scrollTarget}"]`) as HTMLElement | null;
+    if (!cell) return;
+    container.scrollLeft += cell.getBoundingClientRect().left - container.getBoundingClientRect().left;
+  }, [scrollTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPast = (e: TLEntry) => new Date(tlTime(e)) < cutoff;
 
@@ -239,7 +248,7 @@ export function HourlyTable({ hourly, daily, scrollRef }: Props) {
                   );
                 }
                 return (
-                  <td key={`t-${i}`} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, color: faded ? '#c0c4cf' : '#4b5563' }}>
+                  <td key={`t-${i}`} data-time={t} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, color: faded ? '#c0c4cf' : '#4b5563' }}>
                     {String(parseInt(t.slice(11, 13), 10))}
                   </td>
                 );

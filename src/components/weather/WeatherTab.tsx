@@ -1,18 +1,19 @@
 // src/components/weather/WeatherTab.tsx
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useAppStore } from '../../store';
 import { useForecast } from '../../hooks/useForecast';
 import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
 import { RiskSummary } from './RiskSummary';
-import { HourlyTable, COL_W } from './HourlyTable';
+import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
 export function WeatherTab() {
   const { locations } = useAppStore();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
+  const [scrollTarget, setScrollTarget] = useState<string | undefined>();
 
   // selectedLocationId が未設定の場合は最初の地点にフォールバック
   const location = locations.find(l => l.id === selectedLocationId) ?? locations[0] ?? null;
@@ -57,19 +58,9 @@ export function WeatherTab() {
       )
     : [];
 
-  const scrollToHour = (date: string, ampm: 'am' | 'pm') => {
-    if (!hourlyScrollRef.current || filteredHourly.length === 0) return;
-    const targetTime = `${date}T${ampm === 'am' ? '00' : '12'}:00`;
-    const firstTime  = filteredHourly[0].time;
-    // count sun events (sunrise/sunset) that appear before targetTime in the displayed range
-    const sunsBefore = (data?.daily ?? [])
-      .flatMap(d => [d.sunrise, d.sunset])
-      .filter(t => t >= firstTime && t < targetTime)
-      .length;
-    const hourlyIdx = filteredHourly.findIndex(h => h.time === targetTime);
-    if (hourlyIdx < 0) return;
-    hourlyScrollRef.current.scrollLeft = (hourlyIdx + sunsBefore) * COL_W;
-  };
+  const scrollToHour = useCallback((date: string, ampm: 'am' | 'pm') => {
+    setScrollTarget(`${date}T${ampm === 'am' ? '06' : '12'}:00`);
+  }, []);
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -141,7 +132,7 @@ export function WeatherTab() {
         <>
           <DailyForecast daily={data.daily} dayRisks={dayRisks} onHalfDayClick={scrollToHour} />
           <RiskSummary dayRisks={dayRisks} />
-          <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} />
+          <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} />
         </>
       )}
       <Footer />
