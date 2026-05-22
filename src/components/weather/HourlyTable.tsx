@@ -168,12 +168,16 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
   // Scroll to the 1-hour-before-now column on load
   useEffect(() => {
     if (!scrollRef.current || tl.length === 0) return;
-    let targetLeft = 0;
+    const STICKY_W = 90;
+    let targetIdx = 0;
     for (let i = 0; i < tl.length; i++) {
-      if (new Date(tlTime(tl[i])) <= cutoff) targetLeft = i * COL_W;
+      if (new Date(tlTime(tl[i])) <= cutoff) targetIdx = i;
       else break;
     }
-    scrollRef.current.scrollLeft = targetLeft;
+    const cell = scrollRef.current.querySelector(`[data-time="${tlTime(tl[targetIdx])}"]`) as HTMLElement | null;
+    if (cell) {
+      scrollRef.current.scrollLeft += cell.getBoundingClientRect().left - scrollRef.current.getBoundingClientRect().left - STICKY_W;
+    }
   }, [hourly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -181,7 +185,8 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
     const container = scrollRef.current;
     const cell = container.querySelector(`[data-time="${scrollTarget}"]`) as HTMLElement | null;
     if (!cell) return;
-    container.scrollLeft += cell.getBoundingClientRect().left - container.getBoundingClientRect().left;
+    const STICKY_W = 90; // matches minWidth in STICKY style
+    container.scrollLeft += cell.getBoundingClientRect().left - container.getBoundingClientRect().left - STICKY_W;
   }, [scrollTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPast = (e: TLEntry) => new Date(tlTime(e)) < cutoff;
