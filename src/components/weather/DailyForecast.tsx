@@ -220,7 +220,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         onClick={() => onHalfDayClick?.(day.date, 'am')}
                       >
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午前</div>
-                        <div style={{ lineHeight: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 42 }}>
                           {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={42} /> : '—'}
                         </div>
                       </td>
@@ -229,7 +229,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         onClick={() => onHalfDayClick?.(day.date, 'pm')}
                       >
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午後</div>
-                        <div style={{ lineHeight: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 42 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={42} /> : '—'}
                         </div>
                       </td>
@@ -238,7 +238,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ lineHeight: 1 }}><WeatherIcon code={day.weatherCode} size={42} /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 42 }}><WeatherIcon code={day.weatherCode} size={42} /></div>
                   </td>
                 );
               })}
