@@ -11,8 +11,8 @@ interface Props {
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
-const CARD_W = 96;   // px per day — mini chart geometry depends on this
-const HALF_W = 72;   // px per AM / PM cell (split days = 2 × HALF_W)
+const CARD_W = 86;   // px per day — mini chart geometry depends on this
+const HALF_W = 65;   // px per AM / PM cell (split days = 2 × HALF_W)
 const CHART_H = 60;
 const SPLIT_DAYS = 3; // first N days get AM/PM split
 
@@ -77,13 +77,13 @@ function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
       {precips.map((p, i) => {
         const bh = ph(p);
         if (bh === 0) return null;
-        const dw = dayWidths[i];
+        const barW = CARD_W * 0.35;
         return (
           <g key={i}>
             <rect
-              x={dayX[i] + dw * 0.325}
+              x={cx(i) - barW / 2}
               y={H - padB - bh}
-              width={dw * 0.35}
+              width={barW}
               height={bh}
               fill="#93c5fd"
               opacity={0.75}
