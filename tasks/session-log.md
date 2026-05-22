@@ -570,3 +570,102 @@
 ### 未完了・次回への引き継ぎ
 - 特になし（全変更 main へ push 済み・Cloudflare Pages 自動デプロイ）
 - HEAD: 0bd948a
+
+---
+
+## 2026-05-22 セッション
+
+### 作業内容
+
+#### 1. DailyForecast AM/PM カラム幅・アイコンサイズ調整 (29b5fa6)
+- `HALF_W` 48 → 72px（AM/PM列を1.5倍に拡張）
+- 天気アイコン `2rem` → `2.6rem`（全日程、1.3倍）
+- `DailyMiniChart` の列幅計算を AM/PM 拡張に追従（各日の実幅からx座標を逆算）
+
+#### 2. HourlyTable グレーアウト・初期スクロール変更 (7936f15)
+- グレーアウト判定: `h.time < now` → `h.time < now − 1時間`
+- 初期スクロール: `useEffect` で cutoff 列（1時間前）が先頭になるよう `scrollLeft` をセット
+
+#### 3. AM/PM タップで時間別テーブルをスクロール (c8033de)
+- `DailyForecast` に `onHalfDayClick?: (date, ampm) => void` を追加
+- `HourlyTable` の `scrollRef` を WeatherTab に昇格（`forwardRef` 不使用、prop で受け渡し）
+- `WeatherTab` の `scrollToHour`: 対象時刻（T00:00 or T12:00）の hourly インデックスを検索して `scrollLeft` をセット
+- `COL_W` を `HourlyTable` からエクスポートして WeatherTab で利用
+
+#### 4. HourlyTable に日の出・日の入列を挿入 (c8c2924)
+- `TLEntry` 型（HourlyEntry | SunEntry）でタイムラインを構築
+- `daily.sunrise / daily.sunset` を hourly データと時刻順にマージ
+- SunEntry 列: Sunrise/Sunset ルシードアイコン＋「日の出」「日の入」ラベル、データ行は空セル
+- MiniChartRow: hourly 列の位置のみでベジェ曲線を描画（sun 列を素通りして線が繋がる）
+- `scrollToHour`: 対象時刻より前の sun 列数を加算してオフセット補正
+
+#### 5. 夜間天気アイコンを星に変更 (cb3ad36, 7f6c8ae)
+- `riskDetection.ts` に `weatherCodeToNightEmoji` を追加（🌙 → ✨）
+- `HourlyTable` で `isNighttime(hTime)` を構築（daily の sunrise/sunset を走査、直前イベントが sunset なら夜）
+- `nightWeatherNode(code)` を追加：code 0 → ✨、code 1-2 → ✨+☁️（小）、他は昼と同じ
+- データ先頭の夜エッジケース対応（最初のイベントが sunrise なら、それ以前も夜判定）
+
+#### 6. カスタム天気アイコン画像の検討
+- 形式: SVG（第一選択。1枚で全サイズ対応、CSS でグレーアウト可）
+- サイズ: SVG なら不要。PNG の場合は 48×48 + 96×96（@2x）
+- 必要枚数: 11枚（昼9種 ＋ 夜専用2種：clear-night, partly-cloudy-night）
+- 候補ライブラリ: Meteocons（SVG・MIT）、Weather Icons
+- 実装コスト: `weatherCodeToEmoji` と `nightWeatherNode` の戻り値を `<img>` に差し替えるだけ
+- **未決定**（次回、SVG/PNG・自作/既存セット を決めてから実装）
+
+### 決定事項
+- HourlyTable のタイムラインは `TLEntry[]` 型で管理（hourly + sun events 統合）
+- 夜間アイコン: 晴れ→✨、薄曇り→✨☁️、それ以外は昼と同じ
+
+### 未完了・次回への引き継ぎ
+- **カスタム天気アイコン画像の実装**（SVG か PNG か、自作か既存セットか要確認）
+- HEAD: 7f6c8ae
+
+---
+
+## 2026-05-22〜23 セッション
+
+### 作業内容
+
+#### 1. Climacons SVG 天気アイコン統合（WeatherIcon.tsx 新規作成）
+- 11種の SVG パスデータを TS 定数として埋め込み（外部ファイル・パッケージ不要）
+- `PATHS` / `COLORS` / `codeToIconName(code, isNight)` / `WeatherIcon` コンポーネント
+- 夜間切替はコード 0（快晴→Moon）・1-2（薄曇り→CloudMoon）のみ、他は昼用アイコン共用
+- カラースキーム: Sun=#F59E0B / Moon=#94A3B8 / CloudRain=#3B82F6 など 11 色
+
+#### 2. HourlyTable.tsx を WeatherIcon に移行
+- `nightWeatherNode` 関数を削除、`weatherCodeToEmoji` import を削除
+- 天気セルを `<WeatherIcon code=... isNight=... size={48} />` に置換
+- 過去時間フェード: `color` → `opacity: 0.4`（SVG は CSS color が効かないため）
+
+#### 3. DailyForecast.tsx を WeatherIcon に移行
+- AM/PM・単独全セルを `<WeatherIcon code=... size={84} />` に置換
+- flexbox センタリングラッパーに変更（fontSize ラッパー廃止）
+
+#### 4. 日別予報レイアウト調整
+- CARD_W 96→86px、HALF_W 72→65px（全列 -10%）(1729d25)
+- 降水量棒グラフ幅を全日統一: AM/PM 分割日も `CARD_W × 0.35` で横幅を揃える (1729d25)
+
+#### 5. 天気概況テキストの追加
+- `codeToLabel(code)` を WeatherIcon.tsx にエクスポート（全 WMO コード → 日本語）
+- 各アイコン直下に 0.6rem グレーテキストで概況表示（AM/PM/単独 全セル）(e3db087)
+- `codeToShortLabel` + `dayTransitionLabel(am, pm)` を追加
+- AM/PM 日付ヘッダー（colSpan=2）に「晴れのち曇り」形式の概況を表示 (d9efbab)
+
+#### 6. AM/PM クリック→時間別スクロールのバグ修正
+- **根本原因**: `idx * COL_W`（40px）が実際のカラム幅（48px アイコン+padding ≈ 54px）と乖離していたためスクロール位置がずれていた（約 9 カラム分）
+- **修正**: DOM 実測値（`getBoundingClientRect`）でスクロール量を算出 (689b8ec)
+  - 時刻行セルに `data-time` 属性を付与、`querySelector` で取得
+  - WeatherTab 側は `scrollTarget` state をセットするだけ（タイムライン再計算を削除）
+- **見出し列オフセット修正**: sticky ラベル幅（90px）を差し引いて対象列がラベル直後に来るよう補正 (3b60eaf)
+- **ターゲット時刻**: AM → T00:00、PM → T12:00 (933edf7)
+
+### 決定事項
+- 天気アイコンは Climacons SVG（パスデータ直接埋め込み）を採用。新パッケージなし
+- 夜間アイコンはコード 0・1-2 のみ（Moon/CloudMoon）、他は昼共用
+- 日別の天気概況は「アイコン下の詳細ラベル」+「日付ヘッダーの概況（のち）」2段構成
+- スクロール位置計算は `idx × COL_W` 方式を廃止し DOM 実測値に統一（カラム幅依存を排除）
+
+### 未完了・次回への引き継ぎ
+- 特になし（全変更 main ブランチへ push 済み）
+- HEAD: 3b60eaf
