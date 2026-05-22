@@ -2,7 +2,7 @@ import { Fragment, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
 import type { DayRisk } from '../../lib/riskDetection';
 import { RISK_BADGES } from '../../lib/riskDetection';
-import { WeatherIcon } from './WeatherIcon';
+import { WeatherIcon, codeToLabel } from './WeatherIcon';
 
 interface Props {
   daily: DailyForecastData[];
@@ -223,6 +223,11 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={84} /> : '—'}
                         </div>
+                        {day.amWeatherCode !== null && (
+                          <div style={{ fontSize: '0.6rem', color: '#7a8599', lineHeight: 1.3, marginTop: '0.15rem' }}>
+                            {codeToLabel(day.amWeatherCode)}
+                          </div>
+                        )}
                       </td>
                       <td
                         style={{ ...pmCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
@@ -232,13 +237,23 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={84} /> : '—'}
                         </div>
+                        {day.pmWeatherCode !== null && (
+                          <div style={{ fontSize: '0.6rem', color: '#7a8599', lineHeight: 1.3, marginTop: '0.15rem' }}>
+                            {codeToLabel(day.pmWeatherCode)}
+                          </div>
+                        )}
                       </td>
                     </Fragment>
                   );
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}><WeatherIcon code={day.weatherCode} size={84} /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
+                      <WeatherIcon code={day.weatherCode} size={84} />
+                    </div>
+                    <div style={{ fontSize: '0.6rem', color: '#7a8599', lineHeight: 1.3, marginTop: '0.15rem' }}>
+                      {codeToLabel(day.weatherCode)}
+                    </div>
                   </td>
                 );
               })}
