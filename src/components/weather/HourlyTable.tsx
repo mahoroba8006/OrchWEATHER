@@ -1,7 +1,8 @@
-import React, { useEffect, type CSSProperties, type RefObject } from 'react';
+import { useEffect, type CSSProperties, type RefObject } from 'react';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
-import { weatherCodeToEmoji, RISK_BADGES, type RiskType } from '../../lib/riskDetection';
+import { RISK_BADGES, type RiskType } from '../../lib/riskDetection';
+import { WeatherIcon } from './WeatherIcon';
 
 function detectHourRisks(h: HourlyForecast): RiskType[] {
   const risks: RiskType[] = [];
@@ -65,17 +66,6 @@ function RiskBadgesRow({ tl, cutoff }: { tl: TLEntry[]; cutoff: Date }) {
   );
 }
 
-// 夜間天気アイコン: 晴れ→✨、薄曇り→✨+☁️(小)、それ以外は昼と同じ
-function nightWeatherNode(code: number): React.ReactNode {
-  if (code === 0) return '✨';
-  if (code <= 2) return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
-      <span>✨</span>
-      <span style={{ fontSize: '0.65em', marginLeft: '0.05em' }}>☁️</span>
-    </span>
-  );
-  return weatherCodeToEmoji(code);
-}
 
 function MiniChartRow({ tl }: { tl: TLEntry[] }) {
   const hourlyPos: number[]   = [];
@@ -272,10 +262,8 @@ export function HourlyTable({ hourly, daily, scrollRef }: Props) {
                   );
                 }
                 return (
-                  <td key={`w-${i}`} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, fontSize: '1.5em', lineHeight: 1, color: faded ? '#c0c4cf' : '#4b5563' }}>
-                    {isNighttime(entry.data.time)
-                      ? nightWeatherNode(entry.data.weatherCode)
-                      : weatherCodeToEmoji(entry.data.weatherCode)}
+                  <td key={`w-${i}`} style={{ padding: '0.2rem 0.1rem', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: faded ? 0.35 : 1 }}>
+                    <WeatherIcon code={entry.data.weatherCode} isNight={isNighttime(entry.data.time)} size={24} />
                   </td>
                 );
               })}
