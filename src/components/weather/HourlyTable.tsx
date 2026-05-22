@@ -1,4 +1,4 @@
-import { type CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import type { HourlyForecast } from '../../api/forecast';
 import { weatherCodeToEmoji, RISK_BADGES, type RiskType } from '../../lib/riskDetection';
 
@@ -35,13 +35,13 @@ const STICKY_LABEL_STYLE: CSSProperties = {
   verticalAlign: 'middle',
 };
 
-function RiskBadgesRow({ hourly, now }: { hourly: HourlyForecast[]; now: Date }) {
+function RiskBadgesRow({ hourly, cutoff }: { hourly: HourlyForecast[]; cutoff: Date }) {
   return (
     <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
       <td style={STICKY_LABEL_STYLE}>リスク</td>
       {hourly.map(h => {
         const risks = detectHourRisks(h);
-        const isPast = new Date(h.time) < now;
+        const isPast = new Date(h.time) < cutoff;
         return (
           <td
             key={h.time}
@@ -230,12 +230,27 @@ const ROWS: {
 
 export function HourlyTable({ hourly }: Props) {
   const now = new Date();
+  const cutoff = new Date(now.getTime() - 3600 * 1000); // 1時間前より古い列をグレーアウト
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollRef.current || hourly.length === 0) return;
+    // cutoff 以下の最後の列（= 1時間前の列）を先頭に合わせる
+    let targetIdx = 0;
+    for (let i = 0; i < hourly.length; i++) {
+      if (new Date(hourly[i].time) <= cutoff) targetIdx = i;
+      else break;
+    }
+    scrollRef.current.scrollLeft = targetIdx * COL_W;
+  }, [hourly]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div>
       <div style={{ padding: '0.9rem 1rem 0.4rem', fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em' }}>
         時間別 ／ 72時間
       </div>
       <div
+        ref={scrollRef}
         style={{
           overflowX: 'auto',
           touchAction: 'pan-x',
@@ -266,7 +281,7 @@ export function HourlyTable({ hourly }: Props) {
                   </td>
                   {hourly.map((h, i) => {
                     const risk = row.isRisk(h);
-                    const isPast = new Date(h.time) < now;
+                    const isPast = new Date(h.time) < cutoff;
                     const isNewDay = row.key === 'date' && i > 0 && hourly[i - 1].time.slice(0, 10) !== h.time.slice(0, 10);
                     const baseColor = row.key === 'date' ? '#5b6478' : '#4b5563';
                     return (
@@ -291,7 +306,7 @@ export function HourlyTable({ hourly }: Props) {
                 </tr>
               );
               if (row.key === 'weather') {
-                return [tr, <RiskBadgesRow key="risk-badges" hourly={hourly} now={now} />, <MiniChartRow key="mini-chart" hourly={hourly} />];
+                return [tr, <RiskBadgesRow key="risk-badges" hourly={hourly} cutoff={cutoff} />, <MiniChartRow key="mini-chart" hourly={hourly} />];
               }
               return [tr];
             })}
