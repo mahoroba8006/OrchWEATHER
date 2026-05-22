@@ -10,7 +10,7 @@ interface Props {
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 const CARD_W = 96;   // px per day — mini chart geometry depends on this
-const HALF_W = 48;   // px per AM / PM cell
+const HALF_W = 72;   // px per AM / PM cell (split days = 2 × HALF_W)
 const CHART_H = 60;
 const SPLIT_DAYS = 3; // first N days get AM/PM split
 
@@ -22,11 +22,16 @@ function probColor(p: number): string {
 
 function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
   const N = daily.length;
-  const W = N * CARD_W;
+  const dayWidths = daily.map((_, i) => (i < SPLIT_DAYS ? 2 * HALF_W : CARD_W));
+  const W = dayWidths.reduce((a, b) => a + b, 0);
   const H = CHART_H;
   const padT = 6;
   const padB = 6;
   const innerH = H - padT - padB;
+
+  const dayX: number[] = [];
+  let acc = 0;
+  for (let i = 0; i < N; i++) { dayX.push(acc); acc += dayWidths[i]; }
 
   const tempMaxes = daily.map(d => d.tempMax);
   const tempMins = daily.map(d => d.tempMin);
@@ -37,7 +42,7 @@ function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
   const tRange = tMax - tMin || 1;
   const pMax = Math.max(...precips, 1);
 
-  const cx = (i: number) => i * CARD_W + CARD_W / 2;
+  const cx = (i: number) => dayX[i] + dayWidths[i] / 2;
   const ty = (t: number) => padT + (1 - (t - tMin) / tRange) * innerH;
   const ph = (p: number) => p === 0 ? 0 : Math.max(1, (p / pMax) * innerH * 0.45);
 
@@ -70,18 +75,19 @@ function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
       {precips.map((p, i) => {
         const bh = ph(p);
         if (bh === 0) return null;
+        const dw = dayWidths[i];
         return (
           <g key={i}>
             <rect
-              x={i * CARD_W + CARD_W * 0.325}
+              x={dayX[i] + dw * 0.325}
               y={H - padB - bh}
-              width={CARD_W * 0.35}
+              width={dw * 0.35}
               height={bh}
               fill="#93c5fd"
               opacity={0.75}
             />
             <text
-              x={i * CARD_W + CARD_W / 2}
+              x={cx(i)}
               y={H - padB - bh - 2}
               fontSize={8}
               fill="#60a5fa"
@@ -209,13 +215,13 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                     <Fragment key={day.date}>
                       <td style={amCell(day)}>
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午前</div>
-                        <div style={{ fontSize: '2rem', lineHeight: 1 }}>
+                        <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>
                           {day.amWeatherCode !== null ? weatherCodeToEmoji(day.amWeatherCode) : '—'}
                         </div>
                       </td>
                       <td style={pmCell(day, i)}>
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午後</div>
-                        <div style={{ fontSize: '2rem', lineHeight: 1 }}>
+                        <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>
                           {day.pmWeatherCode !== null ? weatherCodeToEmoji(day.pmWeatherCode) : '—'}
                         </div>
                       </td>
@@ -224,7 +230,7 @@ export function DailyForecast({ daily, dayRisks }: Props) {
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ fontSize: '2rem', lineHeight: 1 }}>{weatherCodeToEmoji(day.weatherCode)}</div>
+                    <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>{weatherCodeToEmoji(day.weatherCode)}</div>
                   </td>
                 );
               })}
