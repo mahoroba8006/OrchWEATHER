@@ -38,6 +38,31 @@ const COLORS: Record<string, string> = {
   CloudLightning:'#F87171',
 };
 
+function codeToShortLabel(code: number): string {
+  if (code === 0)                          return '快晴';
+  if (code === 1)                          return '晴れ';
+  if (code === 2)                          return '晴れ曇';
+  if (code === 3)                          return '曇り';
+  if (code === 45 || code === 48)          return '霧';
+  if (code >= 51 && code <= 55)            return '霧雨';
+  if (code === 56 || code === 57)          return '氷雨';
+  if (code >= 61 && code <= 65)            return '雨';
+  if (code === 66 || code === 67)          return 'みぞれ';
+  if (code >= 71 && code <= 77)            return '雪';
+  if (code >= 80 && code <= 82)            return 'にわか雨';
+  if (code >= 85 && code <= 86)            return 'にわか雪';
+  if (code >= 95 && code <= 99)            return '雷雨';
+  return '—';
+}
+
+export function dayTransitionLabel(amCode: number | null, pmCode: number | null): string | null {
+  if (amCode === null) return null;
+  const am = codeToShortLabel(amCode);
+  if (pmCode === null) return am;
+  const pm = codeToShortLabel(pmCode);
+  return am === pm ? am : `${am}のち${pm}`;
+}
+
 export function codeToLabel(code: number): string {
   if (code === 0)                          return '快晴';
   if (code === 1)                          return '晴れ';

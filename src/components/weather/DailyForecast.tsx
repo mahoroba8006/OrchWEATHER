@@ -2,7 +2,7 @@ import { Fragment, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
 import type { DayRisk } from '../../lib/riskDetection';
 import { RISK_BADGES } from '../../lib/riskDetection';
-import { WeatherIcon, codeToLabel } from './WeatherIcon';
+import { WeatherIcon, codeToLabel, dayTransitionLabel } from './WeatherIcon';
 
 interface Props {
   daily: DailyForecastData[];
@@ -205,6 +205,12 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                     <div style={{ fontSize: '0.72rem', color: isToday ? '#5e8ad1' : '#5b6478', fontWeight: isToday ? 600 : undefined }}>
                       {label}
                     </div>
+                    {split && (() => {
+                      const tl = dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode);
+                      return tl ? (
+                        <div style={{ fontSize: '0.62rem', color: '#8a93a6', marginTop: '0.1rem' }}>{tl}</div>
+                      ) : null;
+                    })()}
                   </td>
                 );
               })}
