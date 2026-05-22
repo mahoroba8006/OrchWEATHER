@@ -1,7 +1,8 @@
 import { Fragment, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
 import type { DayRisk } from '../../lib/riskDetection';
-import { RISK_BADGES, weatherCodeToEmoji } from '../../lib/riskDetection';
+import { RISK_BADGES } from '../../lib/riskDetection';
+import { WeatherIcon } from './WeatherIcon';
 
 interface Props {
   daily: DailyForecastData[];
@@ -219,8 +220,8 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         onClick={() => onHalfDayClick?.(day.date, 'am')}
                       >
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午前</div>
-                        <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>
-                          {day.amWeatherCode !== null ? weatherCodeToEmoji(day.amWeatherCode) : '—'}
+                        <div style={{ lineHeight: 1 }}>
+                          {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={42} /> : '—'}
                         </div>
                       </td>
                       <td
@@ -228,8 +229,8 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         onClick={() => onHalfDayClick?.(day.date, 'pm')}
                       >
                         <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午後</div>
-                        <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>
-                          {day.pmWeatherCode !== null ? weatherCodeToEmoji(day.pmWeatherCode) : '—'}
+                        <div style={{ lineHeight: 1 }}>
+                          {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={42} /> : '—'}
                         </div>
                       </td>
                     </Fragment>
@@ -237,7 +238,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ fontSize: '2.6rem', lineHeight: 1 }}>{weatherCodeToEmoji(day.weatherCode)}</div>
+                    <div style={{ lineHeight: 1 }}><WeatherIcon code={day.weatherCode} size={42} /></div>
                   </td>
                 );
               })}
