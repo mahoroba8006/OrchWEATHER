@@ -44,14 +44,14 @@ function codeToIconName(code: number, isNight: boolean): string {
   if (code === 3)                           return 'Cloud';
   if (code === 45 || code === 48)           return 'CloudFog';
   if (code >= 51 && code <= 55)             return 'CloudDrizzle';
-  if (code === 56 || code === 57)           return 'CloudHail';
+  if (code === 56 || code === 57)           return 'CloudHail'; // freezing drizzle — CloudHail is closest available icon
   if (code >= 61 && code <= 65)             return 'CloudRain';
-  if (code === 66 || code === 67)           return 'CloudHail';
-  if (code >= 71 && code <= 77)             return 'Snowflake';
+  if (code === 66 || code === 67)           return 'CloudHail'; // freezing rain — CloudHail is closest available icon
+  if (code >= 71 && code <= 77)             return 'Snowflake'; // 76=snow grains, 77=snow grains — intentionally grouped under Snowflake
   if (code >= 80 && code <= 82)             return 'CloudRain';
   if (code >= 85 && code <= 86)             return 'Snowflake';
   if (code >= 95 && code <= 99)             return 'CloudLightning';
-  return 'Sun';
+  return 'Cloud';
 }
 
 interface WeatherIconProps {
