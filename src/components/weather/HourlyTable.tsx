@@ -1,7 +1,7 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
-import { weatherCodeToEmoji, RISK_BADGES, type RiskType } from '../../lib/riskDetection';
+import { weatherCodeToEmoji, weatherCodeToNightEmoji, RISK_BADGES, type RiskType } from '../../lib/riskDetection';
 
 function detectHourRisks(h: HourlyForecast): RiskType[] {
   const risks: RiskType[] = [];
@@ -175,6 +175,26 @@ export function HourlyTable({ hourly, daily, scrollRef }: Props) {
 
   const isPast = (e: TLEntry) => new Date(tlTime(e)) < cutoff;
 
+  // 夜間判定: daily の sunrise/sunset を時刻順に並べ、直前のイベントが sunset なら夜
+  const allSunEvents = daily
+    .flatMap(d => [
+      { sunType: 'rise' as const, time: d.sunrise },
+      { sunType: 'set'  as const, time: d.sunset  },
+    ])
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  const isNighttime = (hTime: string): boolean => {
+    if (allSunEvents.length === 0) return false;
+    // データ中の最初のイベントより前の時刻は、最初が sunrise なら夜
+    if (hTime < allSunEvents[0].time) return allSunEvents[0].sunType === 'rise';
+    let last = allSunEvents[0];
+    for (const e of allSunEvents) {
+      if (e.time <= hTime) last = e;
+      else break;
+    }
+    return last.sunType === 'set';
+  };
+
   return (
     <div>
       <div style={{ padding: '0.9rem 1rem 0.4rem', fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em' }}>
@@ -241,7 +261,9 @@ export function HourlyTable({ hourly, daily, scrollRef }: Props) {
                 }
                 return (
                   <td key={`w-${i}`} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, fontSize: '1.5em', lineHeight: 1, color: faded ? '#c0c4cf' : '#4b5563' }}>
-                    {weatherCodeToEmoji(entry.data.weatherCode)}
+                    {isNighttime(entry.data.time)
+                      ? weatherCodeToNightEmoji(entry.data.weatherCode)
+                      : weatherCodeToEmoji(entry.data.weatherCode)}
                   </td>
                 );
               })}

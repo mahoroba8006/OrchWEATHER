@@ -30,7 +30,7 @@ export const RISK_BADGES: Record<RiskType, RiskBadge> = {
   dry:     { type: 'dry',     emoji: '🌵', label: '乾燥', badgeBg: '#ece6d4', badgeColor: '#766a3f', borderColor: '#b8a878' },
 };
 
-// WMO weather code → 絵文字
+// WMO weather code → 絵文字（昼）
 export function weatherCodeToEmoji(code: number): string {
   if (code === 0)                      return '☀️';
   if (code <= 2)                       return '🌤️';
@@ -47,6 +47,12 @@ export function weatherCodeToEmoji(code: number): string {
   if (code === 95)                     return '⛈️';
   if (code === 96 || code === 99)      return '⛈️';
   return '🌡️';
+}
+
+// WMO weather code → 絵文字（夜：晴れ・薄曇りを月に置換）
+export function weatherCodeToNightEmoji(code: number): string {
+  if (code <= 2) return '🌙';
+  return weatherCodeToEmoji(code);
 }
 
 function getTimePrefix(hour: number): string {
