@@ -98,6 +98,50 @@ const GDD_DELTA_DAYS_MIN_V0 = 30;
 // 累積日射量 序盤の Δ日 表示を抑制する閾値（MJ/m²）
 const RADIATION_DELTA_DAYS_MIN_V0 = 100;
 
+/**
+ * モバイル用デフォルト viewport を計算する
+ * start = 今日の月 −2 の月初日、end = 今日の月 +1 の月末日
+ * 選択年のデータに当てはめてインデックスを返す（季節比較が目的）
+ */
+function calcMobileDefaultViewport(
+  data: { date: string }[],
+  today: Date
+): { start: number; end: number } | null {
+  if (data.length === 0) return null;
+
+  const selectedYear = parseInt(data[0].date.substring(0, 4), 10);
+  const todayMonth = today.getMonth() + 1; // 1–12
+
+  // start: 2ヶ月前の月初
+  let startMonth = todayMonth - 2;
+  if (startMonth <= 0) startMonth += 12;
+
+  // end: 翌月の月末
+  let endMonth = todayMonth + 1;
+  if (endMonth > 12) endMonth -= 12;
+
+  const startStr = `${selectedYear}-${String(startMonth).padStart(2, '0')}-01`;
+  // new Date(year, month, 0).getDate() = その月の最終日
+  const lastDay = new Date(selectedYear, endMonth, 0).getDate();
+  const endStr = `${selectedYear}-${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+  // start index: startStr 以上の最初のエントリ
+  let startIdx = data.findIndex(d => d.date >= startStr);
+  if (startIdx === -1) startIdx = 0;
+
+  // end index: endStr 以下の最後のエントリ
+  // 年またぎ（startMonth > endMonth）のとき endStr < startStr になるので data末尾へクランプ
+  let endIdx = data.length - 1;
+  if (endStr >= startStr) {
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].date <= endStr) { endIdx = i; break; }
+    }
+  }
+
+  if (startIdx >= endIdx) return null;
+  return { start: startIdx, end: endIdx + 1 };
+}
+
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'analysis'>('weather');
@@ -109,6 +153,9 @@ function App() {
   const [hover, setHover] = useState<{ chartId: string; payload: any[]; label: string } | null>(null);
   const pendingHoverRef = useRef<{ chartId: string; payload: any[]; label: string } | null>(null);
   const hoverRafRef = useRef<number>(0);
+
+  // モバイル判定（マウント時1回のみ。リサイズで再判定しないことで操作中のリセットを防ぐ）
+  const [isMobile] = useState(() => window.innerWidth < 768);
 
   // Bitgo風: 日次モードのパン可能ウィンドウ（365日）
   const DAILY_WINDOW = 365;
@@ -653,13 +700,21 @@ function App() {
     ? (val: string) => `${parseInt(val, 10)}月`
     : (val: string) => val.split('-').join('/');
 
-  // 日次データのレンジが変わるたびに viewport を末尾90日にリセット
+  // 日次データのレンジが変わるたびに viewport をリセット
+  // モバイル: 今日基準で「2ヶ月前の月初〜翌月の月末」に絞る（選択年の同季節を表示）
+  // デスクトップ: 末尾 365日（従来どおり）
   useEffect(() => {
     const total = filteredBaseChartData.length;
     if (total === 0) { setDailyViewport(null); return; }
+
+    if (isMobile) {
+      const vp = calcMobileDefaultViewport(filteredBaseChartData, new Date());
+      if (vp) { setDailyViewport(vp); return; }
+    }
+
     const w = Math.min(DAILY_WINDOW, total);
     setDailyViewport({ start: total - w, end: total });
-  }, [filteredBaseChartData.length]);
+  }, [filteredBaseChartData.length, isMobile]);
 
   // pan用: 表示中サブセット（月次はそのまま）
   const visibleChartData = useMemo(() => {
