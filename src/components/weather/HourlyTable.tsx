@@ -238,7 +238,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
       <div style={{ padding: '0.9rem 1rem 0.4rem', fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em' }}>
         時間別 ／ 72時間
       </div>
-      <div ref={scrollRef} style={{ overflowX: 'auto', touchAction: 'pan-x', background: '#fff', borderTop: '1px solid #ebeef5', borderBottom: '1px solid #ebeef5' }}>
+      <div ref={scrollRef} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: '#fff', borderTop: '1px solid #ebeef5', borderBottom: '1px solid #ebeef5' }}>
         <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
           <tbody>
             {/* 日付 */}
