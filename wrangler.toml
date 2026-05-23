@@ -1,7 +1,8 @@
 # Cloudflare Pages + Functions 設定
-# Smart Placement: archive-api.open-meteo.com (Hetzner Germany) に近いPoP
-# でワーカーを実行し、日本からの経路問題を回避する
 compatibility_date = "2024-09-23"
 
-[placement]
-mode = "smart"
+# [placement]
+# mode = "smart"
+# ↑ Smart Placement は「ユーザーに最も近いPoP」を選ぶため、
+#   日本ユーザーには日本PoPが選ばれる。Hetzner(DE)に近づける意図と不一致のため無効化。
+#   archive-api への経路問題が再発した場合の参考用として残す。

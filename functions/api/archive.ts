@@ -1,6 +1,13 @@
 // functions/api/archive.ts
-// Cloudflare Pages Function — archive-api.open-meteo.com へのプロキシ
-// archive-api は日本ネットワークから直接到達不能なため edge 経由で転送する
+// Cloudflare Pages Function — archive-api.open-meteo.com へのプロキシ（スタンバイ）
+//
+// 【通常運用】src/api/weather.ts の baseUrl は直接 archive-api.open-meteo.com を指す。
+// 【切り替え手順】archive-api が日本ネットワークから到達不能になった場合:
+//   1. src/api/weather.ts の baseUrl を '/api/archive' に変更（コメント参照）
+//   2. vite.config.ts のプロキシ設定をコメントイン
+//   3. デプロイ → このファイルが CF エッジプロキシとして機能する
+//
+// このファイルは CF Pages にデプロイされているが、baseUrl が直接URLを指す限り呼ばれない。
 
 interface Env {}
 
