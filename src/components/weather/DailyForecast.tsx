@@ -205,8 +205,10 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                     <div style={{ fontSize: '0.72rem', color: isToday ? '#5e8ad1' : '#5b6478', fontWeight: isToday ? 600 : undefined }}>
                       {label}
                     </div>
-                    {split && (() => {
-                      const tl = dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode);
+                    {(() => {
+                      const tl = split
+                        ? dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode)
+                        : codeToLabel(day.weatherCode);
                       return tl ? (
                         <div style={{ fontSize: '0.62rem', color: '#8a93a6', marginTop: '0.1rem' }}>{tl}</div>
                       ) : null;
@@ -229,11 +231,6 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={84} /> : '—'}
                         </div>
-                        {day.amWeatherCode !== null && (
-                          <div style={{ fontSize: '0.6rem', color: '#7a8599', lineHeight: 1.3, marginTop: '0.15rem' }}>
-                            {codeToLabel(day.amWeatherCode)}
-                          </div>
-                        )}
                       </td>
                       <td
                         style={{ ...pmCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
@@ -243,11 +240,6 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={84} /> : '—'}
                         </div>
-                        {day.pmWeatherCode !== null && (
-                          <div style={{ fontSize: '0.6rem', color: '#7a8599', lineHeight: 1.3, marginTop: '0.15rem' }}>
-                            {codeToLabel(day.pmWeatherCode)}
-                          </div>
-                        )}
                       </td>
                     </Fragment>
                   );
@@ -256,9 +248,6 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                   <td key={day.date} style={singleCell(day, i)}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                       <WeatherIcon code={day.weatherCode} size={84} />
-                    </div>
-                    <div style={{ fontSize: '0.6rem', color: '#7a8599', lineHeight: 1.3, marginTop: '0.15rem' }}>
-                      {codeToLabel(day.weatherCode)}
                     </div>
                   </td>
                 );
