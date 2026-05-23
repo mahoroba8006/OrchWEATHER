@@ -5,10 +5,11 @@ const weatherCache = new Map<string, WeatherData>();
 const JMA_START_YEAR = 2016;
 
 function getApiConfig(year: number) {
-  // historical-forecast-api.open-meteo.com は廃止のため archive-api に統一
-  // archive-api は jma_msm（2016年〜）と era5_land 両対応
+  // archive-api.open-meteo.com は日本ネットワークから直接到達不能なため
+  // Cloudflare Pages Function (/api/archive) 経由でプロキシする
+  // ローカル開発時は vite.config.ts の proxy 設定が同じパスを転送する
   return {
-    baseUrl: 'https://archive-api.open-meteo.com/v1/archive',
+    baseUrl: '/api/archive',
     modelParam: year >= JMA_START_YEAR ? '&models=jma_msm' : '&models=era5_land',
   };
 }
