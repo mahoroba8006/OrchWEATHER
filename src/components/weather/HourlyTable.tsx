@@ -25,8 +25,8 @@ interface Props {
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 
+// ミニグラフバー用：降水強度の感覚ラベル
 function precipToLabel(mm: number): string {
-  if (mm <= 0)   return '−';
   if (mm < 0.5)  return 'ぽつぽつ';
   if (mm < 1.0)  return 'しとしと';
   if (mm < 5.0)  return 'さーっ';
@@ -37,6 +37,14 @@ function precipToLabel(mm: number): string {
   if (mm < 80.0) return '滝のよう';
   return '猛烈';
 }
+
+// 飽差 (g/m³): e_s(T)[hPa] = 6.1078 × 10^(7.5T/(T+237.3))、飽和水蒸気量 = 216.67 × e_s / (T+273.15)
+function calcVPD(tempC: number, humidPct: number): number {
+  const e_s = 6.1078 * Math.pow(10, 7.5 * tempC / (tempC + 237.3));
+  const a_max = 216.67 * e_s / (tempC + 273.15);
+  return a_max * (1 - humidPct / 100);
+}
+
 export const COL_W = 40;
 
 const STICKY: CSSProperties = {
@@ -149,9 +157,10 @@ function MiniChartRow({ tl }: { tl: TLEntry[] }) {
 // ── Data rows (excluding date / time / weather handled inline) ──
 const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string; isRisk: (h: HourlyForecast) => boolean }[] = [
   { key: 'temperature', label: '気温(℃)',     fmt: h => h.temperature.toFixed(1),            isRisk: h => h.temperature >= 35 || h.temperature <= 3 },
-  { key: 'precip',      label: '雨の強さ',     fmt: h => precipToLabel(h.precipitation),      isRisk: h => h.precipitation >= 30 },
+  { key: 'precip',      label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1),          isRisk: h => h.precipitation >= 30 },
   { key: 'dewPoint',    label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1),                isRisk: h => h.dewPoint <= 0 },
   { key: 'humidity',    label: '湿度(%)',      fmt: h => String(h.humidity),                  isRisk: h => h.humidity <= 30 },
+  { key: 'vpd',         label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1), isRisk: () => false },
   { key: 'windSpeed',   label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1),              isRisk: h => h.windSpeed >= 15 },
   { key: 'cape',        label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString(),        isRisk: h => h.cape >= 500 },
   { key: 'freezing',    label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString(), isRisk: h => h.freezingLevel <= 3500 && h.cape >= 1000 },
