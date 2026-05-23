@@ -24,6 +24,19 @@ interface Props {
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+function precipToLabel(mm: number): string {
+  if (mm <= 0)   return '−';
+  if (mm < 0.5)  return 'ぽつぽつ';
+  if (mm < 1.0)  return 'しとしと';
+  if (mm < 5.0)  return 'さーっ';
+  if (mm < 10.0) return 'ザーザー';
+  if (mm < 20.0) return '土砂降り';
+  if (mm < 30.0) return 'ばしゃばしゃ';
+  if (mm < 50.0) return 'バチバチ';
+  if (mm < 80.0) return '滝のよう';
+  return '猛烈';
+}
 export const COL_W = 40;
 
 const STICKY: CSSProperties = {
@@ -122,7 +135,7 @@ function MiniChartRow({ tl }: { tl: TLEntry[] }) {
             return (
               <g key={ti}>
                 <rect x={ti * COL_W + COL_W * 0.325} y={H - padB - bh} width={COL_W * 0.35} height={bh} fill="#93c5fd" opacity={0.75} />
-                <text x={cx(ti)} y={H - padB - bh - 2} fontSize={7} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">{precips[i].toFixed(1)}</text>
+                <text x={cx(ti)} y={H - padB - bh - 2} fontSize={7} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">{precipToLabel(precips[i])}</text>
               </g>
             );
           })}
@@ -136,7 +149,7 @@ function MiniChartRow({ tl }: { tl: TLEntry[] }) {
 // ── Data rows (excluding date / time / weather handled inline) ──
 const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string; isRisk: (h: HourlyForecast) => boolean }[] = [
   { key: 'temperature', label: '気温(℃)',     fmt: h => h.temperature.toFixed(1),            isRisk: h => h.temperature >= 35 || h.temperature <= 3 },
-  { key: 'precip',      label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1),          isRisk: h => h.precipitation >= 30 },
+  { key: 'precip',      label: '雨の強さ',     fmt: h => precipToLabel(h.precipitation),      isRisk: h => h.precipitation >= 30 },
   { key: 'dewPoint',    label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1),                isRisk: h => h.dewPoint <= 0 },
   { key: 'humidity',    label: '湿度(%)',      fmt: h => String(h.humidity),                  isRisk: h => h.humidity <= 30 },
   { key: 'windSpeed',   label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1),              isRisk: h => h.windSpeed >= 15 },
