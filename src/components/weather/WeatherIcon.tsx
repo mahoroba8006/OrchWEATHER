@@ -79,14 +79,16 @@ interface WeatherIconProps {
   code: number;
   isNight?: boolean;
   size?: number;
+  animated?: boolean;  // true(default)=アニメSVG(日別用), false=静的SVG(時間別用)
   style?: React.CSSProperties;
 }
 
-export function WeatherIcon({ code, isNight = false, size = 24, style }: WeatherIconProps) {
+export function WeatherIcon({ code, isNight = false, size = 24, animated = true, style }: WeatherIconProps) {
   const file = codeToIconFile(code, isNight);
+  const folder = animated ? '/icons/weather' : '/icons/weather-static';
   return (
     <img
-      src={`/icons/weather/${file}.svg`}
+      src={`${folder}/${file}.svg`}
       width={size}
       height={size}
       alt={codeToLabel(code)}

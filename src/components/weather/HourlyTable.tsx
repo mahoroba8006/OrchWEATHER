@@ -299,7 +299,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
                 }
                 return (
                   <td key={`w-${i}`} style={{ padding: '0.2rem 0.1rem', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: faded ? 0.4 : 1 }}>
-                    <WeatherIcon code={entry.data.weatherCode} isNight={isNighttime(entry.data.time)} size={48} />
+                    <WeatherIcon code={entry.data.weatherCode} isNight={isNighttime(entry.data.time)} size={48} animated={false} />
                   </td>
                 );
               })}
