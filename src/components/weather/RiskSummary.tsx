@@ -6,74 +6,70 @@ interface Props {
   dayRisks: DayRisk[];
 }
 
-export function RiskSummary({ dayRisks }: Props) {
-  const riskyDays = dayRisks.filter(d => d.risks.length > 0);
-  if (riskyDays.length === 0) return null;
+const ORDERED_TYPES: RiskType[] = ['frost', 'thunder', 'hail', 'wind', 'rain', 'heat', 'dry'];
 
-  // リスク種別ごとに日付と最初の指標値を集約
-  const riskTypeMap = new Map<RiskType, { dates: string[]; metric: string }>();
-  for (const day of riskyDays) {
-    for (const r of day.risks) {
-      if (!riskTypeMap.has(r)) riskTypeMap.set(r, { dates: [], metric: '' });
-      const entry = riskTypeMap.get(r)!;
-      entry.dates.push(day.date);
-      if (!entry.metric && day.metrics[r]) entry.metric = day.metrics[r]!;
+function formatDate(dateStr: string): string {
+  const mm = parseInt(dateStr.slice(5, 7), 10);
+  const dd = parseInt(dateStr.slice(8, 10), 10);
+  return `${mm}/${dd}`;
+}
+
+export function RiskSummary({ dayRisks }: Props) {
+  // 日付順 × リスク優先順のフラットリスト（1エントリ = 1リスク × 1日）
+  const rows: { date: string; riskType: RiskType; metric: string }[] = [];
+  for (const day of dayRisks) {
+    for (const riskType of ORDERED_TYPES) {
+      if (day.risks.includes(riskType)) {
+        rows.push({
+          date: day.date,
+          riskType,
+          metric: day.metrics[riskType] ?? '',
+        });
+      }
     }
   }
 
-  const orderedTypes: RiskType[] = ['frost', 'thunder', 'hail', 'wind', 'rain', 'heat', 'dry'];
-
   return (
-    <div style={{ padding: '0.6rem 1rem' }}>
+    <div style={{
+      padding: '0.6rem 1rem',
+      borderTop: '1px solid #ebeef5',
+      borderBottom: '1px solid #ebeef5',
+      background: '#fff',
+    }}>
       <div style={{ fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
         注意情報
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-        {orderedTypes.filter(t => riskTypeMap.has(t)).map(riskType => {
-          const badge = RISK_BADGES[riskType];
-          const { dates, metric } = riskTypeMap.get(riskType)!;
-          const dateLabels = dates.map(d => {
-            const mm = parseInt(d.slice(5, 7), 10);
-            const dd = parseInt(d.slice(8, 10), 10);
-            return `${mm}/${dd}`;
-          }).join(', ');
-
-          return (
-            <div
-              key={riskType}
-              style={{
-                borderLeft: `4px solid ${badge.borderColor}`,
-                background: badge.badgeBg,
-                borderRadius: '0 6px 6px 0',
-                padding: '0.45rem 0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <img
-                src={`/icons/weather/${badge.iconFile}.svg`}
-                width={24}
-                height={24}
-                alt={badge.label}
-                style={{
-                  display: 'block',
-                  flexShrink: 0,
-                  ...(riskType === 'heat' ? { filter: 'drop-shadow(0 0 6px #f87171)' } : {}),
-                }}
-              />
-              <div>
-                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: badge.badgeColor }}>
+      {rows.length === 0 ? (
+        <div style={{ fontSize: '0.82rem', color: '#a8aebc' }}>
+          注意情報はありません
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          {rows.map(({ date, riskType, metric }, i) => {
+            const badge = RISK_BADGES[riskType];
+            return (
+              <div
+                key={`${date}-${riskType}-${i}`}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <img
+                  src={`/icons/weather/${badge.iconFile}.svg`}
+                  width={20}
+                  height={20}
+                  alt={badge.label}
+                  style={{ display: 'block', flexShrink: 0 }}
+                />
+                <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#37445e', minWidth: '2.5em' }}>
                   {badge.label}
                 </span>
-                <span style={{ fontSize: '0.8rem', color: '#5b6478', marginLeft: '0.5rem' }}>
-                  {dateLabels}{metric ? `（${metric}）` : ''}
+                <span style={{ fontSize: '0.82rem', color: '#5b6478' }}>
+                  {formatDate(date)}{metric ? `（${metric}）` : ''}
                 </span>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
