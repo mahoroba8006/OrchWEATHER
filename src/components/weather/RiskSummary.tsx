@@ -10,11 +10,14 @@ export function RiskSummary({ dayRisks }: Props) {
   const riskyDays = dayRisks.filter(d => d.risks.length > 0);
   if (riskyDays.length === 0) return null;
 
-  const riskTypeMap = new Map<RiskType, string[]>();
+  // リスク種別ごとに日付と最初の指標値を集約
+  const riskTypeMap = new Map<RiskType, { dates: string[]; metric: string }>();
   for (const day of riskyDays) {
     for (const r of day.risks) {
-      if (!riskTypeMap.has(r)) riskTypeMap.set(r, []);
-      riskTypeMap.get(r)!.push(day.date);
+      if (!riskTypeMap.has(r)) riskTypeMap.set(r, { dates: [], metric: '' });
+      const entry = riskTypeMap.get(r)!;
+      entry.dates.push(day.date);
+      if (!entry.metric && day.metrics[r]) entry.metric = day.metrics[r]!;
     }
   }
 
@@ -23,12 +26,12 @@ export function RiskSummary({ dayRisks }: Props) {
   return (
     <div style={{ padding: '0.6rem 1rem' }}>
       <div style={{ fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
-        注意喚起
+        注意情報
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
         {orderedTypes.filter(t => riskTypeMap.has(t)).map(riskType => {
           const badge = RISK_BADGES[riskType];
-          const dates = riskTypeMap.get(riskType)!;
+          const { dates, metric } = riskTypeMap.get(riskType)!;
           const dateLabels = dates.map(d => {
             const mm = parseInt(d.slice(5, 7), 10);
             const dd = parseInt(d.slice(8, 10), 10);
@@ -48,20 +51,23 @@ export function RiskSummary({ dayRisks }: Props) {
                 gap: '0.5rem',
               }}
             >
-              <span style={{
-                fontSize: '1.2rem',
-                ...(riskType === 'heat'
-                  ? { color: '#c0392b', filter: 'drop-shadow(0 0 6px #f87171)' }
-                  : {}),
-              }}>
-                {badge.emoji}
-              </span>
+              <img
+                src={`/icons/weather/${badge.iconFile}.svg`}
+                width={24}
+                height={24}
+                alt={badge.label}
+                style={{
+                  display: 'block',
+                  flexShrink: 0,
+                  ...(riskType === 'heat' ? { filter: 'drop-shadow(0 0 6px #f87171)' } : {}),
+                }}
+              />
               <div>
                 <span style={{ fontWeight: 600, fontSize: '0.85rem', color: badge.badgeColor }}>
-                  {badge.label}リスク
+                  {badge.label}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: '#5b6478', marginLeft: '0.5rem' }}>
-                  {dateLabels}
+                  {dateLabels}{metric ? `（${metric}）` : ''}
                 </span>
               </div>
             </div>

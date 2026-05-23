@@ -72,7 +72,7 @@ const tlTime = (e: TLEntry) => (e.kind === 'hourly' ? e.data.time : e.time);
 function RiskBadgesRow({ tl, cutoff }: { tl: TLEntry[]; cutoff: Date }) {
   return (
     <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
-      <td style={STICKY}>リスク</td>
+      <td style={STICKY} />
       {tl.map((entry, i) => {
         if (entry.kind === 'sun') return <td key={`risk-sun-${i}`} style={{ minWidth: COL_W }} />;
         const h = entry.data;
@@ -80,7 +80,7 @@ function RiskBadgesRow({ tl, cutoff }: { tl: TLEntry[]; cutoff: Date }) {
         const isPast = new Date(h.time) < cutoff;
         return (
           <td key={`risk-${h.time}`} style={{ padding: '0.15rem 0.1rem', textAlign: 'center', background: risks.length > 0 ? '#fff0f5' : undefined, minWidth: COL_W, verticalAlign: 'middle', opacity: isPast ? 0.35 : undefined }}>
-            {risks.map(r => <span key={r} style={{ fontSize: '0.8rem', display: 'inline-block' }}>{RISK_BADGES[r].emoji}</span>)}
+            {risks.map(r => <img key={r} src={`/icons/weather/${RISK_BADGES[r].iconFile}.svg`} width={16} height={16} alt={RISK_BADGES[r].label} style={{ display: 'inline-block', verticalAlign: 'middle' }} />)}
           </td>
         );
       })}
@@ -143,13 +143,52 @@ function MiniChartRow({ tl }: { tl: TLEntry[] }) {
             return (
               <g key={ti}>
                 <rect x={ti * COL_W + COL_W * 0.325} y={H - padB - bh} width={COL_W * 0.35} height={bh} fill="#93c5fd" opacity={0.75} />
-                <text x={cx(ti)} y={H - padB - bh - 2} fontSize={7} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">{precipToLabel(precips[i])}</text>
+                <text x={cx(ti)} y={H - padB - bh - 2} fontSize={10.5} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">{precipToLabel(precips[i])}</text>
               </g>
             );
           })}
           <path d={pathD} fill="none" stroke="#fb923c" strokeWidth={1.5} strokeLinecap="round" />
         </svg>
       </td>
+    </tr>
+  );
+}
+
+// UV index → Meteocons filename
+function uvToIconFile(uvIndex: number): string {
+  const v = Math.round(uvIndex);
+  if (v <= 1)  return 'uv-index-1';
+  if (v >= 11) return 'uv-index-11-plus';
+  return `uv-index-${v}`;
+}
+
+function UVRow({ tl, isNighttime, cutoff }: {
+  tl: TLEntry[];
+  isNighttime: (t: string) => boolean;
+  cutoff: Date;
+}) {
+  return (
+    <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
+      <td style={STICKY}>紫外線指数</td>
+      {tl.map((entry, i) => {
+        if (entry.kind === 'sun') return <td key={`uv-sun-${i}`} style={{ minWidth: COL_W }} />;
+        const h = entry.data;
+        const isPast = new Date(h.time) < cutoff;
+        if (isNighttime(h.time)) {
+          return <td key={`uv-${h.time}`} style={{ minWidth: COL_W, opacity: isPast ? 0.35 : undefined }} />;
+        }
+        return (
+          <td key={`uv-${h.time}`} style={{ padding: '0.1rem 0', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: isPast ? 0.35 : undefined }}>
+            <img
+              src={`/icons/weather/${uvToIconFile(h.uvIndex)}.svg`}
+              width={42}
+              height={42}
+              alt={`UV ${Math.round(h.uvIndex)}`}
+              style={{ display: 'inline-block' }}
+            />
+          </td>
+        );
+      })}
     </tr>
   );
 }
@@ -306,6 +345,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
             </tr>
             <RiskBadgesRow tl={tl} cutoff={cutoff} />
             <MiniChartRow tl={tl} />
+            <UVRow tl={tl} isNighttime={isNighttime} cutoff={cutoff} />
             {/* データ行 */}
             {DATA_ROWS.map(row => (
               <tr key={row.key} style={{ borderBottom: '1px solid #f0f2f8' }}>

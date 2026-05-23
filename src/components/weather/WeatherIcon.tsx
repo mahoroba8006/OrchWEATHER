@@ -61,13 +61,22 @@ function codeToShortLabel(code: number): string {
   if (code === 2)                          return '晴れ曇';
   if (code === 3)                          return '曇り';
   if (code === 45 || code === 48)          return '霧';
-  if (code >= 51 && code <= 55)            return '霧雨';
+  if (code === 51)                         return '霧雨弱';
+  if (code === 53)                         return '霧雨';
+  if (code === 55)                         return '霧雨強';
   if (code === 56 || code === 57)          return '氷雨';
-  if (code >= 61 && code <= 65)            return '雨';
+  if (code === 61)                         return '小雨';
+  if (code === 63)                         return '雨';
+  if (code === 65)                         return '大雨';
   if (code === 66 || code === 67)          return 'みぞれ';
-  if (code >= 71 && code <= 77)            return '雪';
-  if (code >= 80 && code <= 82)            return 'にわか雨';
-  if (code >= 85 && code <= 86)            return 'にわか雪';
+  if (code === 71)                         return '小雪';
+  if (code === 73)                         return '雪';
+  if (code === 75 || code === 77)          return '大雪';
+  if (code === 80)                         return 'にわか雨弱';
+  if (code === 81)                         return 'にわか雨';
+  if (code === 82)                         return '激にわか雨';
+  if (code === 85)                         return 'にわか雪弱';
+  if (code === 86)                         return 'にわか雪';
   if (code >= 95 && code <= 99)            return '雷雨';
   return '—';
 }
@@ -86,18 +95,22 @@ export function codeToLabel(code: number): string {
   if (code === 2)                          return '晴れ時々曇り';
   if (code === 3)                          return '曇り';
   if (code === 45 || code === 48)          return '霧';
-  if (code >= 51 && code <= 53)            return '霧雨';
-  if (code >= 54 && code <= 55)            return '霧雨（強）';
+  if (code === 51)                         return '霧雨（弱）';    // partly-cloudy-drizzle
+  if (code === 53)                         return '霧雨';           // overcast-drizzle
+  if (code === 55)                         return '霧雨（強）';    // overcast-drizzle (dense)
   if (code === 56 || code === 57)          return '氷雨';
-  if (code >= 61 && code <= 63)            return '雨';
-  if (code >= 64 && code <= 65)            return '大雨';
+  if (code === 61)                         return '小雨';           // partly-cloudy-rain
+  if (code === 63)                         return '雨';             // overcast-rain
+  if (code === 65)                         return '大雨';           // overcast-rain (no day/night)
   if (code === 66 || code === 67)          return 'みぞれ';
-  if (code >= 71 && code <= 73)            return '雪';
-  if (code >= 74 && code <= 75)            return '大雪';
-  if (code === 76 || code === 77)          return '小雪';
-  if (code >= 80 && code <= 81)            return 'にわか雨';
-  if (code === 82)                         return '激しいにわか雨';
-  if (code >= 85 && code <= 86)            return 'にわか雪';
+  if (code === 71)                         return '小雪';           // partly-cloudy-snow
+  if (code === 73)                         return '雪';             // overcast-snow
+  if (code === 75 || code === 77)          return '大雪';           // overcast-snow (no day/night)
+  if (code === 80)                         return 'にわか雨（弱）'; // partly-cloudy-rain shower
+  if (code === 81)                         return 'にわか雨';       // overcast-rain shower
+  if (code === 82)                         return '激しいにわか雨'; // extreme-rain
+  if (code === 85)                         return 'にわか雪（弱）'; // partly-cloudy-snow shower
+  if (code === 86)                         return 'にわか雪';       // overcast-snow shower
   if (code === 95)                         return '雷雨';
   if (code === 96 || code === 99)          return '雷雨（ひょう）';
   return '—';

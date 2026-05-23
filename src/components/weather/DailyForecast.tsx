@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
 import type { DayRisk } from '../../lib/riskDetection';
 import { RISK_BADGES } from '../../lib/riskDetection';
@@ -22,31 +22,37 @@ function probColor(p: number): string {
   return '#a8aebc';
 }
 
-function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
-  const N = daily.length;
-  const dayWidths = daily.map((_, i) => (i < SPLIT_DAYS ? 2 * HALF_W : CARD_W));
+interface DailyMiniChartProps {
+  daily: DailyForecastData[];
+  dayX: number[];        // 各日の左端 x 座標（測定済み）
+  dayWidths: number[];   // 各日の幅 px（測定済み）
+}
+
+function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   const W = dayWidths.reduce((a, b) => a + b, 0);
   const H = CHART_H;
   const padT = 6;
   const padB = 6;
   const innerH = H - padT - padB;
 
-  const dayX: number[] = [];
-  let acc = 0;
-  for (let i = 0; i < N; i++) { dayX.push(acc); acc += dayWidths[i]; }
-
   const tempMaxes = daily.map(d => d.tempMax);
-  const tempMins = daily.map(d => d.tempMin);
-  const precips = daily.map(d => d.precipSum);
+  const tempMins  = daily.map(d => d.tempMin);
+  const precips   = daily.map(d => d.precipSum);
 
   const tMin = Math.min(...tempMins, ...tempMaxes);
   const tMax = Math.max(...tempMaxes, ...tempMins);
   const tRange = tMax - tMin || 1;
-  const pMax = Math.max(...precips, 1);
+  const pMax  = Math.max(...precips, 1);
 
-  const cx = (i: number) => dayX[i] + dayWidths[i] / 2;
-  const ty = (t: number) => padT + (1 - (t - tMin) / tRange) * innerH;
-  const ph = (p: number) => p === 0 ? 0 : Math.max(1, (p / pMax) * innerH * 0.45);
+  // 列幅は実測値ベース → AM/PM 中央も実測幅から算出
+  const cx   = (i: number) => dayX[i] + dayWidths[i] / 2;
+  const cxAm = (i: number) => dayX[i] + dayWidths[i] / 4;
+  const cxPm = (i: number) => dayX[i] + dayWidths[i] * 0.75;
+  const ty   = (t: number) => padT + (1 - (t - tMin) / tRange) * innerH;
+  // バー高さ：気温線の下半分に収める（innerH の 45%）
+  const ph  = (p: number) => p === 0 ? 0 : Math.max(1, (p / pMax) * innerH * 0.45);
+  // バー幅：非分割日（CARD_W）と同じ固定幅で統一
+  const barW = Math.round(CARD_W * 0.35);
 
   const makePath = (temps: number[]) => {
     const pts = temps.map((t, i) => [cx(i), ty(t)] as [number, number]);
@@ -74,28 +80,43 @@ function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
           <text x={3} y={ty(v) - 2} fontSize={8} fill="#c5c9d3">{v}</text>
         </g>
       ))}
-      {precips.map((p, i) => {
+      {daily.map((day, i) => {
+        const split = i < SPLIT_DAYS;
+        if (split && day.amPrecipSum !== null) {
+          // 分割日: AM 列・PM 列それぞれの中央にバーを配置（実測幅ベース）
+          const cxA = cxAm(i);
+          const cxP = cxPm(i);
+          const amBh = ph(day.amPrecipSum);
+          const pmBh = ph(day.pmPrecipSum ?? 0);
+          return (
+            <g key={i}>
+              {amBh > 0 && (
+                <>
+                  <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} fill="#93c5fd" opacity={0.75} />
+                  <text x={cxA} y={H - padB - amBh - 2} fontSize={7} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">
+                    {day.amPrecipSum.toFixed(1)}
+                  </text>
+                </>
+              )}
+              {pmBh > 0 && (
+                <>
+                  <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} fill="#93c5fd" opacity={0.75} />
+                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={7} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">
+                    {(day.pmPrecipSum ?? 0).toFixed(1)}
+                  </text>
+                </>
+              )}
+            </g>
+          );
+        }
+        // 非分割日（または時間別データのない分割日）: 日合計1本バー
+        const p = day.precipSum;
         const bh = ph(p);
         if (bh === 0) return null;
-        const barW = CARD_W * 0.35;
         return (
           <g key={i}>
-            <rect
-              x={cx(i) - barW / 2}
-              y={H - padB - bh}
-              width={barW}
-              height={bh}
-              fill="#93c5fd"
-              opacity={0.75}
-            />
-            <text
-              x={cx(i)}
-              y={H - padB - bh - 2}
-              fontSize={8}
-              fill="#60a5fa"
-              textAnchor="middle"
-              dominantBaseline="auto"
-            >
+            <rect x={cx(i) - barW / 2} y={H - padB - bh} width={barW} height={bh} fill="#93c5fd" opacity={0.75} />
+            <text x={cx(i)} y={H - padB - bh - 2} fontSize={8} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">
               {p.toFixed(1)}
             </text>
           </g>
@@ -108,6 +129,47 @@ function DailyMiniChart({ daily }: { daily: DailyForecastData[] }) {
 }
 
 export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [dayX, setDayX] = useState<number[] | null>(null);
+  const [dayWidths, setDayWidths] = useState<number[] | null>(null);
+
+  // テーブルレンダリング後に各 <col> の実描画幅を測定して、
+  // SVG ミニチャートの座標系を実セル幅に合わせる
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (!tableRef.current) return;
+      const cols = Array.from(tableRef.current.querySelectorAll('col'));
+      const widths = cols.map(c => c.getBoundingClientRect().width);
+
+      const newDayWidths: number[] = [];
+      const newDayX: number[] = [];
+      let colIdx = 0;
+      let xAcc = 0;
+      for (let i = 0; i < daily.length; i++) {
+        newDayX.push(xAcc);
+        if (i < SPLIT_DAYS) {
+          const w = (widths[colIdx] ?? HALF_W) + (widths[colIdx + 1] ?? HALF_W);
+          newDayWidths.push(w);
+          xAcc += w;
+          colIdx += 2;
+        } else {
+          const w = widths[colIdx] ?? CARD_W;
+          newDayWidths.push(w);
+          xAcc += w;
+          colIdx += 1;
+        }
+      }
+      setDayX(newDayX);
+      setDayWidths(newDayWidths);
+    };
+
+    measure();
+    // 列幅は基本的に変わらないが、リサイズで字体/レイアウトが変化する可能性に備える
+    const observer = new ResizeObserver(measure);
+    if (tableRef.current) observer.observe(tableRef.current);
+    return () => observer.disconnect();
+  }, [daily]);
+
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const today = jstNow.toISOString().slice(0, 10);
 
@@ -175,7 +237,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
         日別 ／ 今日〜10日後
       </div>
       <div style={{ overflowX: 'auto', background: '#fff', borderTop: '1px solid #ebeef5', borderBottom: '1px solid #ebeef5' }}>
-        <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <colgroup>
             {daily.flatMap((day, i) =>
               i < SPLIT_DAYS
@@ -302,10 +364,14 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 );
               })}
             </tr>
-            {/* ミニチャート */}
+            {/* ミニチャート（実測列幅が揃ってから描画） */}
             <tr>
               <td colSpan={chartColSpan} style={{ padding: 0 }}>
-                <DailyMiniChart daily={daily} />
+                {dayX && dayWidths ? (
+                  <DailyMiniChart daily={daily} dayX={dayX} dayWidths={dayWidths} />
+                ) : (
+                  <div style={{ height: CHART_H }} />
+                )}
               </td>
             </tr>
             {/* リスク */}
@@ -321,31 +387,25 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                     style={{ ...(split ? spanCell(day, i) : singleCell(day, i)), paddingBottom: '0.6rem', verticalAlign: 'top' }}
                   >
                     {hasRisk && riskDay && (
-                      <>
-                        <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                          {riskDay.risks.map(r => {
-                            const badge = RISK_BADGES[r];
-                            return (
-                              <span
-                                key={r}
-                                style={{
-                                  fontSize: '0.6rem',
-                                  background: badge.badgeBg,
-                                  color: badge.badgeColor,
-                                  borderRadius: 3,
-                                  padding: '1px 4px',
-                                  ...(r === 'heat' ? { filter: 'drop-shadow(0 0 3px #f87171)' } : {}),
-                                }}
-                              >
-                                {badge.emoji}
-                              </span>
-                            );
-                          })}
-                        </div>
-                        <div style={{ fontSize: '0.7rem', color: '#7a5d20', marginTop: '0.2rem' }}>
-                          {riskDay.comment}
-                        </div>
-                      </>
+                      <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                        {riskDay.risks.map(r => {
+                          const badge = RISK_BADGES[r];
+                          return (
+                            <img
+                              key={r}
+                              src={`/icons/weather/${badge.iconFile}.svg`}
+                              width={32}
+                              height={32}
+                              alt={badge.label}
+                              style={{
+                                display: 'inline-block',
+                                verticalAlign: 'middle',
+                                ...(r === 'heat' ? { filter: 'drop-shadow(0 0 3px #f87171)' } : {}),
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
                     )}
                   </td>
                 );

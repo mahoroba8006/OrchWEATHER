@@ -7,11 +7,12 @@ export interface DayRisk {
   date: string;
   risks: RiskType[];
   comment: string;
+  metrics: Partial<Record<RiskType, string>>; // 判断根拠の指標・値
 }
 
 export interface RiskBadge {
   type: RiskType;
-  emoji: string;
+  iconFile: string;  // Meteocons SVG filename (without .svg), from /icons/weather/
   label: string;
   badgeBg: string;
   badgeColor: string;
@@ -21,13 +22,13 @@ export interface RiskBadge {
 const ARATEN_RISK_SET: ReadonlySet<RiskType> = new Set(['thunder', 'hail', 'wind', 'rain']);
 
 export const RISK_BADGES: Record<RiskType, RiskBadge> = {
-  frost:   { type: 'frost',   emoji: '❄',  label: '霜',   badgeBg: '#fcefc4', badgeColor: '#a07825', borderColor: '#e6c478' },
-  thunder: { type: 'thunder', emoji: '⚡', label: '雷雨', badgeBg: '#f7d4cf', badgeColor: '#a35047', borderColor: '#d99c93' },
-  hail:    { type: 'hail',    emoji: '🧊', label: '雹',   badgeBg: '#f3d4e3', badgeColor: '#9c456e', borderColor: '#d693b3' },
-  wind:    { type: 'wind',    emoji: '💨', label: '強風', badgeBg: '#dee0ef', badgeColor: '#5c6385', borderColor: '#9aa1bf' },
-  rain:    { type: 'rain',    emoji: '🌊', label: '大雨', badgeBg: '#e6dff0', badgeColor: '#634b85', borderColor: '#ab98c8' },
-  heat:    { type: 'heat',    emoji: '☀',  label: '高温', badgeBg: '#fcdcc4', badgeColor: '#c0392b', borderColor: '#d39867' },
-  dry:     { type: 'dry',     emoji: '🌵', label: '乾燥', badgeBg: '#ece6d4', badgeColor: '#766a3f', borderColor: '#b8a878' },
+  frost:   { type: 'frost',   iconFile: 'thermometer-snow',    label: '霜',   badgeBg: '#fcefc4', badgeColor: '#a07825', borderColor: '#e6c478' },
+  thunder: { type: 'thunder', iconFile: 'lightning-bolts',     label: '雷雨', badgeBg: '#f7d4cf', badgeColor: '#a35047', borderColor: '#d99c93' },
+  hail:    { type: 'hail',    iconFile: 'snowflake',           label: '雹',   badgeBg: '#f3d4e3', badgeColor: '#9c456e', borderColor: '#d693b3' },
+  wind:    { type: 'wind',    iconFile: 'umbrella-wind-alt',   label: '強風', badgeBg: '#dee0ef', badgeColor: '#5c6385', borderColor: '#9aa1bf' },
+  rain:    { type: 'rain',    iconFile: 'water',               label: '大雨', badgeBg: '#e6dff0', badgeColor: '#634b85', borderColor: '#ab98c8' },
+  heat:    { type: 'heat',    iconFile: 'thermometer-sun',     label: '高温', badgeBg: '#fcdcc4', badgeColor: '#c0392b', borderColor: '#d39867' },
+  dry:     { type: 'dry',     iconFile: 'thermometer-raindrop',label: '乾燥', badgeBg: '#ece6d4', badgeColor: '#766a3f', borderColor: '#b8a878' },
 };
 
 // WMO weather code → 絵文字（昼）
@@ -75,21 +76,45 @@ function buildComment(risks: RiskType[], firstHour?: number): string {
 }
 
 // 日0-2: hourly 精密判定
-function detectHourlyRisks(hours: HourlyForecast[]): { risks: RiskType[]; firstHour: number | undefined } {
+function detectHourlyRisks(hours: HourlyForecast[]): {
+  risks: RiskType[];
+  firstHour: number | undefined;
+  metrics: Partial<Record<RiskType, string>>;
+} {
   const riskSet = new Set<RiskType>();
   let firstAratenHour: number | undefined;
+
+  // 極値追跡
+  let frostMinTemp = Infinity, frostMinDew = Infinity;
+  let thunderMaxCape = 0;
+  let hailMaxCape = 0, hailMinFreezing = Infinity;
+  let windMax = 0;
+  let rainMax = 0;
+  let heatMax = -Infinity;
+  let dryMin = Infinity;
 
   for (const h of hours) {
     const hour = parseInt(h.time.slice(11, 13), 10);
     const detected: RiskType[] = [];
 
-    if (h.dewPoint <= 0 && h.temperature <= 3)         detected.push('frost');
-    if (h.cape >= 500 || (h.weatherCode >= 95 && h.weatherCode <= 99)) detected.push('thunder');
-    if (h.cape >= 1000 && h.freezingLevel <= 3500)     detected.push('hail');
-    if (h.windSpeed >= 15)                             detected.push('wind');
-    if (h.precipitation >= 30)                         detected.push('rain');
-    if (h.temperature >= 35)                           detected.push('heat');
-    if (h.humidity <= 30)                              detected.push('dry');
+    if (h.dewPoint <= 0 && h.temperature <= 3) {
+      detected.push('frost');
+      if (h.temperature < frostMinTemp) frostMinTemp = h.temperature;
+      if (h.dewPoint    < frostMinDew)  frostMinDew  = h.dewPoint;
+    }
+    if (h.cape >= 500 || (h.weatherCode >= 95 && h.weatherCode <= 99)) {
+      detected.push('thunder');
+      if (h.cape > thunderMaxCape) thunderMaxCape = h.cape;
+    }
+    if (h.cape >= 1000 && h.freezingLevel <= 3500) {
+      detected.push('hail');
+      if (h.cape         > hailMaxCape)    hailMaxCape    = h.cape;
+      if (h.freezingLevel < hailMinFreezing) hailMinFreezing = h.freezingLevel;
+    }
+    if (h.windSpeed >= 15)    { detected.push('wind');    if (h.windSpeed    > windMax)  windMax  = h.windSpeed; }
+    if (h.precipitation >= 30){ detected.push('rain');    if (h.precipitation > rainMax) rainMax  = h.precipitation; }
+    if (h.temperature >= 35)  { detected.push('heat');    if (h.temperature  > heatMax)  heatMax  = h.temperature; }
+    if (h.humidity <= 30)     { detected.push('dry');     if (h.humidity     < dryMin)   dryMin   = h.humidity; }
 
     if (detected.length > 0) {
       if (detected.some(r => ARATEN_RISK_SET.has(r)) && firstAratenHour === undefined) {
@@ -99,20 +124,36 @@ function detectHourlyRisks(hours: HourlyForecast[]): { risks: RiskType[]; firstH
     }
   }
 
-  return { risks: Array.from(riskSet), firstHour: firstAratenHour };
+  const risks = Array.from(riskSet);
+  const metrics: Partial<Record<RiskType, string>> = {};
+  if (riskSet.has('frost'))   metrics.frost   = `気温 ${frostMinTemp.toFixed(1)}℃、露点 ${frostMinDew.toFixed(1)}℃`;
+  if (riskSet.has('thunder')) metrics.thunder = thunderMaxCape > 0 ? `CAPE ${Math.round(thunderMaxCape)} J/kg` : '';
+  if (riskSet.has('hail'))    metrics.hail    = `CAPE ${Math.round(hailMaxCape)} J/kg、0℃層 ${Math.round(hailMinFreezing)} m`;
+  if (riskSet.has('wind'))    metrics.wind    = `風速 ${windMax.toFixed(1)} m/s`;
+  if (riskSet.has('rain'))    metrics.rain    = `降水 ${rainMax.toFixed(1)} mm/h`;
+  if (riskSet.has('heat'))    metrics.heat    = `気温 ${heatMax.toFixed(1)}℃`;
+  if (riskSet.has('dry'))     metrics.dry     = `湿度 ${dryMin}%`;
+
+  return { risks, firstHour: firstAratenHour, metrics };
 }
 
 // 日3-10: daily 代替判定
-function detectDailyRisks(day: DailyForecastData): RiskType[] {
+function detectDailyRisks(day: DailyForecastData): {
+  risks: RiskType[];
+  metrics: Partial<Record<RiskType, string>>;
+} {
   const risks: RiskType[] = [];
-  if (day.tempMin <= 3)                                           risks.push('frost');
-  if (day.weatherCode >= 95 && day.weatherCode <= 99)            risks.push('thunder');
-  if (day.weatherCode === 96 || day.weatherCode === 99)          risks.push('hail');
-  if (day.windSpeedMax >= 15)                                     risks.push('wind');
-  if (day.precipSum >= 80)                                        risks.push('rain');
-  if (day.tempMax >= 35)                                          risks.push('heat');
-  if (day.humidMin <= 30)                                         risks.push('dry');
-  return risks;
+  const metrics: Partial<Record<RiskType, string>> = {};
+
+  if (day.tempMin <= 3)                                { risks.push('frost');   metrics.frost   = `最低気温 ${day.tempMin.toFixed(1)}℃`; }
+  if (day.weatherCode >= 95 && day.weatherCode <= 99)  { risks.push('thunder'); /* 天気コード判定のため指標値なし */ }
+  if (day.weatherCode === 96 || day.weatherCode === 99){ risks.push('hail');    /* 天気コード判定のため指標値なし */ }
+  if (day.windSpeedMax >= 15)                          { risks.push('wind');    metrics.wind    = `最大風速 ${day.windSpeedMax.toFixed(1)} m/s`; }
+  if (day.precipSum >= 80)                             { risks.push('rain');    metrics.rain    = `降水量 ${day.precipSum.toFixed(1)} mm`; }
+  if (day.tempMax >= 35)                               { risks.push('heat');    metrics.heat    = `最高気温 ${day.tempMax.toFixed(1)}℃`; }
+  if (day.humidMin <= 30)                              { risks.push('dry');     metrics.dry     = `最低湿度 ${day.humidMin}%`; }
+
+  return { risks, metrics };
 }
 
 /**
@@ -124,11 +165,11 @@ export function detectRisks(hourly: HourlyForecast[], daily: DailyForecastData[]
     const dayHours = hourly.filter(h => h.time.slice(0, 10) === day.date);
 
     if (dayHours.length > 0) {
-      const { risks, firstHour } = detectHourlyRisks(dayHours);
-      return { date: day.date, risks, comment: buildComment(risks, firstHour) };
+      const { risks, firstHour, metrics } = detectHourlyRisks(dayHours);
+      return { date: day.date, risks, comment: buildComment(risks, firstHour), metrics };
     } else {
-      const risks = detectDailyRisks(day);
-      return { date: day.date, risks, comment: buildComment(risks) };
+      const { risks, metrics } = detectDailyRisks(day);
+      return { date: day.date, risks, comment: buildComment(risks), metrics };
     }
   });
 }

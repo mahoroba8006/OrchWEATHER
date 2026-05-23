@@ -669,3 +669,53 @@
 ### 未完了・次回への引き継ぎ
 - 特になし（全変更 main ブランチへ push 済み）
 - HEAD: 3b60eaf
+
+---
+
+## 2026-05-23 セッション
+
+### 作業内容
+
+#### 1. 未コミットファイルの push (55eefe9)
+- `.superpowers/` ブレインストーム成果物と `docs/superpowers/plans/2026-05-21-weather-forecast-tab.md` をコミット・push
+
+#### 2. 時間別テーブルの UX 改善
+
+- **降水量の表示方法変更** (5b2ab5b → a8e767e):
+  - ミニグラフのバーラベル: mm 数値 → 雨の感覚ラベル（`precipToLabel`）
+    - ぽつぽつ / しとしと / さーっ / ザーザー / 土砂降り / ばしゃばしゃ / バチバチ / 滝のよう / 猛烈
+  - テーブル行 `降水(mm)`: mm 数値表示を維持（`雨の強さ` 行は不要と判断）
+  - 飽差行 `飽差(g/m³)` を湿度行の直下に追加（`calcVPD(h.temperature, h.humidity)`）
+
+- **縦スクロール修正** (193b37f):
+  - HourlyTable の `touchAction: 'pan-x'` → `'pan-x pan-y'`（縦スクロールが無効化されていた）
+
+#### 3. 天気アイコンを Meteocons に移行
+
+- **Meteocons animated SVG 導入** (5a9fd92):
+  - `public/icons/weather/`（アニメ）に 29 ファイルをダウンロード
+  - `WeatherIcon.tsx` を全面刷新: インライン SVG → `<img src="/icons/weather/xxx.svg">`
+  - `codeToIconFile(code, isNight)` で WMO コード → Meteocons ファイル名を解決
+
+- **日別=アニメ / 時間別=静的 に切り分け** (f17251b):
+  - `public/icons/weather-static/` に同じ 29 ファイルの静的版をダウンロード
+  - `WeatherIcon` に `animated` プロップ追加（`true`=日別用、`false`=時間別用）
+  - `HourlyTable` で `animated={false}` を指定
+
+- **WMO コード × Meteocons の完全再マッピング** (dae568b):
+  - 全 WMO コードを調査し、利用可能なアイコンを CDN で確認（200/403 判定）
+  - 新規ダウンロード: `overcast-day/night`（WMO 2: 一部曇り）、`partly-cloudy-*/overcast-*-drizzle`（WMO 51/53/55）
+  - WMO 0〜3 を 4 段階で使い分け（快晴 / おおむね晴れ / 一部曇り / 曇り）
+  - 全コードで昼夜アイコン完全分離（night バリアントが存在するもの全て）
+  - 雨・雪・霧雨も強度別（弱・並・強）で異なるアイコンを使用
+
+### 決定事項
+- **Meteocons fill スタイル（basmilius/meteocons@dev）を採用**
+  - CDN: `https://cdn.jsdelivr.net/gh/basmilius/meteocons@dev/production/fill/svg/`
+  - 静的版: `…/svg-static/`
+- **日別=アニメーション SVG / 時間別=静的 SVG** の使い分け
+- **WMO コード完全対応マッピング**（全 19 コード × 昼夜分岐）
+
+### 未完了・次回への引き継ぎ
+- 特になし（全変更 main ブランチへ push 済み）
+- HEAD: dae568b
