@@ -1,0 +1,272 @@
+<h2>v3：複数リスク重なり対応＋乾燥追加</h2>
+<p class="subtitle">背景は1色（ウォームグレー）／ バッジで識別 ／ 高温は ☀</p>
+
+<div class="mockup">
+  <div class="mockup-header">Preview: 天気情報タブ v3（複数リスクのケース）</div>
+  <div class="mockup-body" style="padding:0;background:#f8f9fc;">
+
+    <div style="background:#fff;border-bottom:1px solid #ebeef5;padding:0.6rem 1rem;display:flex;align-items:center;gap:0.6rem;">
+      <div style="width:24px;height:24px;background:linear-gradient(135deg,#90b8ed,#6c9ee0);border-radius:6px;"></div>
+      <strong style="color:#37445e;">OrchWEATHER</strong>
+    </div>
+
+    <div style="background:#fff;border-bottom:1px solid #ebeef5;display:flex;padding:0 1rem;">
+      <div style="padding:0.7rem 1.2rem;color:#8a93a6;cursor:pointer;font-size:0.9rem;">分析</div>
+      <div style="padding:0.7rem 1.2rem;color:#6c9ee0;border-bottom:2px solid #6c9ee0;font-weight:600;font-size:0.9rem;">天気情報</div>
+    </div>
+
+    <div style="padding:0.7rem 1rem;background:#fff;border-bottom:1px solid #ebeef5;font-size:0.85rem;color:#5b6478;">
+      <span style="background:#eef4fc;padding:0.25rem 0.6rem;border-radius:14px;color:#5e8ad1;font-weight:500;">📍 信州やままつ農園</span>
+      <span style="margin-left:0.5rem;color:#a8aebc;">▾ 切替</span>
+    </div>
+
+    <!-- 日別 -->
+    <div style="padding:0.9rem 1rem 0.4rem;font-size:0.75rem;color:#8a93a6;letter-spacing:0.05em;">日別 ／ 今日〜10日後</div>
+    <div style="overflow-x:auto;background:#fff;border-top:1px solid #ebeef5;border-bottom:1px solid #ebeef5;">
+      <div style="display:inline-flex;">
+        <!-- 今日 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;background:#f8fbff;">
+          <div style="font-size:0.7rem;color:#5e8ad1;font-weight:600;">今日 5/21</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">🌤️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">19</span> / <span style="color:#7da6d9;">8</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 10%</div>
+        </div>
+        <!-- 5/22 霜 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;background:#fafaf6;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/22 (金)</div>
+          <div style="display:flex;flex-direction:column;align-items:center;margin:0.25rem 0;">
+            <div style="font-size:2rem;line-height:1;">☀️</div>
+            <div style="display:flex;gap:2px;margin-top:2px;">
+              <span style="font-size:0.55rem;background:#fcefc4;color:#a07825;border-radius:3px;padding:1px 3px;">❄</span>
+            </div>
+          </div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">17</span> / <span style="color:#7da6d9;">2</span></div>
+          <div style="font-size:0.7rem;color:#a07825;margin-top:0.2rem;">早朝 霜</div>
+        </div>
+        <!-- 5/23 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/23 (土)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">☀️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">22</span> / <span style="color:#7da6d9;">10</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 0%</div>
+        </div>
+        <!-- 5/24 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/24 (日)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">🌤️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">21</span> / <span style="color:#7da6d9;">9</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 0%</div>
+        </div>
+        <!-- 5/25 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/25 (月)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">🌤️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">19</span> / <span style="color:#7da6d9;">8</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 20%</div>
+        </div>
+        <!-- 5/26 ★複数リスク★ -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;background:#fafaf6;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/26 (火)</div>
+          <div style="display:flex;flex-direction:column;align-items:center;margin:0.25rem 0;">
+            <div style="font-size:2rem;line-height:1;">⛈️</div>
+            <div style="display:flex;gap:2px;margin-top:2px;flex-wrap:wrap;justify-content:center;max-width:84px;">
+              <span style="font-size:0.55rem;background:#f7d4cf;color:#a35047;border-radius:3px;padding:1px 3px;">⚡</span>
+              <span style="font-size:0.55rem;background:#f3d4e3;color:#9c456e;border-radius:3px;padding:1px 3px;">🧊</span>
+              <span style="font-size:0.55rem;background:#dee0ef;color:#5c6385;border-radius:3px;padding:1px 3px;">💨</span>
+              <span style="font-size:0.55rem;background:#e6dff0;color:#634b85;border-radius:3px;padding:1px 3px;">🌊</span>
+            </div>
+          </div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">22</span> / <span style="color:#7da6d9;">14</span></div>
+          <div style="font-size:0.7rem;color:#7a5d20;margin-top:0.2rem;">午後 荒天</div>
+        </div>
+        <!-- 5/27 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/27 (水)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">🌦️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">18</span> / <span style="color:#7da6d9;">11</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 60%</div>
+        </div>
+        <!-- 5/28 高温＋乾燥 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;background:#fafaf6;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/28 (木)</div>
+          <div style="display:flex;flex-direction:column;align-items:center;margin:0.25rem 0;">
+            <div style="font-size:2rem;line-height:1;">☀️</div>
+            <div style="display:flex;gap:2px;margin-top:2px;">
+              <span style="font-size:0.55rem;background:#fcdcc4;color:#a36229;border-radius:3px;padding:1px 3px;">☀</span>
+              <span style="font-size:0.55rem;background:#ece6d4;color:#766a3f;border-radius:3px;padding:1px 3px;">💨</span>
+            </div>
+          </div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">35</span> / <span style="color:#7da6d9;">22</span></div>
+          <div style="font-size:0.7rem;color:#a36229;margin-top:0.2rem;">猛暑＋乾燥</div>
+        </div>
+        <!-- 5/29 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/29 (金)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">☀️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">20</span> / <span style="color:#7da6d9;">9</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 0%</div>
+        </div>
+        <!-- 5/30 -->
+        <div style="width:90px;border-right:1px solid #f3f4f8;padding:0.55rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/30 (土)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">🌤️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">21</span> / <span style="color:#7da6d9;">10</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 10%</div>
+        </div>
+        <!-- 5/31 -->
+        <div style="width:90px;padding:0.55rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#5b6478;">5/31 (日)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">☀️</div>
+          <div style="font-size:0.85rem;"><span style="color:#e08a7f;font-weight:600;">23</span> / <span style="color:#7da6d9;">11</span></div>
+          <div style="font-size:0.7rem;color:#a8aebc;margin-top:0.2rem;">降水 0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注意喚起 -->
+    <div style="padding:0.9rem 1rem 0.3rem;font-size:0.75rem;color:#8a93a6;letter-spacing:0.05em;">注意喚起</div>
+    <div style="margin:0 1rem 0.6rem;display:flex;flex-direction:column;gap:0.4rem;">
+      <div style="background:#fdf6e3;border-left:3px solid #e6c478;padding:0.55rem 0.75rem;border-radius:6px;font-size:0.8rem;color:#7a5d20;">
+        <strong>❄ 霜リスク</strong>　5/22 早朝（3〜5時）／ 露点 −2℃・最低気温 +2℃
+      </div>
+      <div style="background:#fcefee;border-left:3px solid #d99c93;padding:0.55rem 0.75rem;border-radius:6px;font-size:0.8rem;color:#8d4c43;">
+        <strong>⚡ 雷雨リスク</strong>　5/26 午後（14〜17時）／ CAPE 1850 J/kg
+      </div>
+      <div style="background:#fbeaf2;border-left:3px solid #d693b3;padding:0.55rem 0.75rem;border-radius:6px;font-size:0.8rem;color:#8a3d68;">
+        <strong>🧊 雹リスク</strong>　5/26 15時頃 ／ CAPE 1850・0℃層 3200m
+      </div>
+      <div style="background:#ecedf4;border-left:3px solid #9aa1bf;padding:0.55rem 0.75rem;border-radius:6px;font-size:0.8rem;color:#4d5478;">
+        <strong>💨 強風・突風リスク</strong>　5/26 15〜18時 ／ 突風 18 m/s
+      </div>
+      <div style="background:#eee9f4;border-left:3px solid #ab98c8;padding:0.55rem 0.75rem;border-radius:6px;font-size:0.8rem;color:#574378;">
+        <strong>🌊 大雨リスク</strong>　5/26 15〜17時 ／ 1時間 32mm
+      </div>
+      <div style="background:#fce8d8;border-left:3px solid #d39867;padding:0.55rem 0.75rem;border-radius:6px;font-size:0.8rem;color:#8a5520;">
+        <strong>☀ 高温リスク</strong>　5/28 12〜15時 ／ 最高気温 35℃
+      </div>
+      <div style="background:#f5f0e1;border-left:3px solid #b8a878;padding:0.55rem 0.75rem;border-radius:6px;font-size:0.8rem;color:#695f30;">
+        <strong>💨 乾燥リスク</strong>　5/28 13〜16時 ／ 最小湿度 26%
+      </div>
+    </div>
+
+    <!-- 時間別（複数リスクのケース） -->
+    <div style="padding:0.9rem 1rem 0.4rem;font-size:0.75rem;color:#8a93a6;letter-spacing:0.05em;">時間別 ／ 今後72時間</div>
+    <div style="overflow-x:auto;background:#fff;border-top:1px solid #ebeef5;border-bottom:1px solid #ebeef5;">
+      <div style="display:inline-flex;min-width:max-content;">
+        <div style="display:flex;flex-direction:column;border-right:1px solid #ebeef5;background:#fafbff;position:sticky;left:0;z-index:2;">
+          <div style="height:34px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.7rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">時刻</div>
+          <div style="height:62px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.7rem;color:#5b6478;border-bottom:1px solid #f3f4f8;">天気</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;font-weight:500;border-bottom:1px solid #f3f4f8;">気温 ℃</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">降水 mm</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">降水率 %</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">露点 ℃</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">湿度 %</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">風 m/s</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">突風</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">CAPE</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">0℃層 m</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#37445e;">気圧 hPa</div>
+        </div>
+
+        <div style="display:flex;">
+          <!-- 12時 -->
+          <div style="width:54px;text-align:center;border-right:1px solid #f3f4f8;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">12時</div>
+            <div style="height:62px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;border-bottom:1px solid #f3f4f8;">🌤️</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e08a7f;font-weight:600;border-bottom:1px solid #f3f4f8;">17</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">5</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">52</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">2.5</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">5.0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">280</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">3400</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;">1014</div>
+          </div>
+          <!-- 3時 霜 -->
+          <div style="width:54px;text-align:center;border-right:1px solid #f3f4f8;background:#fafaf6;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">3時</div>
+            <div style="height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-bottom:1px solid #f3f4f8;">
+              <div style="font-size:1.5rem;">🌙</div>
+              <div style="display:flex;gap:1px;margin-top:1px;">
+                <span style="font-size:0.55rem;background:#fcefc4;color:#a07825;border-radius:3px;padding:1px 3px;">❄</span>
+              </div>
+            </div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#7da6d9;font-weight:600;border-bottom:1px solid #f3f4f8;">2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">3</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a35047;font-weight:600;border-bottom:1px solid #f3f4f8;">−2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">82</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">0.8</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">2.1</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">2600</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;">1015</div>
+          </div>
+          <!-- 15時 5/26 ★4リスク同時★ -->
+          <div style="width:54px;text-align:center;border-right:1px solid #f3f4f8;background:#fafaf6;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">15時</div>
+            <div style="height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-bottom:1px solid #f3f4f8;">
+              <div style="font-size:1.4rem;line-height:1;">⛈️</div>
+              <div style="display:flex;gap:1px;margin-top:1px;flex-wrap:wrap;justify-content:center;max-width:50px;">
+                <span style="font-size:0.5rem;background:#f7d4cf;color:#a35047;border-radius:2px;padding:0 2px;line-height:1.3;">⚡</span>
+                <span style="font-size:0.5rem;background:#f3d4e3;color:#9c456e;border-radius:2px;padding:0 2px;line-height:1.3;">🧊</span>
+                <span style="font-size:0.5rem;background:#dee0ef;color:#5c6385;border-radius:2px;padding:0 2px;line-height:1.3;">💨</span>
+                <span style="font-size:0.5rem;background:#e6dff0;color:#634b85;border-radius:2px;padding:0 2px;line-height:1.3;">🌊</span>
+              </div>
+            </div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e08a7f;font-weight:600;border-bottom:1px solid #f3f4f8;">18</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;font-weight:600;border-bottom:1px solid #f3f4f8;">32</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#7da6d9;border-bottom:1px solid #f3f4f8;">85</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">11</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">76</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">4.2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;font-weight:600;border-bottom:1px solid #f3f4f8;">18</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;font-weight:600;border-bottom:1px solid #f3f4f8;">1850</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">3200</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;">1008</div>
+          </div>
+          <!-- 13時 5/28 高温+乾燥 -->
+          <div style="width:54px;text-align:center;border-right:1px solid #f3f4f8;background:#fafaf6;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">13時</div>
+            <div style="height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-bottom:1px solid #f3f4f8;">
+              <div style="font-size:1.5rem;">☀️</div>
+              <div style="display:flex;gap:1px;margin-top:1px;">
+                <span style="font-size:0.5rem;background:#fcdcc4;color:#a36229;border-radius:2px;padding:0 2px;line-height:1.3;">☀</span>
+                <span style="font-size:0.5rem;background:#ece6d4;color:#766a3f;border-radius:2px;padding:0 2px;line-height:1.3;">💨</span>
+              </div>
+            </div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e08a7f;font-weight:600;border-bottom:1px solid #f3f4f8;">35</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#a8aebc;border-bottom:1px solid #f3f4f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">10</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#766a3f;font-weight:600;border-bottom:1px solid #f3f4f8;">26</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">3.1</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">5.5</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">220</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;border-bottom:1px solid #f3f4f8;">4200</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#37445e;">1015</div>
+          </div>
+          <div style="width:80px;background:linear-gradient(to right,#fff,#fff 30%,transparent);display:flex;align-items:center;justify-content:center;color:#a8aebc;font-size:0.7rem;">… 72時間 →</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:1rem;">複数リスクの扱い：</p>
+<ul style="font-size:0.85rem;color:#4b5563;">
+  <li><strong>背景色は1色</strong>（淡いウォームグレー #fafaf6）でリスクの有無を示すだけ</li>
+  <li><strong>バッジで識別</strong>：天気アイコンの下に最大4個まで横並び、それ以上は折り返し</li>
+  <li><strong>サマリカードは複数列挙</strong>：1リスク=1カード、色は穏やかなパステル7種</li>
+  <li><strong>異常値セルだけ強調</strong>：値の文字色を変える（突風18は太字、湿度26は太字など）</li>
+  <li><strong>高温は ☀ アイコン</strong>に変更しました</li>
+</ul>
+
+<p class="subtitle" style="margin-top:1rem;">サンプルケース（モック内）：</p>
+<ul style="font-size:0.85rem;color:#4b5563;">
+  <li>5/26 15時：⚡⚡雷雨 + 🧊雹 + 💨強風 + 🌊大雨 = 4リスク同時</li>
+  <li>5/28 13時：☀高温 + 💨乾燥 = 2リスク同時</li>
+</ul>

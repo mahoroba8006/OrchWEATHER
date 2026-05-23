@@ -1,0 +1,209 @@
+<h2>「天気情報」タブの全体レイアウト案</h2>
+<p class="subtitle">これでイメージは合っていますか？スクロールやアイコンも実際に動かせます</p>
+
+<div class="mockup">
+  <div class="mockup-header">Preview: 天気情報タブ</div>
+  <div class="mockup-body" style="padding:0;background:#f6f7fb;">
+
+    <!-- App header (既存) -->
+    <div style="background:#fff;border-bottom:1px solid #e2e6ee;padding:0.6rem 1rem;display:flex;align-items:center;gap:0.6rem;">
+      <div style="width:24px;height:24px;background:linear-gradient(135deg,#4ea1ff,#2563eb);border-radius:6px;"></div>
+      <strong style="color:#1f2a44;">OrchWEATHER</strong>
+    </div>
+
+    <!-- ★ 新規：トップタブ -->
+    <div style="background:#fff;border-bottom:1px solid #e2e6ee;display:flex;padding:0 1rem;">
+      <div style="padding:0.7rem 1.2rem;color:#6b7282;cursor:pointer;font-size:0.9rem;">分析</div>
+      <div style="padding:0.7rem 1.2rem;color:#2563eb;border-bottom:2px solid #2563eb;font-weight:600;font-size:0.9rem;">天気情報</div>
+    </div>
+
+    <!-- 地点セレクター -->
+    <div style="padding:0.7rem 1rem;background:#fff;border-bottom:1px solid #e2e6ee;font-size:0.85rem;color:#4b5563;">
+      <span style="background:#eef2ff;padding:0.25rem 0.6rem;border-radius:14px;color:#2563eb;font-weight:500;">📍 信州やままつ農園</span>
+      <span style="margin-left:0.5rem;color:#94a3b8;">▾ 切替</span>
+    </div>
+
+    <!-- セクション見出し（時間別） -->
+    <div style="padding:0.8rem 1rem 0.4rem;font-size:0.75rem;color:#6b7282;letter-spacing:0.05em;">時間別 ／ 今日・明日（48時間）</div>
+
+    <!-- 横スクロール領域（時間別） -->
+    <div style="overflow-x:auto;background:#fff;border-top:1px solid #e2e6ee;border-bottom:1px solid #e2e6ee;">
+      <div style="display:inline-flex;min-width:max-content;">
+        <!-- 左固定列：変数ラベル -->
+        <div style="display:flex;flex-direction:column;border-right:1px solid #e2e6ee;background:#fafbff;position:sticky;left:0;z-index:2;">
+          <div style="height:34px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.7rem;color:#94a3b8;border-bottom:1px solid #f0f2f8;">時刻</div>
+          <div style="height:54px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.7rem;color:#6b7282;border-bottom:1px solid #f0f2f8;">天気</div>
+          <div style="height:34px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;font-weight:500;border-bottom:1px solid #f0f2f8;">気温 ℃</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">降水 mm</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">降水確率 %</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">露点 ℃</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">湿度 %</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">風 m/s</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">突風</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">CAPE</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">0℃層 m</div>
+          <div style="height:30px;padding:0 0.7rem;display:flex;align-items:center;font-size:0.75rem;color:#1f2a44;">気圧 hPa</div>
+        </div>
+
+        <!-- 時間別の列（サンプル6時間分） -->
+        <div style="display:flex;">
+          <!-- 0時 -->
+          <div style="width:56px;text-align:center;border-right:1px solid #f0f2f8;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#94a3b8;border-bottom:1px solid #f0f2f8;">0時</div>
+            <div style="height:54px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;border-bottom:1px solid #f0f2f8;">🌙</div>
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:600;color:#1f2a44;border-bottom:1px solid #f0f2f8;">8</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">5</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">68</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">1.2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">3.0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">2800</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;">1014</div>
+          </div>
+          <!-- 3時 -->
+          <div style="width:56px;text-align:center;border-right:1px solid #f0f2f8;background:#fff7ed;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#94a3b8;border-bottom:1px solid #f0f2f8;">3時</div>
+            <div style="height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-bottom:1px solid #f0f2f8;">
+              <div style="font-size:1.5rem;">🌙</div>
+              <div style="font-size:0.55rem;background:#fde68a;color:#92400e;border-radius:3px;padding:1px 3px;margin-top:-2px;">❄霜</div>
+            </div>
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:600;color:#1d4ed8;border-bottom:1px solid #f0f2f8;">1</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">3</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#dc2626;border-bottom:1px solid #f0f2f8;font-weight:600;">−2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">82</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">0.8</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">2.1</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">2600</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;">1015</div>
+          </div>
+          <!-- 6時 -->
+          <div style="width:56px;text-align:center;border-right:1px solid #f0f2f8;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#94a3b8;border-bottom:1px solid #f0f2f8;">6時</div>
+            <div style="height:54px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;border-bottom:1px solid #f0f2f8;">🌤</div>
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:600;color:#1f2a44;border-bottom:1px solid #f0f2f8;">4</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">75</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">1.5</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">3.2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">3000</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;">1015</div>
+          </div>
+          <!-- 12時 -->
+          <div style="width:56px;text-align:center;border-right:1px solid #f0f2f8;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#94a3b8;border-bottom:1px solid #f0f2f8;">12時</div>
+            <div style="height:54px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;border-bottom:1px solid #f0f2f8;">☀️</div>
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:600;color:#dc2626;border-bottom:1px solid #f0f2f8;">17</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#9aa3b2;border-bottom:1px solid #f0f2f8;">0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">6</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">45</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">3.0</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">6.5</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">320</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">3500</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;">1013</div>
+          </div>
+          <!-- 15時 -->
+          <div style="width:56px;text-align:center;border-right:1px solid #f0f2f8;background:#fff1f2;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#94a3b8;border-bottom:1px solid #f0f2f8;">15時</div>
+            <div style="height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-bottom:1px solid #f0f2f8;">
+              <div style="font-size:1.5rem;">⛈️</div>
+              <div style="font-size:0.55rem;background:#fecaca;color:#991b1b;border-radius:3px;padding:1px 3px;margin-top:-2px;">⚡雷雨</div>
+            </div>
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:600;color:#1f2a44;border-bottom:1px solid #f0f2f8;">18</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1d4ed8;font-weight:600;border-bottom:1px solid #f0f2f8;">12.5</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1d4ed8;border-bottom:1px solid #f0f2f8;">82</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">11</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">76</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">4.2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#dc2626;border-bottom:1px solid #f0f2f8;font-weight:600;">9.8</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#dc2626;border-bottom:1px solid #f0f2f8;font-weight:600;">1850</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">3200</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;">1008</div>
+          </div>
+          <!-- 18時 -->
+          <div style="width:56px;text-align:center;border-right:1px solid #f0f2f8;">
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#94a3b8;border-bottom:1px solid #f0f2f8;">18時</div>
+            <div style="height:54px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;border-bottom:1px solid #f0f2f8;">🌦️</div>
+            <div style="height:34px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:600;color:#1f2a44;border-bottom:1px solid #f0f2f8;">14</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1d4ed8;border-bottom:1px solid #f0f2f8;">3.2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1d4ed8;border-bottom:1px solid #f0f2f8;">60</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">10</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">78</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">2.8</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">5.2</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">650</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;border-bottom:1px solid #f0f2f8;">3000</div>
+            <div style="height:30px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#1f2a44;">1011</div>
+          </div>
+          <!-- 続く...のヒント -->
+          <div style="width:80px;background:linear-gradient(to right,#fff,#fff 30%,transparent);display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:0.7rem;">… 48時間 →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- セクション見出し（日次） -->
+    <div style="padding:1rem 1rem 0.4rem;font-size:0.75rem;color:#6b7282;letter-spacing:0.05em;">日別 ／ 3日後〜10日後</div>
+
+    <!-- 横スクロール領域（日次） -->
+    <div style="overflow-x:auto;background:#fff;border-top:1px solid #e2e6ee;border-bottom:1px solid #e2e6ee;">
+      <div style="display:inline-flex;">
+        <!-- 5/24 -->
+        <div style="width:90px;border-right:1px solid #f0f2f8;padding:0.5rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#6b7282;">5/24 (日)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">☀️</div>
+          <div style="font-size:0.85rem;"><span style="color:#dc2626;font-weight:600;">21</span> / <span style="color:#1d4ed8;">9</span></div>
+          <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.2rem;">降水 0%</div>
+        </div>
+        <!-- 5/25 -->
+        <div style="width:90px;border-right:1px solid #f0f2f8;padding:0.5rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#6b7282;">5/25 (月)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">🌤️</div>
+          <div style="font-size:0.85rem;"><span style="color:#dc2626;font-weight:600;">19</span> / <span style="color:#1d4ed8;">8</span></div>
+          <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.2rem;">降水 20%</div>
+        </div>
+        <!-- 5/26 -->
+        <div style="width:90px;border-right:1px solid #f0f2f8;padding:0.5rem 0;text-align:center;background:#fff1f2;">
+          <div style="font-size:0.7rem;color:#6b7282;">5/26 (火)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">⛈️</div>
+          <div style="font-size:0.85rem;"><span style="color:#dc2626;font-weight:600;">22</span> / <span style="color:#1d4ed8;">14</span></div>
+          <div style="font-size:0.7rem;color:#991b1b;margin-top:0.2rem;">⚡雷雨</div>
+        </div>
+        <!-- 5/27 -->
+        <div style="width:90px;border-right:1px solid #f0f2f8;padding:0.5rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#6b7282;">5/27 (水)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">🌦️</div>
+          <div style="font-size:0.85rem;"><span style="color:#dc2626;font-weight:600;">18</span> / <span style="color:#1d4ed8;">11</span></div>
+          <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.2rem;">降水 60%</div>
+        </div>
+        <!-- 5/28 -->
+        <div style="width:90px;border-right:1px solid #f0f2f8;padding:0.5rem 0;text-align:center;">
+          <div style="font-size:0.7rem;color:#6b7282;">5/28 (木)</div>
+          <div style="font-size:2rem;margin:0.3rem 0;">☁️</div>
+          <div style="font-size:0.85rem;"><span style="color:#dc2626;font-weight:600;">17</span> / <span style="color:#1d4ed8;">10</span></div>
+          <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.2rem;">降水 30%</div>
+        </div>
+        <div style="width:80px;background:linear-gradient(to right,#fff,#fff 30%,transparent);display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:0.7rem;">… 10日 →</div>
+      </div>
+    </div>
+
+    <div style="padding:0.8rem 1rem;color:#94a3b8;font-size:0.7rem;text-align:center;">⚠ 5/26 15時頃 雷雨リスク（CAPE 1850 J/kg）／ ⚠ 5/22 早朝 霜リスク（露点 −2℃）</div>
+
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:1rem;">確認ポイント:</p>
+<ul style="font-size:0.85rem;color:#4b5563;">
+  <li>上部にトップタブ「分析 / 天気情報」を追加</li>
+  <li>時間別エリア：左に変数ラベル固定、右に時刻列が横スクロール（48時間）</li>
+  <li>日別エリア：3日後〜10日後（8列）。アイコン大・気温・代表リスクのみのコンパクト表示</li>
+  <li>リスク列はセル背景でハイライト（霜=オレンジ、雷雨=赤）＋アイコン下にバッジ</li>
+  <li>下部に注意喚起サマリ</li>
+</ul>

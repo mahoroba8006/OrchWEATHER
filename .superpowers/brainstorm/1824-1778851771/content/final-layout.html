@@ -1,0 +1,221 @@
+<style>
+  .phone {
+    max-width: 390px;
+    margin: 0 auto;
+    background: #1a1220;
+    border-radius: 20px;
+    overflow: hidden;
+    font-family: -apple-system, sans-serif;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    font-size: 13px;
+    color: #e2e8f0;
+  }
+  .ph-header {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(244,167,185,0.15);
+    color: #f4a7b9;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  /* ① 表示期間行 */
+  .ph-range-row {
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #94a3b8;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .ph-select {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(244,167,185,0.3);
+    color: #e2e8f0;
+    border-radius: 5px;
+    padding: 3px 5px;
+    font-size: 11px;
+  }
+  .ph-btn-sm {
+    background: rgba(244,167,185,0.15);
+    border: 1px solid rgba(244,167,185,0.4);
+    color: #f4a7b9;
+    border-radius: 5px;
+    padding: 3px 7px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .ph-toggle {
+    display: inline-flex;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(244,167,185,0.6);
+    margin-left: auto;
+  }
+  .ph-toggle span {
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    color: #94a3b8;
+  }
+  .ph-toggle span.on {
+    background: #f4a7b9;
+    color: #7a2840;
+    font-weight: 600;
+  }
+
+  /* ② チャート選択タブ（NEW） */
+  .ph-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: rgba(255,255,255,0.015);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .ph-tabs::-webkit-scrollbar { display: none; }
+  .ph-tab {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    border: 1px solid rgba(244,167,185,0.3);
+    color: #94a3b8;
+    white-space: nowrap;
+  }
+  .ph-tab.on {
+    background: #f4a7b9;
+    color: #7a2840;
+    font-weight: 700;
+    border-color: #f4a7b9;
+  }
+
+  /* ③ 選択チャートのみ表示 */
+  .ph-section {
+    margin: 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 10px;
+  }
+  .ph-chart-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4a7b9;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .ph-panel {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-left: 8px;
+  }
+  .ph-chart-area {
+    height: 140px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    font-size: 11px;
+    border: 1px dashed rgba(255,255,255,0.07);
+  }
+  .ph-table {
+    margin-top: 8px;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    color: #94a3b8;
+  }
+  .ph-table th {
+    background: rgba(244,167,185,0.1);
+    padding: 3px 6px;
+    text-align: left;
+    color: #f4a7b9;
+  }
+  .ph-table td {
+    padding: 3px 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(244,167,185,0.2);
+    color: #f4a7b9;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+</style>
+
+<h2>確定レイアウト — プレビュー</h2>
+<p class="subtitle">新しいUI構成の完成イメージ。問題がなければ承認してください。</p>
+
+<div class="phone">
+  <div class="ph-header">🌿 OrchWEATHER</div>
+
+  <!-- ① 表示期間行（既存・変更なし） -->
+  <div class="ph-range-row">
+    <span>表示期間</span>
+    <select class="ph-select"><option>1月</option></select>
+    <span>〜</span>
+    <select class="ph-select"><option>12月</option></select>
+    <span class="ph-btn-sm">年間表示</span>
+    <div class="ph-toggle">
+      <span class="on">日次</span><span>月次</span>
+    </div>
+  </div>
+
+  <!-- ② チャート選択タブ（NEW） -->
+  <div class="ph-tabs">
+    <div class="ph-tab on">気温</div>
+    <div class="ph-tab">降水量</div>
+    <div class="ph-tab">日照時間</div>
+    <div class="ph-tab">日射量</div>
+    <div class="ph-tab">積算温度</div>
+    <div class="ph-tab">湿度</div>
+  </div>
+
+  <!-- ③ 選択チャートのみ表示（気温を選択中） -->
+  <div class="ph-section">
+    <div class="ph-chart-title">
+      🌡 気温
+      <span class="ph-panel">（タップして値表示）</span>
+      <span class="badge">NEW: 1チャートのみ</span>
+    </div>
+    <div class="ph-chart-area">📈 気温グラフ（日次/月次）</div>
+
+    <!-- MonthsTable も残す -->
+    <table class="ph-table">
+      <thead><tr><th>月</th><th>月最高℃</th><th>月最低℃</th><th>月平均℃</th></tr></thead>
+      <tbody>
+        <tr><td>1月</td><td>8.2</td><td>1.3</td><td>4.5</td></tr>
+        <tr><td>2月</td><td>10.1</td><td>2.0</td><td>5.8</td></tr>
+        <tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.04);border-radius:12px;">
+  <h3 style="margin-bottom:8px;">変更まとめ</h3>
+  <ul style="margin:0;padding-left:18px;line-height:1.8;color:#94a3b8;font-size:13px;">
+    <li>表示期間行・日次/月次トグル → <strong>現在位置のまま変更なし</strong></li>
+    <li>チャート選択タブバー（横スクロール）を<strong>表示期間行の直下に追加</strong></li>
+    <li>6チャートのうち<strong>選択中の1つだけをレンダリング</strong>（他はDOMから完全除去）</li>
+    <li>MonthsTable（月次統計）は選択チャートの下に<strong>残す</strong></li>
+    <li>初期表示は<strong>気温</strong></li>
+  </ul>
+</div>
