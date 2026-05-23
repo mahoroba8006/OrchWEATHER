@@ -1296,7 +1296,7 @@ function App() {
           ) : (
             <>
               {chartFrame('temp', (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
@@ -1351,7 +1351,7 @@ function App() {
           ) : (
             <>
               {chartFrame('precip', (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
@@ -1444,7 +1444,7 @@ function App() {
           ) : (
             <>
               {chartFrame('sunshine', (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
@@ -1522,7 +1522,7 @@ function App() {
           ) : (
             <>
               {chartFrame('radiation', (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
@@ -1622,7 +1622,7 @@ function App() {
           ) : (
             <>
               {chartFrame('gdd', (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleGddChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
@@ -1699,7 +1699,7 @@ function App() {
           ) : (
             <>
               {chartFrame('humid', (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
@@ -1752,7 +1752,7 @@ function App() {
           ) : (
             <>
               {chartFrame('vpd', (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
