@@ -17,9 +17,9 @@ const CHART_H = 60;
 const SPLIT_DAYS = 3; // first N days get AM/PM split
 
 function probColor(p: number): string {
-  if (p >= 70) return '#2a6abf';
-  if (p >= 40) return '#5a8fd4';
-  return '#a8aebc';
+  if (p >= 70) return 'var(--accent-blue)';
+  if (p >= 40) return '#38bdf8';
+  return 'var(--text-tertiary)';
 }
 
 interface DailyMiniChartProps {
@@ -76,8 +76,8 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block' }}>
       {gridTemps.map(v => (
         <g key={v}>
-          <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} stroke="#e5e7eb" strokeWidth={1} />
-          <text x={3} y={ty(v) - 2} fontSize={8} fill="#c5c9d3">{v}</text>
+          <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} stroke="var(--card-border-sub)" strokeWidth={1} />
+          <text x={3} y={ty(v) - 2} fontSize={8} fill="var(--text-tertiary)">{v}</text>
         </g>
       ))}
       {daily.map((day, i) => {
@@ -92,16 +92,16 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
             <g key={i}>
               {amBh > 0 && (
                 <>
-                  <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} fill="#93c5fd" opacity={0.75} />
-                  <text x={cxA} y={H - padB - amBh - 2} fontSize={7} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">
+                  <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} fill="var(--chart-precip)" opacity={0.6} rx={2} ry={2} />
+                  <text x={cxA} y={H - padB - amBh - 2} fontSize={7} fill="var(--accent-blue)" textAnchor="middle" dominantBaseline="auto">
                     {day.amPrecipSum.toFixed(1)}
                   </text>
                 </>
               )}
               {pmBh > 0 && (
                 <>
-                  <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} fill="#93c5fd" opacity={0.75} />
-                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={7} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">
+                  <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} fill="var(--chart-precip)" opacity={0.6} rx={2} ry={2} />
+                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={7} fill="var(--accent-blue)" textAnchor="middle" dominantBaseline="auto">
                     {(day.pmPrecipSum ?? 0).toFixed(1)}
                   </text>
                 </>
@@ -115,15 +115,15 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
         if (bh === 0) return null;
         return (
           <g key={i}>
-            <rect x={cx(i) - barW / 2} y={H - padB - bh} width={barW} height={bh} fill="#93c5fd" opacity={0.75} />
-            <text x={cx(i)} y={H - padB - bh - 2} fontSize={8} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">
+            <rect x={cx(i) - barW / 2} y={H - padB - bh} width={barW} height={bh} fill="var(--chart-precip)" opacity={0.6} rx={2} ry={2} />
+            <text x={cx(i)} y={H - padB - bh - 2} fontSize={8} fill="var(--accent-blue)" textAnchor="middle" dominantBaseline="auto">
               {p.toFixed(1)}
             </text>
           </g>
         );
       })}
-      <path d={makePath(tempMins)} fill="none" stroke="#7da6d9" strokeWidth={1.5} strokeLinecap="round" />
-      <path d={makePath(tempMaxes)} fill="none" stroke="#e08a7f" strokeWidth={1.5} strokeLinecap="round" />
+      <path d={makePath(tempMins)} fill="none" stroke="#7dd3fc" strokeWidth={2} strokeLinecap="round" />
+      <path d={makePath(tempMaxes)} fill="none" stroke="#fda4af" strokeWidth={2} strokeLinecap="round" />
     </svg>
   );
 }
@@ -173,20 +173,16 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const today = jstNow.toISOString().slice(0, 10);
 
-  const cellBg = (day: DailyForecastData): string | undefined => {
-    if (day.date === today) return '#f8fbff';
-    if (dayRisks.some(r => r.date === day.date && r.risks.length > 0)) return '#fafaf6';
-    return undefined;
-  };
+  const cellBg = (_day: DailyForecastData): string => 'rgba(255, 255, 255, 0.35)';
 
   const dayBorder = (i: number) =>
-    i < daily.length - 1 ? '1px solid #f3f4f8' : undefined;
+    i < daily.length - 1 ? '1px solid var(--card-border-sub)' : undefined;
 
   // colSpan=2 per day (date / temp / risk rows for split days)
   const spanCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.25rem 0.25rem',
+    padding: '0.35rem 0.25rem',
     verticalAlign: 'middle',
     borderRight: dayBorder(i),
     ...extra,
@@ -198,7 +194,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
     minWidth: CARD_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.25rem 0.25rem',
+    padding: '0.35rem 0.25rem',
     verticalAlign: 'middle',
     borderRight: dayBorder(i),
     ...extra,
@@ -210,9 +206,9 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
     minWidth: HALF_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.2rem 0.1rem',
+    padding: '0.3rem 0.15rem',
     verticalAlign: 'middle',
-    borderRight: '1px solid #eef0f6',
+    borderRight: '1px solid var(--card-border-sub)',
     ...extra,
   });
 
@@ -222,7 +218,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
     minWidth: HALF_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.2rem 0.1rem',
+    padding: '0.3rem 0.15rem',
     verticalAlign: 'middle',
     borderRight: dayBorder(i),
     ...extra,
@@ -233,10 +229,10 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
 
   return (
     <div>
-      <div style={{ padding: '0.9rem 1rem 0.4rem', fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em' }}>
+      <div style={{ padding: '1.1rem 1.25rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>
         日別 ／ 今日〜10日後
       </div>
-      <div style={{ overflowX: 'auto', background: '#fff', borderTop: '1px solid #ebeef5', borderBottom: '1px solid #ebeef5' }}>
+      <div style={{ overflowX: 'auto', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--card-border-sub)', borderBottom: '1px solid var(--card-border-sub)', boxShadow: 'var(--shadow-sm)' }}>
         <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <colgroup>
             {daily.flatMap((day, i) =>
@@ -262,9 +258,9 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                   <td
                     key={day.date}
                     colSpan={split ? 2 : 1}
-                    style={{ ...(split ? spanCell(day, i) : singleCell(day, i)), paddingTop: '0.6rem' }}
+                    style={{ ...(split ? spanCell(day, i) : singleCell(day, i)), paddingTop: '0.75rem' }}
                   >
-                    <div style={{ fontSize: '0.72rem', color: isToday ? '#5e8ad1' : '#5b6478', fontWeight: isToday ? 600 : undefined }}>
+                    <div style={{ fontSize: '0.75rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500 }}>
                       {label}
                     </div>
                     {(() => {
@@ -272,7 +268,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         ? dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode)
                         : codeToLabel(day.weatherCode);
                       return tl ? (
-                        <div style={{ fontSize: '0.62rem', color: '#8a93a6', marginTop: '0.1rem' }}>{tl}</div>
+                        <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
                       ) : null;
                     })()}
                   </td>
@@ -289,7 +285,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'am')}
                       >
-                        <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午前</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午前</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={84} /> : '—'}
                         </div>
@@ -298,7 +294,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         style={{ ...pmCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'pm')}
                       >
-                        <div style={{ fontSize: '0.6rem', color: '#b0b5c4', lineHeight: 1.4 }}>午後</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午後</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={84} /> : '—'}
                         </div>
@@ -324,8 +320,8 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                       <td style={amCell(day)}>
                         <div style={{
                           fontSize: '0.72rem',
-                          color: day.amPrecipProb !== null ? probColor(day.amPrecipProb) : '#c5c9d3',
-                          fontWeight: day.amPrecipProb !== null && day.amPrecipProb >= 70 ? 600 : undefined,
+                          color: day.amPrecipProb !== null ? probColor(day.amPrecipProb) : 'var(--text-tertiary)',
+                          fontWeight: day.amPrecipProb !== null && day.amPrecipProb >= 70 ? 700 : undefined,
                         }}>
                           {day.amPrecipProb !== null ? `${day.amPrecipProb}%` : '—'}
                         </div>
@@ -333,8 +329,8 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                       <td style={pmCell(day, i)}>
                         <div style={{
                           fontSize: '0.72rem',
-                          color: day.pmPrecipProb !== null ? probColor(day.pmPrecipProb) : '#c5c9d3',
-                          fontWeight: day.pmPrecipProb !== null && day.pmPrecipProb >= 70 ? 600 : undefined,
+                          color: day.pmPrecipProb !== null ? probColor(day.pmPrecipProb) : 'var(--text-tertiary)',
+                          fontWeight: day.pmPrecipProb !== null && day.pmPrecipProb >= 70 ? 700 : undefined,
                         }}>
                           {day.pmPrecipProb !== null ? `${day.pmPrecipProb}%` : '—'}
                         </div>
@@ -344,7 +340,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ fontSize: '0.72rem', color: '#a8aebc' }}>降水 {day.precipProbMax}%</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>降水 {day.precipProbMax}%</div>
                   </td>
                 );
               })}
@@ -356,9 +352,9 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 return (
                   <td key={day.date} colSpan={split ? 2 : 1} style={split ? spanCell(day, i) : singleCell(day, i)}>
                     <div style={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
-                      <span style={{ color: '#e08a7f', fontWeight: 600 }}>{Math.round(day.tempMax)}</span>
-                      {' / '}
-                      <span style={{ color: '#7da6d9' }}>{Math.round(day.tempMin)}</span>
+                      <span style={{ color: '#fb7185', fontWeight: 700 }}>{Math.round(day.tempMax)}</span>
+                      <span style={{ color: 'var(--text-tertiary)', margin: '0 0.2rem', fontSize: '0.8rem' }}>/</span>
+                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>{Math.round(day.tempMin)}</span>
                     </div>
                   </td>
                 );
