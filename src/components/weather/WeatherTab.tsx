@@ -123,12 +123,10 @@ export function WeatherTab() {
 
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <RiskSummary dayRisks={dayRisks} />
+
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <DailyForecast daily={data.daily} dayRisks={dayRisks} onHalfDayClick={scrollToHour} />
-          </section>
-
-          <section className="glass-panel" style={{ padding: '1rem' }}>
-            <RiskSummary dayRisks={dayRisks} />
           </section>
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>

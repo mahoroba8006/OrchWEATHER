@@ -29,21 +29,32 @@ export function RiskSummary({ dayRisks }: Props) {
     }
   }
 
-  return (
-    <div style={{
-      padding: '0.6rem 1rem',
-      borderTop: '1px solid #ebeef5',
-      borderBottom: '1px solid #ebeef5',
-      background: '#fff',
-    }}>
-      <div style={{ fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
-        注意情報
+  // 注意情報なし：ノイズにならないミニマル表示
+  if (rows.length === 0) {
+    return (
+      <div style={{
+        padding: '0.3rem 1rem',
+        fontSize: '0.78rem',
+        color: '#b8c0cf',
+        letterSpacing: '0.02em',
+      }}>
+        🍃 現在、注意情報はありません
       </div>
-      {rows.length === 0 ? (
-        <div style={{ fontSize: '0.82rem', color: '#a8aebc' }}>
-          注意情報はありません
+    );
+  }
+
+  // 注意情報あり：glass-panel カードで明示
+  return (
+    <section className="glass-panel" style={{ padding: '1rem' }}>
+      <div style={{
+        padding: '0.6rem 1rem',
+        borderTop: '1px solid #ebeef5',
+        borderBottom: '1px solid #ebeef5',
+        background: '#fff',
+      }}>
+        <div style={{ fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+          注意情報
         </div>
-      ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           {rows.map(({ date, riskType, metric }, i) => {
             const badge = RISK_BADGES[riskType];
@@ -69,7 +80,7 @@ export function RiskSummary({ dayRisks }: Props) {
             );
           })}
         </div>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }
