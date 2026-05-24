@@ -1947,6 +1947,20 @@ function App() {
                               <LabelList dataKey={`monthlyHumid_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
+                          {/* 10日予報最低湿度（点線） */}
+                          {currentTargetHasForecast && index === 0 && (
+                            <Line
+                              type="monotone"
+                              dataKey={`forecast_humid_min_${target.id}`}
+                              name={`${getLocationName(target.locationId)} ${target.year}年 予報最低湿度`}
+                              stroke={color}
+                              strokeWidth={1.5}
+                              strokeDasharray="5 4"
+                              dot={false}
+                              connectNulls={false}
+                              isAnimationActive={false}
+                            />
+                          )}
                         </React.Fragment>
                       );
                     })}
@@ -1955,7 +1969,8 @@ function App() {
               ), true)}
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
-                { label: '月間平均', type: 'solid' }
+                { label: '月間平均', type: 'solid' },
+                ...(currentTargetHasForecast ? [{ label: '10日予報最低湿度', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('humid')}
               <MonthsTable
@@ -2000,6 +2015,20 @@ function App() {
                               <LabelList dataKey={`monthlyMeanVpdMax_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(1) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
+                          {/* 10日予報最高飽差（点線） */}
+                          {currentTargetHasForecast && index === 0 && (
+                            <Line
+                              type="monotone"
+                              dataKey={`forecast_vpd_max_${target.id}`}
+                              name={`${getLocationName(target.locationId)} ${target.year}年 予報最高飽差`}
+                              stroke={color}
+                              strokeWidth={1.5}
+                              strokeDasharray="5 4"
+                              dot={false}
+                              connectNulls={false}
+                              isAnimationActive={false}
+                            />
+                          )}
                         </React.Fragment>
                       );
                     })}
@@ -2009,6 +2038,7 @@ function App() {
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月平均最高飽差', type: 'solid' },
+                ...(currentTargetHasForecast ? [{ label: '10日予報最高飽差', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('vpd')}
               <MonthsTable
