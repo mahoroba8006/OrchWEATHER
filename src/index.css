@@ -311,10 +311,12 @@ button.secondary:hover {
 .table-container {
   width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   margin-top: 1.25rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--card-border-sub);
+  transform: translateZ(0);
 }
 
 .glass-table {

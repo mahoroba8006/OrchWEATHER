@@ -126,7 +126,7 @@ function calcMobileDefaultViewport(
   const endStr = `${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
   // start index: startStr 以上の最初のエントリ
-  let startIdx = data.findIndex(d => d.dateStr >= startStr);
+  let startIdx = data.findIndex(d => d?.dateStr && d.dateStr >= startStr);
   if (startIdx === -1) startIdx = 0;
 
   // end index: endStr 以下の最後のエントリ
@@ -134,7 +134,8 @@ function calcMobileDefaultViewport(
   let endIdx = data.length - 1;
   if (endStr >= startStr) {
     for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i].dateStr <= endStr) { endIdx = i; break; }
+      const d = data[i];
+      if (d?.dateStr && d.dateStr <= endStr) { endIdx = i; break; }
     }
   }
 
@@ -186,13 +187,17 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        // ensureUserDocument を直列で先に実行。getDocFromServer と並行すると
-        // setDoc 書き込み中のスナップショットを掴んで部分データが返る競合が起きる
-        await ensureUserDocument(firebaseUser.uid);
-        await Promise.all([
-          loadLocations(firebaseUser.uid),
-          loadUserSettings(firebaseUser.uid),
-        ]);
+        try {
+          // ensureUserDocument を直列で先に実行。getDocFromServer と並行すると
+          // setDoc 書き込み中のスナップショットを掴んで部分データが返る競合が起きる
+          await ensureUserDocument(firebaseUser.uid);
+          await Promise.all([
+            loadLocations(firebaseUser.uid),
+            loadUserSettings(firebaseUser.uid),
+          ]);
+        } catch (error) {
+          console.error("Failed to load user settings or locations:", error);
+        }
       }
       setAuthLoading(false);
     });
