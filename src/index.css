@@ -53,7 +53,6 @@ body {
   margin: 0;
   padding: 0;
   background: var(--bg-gradient);
-  background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
