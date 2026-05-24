@@ -5,6 +5,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsModal } from './SettingsModal';
 import { useWeatherData, type CompareTarget } from './hooks/useWeather';
+import { useForecast } from './hooks/useForecast';
 import { MonthsTable } from './components/MonthsTable';
 import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
@@ -146,6 +147,7 @@ function calcMobileDefaultViewport(
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'analysis'>('weather');
+  const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
@@ -238,6 +240,19 @@ function App() {
   };
 
   const { data: weatherData, loading, error } = useWeatherData(targets);
+
+  // 分析タブ用予報データ（targets[0] の地点のみ取得）
+  const forecastLoc = useMemo(() => {
+    const t = targets[0];
+    if (!t) return null;
+    const loc = locations.find(l => l.id === t.locationId);
+    return loc ? { lat: loc.lat, lon: loc.lon } : null;
+  }, [targets, locations]);
+
+  const { data: forecastData } = useForecast(
+    forecastLoc?.lat ?? null,
+    forecastLoc?.lon ?? null,
+  );
 
   const addTarget = () => {
     if (targets.length >= 3) return;
@@ -699,6 +714,9 @@ function App() {
 
   // チャート切替用ヘルパー
   const isMonthly = chartViewMode === 'monthly';
+  // 日次モード + 今年 + 予報取得済み の3条件が揃ったとき点線オーバーレイを表示
+  const currentTargetHasForecast =
+    !isMonthly && !!forecastData && targets[0]?.year === currentYear;
   const chartData = isMonthly ? filteredMonthlyChartData : filteredBaseChartData;
   const gddChartData = isMonthly ? filteredMonthlyChartData : filteredGddChartData;
   const xTickFormatterBase = isMonthly
