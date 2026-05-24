@@ -63,14 +63,13 @@ export function WeatherTab() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{
+    <div className="app-container">
+      <div className="glass-panel" style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.6rem 1rem',
-        background: '#fff',
-        borderBottom: '1px solid #ebeef5',
+        gap: '0.6rem',
+        padding: '0.75rem 1.25rem',
+        borderRadius: 'var(--radius-md)',
         flexWrap: 'wrap',
       }}>
         <select
@@ -78,10 +77,7 @@ export function WeatherTab() {
           onChange={e => setSelectedLocationId(e.target.value)}
           style={{
             fontSize: '0.85rem',
-            padding: '0.25rem 0.5rem',
-            borderRadius: 6,
-            border: '1px solid #d4d8e4',
-            color: '#37445e',
+            padding: '0.4rem 0.75rem',
           }}
         >
           {locations.map(loc => (
@@ -90,50 +86,55 @@ export function WeatherTab() {
         </select>
         <span style={{ flex: 1 }} />
         {timeStr && (
-          <span style={{ fontSize: '0.78rem', color: '#a8aebc' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, marginRight: '0.5rem' }}>
             最終更新: {timeStr}
           </span>
         )}
         <button
           onClick={refresh}
           disabled={loading}
+          className="secondary"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.3rem',
-            padding: '0.3rem 0.65rem',
-            fontSize: '0.78rem',
-            border: '1px solid #d4d8e4',
-            borderRadius: 6,
-            background: 'transparent',
+            gap: '0.35rem',
+            padding: '0.45rem 0.85rem',
+            fontSize: '0.8rem',
             cursor: loading ? 'not-allowed' : 'pointer',
-            color: '#5b6478',
             opacity: loading ? 0.5 : 1,
           }}
         >
-          <RefreshCw size={13} />
+          <RefreshCw size={13} style={{ animation: loading ? 'spin 1.5s linear infinite' : 'none' }} />
           更新
         </button>
       </div>
 
       {error && (
-        <div style={{ padding: '1rem', color: '#c0392b', fontSize: '0.85rem', textAlign: 'center', background: '#fff9f8' }}>
+        <div style={{ padding: '1rem', color: '#c0392b', fontSize: '0.85rem', textAlign: 'center', background: '#fff9f8', borderRadius: 'var(--radius-md)' }}>
           {error}。↻ で再試行してください。
         </div>
       )}
 
       {loading && !data && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, color: '#8a93a6' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200, color: 'var(--text-tertiary)' }}>
           取得中...
         </div>
       )}
 
       {data && (
-        <>
-          <DailyForecast daily={data.daily} dayRisks={dayRisks} onHalfDayClick={scrollToHour} />
-          <RiskSummary dayRisks={dayRisks} />
-          <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} />
-        </>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
+            <DailyForecast daily={data.daily} dayRisks={dayRisks} onHalfDayClick={scrollToHour} />
+          </section>
+
+          <section className="glass-panel" style={{ padding: '1rem' }}>
+            <RiskSummary dayRisks={dayRisks} />
+          </section>
+
+          <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
+            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} />
+          </section>
+        </div>
       )}
       <Footer />
     </div>

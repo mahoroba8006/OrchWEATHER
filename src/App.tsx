@@ -1131,27 +1131,27 @@ function App() {
 
   return (
     <>
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: '#ffffff', borderBottom: '1px solid var(--card-border)' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <img src="/icon.png" alt="Orch.Weather" style={{ width: 32, height: 32 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <img src="/icon.png" alt="Orch.Weather" style={{ width: 34, height: 34 }} />
             <h1 className="title">Orch.Weather</h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {user.photoURL && (
               <img
                 src={user.photoURL}
                 alt={user.displayName ?? ''}
-                width={28}
-                height={28}
-                style={{ borderRadius: '50%' }}
+                width={30}
+                height={30}
+                style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)', boxShadow: 'var(--shadow-sm)' }}
               />
             )}
             <button
               className="secondary"
               onClick={() => signOut(auth)}
               title="ログアウト"
-              style={{ padding: '0.4rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}
+              style={{ padding: '0.45rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
             >
               <LogOut size={14} /> ログアウト
             </button>
@@ -1159,56 +1159,60 @@ function App() {
         </div>
       </header>
 
-      <div style={{ background: '#fff', borderBottom: '1px solid #ebeef5', display: 'flex', justifyContent: 'center', padding: '0 1rem', position: 'sticky', top: 64, zIndex: 40 }}>
-        {(['weather', 'analysis'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setTopTab(tab)}
-            style={{
-              padding: '0.7rem 1.2rem',
-              background: 'none',
-              border: 'none',
-              borderBottom: `2px solid ${topTab === tab ? 'var(--accent-color)' : 'transparent'}`,
-              color: topTab === tab ? 'var(--accent-color)' : 'var(--text-tertiary)',
-              fontWeight: topTab === tab ? 600 : undefined,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-            }}
-          >
-            {tab === 'weather' ? '天気情報' : '分析'}
-          </button>
-        ))}
+      <div style={{ background: 'rgba(255, 255, 255, 0.65)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--card-border-sub)', display: 'flex', justifyContent: 'center', padding: '0.4rem 1rem', position: 'sticky', top: 64, zIndex: 40 }}>
+        <div className="premium-segmented-tab" style={{ background: 'rgba(167, 203, 192, 0.15)' }}>
+          {(['weather', 'analysis'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setTopTab(tab)}
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: topTab === tab ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)' : 'transparent',
+                color: topTab === tab ? '#ffffff' : 'var(--text-secondary)',
+                border: 'none',
+                fontWeight: topTab === tab ? 700 : 500,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                borderRadius: 'calc(var(--radius-md) - 4px)',
+                boxShadow: topTab === tab ? '0 4px 12px rgba(13, 148, 136, 0.15)' : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            >
+              {tab === 'weather' ? '天気情報' : '比較分析'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {topTab === 'weather' && <WeatherTab />}
 
       {topTab === 'analysis' && (
       <div className="app-container">
-        <div className="controls-bar" style={{ flexDirection: 'column', alignItems: 'stretch', background: 'var(--card-bg)', padding: '1rem', borderRadius: 'var(--radius-lg)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>表示対象 (最大3件)</span>
-            <button className="secondary" title="設定" onClick={() => setIsSettingsOpen(true)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
-              <Settings size={14} /> 設定
+        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象 (最大3件)</span>
+            <button className="secondary" title="設定" onClick={() => setIsSettingsOpen(true)} style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem' }}>
+              <Settings size={14} /> 地点設定
             </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
             {targets.map((target, index) => (
-              <div key={target.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <div style={{ flexShrink: 0, width: '4px', height: '100%', minHeight: '36px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
+              <div key={target.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', background: 'rgba(255, 255, 255, 0.45)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border-sub)' }}>
+                <div style={{ flexShrink: 0, width: '4px', height: '24px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
                 <span
                   title={index === 0 ? '比較の基準となる対象（差表示の基点）' : '基準との差が表示されます'}
                   style={{
                     flexShrink: 0,
                     minWidth: '38px',
                     textAlign: 'center',
-                    padding: '0.18rem 0.45rem',
+                    padding: '0.2rem 0.5rem',
                     fontSize: '0.7rem',
                     fontWeight: 700,
                     borderRadius: '999px',
-                    background: index === 0 ? 'rgba(42,170,110,0.12)' : 'rgba(0,0,0,0.05)',
-                    color: index === 0 ? '#1a7a50' : 'var(--text-secondary)',
-                    border: index === 0 ? '1px solid rgba(42,170,110,0.3)' : '1px solid rgba(0,0,0,0.08)',
+                    background: index === 0 ? 'rgba(13,148,136,0.12)' : 'rgba(2,132,199,0.08)',
+                    color: index === 0 ? 'var(--accent-color)' : 'var(--accent-blue)',
+                    border: index === 0 ? '1px solid rgba(13,148,136,0.25)' : '1px solid rgba(2,132,199,0.2)',
                   }}
                 >
                   {index === 0 ? '基準' : '比較'}
@@ -1216,7 +1220,7 @@ function App() {
                 <select
                   value={target.locationId}
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
-                  style={{ flex: 2, minWidth: 0 }}
+                  style={{ flex: 2, minWidth: 0, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
                 >
                   {locations.map(loc => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
@@ -1226,7 +1230,7 @@ function App() {
                 <select
                   value={target.year}
                   onChange={(e) => updateTarget(target.id, 'year', parseInt(e.target.value, 10))}
-                  style={{ flex: 1, minWidth: 0 }}
+                  style={{ flex: 1, minWidth: 0, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
                 >
                   {[...Array(new Date().getFullYear() - 2000 + 1)].map((_, i) => {
                     const y = new Date().getFullYear() - i;
@@ -1237,7 +1241,7 @@ function App() {
                   <button
                     className="secondary"
                     onClick={() => removeTarget(target.id)}
-                    style={{ flexShrink: 0, color: 'var(--chart-temp)', padding: '0.6rem', border: 'none' }}
+                    style={{ flexShrink: 0, color: 'var(--chart-temp)', padding: '0.45rem', border: 'none', background: 'transparent', boxShadow: 'none' }}
                     title="この行を削除"
                   >
                     <X size={18} />
@@ -1249,9 +1253,9 @@ function App() {
               <button
                 onClick={addTarget}
                 className="secondary"
-                style={{ alignSelf: 'flex-start', marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                style={{ alignSelf: 'flex-start', marginTop: '0.25rem', padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}
               >
-                <Plus size={16} /> 表示を追加
+                <Plus size={15} /> 比較対象を追加
               </button>
             )}
           </div>
@@ -1260,38 +1264,42 @@ function App() {
       <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
         {/* 表示期間 */}
-        <div className="glass-panel" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>表示期間</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-            <select value={displayRange.startMM} onChange={e => handleRangeChange('startMM', +e.target.value)} style={{ padding: '0.3rem 0.5rem' }}>
+        <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示期間</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem' }}>
+            <select value={displayRange.startMM} onChange={e => handleRangeChange('startMM', +e.target.value)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}>
               {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{i+1}月</option>)}
             </select>
-            <span>〜</span>
-            <select value={displayRange.endMM} onChange={e => handleRangeChange('endMM', +e.target.value)} style={{ padding: '0.3rem 0.5rem' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>〜</span>
+            <select value={displayRange.endMM} onChange={e => handleRangeChange('endMM', +e.target.value)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}>
               {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{i+1}月</option>)}
             </select>
             <button
               onClick={() => setDisplayRange({ startMM: 1, endMM: 12 })}
-              style={{ marginLeft: '0.75rem', padding: '0.35rem 0.8rem', fontSize: '0.85rem', borderRadius: '6px', border: '1px solid var(--card-border)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              className="secondary"
+              style={{ marginLeft: '0.5rem', padding: '0.35rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-md)' }}
             >
               年間表示
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: 'auto' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>表示単位</span>
-            <div style={{ display: 'inline-flex', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--card-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginLeft: 'auto' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>表示単位</span>
+            <div className="premium-segmented-tab" style={{ padding: '0.18rem', background: 'rgba(167, 203, 192, 0.15)' }}>
               {(['daily', 'monthly'] as const).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setChartViewMode(mode)}
                   style={{
-                    padding: '0.35rem 0.8rem',
-                    fontSize: '0.85rem',
-                    background: chartViewMode === mode ? 'var(--accent-color)' : 'transparent',
+                    padding: '0.35rem 0.9rem',
+                    fontSize: '0.8rem',
+                    background: chartViewMode === mode ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)' : 'transparent',
                     color: chartViewMode === mode ? '#ffffff' : 'var(--text-secondary)',
                     border: 'none',
-                    fontWeight: chartViewMode === mode ? 600 : 400,
+                    fontWeight: chartViewMode === mode ? 700 : 500,
+                    borderRadius: 'calc(var(--radius-md) - 4px)',
                     cursor: 'pointer',
+                    boxShadow: chartViewMode === mode ? '0 2px 8px rgba(13, 148, 136, 0.15)' : 'none',
+                    transition: 'all 0.25s ease',
                   }}
                 >
                   {mode === 'daily' ? '日次' : '月次'}
@@ -1305,9 +1313,9 @@ function App() {
         <div
           className="glass-panel"
           style={{
-            padding: '0.5rem 1rem',
+            padding: '0.6rem 1rem',
             display: 'flex',
-            gap: '0.5rem',
+            gap: '0.6rem',
             overflowX: 'auto',
             scrollbarWidth: 'none',
           }}
@@ -1316,18 +1324,7 @@ function App() {
             <button
               key={tab.id}
               onClick={() => setActiveChart(tab.id)}
-              style={{
-                flexShrink: 0,
-                padding: '0.3rem 0.9rem',
-                borderRadius: '20px',
-                fontSize: '0.85rem',
-                border: `1px solid ${activeChart === tab.id ? 'var(--accent-color)' : 'var(--card-border)'}`,
-                background: activeChart === tab.id ? 'var(--accent-color)' : 'transparent',
-                color: activeChart === tab.id ? '#ffffff' : 'var(--text-secondary)',
-                fontWeight: activeChart === tab.id ? 700 : 400,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              className={`premium-pill ${activeChart === tab.id ? 'active' : ''}`}
             >
               {tab.label}
             </button>

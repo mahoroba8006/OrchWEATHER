@@ -45,19 +45,22 @@ function calcVPD(tempC: number, humidPct: number): number {
   return a_max * (1 - humidPct / 100);
 }
 
-export const COL_W = 40;
+// 各時間の列幅（元の値は 40。お試しで20%狭くして 32 に設定中）
+export const COL_W = 32;
 
 const STICKY: CSSProperties = {
   position: 'sticky',
   left: 0,
-  background: '#f8f9fc',
-  padding: '0.3rem 0.6rem',
-  fontWeight: 500,
-  color: '#5b6478',
-  borderRight: '1px solid #ebeef5',
+  background: 'rgba(240, 247, 245, 0.95)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
+  padding: '0.35rem 0.6rem',
+  fontWeight: 600,
+  color: 'var(--text-secondary)',
+  borderRight: '1px solid var(--card-border-sub)',
   zIndex: 1,
   minWidth: 90,
-  fontSize: '0.72rem',
+  fontSize: '0.75rem',
   verticalAlign: 'middle',
 };
 
@@ -181,8 +184,8 @@ function UVRow({ tl, isNighttime, cutoff }: {
           <td key={`uv-${h.time}`} style={{ padding: '0.1rem 0', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: isPast ? 0.35 : undefined }}>
             <img
               src={`/icons/weather/${uvToIconFile(h.uvIndex)}.svg`}
-              width={42}
-              height={42}
+              width={38}
+              height={38}
               alt={`UV ${Math.round(h.uvIndex)}`}
               style={{ display: 'inline-block' }}
             />
@@ -274,10 +277,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
 
   return (
     <div>
-      <div style={{ padding: '0.9rem 1rem 0.4rem', fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em' }}>
-        時間別 ／ 72時間
-      </div>
-      <div ref={scrollRef} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: '#fff', borderTop: '1px solid #ebeef5', borderBottom: '1px solid #ebeef5' }}>
+      <div ref={scrollRef} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)' }}>
         <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
           <tbody>
             {/* 日付 */}
@@ -338,7 +338,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
                 }
                 return (
                   <td key={`w-${i}`} style={{ padding: '0.2rem 0.1rem', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: faded ? 0.4 : 1 }}>
-                    <WeatherIcon code={entry.data.weatherCode} isNight={isNighttime(entry.data.time)} size={48} animated={false} />
+                    <WeatherIcon code={entry.data.weatherCode} isNight={isNighttime(entry.data.time)} size={43} animated={false} />
                   </td>
                 );
               })}

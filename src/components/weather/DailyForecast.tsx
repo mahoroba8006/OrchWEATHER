@@ -229,10 +229,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
 
   return (
     <div>
-      <div style={{ padding: '1.1rem 1.25rem 0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.05em' }}>
-        日別 ／ 今日〜10日後
-      </div>
-      <div style={{ overflowX: 'auto', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--card-border-sub)', borderBottom: '1px solid var(--card-border-sub)', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ overflowX: 'auto', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)', boxShadow: 'var(--shadow-sm)' }}>
         <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <colgroup>
             {daily.flatMap((day, i) =>
