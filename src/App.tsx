@@ -434,10 +434,42 @@ function App() {
           }
         }
       }
+
+      // ── 予報オーバーレイ（targets[0] + 今年のみ） ──────────────────────────
+      if (index === 0 && forecastData && target.year === currentYear) {
+        forecastData.daily.forEach(fDay => {
+          const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
+
+          if (!map.has(mmdd)) {
+            map.set(mmdd, { dateStr: mmdd });
+          }
+          const entry = map.get(mmdd)!;
+
+          // 基本指標（点線 Line 用）
+          entry[`forecast_temp_max_${target.id}`]  = fDay.tempMax;
+          entry[`forecast_temp_min_${target.id}`]  = fDay.tempMin;
+          entry[`forecast_humid_min_${target.id}`] = fDay.humidMin;
+          entry[`forecast_vpd_max_${target.id}`]   = calcVPD(fDay.tempMax, fDay.humidMin);
+
+          // 累積系（前の accumXxxRunning 変数が履歴ループ後の最終値を保持している）
+          if (mmdd >= precipStart) {
+            accumPrecipRunning += fDay.precipSum;
+            entry[`forecast_accum_precip_${target.id}`] = accumPrecipRunning;
+          }
+          if (mmdd >= sunshineStart) {
+            accumSunshineRunning += fDay.sunshineDuration;
+            entry[`forecast_accum_sunshine_${target.id}`] = accumSunshineRunning;
+          }
+          if (mmdd >= radiationStart) {
+            accumRadiationRunning += fDay.radiationSum;
+            entry[`forecast_accum_radiation_${target.id}`] = accumRadiationRunning;
+          }
+        });
+      }
     });
 
     return Array.from(map.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-  }, [weatherData, targets, userSettings]);
+  }, [weatherData, targets, userSettings, forecastData, currentYear]);
 
   const gddData = useMemo(() => {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
