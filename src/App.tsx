@@ -1561,6 +1561,24 @@ function App() {
                         />
                       );
                     })}
+                    {/* 10日予報累積降水量（点線） */}
+                    {currentTargetHasForecast && (() => {
+                      const t0 = targets[0]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_precip_${t0.id}`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積降水`}
+                          stroke={getYearColor(0, 'var(--chart-precip)')}
+                          strokeWidth={3}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
                   </ComposedChart>
                 </ResponsiveContainer>
               ), true)}
@@ -1570,7 +1588,8 @@ function App() {
               ] : [
                 { label: '降水量', type: 'thin-bar' },
                 { label: '月間降水量', type: 'thick-bar' },
-                { label: '累積降水量', type: 'solid' }
+                { label: '累積降水量', type: 'solid' },
+                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('precip')}
               <MonthsTable
