@@ -76,8 +76,8 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block' }}>
       {gridTemps.map(v => (
         <g key={v}>
-          <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} stroke="var(--card-border-sub)" strokeWidth={1} />
-          <text x={3} y={ty(v) - 2} fontSize={8} fill="var(--text-tertiary)">{v}</text>
+          <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} style={{ stroke: 'var(--card-border-sub)' }} strokeWidth={1} />
+          <text x={3} y={ty(v) - 2} fontSize={8} style={{ fill: 'var(--text-tertiary)' }}>{v}</text>
         </g>
       ))}
       {daily.map((day, i) => {
@@ -92,16 +92,16 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
             <g key={i}>
               {amBh > 0 && (
                 <>
-                  <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} fill="var(--chart-precip)" opacity={0.6} rx={2} ry={2} />
-                  <text x={cxA} y={H - padB - amBh - 2} fontSize={7} fill="var(--accent-blue)" textAnchor="middle" dominantBaseline="auto">
+                  <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
+                  <text x={cxA} y={H - padB - amBh - 2} fontSize={7} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
                     {day.amPrecipSum.toFixed(1)}
                   </text>
                 </>
               )}
               {pmBh > 0 && (
                 <>
-                  <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} fill="var(--chart-precip)" opacity={0.6} rx={2} ry={2} />
-                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={7} fill="var(--accent-blue)" textAnchor="middle" dominantBaseline="auto">
+                  <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
+                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={7} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
                     {(day.pmPrecipSum ?? 0).toFixed(1)}
                   </text>
                 </>
@@ -115,15 +115,15 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
         if (bh === 0) return null;
         return (
           <g key={i}>
-            <rect x={cx(i) - barW / 2} y={H - padB - bh} width={barW} height={bh} fill="var(--chart-precip)" opacity={0.6} rx={2} ry={2} />
-            <text x={cx(i)} y={H - padB - bh - 2} fontSize={8} fill="var(--accent-blue)" textAnchor="middle" dominantBaseline="auto">
+            <rect x={cx(i) - barW / 2} y={H - padB - bh} width={barW} height={bh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
+            <text x={cx(i)} y={H - padB - bh - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
               {p.toFixed(1)}
             </text>
           </g>
         );
       })}
-      <path d={makePath(tempMins)} fill="none" stroke="#7dd3fc" strokeWidth={2} strokeLinecap="round" />
-      <path d={makePath(tempMaxes)} fill="none" stroke="#fda4af" strokeWidth={2} strokeLinecap="round" />
+      <path d={makePath(tempMins)} fill="none" style={{ stroke: 'var(--accent-blue)' }} strokeWidth={2} strokeLinecap="round" />
+      <path d={makePath(tempMaxes)} fill="none" style={{ stroke: 'var(--chart-temp)' }} strokeWidth={2} strokeLinecap="round" />
     </svg>
   );
 }
