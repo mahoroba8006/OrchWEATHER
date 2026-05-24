@@ -1661,12 +1661,31 @@ function App() {
                         />
                       );
                     })}
+                    {/* 10日予報累積日照時間（点線） */}
+                    {currentTargetHasForecast && (() => {
+                      const t0 = targets[0]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_sunshine_${t0.id}`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積日照`}
+                          stroke={getYearColor(0, 'var(--chart-sunshine)')}
+                          strokeWidth={3}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
                   </ComposedChart>
                 </ResponsiveContainer>
               ), true)}
               {renderCustomLegend([
                 { label: '日照時間', type: 'thin-bar' },
-                { label: '累積日照時間', type: 'solid' }
+                { label: '累積日照時間', type: 'solid' },
+                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('sunshine')}
               <MonthsTable
@@ -1739,12 +1758,31 @@ function App() {
                         />
                       );
                     })}
+                    {/* 10日予報累積日射量（点線） */}
+                    {currentTargetHasForecast && (() => {
+                      const t0 = targets[0]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_radiation_${t0.id}`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積日射`}
+                          stroke={getYearColor(0, 'var(--chart-sunshine)')}
+                          strokeWidth={3}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
                   </ComposedChart>
                 </ResponsiveContainer>
               ), true)}
               {renderCustomLegend([
                 { label: '日射量', type: 'thin-bar' },
-                { label: '累積日射量', type: 'solid' }
+                { label: '累積日射量', type: 'solid' },
+                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('radiation')}
               <MonthsTable
@@ -1839,12 +1877,31 @@ function App() {
                         />
                       );
                     })}
+                    {/* 10日予報累積GDD（点線） */}
+                    {currentTargetHasForecast && (() => {
+                      const t0 = targets[0]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_gdd_${t0.id}`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積積算`}
+                          stroke={getYearColor(0, 'var(--chart-sunshine)')}
+                          strokeWidth={3}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
                   </ComposedChart>
                 </ResponsiveContainer>
               ), true)}
               {renderCustomLegend([
                 { label: '有効積算温度', type: 'thin-bar' },
-                { label: '累積有効積算温度', type: 'solid' }
+                { label: '累積有効積算温度', type: 'solid' },
+                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('gdd')}
               <MonthsTable
