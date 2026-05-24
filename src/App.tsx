@@ -104,12 +104,12 @@ const RADIATION_DELTA_DAYS_MIN_V0 = 100;
  * 選択年のデータに当てはめてインデックスを返す（季節比較が目的）
  */
 function calcMobileDefaultViewport(
-  data: { date: string }[],
-  today: Date
+  data: { dateStr: string }[],
+  today: Date,
+  selectedYear: number
 ): { start: number; end: number } | null {
   if (data.length === 0) return null;
 
-  const selectedYear = parseInt(data[0].date.substring(0, 4), 10);
   const todayMonth = today.getMonth() + 1; // 1–12
 
   // start: 2ヶ月前の月初
@@ -120,13 +120,13 @@ function calcMobileDefaultViewport(
   let endMonth = todayMonth + 1;
   if (endMonth > 12) endMonth -= 12;
 
-  const startStr = `${selectedYear}-${String(startMonth).padStart(2, '0')}-01`;
+  const startStr = `${String(startMonth).padStart(2, '0')}-01`;
   // new Date(year, month, 0).getDate() = その月の最終日
   const lastDay = new Date(selectedYear, endMonth, 0).getDate();
-  const endStr = `${selectedYear}-${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  const endStr = `${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
   // start index: startStr 以上の最初のエントリ
-  let startIdx = data.findIndex(d => d.date >= startStr);
+  let startIdx = data.findIndex(d => d.dateStr >= startStr);
   if (startIdx === -1) startIdx = 0;
 
   // end index: endStr 以下の最後のエントリ
@@ -134,7 +134,7 @@ function calcMobileDefaultViewport(
   let endIdx = data.length - 1;
   if (endStr >= startStr) {
     for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i].date <= endStr) { endIdx = i; break; }
+      if (data[i].dateStr <= endStr) { endIdx = i; break; }
     }
   }
 
@@ -708,7 +708,8 @@ function App() {
     if (total === 0) { setDailyViewport(null); return; }
 
     if (isMobile) {
-      const vp = calcMobileDefaultViewport(filteredBaseChartData, new Date());
+      const selectedYear = targets[0]?.year ?? new Date().getFullYear();
+      const vp = calcMobileDefaultViewport(filteredBaseChartData, new Date(), selectedYear);
       if (vp) { setDailyViewport(vp); return; }
     }
 
