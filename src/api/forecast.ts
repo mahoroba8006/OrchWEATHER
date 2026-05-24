@@ -26,6 +26,7 @@ export interface DailyForecastData {
   precipProbMax: number; // %
   precipSum: number;     // mm
   humidMin: number;      // %
+  humidMax: number;      // %
   sunrise: string;       // "2026-05-21T04:43"
   sunset: string;        // "2026-05-21T18:52"
   radiationSum: number;  // MJ/m²
@@ -59,7 +60,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   const dailyParams = [
     'weather_code', 'temperature_2m_max', 'temperature_2m_min',
     'precipitation_probability_max',
-    'precipitation_sum', 'relative_humidity_2m_min',
+    'precipitation_sum', 'relative_humidity_2m_min', 'relative_humidity_2m_max',
     'sunrise', 'sunset',
     'shortwave_radiation_sum', 'snowfall_sum', 'wind_speed_10m_max',
     'sunshine_duration',
@@ -131,6 +132,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     precipProbMax: raw.daily.precipitation_probability_max?.[i]  ?? 0,
     precipSum:     raw.daily.precipitation_sum?.[i]              ?? 0,
     humidMin:      raw.daily.relative_humidity_2m_min?.[i]       ?? 100,
+    humidMax:      raw.daily.relative_humidity_2m_max?.[i]       ?? 0,
     sunrise:       raw.daily.sunrise?.[i]                        ?? '',
     sunset:        raw.daily.sunset?.[i]                         ?? '',
     radiationSum:  raw.daily.shortwave_radiation_sum?.[i]        ?? 0,

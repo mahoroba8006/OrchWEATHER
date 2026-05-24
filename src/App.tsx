@@ -52,6 +52,22 @@ const CustomRangeBar = (props: any) => {
   );
 };
 
+const ForecastRangeBar = (props: any) => {
+  const { fill, x, y, width, height } = props;
+  if (x === undefined || y === undefined || height === undefined || height <= 0) {
+    return null;
+  }
+  const centerX = x + width / 2;
+  const capWidth = 2;
+  return (
+    <g opacity={0.7}>
+      <line x1={centerX} y1={y} x2={centerX} y2={y + height} stroke={fill} strokeWidth={1.5} strokeDasharray="5 4" />
+      <line x1={centerX - capWidth} y1={y} x2={centerX + capWidth} y2={y} stroke={fill} strokeWidth={1.5} />
+      <line x1={centerX - capWidth} y1={y + height} x2={centerX + capWidth} y2={y + height} stroke={fill} strokeWidth={1.5} />
+    </g>
+  );
+};
+
 type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid' | 'vpd';
 
 const CHART_TABS: { id: ChartId; label: string }[] = [
@@ -445,11 +461,10 @@ function App() {
           }
           const entry = map.get(mmdd)!;
 
-          // 基本指標（点線 Line 用）
-          entry[`forecast_temp_max_${target.id}`]  = fDay.tempMax;
-          entry[`forecast_temp_min_${target.id}`]  = fDay.tempMin;
-          entry[`forecast_humid_min_${target.id}`] = fDay.humidMin;
-          entry[`forecast_vpd_max_${target.id}`]   = calcVPD(fDay.tempMax, fDay.humidMin);
+          // 基本指標（破線縦バー用、[min, max] 配列形式）
+          entry[`forecast_tempRange_${target.id}`]  = [fDay.tempMin, fDay.tempMax];
+          entry[`forecast_humidRange_${target.id}`] = [fDay.humidMin, fDay.humidMax];
+          entry[`forecast_vpdRange_${target.id}`]   = [calcVPD(fDay.tempMin, fDay.humidMax), calcVPD(fDay.tempMax, fDay.humidMin)];
 
           // 累積系（前の accumXxxRunning 変数が履歴ループ後の最終値を保持している）
           if (mmdd >= precipStart) {
@@ -1159,7 +1174,7 @@ function App() {
     );
   };
 
-  const renderCustomLegend = (types: { label: string, type: 'dashed' | 'solid' | 'thin-bar' | 'thick-bar' | 'range-bar' }[]) => {
+  const renderCustomLegend = (types: { label: string, type: 'dashed' | 'solid' | 'thin-bar' | 'thick-bar' | 'range-bar' | 'dashed-range-bar' }[]) => {
     return (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginTop: '10px', marginBottom: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
@@ -1182,6 +1197,15 @@ function App() {
                   <span style={{ position: 'absolute', top: '0', bottom: '0', left: '50%', width: '1.5px', marginLeft: '-0.75px', backgroundColor: 'var(--text-secondary)' }}></span>
                   <span style={{ position: 'absolute', top: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: 'var(--text-secondary)' }}></span>
                   <span style={{ position: 'absolute', bottom: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: 'var(--text-secondary)' }}></span>
+                </span>
+              )}
+              {t.type === 'dashed-range-bar' && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '12px', height: '14px', opacity: 0.7 }}>
+                  <svg width="12" height="14">
+                    <line x1="6" y1="1" x2="6" y2="13" stroke="var(--text-secondary)" strokeWidth="1.5" strokeDasharray="3 2" />
+                    <line x1="3" y1="1" x2="9" y2="1" stroke="var(--text-secondary)" strokeWidth="1.5" />
+                    <line x1="3" y1="13" x2="9" y2="13" stroke="var(--text-secondary)" strokeWidth="1.5" />
+                  </svg>
                 </span>
               )}
               <span>{t.label}</span>
@@ -1439,32 +1463,9 @@ function App() {
                               <LabelList dataKey={`t_${target.id}_monthlyMeanTemp`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(1) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
-                          {/* 10日予報（点線） */}
+                          {/* 10日予報（破線縦バー） */}
                           {currentTargetHasForecast && index === 0 && (
-                            <>
-                              <Line
-                                type="monotone"
-                                dataKey={`forecast_temp_max_${target.id}`}
-                                name={`${getLocationName(target.locationId)} ${target.year}年 予報最高気温`}
-                                stroke={color}
-                                strokeWidth={1.5}
-                                strokeDasharray="5 4"
-                                dot={false}
-                                connectNulls={false}
-                                isAnimationActive={false}
-                              />
-                              <Line
-                                type="monotone"
-                                dataKey={`forecast_temp_min_${target.id}`}
-                                name={`${getLocationName(target.locationId)} ${target.year}年 予報最低気温`}
-                                stroke={color}
-                                strokeWidth={1.5}
-                                strokeDasharray="5 4"
-                                dot={false}
-                                connectNulls={false}
-                                isAnimationActive={false}
-                              />
-                            </>
+                            <Bar dataKey={`forecast_tempRange_${target.id}`} name={`${getLocationName(target.locationId)} ${target.year}年 予報気温`} fill={color} shape={<ForecastRangeBar />} legendType="none" isAnimationActive={false} />
                           )}
                         </React.Fragment>
                       );
@@ -1475,7 +1476,7 @@ function App() {
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('temp')}
               <MonthsTable
@@ -1947,19 +1948,9 @@ function App() {
                               <LabelList dataKey={`monthlyHumid_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
-                          {/* 10日予報最低湿度（点線） */}
+                          {/* 10日予報湿度（破線縦バー） */}
                           {currentTargetHasForecast && index === 0 && (
-                            <Line
-                              type="monotone"
-                              dataKey={`forecast_humid_min_${target.id}`}
-                              name={`${getLocationName(target.locationId)} ${target.year}年 予報最低湿度`}
-                              stroke={color}
-                              strokeWidth={1.5}
-                              strokeDasharray="5 4"
-                              dot={false}
-                              connectNulls={false}
-                              isAnimationActive={false}
-                            />
+                            <Bar dataKey={`forecast_humidRange_${target.id}`} name={`${getLocationName(target.locationId)} ${target.year}年 予報湿度`} fill={color} shape={<ForecastRangeBar />} legendType="none" isAnimationActive={false} />
                           )}
                         </React.Fragment>
                       );
@@ -1970,7 +1961,7 @@ function App() {
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報最低湿度', type: 'dashed' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('humid')}
               <MonthsTable
@@ -2015,19 +2006,9 @@ function App() {
                               <LabelList dataKey={`monthlyMeanVpdMax_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(1) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
                           </Line>
-                          {/* 10日予報最高飽差（点線） */}
+                          {/* 10日予報飽差（破線縦バー） */}
                           {currentTargetHasForecast && index === 0 && (
-                            <Line
-                              type="monotone"
-                              dataKey={`forecast_vpd_max_${target.id}`}
-                              name={`${getLocationName(target.locationId)} ${target.year}年 予報最高飽差`}
-                              stroke={color}
-                              strokeWidth={1.5}
-                              strokeDasharray="5 4"
-                              dot={false}
-                              connectNulls={false}
-                              isAnimationActive={false}
-                            />
+                            <Bar dataKey={`forecast_vpdRange_${target.id}`} name={`${getLocationName(target.locationId)} ${target.year}年 予報飽差`} fill={color} shape={<ForecastRangeBar />} legendType="none" isAnimationActive={false} />
                           )}
                         </React.Fragment>
                       );
@@ -2038,7 +2019,7 @@ function App() {
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月平均最高飽差', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報最高飽差', type: 'dashed' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('vpd')}
               <MonthsTable
