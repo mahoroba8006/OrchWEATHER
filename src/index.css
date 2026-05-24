@@ -4,7 +4,7 @@
   /* 自然と水をイメージした優しいグリーンとブルーのプレミアムパレット */
   --bg-gradient: linear-gradient(135deg, #e6f2ee 0%, #e0ebf6 100%);
   --bg-color: #eaf3f0;
-  --card-bg: rgba(255, 255, 255, 0.75);
+  --card-bg: rgba(255, 255, 255, 0.88);
   --card-bg-solid: #ffffff;
   --card-border: rgba(167, 203, 192, 0.35);
   --card-border-hover: rgba(13, 148, 136, 0.45);
@@ -63,8 +63,8 @@ body {
 /* ガラスマージズムパネル — 優しく背景に溶け込む半透明 */
 .glass-panel {
   background: var(--card-bg);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -78,8 +78,8 @@ body {
 
 .glass-card {
   background: var(--card-bg);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   padding: 1.5rem;

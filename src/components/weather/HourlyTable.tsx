@@ -51,9 +51,7 @@ export const COL_W = 32;
 const STICKY: CSSProperties = {
   position: 'sticky',
   left: 0,
-  background: 'rgba(240, 247, 245, 0.95)',
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)',
+  background: '#eff6f3', /* iOSや一部モバイルブラウザのWebKitにおけるsticky+backdrop-filterクラッシュバグを回避するため不透明なミント背景に変更 */
   padding: '0.35rem 0.6rem',
   fontWeight: 600,
   color: 'var(--text-secondary)',
