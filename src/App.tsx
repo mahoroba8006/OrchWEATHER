@@ -501,10 +501,29 @@ function App() {
         overlay.set(mmdd, existing);
       });
       seriesByTarget.set(target.id, series);
+
+      // ── 予報GDD累積（targets[0] + 今年のみ） ────────────────────────────────
+      if (targets[0]?.id === target.id && forecastData && target.year === currentYear) {
+        let forecastGddRunning = runningAccumTemp; // 昨日時点の累積GDD
+
+        forecastData.daily.forEach(fDay => {
+          const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
+          const existing = overlay.get(mmdd) ?? {};
+
+          if (mmdd >= gddStart) {
+            const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
+            const diff = tempMean - selectedBaseTemp;
+            const dailyGdd = diff > 0 ? diff : 0;
+            forecastGddRunning += dailyGdd;
+            existing[`forecast_accum_gdd_${target.id}`] = forecastGddRunning;
+          }
+          overlay.set(mmdd, existing);
+        });
+      }
     });
 
     return { overlay, seriesByTarget };
-  }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
+  }, [weatherData, targets, userSettings, selectedBaseTempIndex, forecastData, currentYear]);
 
   // 日射量チャート Δ日 逆引き用：累積日射量の MM-DD 系列
   // 累積は baseChartData と同じ開始日ベースで自前計算
