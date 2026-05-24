@@ -31,6 +31,7 @@ export interface DailyForecastData {
   radiationSum: number;  // MJ/m²
   snowfallSum: number;   // cm
   windSpeedMax: number;  // m/s
+  sunshineDuration: number;  // h（日照時間、秒→時間に変換済み）
   amWeatherCode: number | null; // WMO max 06:00-11:00
   pmWeatherCode: number | null; // WMO max 12:00-17:00
   amPrecipProb:  number | null; // % max 06:00-11:00
@@ -61,6 +62,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     'precipitation_sum', 'relative_humidity_2m_min',
     'sunrise', 'sunset',
     'shortwave_radiation_sum', 'snowfall_sum', 'wind_speed_10m_max',
+    'sunshine_duration',
   ].join(',');
 
   const url = 'https://api.open-meteo.com/v1/forecast'
@@ -134,6 +136,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     radiationSum:  raw.daily.shortwave_radiation_sum?.[i]        ?? 0,
     snowfallSum:   raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:  raw.daily.wind_speed_10m_max?.[i]             ?? 0,
+    sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
     amWeatherCode: dayAmPm.get(t)?.amCode ?? null,
     pmWeatherCode: dayAmPm.get(t)?.pmCode ?? null,
     amPrecipProb:  dayAmPm.get(t)?.amProb ?? null,
