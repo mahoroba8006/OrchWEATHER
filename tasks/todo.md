@@ -21,13 +21,13 @@
 - [x] 5. `onClick` ハンドラ追加（mousemoveが発火しないタッチ環境用フォールバック）
 - [x] 6. crosshair拡張：縦線（既存）＋横線（Customized で描画）＋X軸日付ラベル（hover.label を下端の黒い小箱で表示）
 - [x] 7. `npm run build` で型チェック・ビルド通過確認
-- [ ] 8. dev server で実機確認（375px DevTools モバイル）：
+- [x] 8. dev server で実機確認（375px DevTools モバイル）：
   - 日次モードで100%幅、初期表示は末尾90日
   - 左右ドラッグでviewportが動く
   - タップで値がヘッダー右に出る
   - 縦＋横の点線＋日付ラベルが出る
   - 月次モードは変化なし
-- [ ] 9. ユーザー実機確認OKなら commit & push
+- [x] 9. ユーザー実機確認OKなら commit & push
 
 ## 主な技術判断
 - **ドラッグ vs タップの分離:** mousedown時に startX 記録、mousemove時に閾値超えで「ドラッグモード」へ。Recharts自身の `state.chartX` をピクセル座標に使う

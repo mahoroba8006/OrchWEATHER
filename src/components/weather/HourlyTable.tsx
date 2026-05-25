@@ -144,7 +144,7 @@ function MiniChartRow({ tl }: { tl: TLEntry[] }) {
             return (
               <g key={ti}>
                 <rect x={ti * COL_W + COL_W * 0.325} y={H - padB - bh} width={COL_W * 0.35} height={bh} fill="#93c5fd" opacity={0.75} />
-                <text x={cx(ti)} y={H - padB - bh - 2} fontSize={10.5} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">{precipToLabel(precips[i])}</text>
+                <text x={cx(ti)} y={H - padB - bh - 2} fontSize={8.4} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">{precipToLabel(precips[i])}</text>
               </g>
             );
           })}
