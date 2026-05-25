@@ -130,7 +130,8 @@ function MiniChartRow({ tl }: { tl: TLEntry[] }) {
   return (
     <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
       <td style={STICKY}>気温/降水</td>
-      <td colSpan={tl.length} style={{ padding: 0 }}>
+      <td colSpan={tl.length} style={{ padding: 0, position: 'relative' }}>
+        {/* SVG: バー・気温ライン（preserveAspectRatio="none" で横幅100%に伸縮） */}
         <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block' }}>
           {gridTemps.map(v => (
             <g key={v}>
@@ -142,14 +143,39 @@ function MiniChartRow({ tl }: { tl: TLEntry[] }) {
             const bh = ph(precips[i]);
             if (bh === 0) return null;
             return (
-              <g key={ti}>
-                <rect x={ti * COL_W + COL_W * 0.325} y={H - padB - bh} width={COL_W * 0.35} height={bh} fill="#93c5fd" opacity={0.75} />
-                <text x={cx(ti)} y={H - padB - bh - 2} fontSize={8.4} fill="#60a5fa" textAnchor="middle" dominantBaseline="auto">{precipToLabel(precips[i])}</text>
-              </g>
+              <rect key={ti} x={ti * COL_W + COL_W * 0.325} y={H - padB - bh} width={COL_W * 0.35} height={bh} fill="#93c5fd" opacity={0.75} />
             );
           })}
           <path d={pathD} fill="none" stroke="#fb923c" strokeWidth={1.5} strokeLinecap="round" />
         </svg>
+        {/* 雨コメント: HTMLオーバーレイ（列幅で切り捨て、横伸びなし） */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: H, display: 'flex', pointerEvents: 'none' }}>
+          {tl.map((entry, i) => {
+            const colPct = `${(1 / tl.length) * 100}%`;
+            if (entry.kind !== 'hourly') return <div key={i} style={{ flex: `0 0 ${colPct}` }} />;
+            const bh = ph(entry.data.precipitation);
+            if (bh === 0) return <div key={i} style={{ flex: `0 0 ${colPct}` }} />;
+            return (
+              <div key={i} style={{ flex: `0 0 ${colPct}`, position: 'relative', overflow: 'hidden' }}>
+                <div style={{
+                  position: 'absolute',
+                  bottom: padB + bh + 2,
+                  left: 0,
+                  right: 0,
+                  fontSize: '0.6rem',
+                  color: '#60a5fa',
+                  textAlign: 'center',
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {precipToLabel(entry.data.precipitation)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </td>
     </tr>
   );
