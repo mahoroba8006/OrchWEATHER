@@ -37,6 +37,17 @@ export interface AccumDeltaThresholds {
 
 export type RiskSensitivity = 'low' | 'medium' | 'high';
 
+export type RiskType =
+  | 'frost'
+  | 'thunder'
+  | 'hail'
+  | 'wind'
+  | 'rain'
+  | 'heat'
+  | 'dry'
+  | 'snow'
+  | 'cold';
+
 export interface RiskThresholds {
   frost:              number;          // 霜：気温 ≤ X ℃             デフォルト: 3
   frostDewPoint:      number;          // 霜：露点温度 ≤ X ℃  ＆      デフォルト: 0  ※時間別のみ
@@ -48,6 +59,9 @@ export interface RiskThresholds {
   thunderSensitivity: RiskSensitivity; // 雷雨感度（CAPE閾値に内部マッピング） デフォルト: 'medium'
   hailSensitivity:    RiskSensitivity; // 雹感度（CAPE閾値に内部マッピング）   デフォルト: 'medium'
   hailFreezingLevel:  number;          // 雹：0℃層高度 ≤ X m    ＆    デフォルト: 3500  ※時間別のみ
+  snow:               number;          // 降雪：積雪量 ≥ X cm           デフォルト: 3   NEW
+  cold:               number;          // 低温：気温 ≤ X ℃             デフォルト: 0   NEW
+  enabledRisks:       RiskType[];      // 表示するリスク種別             デフォルト: 全9種 NEW
 }
 
 export interface UserSettings {
@@ -80,6 +94,11 @@ const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
   thunderSensitivity: 'medium',
   hailSensitivity:    'medium',
   hailFreezingLevel:  3500,
+  snow:               3,
+  cold:               0,
+  enabledRisks:       [
+    'frost', 'thunder', 'hail', 'rain', 'wind', 'heat', 'dry', 'cold', 'snow',
+  ] as RiskType[],
 };
 
 interface AppState {
