@@ -6,7 +6,9 @@ import {
   DEFAULT_RISK_THRESHOLDS,
   type RiskThresholds,
   type RiskSensitivity,
+  type RiskType,
 } from '../../store';
+import { RISK_BADGES } from '../../lib/riskDetection';
 
 type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
 
@@ -28,12 +30,12 @@ const SENSITIVITY_LABELS: Record<RiskSensitivity, string> = {
   medium: '標準',
   high:   '敏感',
 };
-
 const SENSITIVITY_OPTIONS: RiskSensitivity[] = ['low', 'medium', 'high'];
 
-// direction はボックスの後ろに表示する日本語表現
 interface NumericField {
-  key:       keyof Pick<RiskThresholds, 'frost' | 'frostDewPoint' | 'wind' | 'rainHourly' | 'rainDaily' | 'heat' | 'dry' | 'hailFreezingLevel'>;
+  key: keyof Pick<RiskThresholds,
+    'frost' | 'frostDewPoint' | 'wind' | 'rainHourly' | 'rainDaily' |
+    'heat' | 'dry' | 'hailFreezingLevel' | 'snow' | 'cold'>;
   unit:      string;
   direction: '以上' | '以下';
   min:       number;
@@ -41,34 +43,37 @@ interface NumericField {
   step:      number;
 }
 
-const FROST_TEMP:    NumericField = { key: 'frost',             unit: '℃',   direction: '以下', min: -5,  max: 5,    step: 0.5 };
-const FROST_DEW:     NumericField = { key: 'frostDewPoint',     unit: '℃',   direction: '以下', min: -5,  max: 3,    step: 0.5 };
-const WIND_FIELD:    NumericField = { key: 'wind',              unit: 'm/s',  direction: '以上', min: 5,   max: 30,   step: 1   };
-const HEAT_FIELD:    NumericField = { key: 'heat',              unit: '℃',   direction: '以上', min: 28,  max: 42,   step: 0.5 };
-const DRY_FIELD:     NumericField = { key: 'dry',               unit: '%',    direction: '以下', min: 10,  max: 60,   step: 5   };
-const RAIN_DAILY:    NumericField = { key: 'rainDaily',         unit: 'mm',   direction: '以上', min: 20,  max: 300,  step: 10  };
-const RAIN_HOURLY:   NumericField = { key: 'rainHourly',        unit: 'mm/h', direction: '以上', min: 10,  max: 100,  step: 5   };
+const FROST_TEMP:    NumericField = { key: 'frost',             unit: '℃',   direction: '以下', min: -5,   max: 5,    step: 0.5 };
+const FROST_DEW:     NumericField = { key: 'frostDewPoint',     unit: '℃',   direction: '以下', min: -5,   max: 3,    step: 0.5 };
+const WIND_FIELD:    NumericField = { key: 'wind',              unit: 'm/s',  direction: '以上', min: 5,    max: 30,   step: 1   };
+const HEAT_FIELD:    NumericField = { key: 'heat',              unit: '℃',   direction: '以上', min: 28,   max: 42,   step: 0.5 };
+const DRY_FIELD:     NumericField = { key: 'dry',               unit: '%',    direction: '以下', min: 10,   max: 60,   step: 5   };
+const RAIN_DAILY:    NumericField = { key: 'rainDaily',         unit: 'mm',   direction: '以上', min: 20,   max: 300,  step: 10  };
+const RAIN_HOURLY:   NumericField = { key: 'rainHourly',        unit: 'mm/h', direction: '以上', min: 10,   max: 100,  step: 5   };
 const HAIL_FREEZING: NumericField = { key: 'hailFreezingLevel', unit: 'm',    direction: '以下', min: 2000, max: 5000, step: 100 };
+const COLD_FIELD:    NumericField = { key: 'cold',              unit: '℃',   direction: '以下', min: -15,  max: 5,    step: 0.5 };
+const SNOW_FIELD:    NumericField = { key: 'snow',              unit: 'cm',   direction: '以上', min: 1,    max: 30,   step: 1   };
 
 function sanitiseThresholds(form: RiskThresholds): RiskThresholds {
   const clamp = (v: number, min: number, max: number, fallback: number) =>
     isNaN(v) ? fallback : Math.min(max, Math.max(min, v));
   return {
-    ...form,
-    frost:              clamp(form.frost,             -5,   5,    DEFAULT_RISK_THRESHOLDS.frost),
-    frostDewPoint:      clamp(form.frostDewPoint,     -5,   3,    DEFAULT_RISK_THRESHOLDS.frostDewPoint),
-    wind:               clamp(form.wind,               5,   30,   DEFAULT_RISK_THRESHOLDS.wind),
-    rainHourly:         clamp(form.rainHourly,        10,   100,  DEFAULT_RISK_THRESHOLDS.rainHourly),
-    rainDaily:          clamp(form.rainDaily,         20,   300,  DEFAULT_RISK_THRESHOLDS.rainDaily),
-    heat:               clamp(form.heat,              28,   42,   DEFAULT_RISK_THRESHOLDS.heat),
-    dry:                clamp(form.dry,               10,   60,   DEFAULT_RISK_THRESHOLDS.dry),
+    frost:              clamp(form.frost,             -5,    5,    DEFAULT_RISK_THRESHOLDS.frost),
+    frostDewPoint:      clamp(form.frostDewPoint,     -5,    3,    DEFAULT_RISK_THRESHOLDS.frostDewPoint),
+    wind:               clamp(form.wind,               5,    30,   DEFAULT_RISK_THRESHOLDS.wind),
+    rainHourly:         clamp(form.rainHourly,         10,   100,  DEFAULT_RISK_THRESHOLDS.rainHourly),
+    rainDaily:          clamp(form.rainDaily,          20,   300,  DEFAULT_RISK_THRESHOLDS.rainDaily),
+    heat:               clamp(form.heat,               28,   42,   DEFAULT_RISK_THRESHOLDS.heat),
+    dry:                clamp(form.dry,                10,   60,   DEFAULT_RISK_THRESHOLDS.dry),
     thunderSensitivity: form.thunderSensitivity,
     hailSensitivity:    form.hailSensitivity,
-    hailFreezingLevel:  clamp(form.hailFreezingLevel, 2000, 5000, DEFAULT_RISK_THRESHOLDS.hailFreezingLevel),
+    hailFreezingLevel:  clamp(form.hailFreezingLevel,  2000, 5000, DEFAULT_RISK_THRESHOLDS.hailFreezingLevel),
+    snow:               clamp(form.snow,               1,    30,   DEFAULT_RISK_THRESHOLDS.snow),
+    cold:               clamp(form.cold,               -15,  5,    DEFAULT_RISK_THRESHOLDS.cold),
+    enabledRisks:       form.enabledRisks,
   };
 }
 
-// 各リスク行のラベル
 const RISK_LABEL: CSSProperties = {
   fontSize: '0.88rem',
   fontWeight: 600,
@@ -76,14 +81,12 @@ const RISK_LABEL: CSSProperties = {
   flexShrink: 0,
 };
 
-// 「気温」「露点」「24時間雨量」などのサブラベル
 const SUB: CSSProperties = {
   fontSize: '0.78rem',
   color: 'var(--text-secondary)',
   whiteSpace: 'nowrap',
 };
 
-// ＆ セパレータ
 const AND_SEP: CSSProperties = {
   fontSize: '0.85rem',
   fontWeight: 700,
@@ -91,7 +94,6 @@ const AND_SEP: CSSProperties = {
   flexShrink: 0,
 };
 
-// 1行コンテナ
 const ROW: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -112,18 +114,24 @@ export function WeatherSettings() {
     }
   }, [userSettings]);
 
-  const handleNumericChange = (
-    key: NumericField['key'],
-    raw: string
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: parseFloat(raw) }));
+  const handleNumericChange = (key: NumericField['key'], raw: string) => {
+    setForm(prev => ({ ...prev, [key]: parseFloat(raw) }));
   };
 
   const handleSensitivityChange = (
     key: 'thunderSensitivity' | 'hailSensitivity',
     value: RiskSensitivity
   ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleEnabledChange = (type: RiskType, checked: boolean) => {
+    setForm(prev => ({
+      ...prev,
+      enabledRisks: checked
+        ? [...prev.enabledRisks, type]
+        : prev.enabledRisks.filter(r => r !== type),
+    }));
   };
 
   const handleSave = async (thresholds: RiskThresholds) => {
@@ -161,7 +169,6 @@ export function WeatherSettings() {
     );
   };
 
-  // インライン入力：[ input ] unit 以上/以下
   const renderInlineInput = (field: NumericField) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
       <input
@@ -170,7 +177,7 @@ export function WeatherSettings() {
         max={field.max}
         step={field.step}
         value={form[field.key] as number}
-        onChange={(e) => handleNumericChange(field.key, e.target.value)}
+        onChange={e => handleNumericChange(field.key, e.target.value)}
         style={{ width: '4.5rem' }}
       />
       <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
@@ -179,10 +186,9 @@ export function WeatherSettings() {
     </div>
   );
 
-  // 感度トグル（控えめ / 標準 / 敏感）
   const renderSensitivityToggle = (key: 'thunderSensitivity' | 'hailSensitivity') => (
     <div style={{ display: 'flex', gap: '0.35rem' }}>
-      {SENSITIVITY_OPTIONS.map((opt) => (
+      {SENSITIVITY_OPTIONS.map(opt => (
         <button
           key={opt}
           onClick={() => handleSensitivityChange(key, opt)}
@@ -190,14 +196,33 @@ export function WeatherSettings() {
           style={{
             padding: '0.25rem 0.7rem', fontSize: '0.8rem',
             background: form[key] === opt ? 'rgba(244,167,185,0.45)' : undefined,
-            color:      form[key] === opt ? '#7a2840' : undefined,
-            fontWeight: form[key] === opt ? 600 : undefined,
+            color:      form[key] === opt ? '#7a2840'              : undefined,
+            fontWeight: form[key] === opt ? 600                    : undefined,
           }}
         >
           {SENSITIVITY_LABELS[opt]}
         </button>
       ))}
     </div>
+  );
+
+  // チェックボックス＋アイコンの共通レンダラー
+  const renderRowStart = (type: RiskType) => (
+    <>
+      <input
+        type="checkbox"
+        checked={form.enabledRisks.includes(type)}
+        onChange={e => handleEnabledChange(type, e.target.checked)}
+        style={{ flexShrink: 0, cursor: 'pointer', width: '1rem', height: '1rem' }}
+      />
+      <img
+        src={`/icons/weather/${RISK_BADGES[type].iconFile}.svg`}
+        width={18}
+        height={18}
+        alt={RISK_BADGES[type].label}
+        style={{ flexShrink: 0 }}
+      />
+    </>
   );
 
   return (
@@ -207,8 +232,9 @@ export function WeatherSettings() {
     >
       <h3 style={{ margin: 0, fontSize: '1.1rem' }}>リスク検知の閾値</h3>
 
-      {/* 霜：気温 [input] ℃ 以下  ＆  露点 [input] ℃ 以下 */}
+      {/* 霜（春） */}
       <div style={ROW}>
+        {renderRowStart('frost')}
         <span style={RISK_LABEL}>霜</span>
         <span style={SUB}>気温</span>
         {renderInlineInput(FROST_TEMP)}
@@ -217,29 +243,26 @@ export function WeatherSettings() {
         {renderInlineInput(FROST_DEW)}
       </div>
 
-      {/* 強風 */}
+      {/* 雷雨（夏） */}
       <div style={ROW}>
-        <span style={RISK_LABEL}>強風</span>
-        <span style={SUB}>風速</span>
-        {renderInlineInput(WIND_FIELD)}
+        {renderRowStart('thunder')}
+        <span style={RISK_LABEL}>雷雨</span>
+        {renderSensitivityToggle('thunderSensitivity')}
       </div>
 
-      {/* 高温 */}
+      {/* 雹（夏） */}
       <div style={ROW}>
-        <span style={RISK_LABEL}>高温</span>
-        <span style={SUB}>気温</span>
-        {renderInlineInput(HEAT_FIELD)}
+        {renderRowStart('hail')}
+        <span style={RISK_LABEL}>雹</span>
+        {renderSensitivityToggle('hailSensitivity')}
+        <span style={AND_SEP}>＆</span>
+        <span style={SUB}>0℃層高度</span>
+        {renderInlineInput(HAIL_FREEZING)}
       </div>
 
-      {/* 乾燥 */}
+      {/* 大雨（夏〜秋） */}
       <div style={ROW}>
-        <span style={RISK_LABEL}>乾燥</span>
-        <span style={SUB}>湿度</span>
-        {renderInlineInput(DRY_FIELD)}
-      </div>
-
-      {/* 大雨：24時間雨量 ／ 1時間雨量 */}
-      <div style={ROW}>
+        {renderRowStart('rain')}
         <span style={RISK_LABEL}>大雨</span>
         <span style={SUB}>（24時間雨量）</span>
         {renderInlineInput(RAIN_DAILY)}
@@ -248,22 +271,44 @@ export function WeatherSettings() {
         {renderInlineInput(RAIN_HOURLY)}
       </div>
 
-      {/* 区切り線 */}
-      <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', margin: '0.25rem 0' }} />
-
-      {/* 雷雨 */}
+      {/* 強風 */}
       <div style={ROW}>
-        <span style={RISK_LABEL}>雷雨</span>
-        {renderSensitivityToggle('thunderSensitivity')}
+        {renderRowStart('wind')}
+        <span style={RISK_LABEL}>強風</span>
+        <span style={SUB}>風速</span>
+        {renderInlineInput(WIND_FIELD)}
       </div>
 
-      {/* 雹：感度  ＆  0℃層高度 [input] m 以下 */}
+      {/* 高温（夏） */}
       <div style={ROW}>
-        <span style={RISK_LABEL}>雹</span>
-        {renderSensitivityToggle('hailSensitivity')}
-        <span style={AND_SEP}>＆</span>
-        <span style={SUB}>0℃層高度</span>
-        {renderInlineInput(HAIL_FREEZING)}
+        {renderRowStart('heat')}
+        <span style={RISK_LABEL}>高温</span>
+        <span style={SUB}>気温</span>
+        {renderInlineInput(HEAT_FIELD)}
+      </div>
+
+      {/* 乾燥（秋〜冬） */}
+      <div style={ROW}>
+        {renderRowStart('dry')}
+        <span style={RISK_LABEL}>乾燥</span>
+        <span style={SUB}>湿度</span>
+        {renderInlineInput(DRY_FIELD)}
+      </div>
+
+      {/* 低温（冬） */}
+      <div style={ROW}>
+        {renderRowStart('cold')}
+        <span style={RISK_LABEL}>低温</span>
+        <span style={SUB}>気温</span>
+        {renderInlineInput(COLD_FIELD)}
+      </div>
+
+      {/* 降雪（冬） */}
+      <div style={ROW}>
+        {renderRowStart('snow')}
+        <span style={RISK_LABEL}>降雪</span>
+        <span style={SUB}>積雪量</span>
+        {renderInlineInput(SNOW_FIELD)}
       </div>
 
       {/* フッター：デフォルトに戻す + 保存 */}
