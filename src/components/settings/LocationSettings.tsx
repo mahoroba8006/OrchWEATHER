@@ -61,15 +61,24 @@ export function LocationSettings() {
   const [geoStatus, setGeoStatus] = useState<GeoStatus>('idle');
   const [geoError, setGeoError] = useState<string>('');
 
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [saveError, setSaveError] = useState('');
+
   const handleEdit = (loc: LocationInfo) => {
     setEditingId(loc.id);
     setFormData(loc);
+    setGeoError('');
+    setGeoStatus('idle');
+    setSaveStatus('idle');
+    setSaveError('');
   };
 
   const handleAddNew = () => {
     setEditingId('new');
     setFormData({ name: '新規地点', lat: 35.0, lon: 135.0 });
     setGeoError('');
+    setSaveStatus('idle');
+    setSaveError('');
   };
 
   const handleGetCurrentLocation = () => {
@@ -83,6 +92,8 @@ export function LocationSettings() {
         setGeoStatus('idle');
         setEditingId('new');
         setFormData({ name: '現在地', lat, lon });
+        setSaveStatus('idle');
+        setSaveError('');
       },
       (err) => {
         setGeoStatus('error');
@@ -92,13 +103,22 @@ export function LocationSettings() {
     );
   };
 
-  const handleSave = () => {
-    if (editingId === 'new') {
-      addLocation(formData as Omit<LocationInfo, 'id'>);
-    } else if (editingId) {
-      updateLocation(editingId, formData);
+  const handleSave = async () => {
+    setSaveStatus('saving');
+    setSaveError('');
+    try {
+      if (editingId === 'new') {
+        await addLocation(formData as Omit<LocationInfo, 'id'>);
+      } else if (editingId) {
+        await updateLocation(editingId, formData);
+      }
+      setSaveStatus('idle');
+      setEditingId(null);
+    } catch (err: unknown) {
+      console.error('[LocationSettings] save failed', err);
+      setSaveError(err instanceof Error ? err.message : '保存に失敗しました');
+      setSaveStatus('error');
     }
-    setEditingId(null);
   };
 
   const handleDelete = (id: string) => {
@@ -282,10 +302,17 @@ export function LocationSettings() {
               style={{
                 display: 'flex',
                 justifyContent: 'flex-end',
+                alignItems: 'center',
                 gap: '0.5rem',
                 marginTop: '0.5rem',
               }}
             >
+              {saveStatus === 'saving' && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>保存中…</span>
+              )}
+              {saveStatus === 'error' && (
+                <span style={{ fontSize: '0.78rem', color: '#c62828', alignSelf: 'center' }}>⚠ {saveError}</span>
+              )}
               <button
                 className="secondary"
                 onClick={() => setEditingId(null)}
@@ -294,13 +321,16 @@ export function LocationSettings() {
               </button>
               <button
                 onClick={handleSave}
+                disabled={saveStatus === 'saving'}
                 style={{
                   ...pinkButtonStyle,
                   padding: '0.5rem 1rem',
+                  opacity: saveStatus === 'saving' ? 0.6 : 1,
+                  cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
                 }}
               >
                 <Save size={16} />
-                保存
+                {saveStatus === 'saving' ? '保存中…' : '保存'}
               </button>
             </div>
           </div>
