@@ -16,9 +16,19 @@ const LINK_STYLE: CSSProperties = {
   margin: '0 0.6rem',
 };
 
+const LOGO_STYLE: CSSProperties = {
+  display: 'block',
+  fontSize: '0.9rem',
+  fontWeight: 700,
+  color: '#b0b8c9',
+  letterSpacing: '0.04em',
+  marginBottom: '0.5rem',
+};
+
 export function Footer() {
   return (
     <footer style={FOOTER_STYLE}>
+      <span style={LOGO_STYLE}>Orch.Weather</span>
       <a href="/privacy-policy" style={LINK_STYLE}>プライバシーポリシー</a>
     </footer>
   );
