@@ -90,7 +90,7 @@ export function WeatherSettings() {
   }, [userSettings]);
 
   const handleNumericChange = (
-    key: keyof Pick<RiskThresholds, 'frost' | 'frostDewPoint' | 'wind' | 'rainHourly' | 'rainDaily' | 'heat' | 'dry' | 'hailFreezingLevel'>,
+    key: NumericField['key'],
     raw: string
   ) => {
     setForm((prev) => ({ ...prev, [key]: parseFloat(raw) }));
@@ -120,6 +120,7 @@ export function WeatherSettings() {
 
   const handleReset = async () => {
     setForm({ ...DEFAULT_RISK_THRESHOLDS });
+    // DEFAULT_RISK_THRESHOLDS を明示的に渡す（setForm の非同期性に依存しないため）
     await handleSave(DEFAULT_RISK_THRESHOLDS);
   };
 
