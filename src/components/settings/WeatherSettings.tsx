@@ -54,6 +54,7 @@ function sanitiseThresholds(form: RiskThresholds): RiskThresholds {
   const clamp = (v: number, min: number, max: number, fallback: number) =>
     isNaN(v) ? fallback : Math.min(max, Math.max(min, v));
   return {
+    ...form,
     frost:              clamp(form.frost,             -5,   5,    DEFAULT_RISK_THRESHOLDS.frost),
     frostDewPoint:      clamp(form.frostDewPoint,     -5,   3,    DEFAULT_RISK_THRESHOLDS.frostDewPoint),
     wind:               clamp(form.wind,               5,   30,   DEFAULT_RISK_THRESHOLDS.wind),

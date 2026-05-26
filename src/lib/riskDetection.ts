@@ -1,8 +1,8 @@
 // src/lib/riskDetection.ts
 import type { HourlyForecast, DailyForecastData } from '../api/forecast';
-import type { RiskThresholds, RiskSensitivity } from '../store';
+import type { RiskThresholds, RiskSensitivity, RiskType } from '../store';
 
-export type RiskType = 'frost' | 'thunder' | 'hail' | 'wind' | 'rain' | 'heat' | 'dry';
+export type { RiskType };  // 既存の consumers（RiskSummary.tsx 等）向けに re-export
 
 export interface DayRisk {
   date: string;
@@ -33,6 +33,11 @@ const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
   thunderSensitivity: 'medium',
   hailSensitivity:    'medium',
   hailFreezingLevel:  3500,
+  snow:         3,
+  cold:         0,
+  enabledRisks: [
+    'frost', 'thunder', 'hail', 'rain', 'wind', 'heat', 'dry', 'cold', 'snow',
+  ] as RiskType[],
 };
 
 const THUNDER_CAPE_MAP: Record<RiskSensitivity, number> = {
@@ -50,6 +55,22 @@ export const RISK_BADGES: Record<RiskType, RiskBadge> = {
   rain:    { type: 'rain',    iconFile: 'water',               label: '大雨', badgeBg: '#e6dff0', badgeColor: '#634b85', borderColor: '#ab98c8' },
   heat:    { type: 'heat',    iconFile: 'thermometer-sun',     label: '高温', badgeBg: '#fcdcc4', badgeColor: '#c0392b', borderColor: '#d39867' },
   dry:     { type: 'dry',     iconFile: 'thermometer-raindrop',label: '乾燥', badgeBg: '#ece6d4', badgeColor: '#766a3f', borderColor: '#b8a878' },
+  cold: {
+    type: 'cold',
+    iconFile: 'thermometer-snow',
+    label: '低温',
+    badgeBg:    '#d4e8fc',
+    badgeColor: '#1a5276',
+    borderColor:'#7ab3e0',
+  },
+  snow: {
+    type: 'snow',
+    iconFile: 'overcast-snow',
+    label: '降雪',
+    badgeBg:    '#e8f0f8',
+    badgeColor: '#2c5f8a',
+    borderColor:'#a0c4e8',
+  },
 };
 
 // WMO weather code → 絵文字（昼）
@@ -93,6 +114,8 @@ function buildComment(risks: RiskType[], firstHour?: number): string {
   if (risks.includes('heat')) return '猛暑日';
   if (risks.includes('frost')) return '早朝 霜';
   if (risks.includes('dry')) return '乾燥注意';
+  if (risks.includes('snow')) return '降雪注意';
+  if (risks.includes('cold')) return '低温注意';
   return '';
 }
 
@@ -118,6 +141,8 @@ function detectHourlyRisks(
   let rainMax = 0;
   let heatMax = -Infinity;
   let dryMin = Infinity;
+  let coldMinTemp = Infinity;
+  let snowMax = 0;
 
   for (const h of hours) {
     const hour = parseInt(h.time.slice(11, 13), 10);
@@ -143,6 +168,8 @@ function detectHourlyRisks(
     if (h.precipitation >= t.rainHourly){ detected.push('rain');  if (h.precipitation > rainMax) rainMax  = h.precipitation; }
     if (h.temperature >= t.heat)        { detected.push('heat');  if (h.temperature  > heatMax)  heatMax  = h.temperature; }
     if (h.humidity <= t.dry)            { detected.push('dry');   if (h.humidity     < dryMin)   dryMin   = h.humidity; }
+    if (h.temperature <= t.cold) { detected.push('cold');  if (h.temperature < coldMinTemp) coldMinTemp = h.temperature; }
+    if (h.snowfall   >= t.snow)  { detected.push('snow');  if (h.snowfall    > snowMax)     snowMax     = h.snowfall;    }
 
     if (detected.length > 0) {
       if (detected.some(r => ARATEN_RISK_SET.has(r)) && firstAratenHour === undefined) {
@@ -161,6 +188,8 @@ function detectHourlyRisks(
   if (riskSet.has('rain'))    metrics.rain    = `降水 ${rainMax.toFixed(1)} mm/h`;
   if (riskSet.has('heat'))    metrics.heat    = `気温 ${heatMax.toFixed(1)}℃`;
   if (riskSet.has('dry'))     metrics.dry     = `湿度 ${dryMin}%`;
+  if (riskSet.has('cold')) metrics.cold = `気温 ${coldMinTemp.toFixed(1)}℃`;
+  if (riskSet.has('snow')) metrics.snow = `積雪 ${snowMax.toFixed(1)} cm/h`;
 
   return { risks, firstHour: firstAratenHour, metrics };
 }
@@ -183,6 +212,8 @@ function detectDailyRisks(
   if (day.precipSum >= t.rainDaily)                         { risks.push('rain');    metrics.rain    = `降水量 ${day.precipSum.toFixed(1)} mm`; }
   if (day.tempMax >= t.heat)                                { risks.push('heat');    metrics.heat    = `最高気温 ${day.tempMax.toFixed(1)}℃`; }
   if (day.humidMin <= t.dry)                                { risks.push('dry');     metrics.dry     = `最低湿度 ${day.humidMin}%`; }
+  if (day.tempMin    <= t.cold)  { risks.push('cold'); metrics.cold = `最低気温 ${day.tempMin.toFixed(1)}℃`;    }
+  if (day.snowfallSum >= t.snow) { risks.push('snow'); metrics.snow = `積雪 ${day.snowfallSum.toFixed(1)} cm`; }
 
   return { risks, metrics };
 }
