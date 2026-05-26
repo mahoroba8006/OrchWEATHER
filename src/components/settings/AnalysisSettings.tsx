@@ -90,13 +90,16 @@ export function AnalysisSettings() {
   const handleSaveBaseTempSettings = async () => {
     setBaseTempStatus({ kind: 'saving' });
     try {
-      await updateBaseTempSettings(baseTempForm);
+      const sanitised: [number, number] = [
+        isNaN(baseTempForm[0]) ? 10 : baseTempForm[0],
+        isNaN(baseTempForm[1]) ? 3.5 : baseTempForm[1],
+      ];
+      await updateBaseTempSettings(sanitised);
       setBaseTempStatus({ kind: 'saved', msg: '基準温度を保存しました' });
       setTimeout(() => setBaseTempStatus({ kind: 'idle' }), 2500);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
       console.error('[AnalysisSettings] baseTemp save failed', err);
-      setBaseTempStatus({ kind: 'error', msg: `保存失敗: ${message}` });
+      setBaseTempStatus({ kind: 'error', msg: `保存失敗: ${err instanceof Error ? err.message : String(err)}` });
     }
   };
 
