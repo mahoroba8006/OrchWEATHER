@@ -2058,9 +2058,10 @@ function App() {
       <Footer />
       </main>
 
-      {topTab === 'settings' && <SettingsTab />}
     </div>
     )}
+
+    {topTab === 'settings' && <SettingsTab />}
   </>
   );
 }
