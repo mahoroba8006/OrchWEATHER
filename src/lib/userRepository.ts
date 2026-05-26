@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
-import type { UserSettings, AccumStartDates, AccumDeltaThresholds, RiskThresholds } from '../store';
+import type { UserSettings, AccumStartDates, AccumDeltaThresholds, RiskThresholds, RiskType } from '../store';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
@@ -25,6 +25,11 @@ const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
   thunderSensitivity: 'medium',
   hailSensitivity:    'medium',
   hailFreezingLevel:  3500,
+  snow:               3,
+  cold:               0,
+  enabledRisks:       [
+    'frost', 'thunder', 'hail', 'rain', 'wind', 'heat', 'dry', 'cold', 'snow',
+  ] as RiskType[],
 };
 
 // ユーザードキュメントを「存在しなければ作る」だけにする。
