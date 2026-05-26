@@ -3,7 +3,7 @@ import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
-import { SettingsModal } from './SettingsModal';
+import { SettingsTab } from './components/settings/SettingsTab';
 import { useWeatherData, type CompareTarget } from './hooks/useWeather';
 import { useForecast } from './hooks/useForecast';
 import { MonthsTable } from './components/MonthsTable';
@@ -162,10 +162,9 @@ function calcMobileDefaultViewport(
 
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
-  const [topTab, setTopTab] = useState<'weather' | 'analysis'>('weather');
+  const [topTab, setTopTab] = useState<'weather' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
   const [activeChart, setActiveChart] = useState<ChartId>('temp');
@@ -1230,42 +1229,36 @@ function App() {
 
   return (
     <>
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255, 255, 255, 0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <img src="/icon.png" alt="Orch.Weather" style={{ width: 34, height: 34 }} />
-            <h1 className="title">Orch.Weather</h1>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {user.photoURL && (
-              <img
-                src={user.photoURL}
-                alt={user.displayName ?? ''}
-                width={30}
-                height={30}
-                style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)', boxShadow: 'var(--shadow-sm)' }}
-              />
-            )}
-            <button
-              className="secondary"
-              onClick={() => signOut(auth)}
-              title="ログアウト"
-              style={{ padding: '0.45rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
-            >
-              <LogOut size={14} /> ログアウト
-            </button>
-          </div>
-        </div>
-      </header>
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.75)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--card-border)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 1rem',
+        height: 56,
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        gap: '0.5rem',
+      }}>
+        {/* アプリアイコン（装飾のみ） */}
+        <img
+          src="/icon.png"
+          alt=""
+          aria-hidden="true"
+          style={{ width: 24, height: 24, flexShrink: 0, pointerEvents: 'none', marginRight: '0.25rem' }}
+        />
 
-      <div style={{ background: 'rgba(255, 255, 255, 0.65)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--card-border-sub)', display: 'flex', justifyContent: 'center', padding: '0.4rem 1rem', position: 'sticky', top: 64, zIndex: 40 }}>
-        <div className="premium-segmented-tab" style={{ background: 'rgba(167, 203, 192, 0.15)' }}>
-          {(['weather', 'analysis'] as const).map(tab => (
+        {/* メインタブ */}
+        <div className="premium-segmented-tab" style={{ background: 'rgba(167, 203, 192, 0.15)', flex: 1 }}>
+          {(['weather', 'analysis', 'settings'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setTopTab(tab)}
               style={{
-                padding: '0.5rem 1.5rem',
+                padding: '0.5rem 1.2rem',
                 background: topTab === tab ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)' : 'transparent',
                 color: topTab === tab ? '#ffffff' : 'var(--text-secondary)',
                 border: 'none',
@@ -1275,12 +1268,40 @@ function App() {
                 borderRadius: 'calc(var(--radius-md) - 4px)',
                 boxShadow: topTab === tab ? '0 4px 12px rgba(13, 148, 136, 0.15)' : 'none',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
               }}
             >
-              {tab === 'weather' ? '天気情報' : '比較分析'}
+              {tab === 'weather' ? '天気情報'
+                : tab === 'analysis' ? '比較分析'
+                : <><Settings size={13} /> 設定</>}
             </button>
           ))}
         </div>
+
+        {/* Desktop のみ: アバター＋ログアウト */}
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, marginLeft: '0.25rem' }}>
+            {user.photoURL && (
+              <img
+                src={user.photoURL}
+                alt={user.displayName ?? ''}
+                width={28}
+                height={28}
+                style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)' }}
+              />
+            )}
+            <button
+              className="secondary"
+              onClick={() => signOut(auth)}
+              title="ログアウト"
+              style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
+            >
+              <LogOut size={13} /> ログアウト
+            </button>
+          </div>
+        )}
       </div>
 
       {topTab === 'weather' && <WeatherTab />}
@@ -1290,9 +1311,6 @@ function App() {
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象 (最大3件)</span>
-            <button className="secondary" title="設定" onClick={() => setIsSettingsOpen(true)} style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem' }}>
-              <Settings size={14} /> 地点設定
-            </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
@@ -2040,7 +2058,7 @@ function App() {
       <Footer />
       </main>
 
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      {topTab === 'settings' && <SettingsTab />}
     </div>
     )}
   </>
