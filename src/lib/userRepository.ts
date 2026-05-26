@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
-import type { UserSettings, AccumStartDates, AccumDeltaThresholds } from '../store';
+import type { UserSettings, AccumStartDates, AccumDeltaThresholds, RiskThresholds } from '../store';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
@@ -12,6 +12,19 @@ const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
 const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
   gdd: 30,
   radiation: 100,
+};
+
+const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
+  frost:              3,
+  frostDewPoint:      0,
+  wind:               15,
+  rainHourly:         30,
+  rainDaily:          80,
+  heat:               35,
+  dry:                30,
+  thunderSensitivity: 'medium',
+  hailSensitivity:    'medium',
+  hailFreezingLevel:  3500,
 };
 
 // ユーザードキュメントを「存在しなければ作る」だけにする。
@@ -37,7 +50,11 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     ...DEFAULT_ACCUM_DELTA_THRESHOLDS,
     ...(data?.accumDeltaThresholds ?? {}),
   };
-  return { baseTempSettings, accumStartDates, accumDeltaThresholds };
+  const riskThresholds: RiskThresholds = {
+    ...DEFAULT_RISK_THRESHOLDS,
+    ...(data?.riskThresholds ?? {}),
+  };
+  return { baseTempSettings, accumStartDates, accumDeltaThresholds, riskThresholds };
 }
 
 export async function updateBaseTempSettings(
@@ -59,4 +76,11 @@ export async function updateAccumDeltaThresholds(
   thresholds: AccumDeltaThresholds
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { accumDeltaThresholds: thresholds }, { merge: true });
+}
+
+export async function updateRiskThresholds(
+  uid: string,
+  thresholds: RiskThresholds
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { riskThresholds: thresholds }, { merge: true });
 }

@@ -11,6 +11,7 @@ import {
   updateBaseTempSettings as updateBaseTempSettingsRemote,
   updateAccumStartDates as updateAccumStartDatesRemote,
   updateAccumDeltaThresholds as updateAccumDeltaThresholdsRemote,
+  updateRiskThresholds as updateRiskThresholdsRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -34,10 +35,26 @@ export interface AccumDeltaThresholds {
   radiation: number;
 }
 
+export type RiskSensitivity = 'low' | 'medium' | 'high';
+
+export interface RiskThresholds {
+  frost:              number;          // 霜：気温 ≤ X ℃             デフォルト: 3
+  frostDewPoint:      number;          // 霜：露点温度 ≤ X ℃  ＆      デフォルト: 0  ※時間別のみ
+  wind:               number;          // 強風：風速 ≥ X m/s           デフォルト: 15
+  rainHourly:         number;          // 大雨：時間雨量 ≥ X mm/h      デフォルト: 30
+  rainDaily:          number;          // 大雨：日雨量 ≥ X mm           デフォルト: 80
+  heat:               number;          // 高温：気温 ≥ X ℃             デフォルト: 35
+  dry:                number;          // 乾燥：湿度 ≤ X %             デフォルト: 30
+  thunderSensitivity: RiskSensitivity; // 雷雨感度（CAPE閾値に内部マッピング） デフォルト: 'medium'
+  hailSensitivity:    RiskSensitivity; // 雹感度（CAPE閾値に内部マッピング）   デフォルト: 'medium'
+  hailFreezingLevel:  number;          // 雹：0℃層高度 ≤ X m    ＆    デフォルト: 3500  ※時間別のみ
+}
+
 export interface UserSettings {
-  baseTempSettings: [number, number];
-  accumStartDates: AccumStartDates;
+  baseTempSettings:     [number, number];
+  accumStartDates:      AccumStartDates;
   accumDeltaThresholds: AccumDeltaThresholds;
+  riskThresholds:       RiskThresholds;
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -50,6 +67,19 @@ const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
 const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
   gdd: 30,
   radiation: 100,
+};
+
+const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
+  frost:              3,
+  frostDewPoint:      0,
+  wind:               15,
+  rainHourly:         30,
+  rainDaily:          80,
+  heat:               35,
+  dry:                30,
+  thunderSensitivity: 'medium',
+  hailSensitivity:    'medium',
+  hailFreezingLevel:  3500,
 };
 
 interface AppState {
@@ -66,6 +96,7 @@ interface AppState {
   updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
   updateAccumStartDates: (dates: AccumStartDates) => Promise<void>;
   updateAccumDeltaThresholds: (thresholds: AccumDeltaThresholds) => Promise<void>;
+  updateRiskThresholds: (thresholds: RiskThresholds) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -125,6 +156,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }));
   },
 
+  updateRiskThresholds: async (thresholds) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateRiskThresholdsRemote(uid, thresholds);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, riskThresholds: thresholds }
+        : null,
+    }));
+  },
+
   addLocation: async (loc) => {
     const uid = get().user?.uid;
     if (!uid) return;
@@ -157,4 +199,5 @@ export {
   DEFAULT_BASE_TEMP_SETTINGS,
   DEFAULT_ACCUM_START_DATES,
   DEFAULT_ACCUM_DELTA_THRESHOLDS,
+  DEFAULT_RISK_THRESHOLDS,
 };
