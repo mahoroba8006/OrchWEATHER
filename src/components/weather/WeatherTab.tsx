@@ -1,7 +1,7 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useAppStore } from '../../store';
+import { useAppStore, DEFAULT_RISK_THRESHOLDS } from '../../store';
 import { useForecast } from '../../hooks/useForecast';
 import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
@@ -50,7 +50,17 @@ export function WeatherTab() {
       })()
     : null;
 
-  const dayRisks = data ? detectRisks(data.hourly, data.daily, userSettings?.riskThresholds) : [];
+  const enabledSet = new Set(
+    userSettings?.riskThresholds?.enabledRisks ?? DEFAULT_RISK_THRESHOLDS.enabledRisks
+  );
+
+  const dayRisks = data
+    ? detectRisks(data.hourly, data.daily, userSettings?.riskThresholds)
+        .map(d => ({
+          ...d,
+          risks: d.risks.filter(r => enabledSet.has(r)),
+        }))
+    : [];
 
   const filteredHourly = data
     ? data.hourly.filter(h =>

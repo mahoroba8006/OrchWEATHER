@@ -6,7 +6,7 @@ interface Props {
   dayRisks: DayRisk[];
 }
 
-const ORDERED_TYPES: RiskType[] = ['frost', 'thunder', 'hail', 'wind', 'rain', 'heat', 'dry'];
+const ORDERED_TYPES: RiskType[] = ['frost', 'thunder', 'hail', 'rain', 'wind', 'heat', 'dry', 'cold', 'snow'];
 
 function formatDate(dateStr: string): string {
   const mm = parseInt(dateStr.slice(5, 7), 10);
