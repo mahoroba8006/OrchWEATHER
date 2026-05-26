@@ -10,7 +10,7 @@ import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
 export function WeatherTab() {
-  const { locations } = useAppStore();
+  const { locations, userSettings } = useAppStore();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
@@ -50,7 +50,7 @@ export function WeatherTab() {
       })()
     : null;
 
-  const dayRisks = data ? detectRisks(data.hourly, data.daily) : [];
+  const dayRisks = data ? detectRisks(data.hourly, data.daily, userSettings?.riskThresholds) : [];
 
   const filteredHourly = data
     ? data.hourly.filter(h =>

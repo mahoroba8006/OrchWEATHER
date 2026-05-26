@@ -1,5 +1,6 @@
 // src/lib/riskDetection.ts
 import type { HourlyForecast, DailyForecastData } from '../api/forecast';
+import type { RiskThresholds, RiskSensitivity } from '../store';
 
 export type RiskType = 'frost' | 'thunder' | 'hail' | 'wind' | 'rain' | 'heat' | 'dry';
 
@@ -20,6 +21,26 @@ export interface RiskBadge {
 }
 
 const ARATEN_RISK_SET: ReadonlySet<RiskType> = new Set(['thunder', 'hail', 'wind', 'rain']);
+
+const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
+  frost:              3,
+  frostDewPoint:      0,
+  wind:               15,
+  rainHourly:         30,
+  rainDaily:          80,
+  heat:               35,
+  dry:                30,
+  thunderSensitivity: 'medium',
+  hailSensitivity:    'medium',
+  hailFreezingLevel:  3500,
+};
+
+const THUNDER_CAPE_MAP: Record<RiskSensitivity, number> = {
+  low: 1000, medium: 500, high: 250,
+};
+const HAIL_CAPE_MAP: Record<RiskSensitivity, number> = {
+  low: 2000, medium: 1000, high: 500,
+};
 
 export const RISK_BADGES: Record<RiskType, RiskBadge> = {
   frost:   { type: 'frost',   iconFile: 'thermometer-snow',    label: '霜',   badgeBg: '#fcefc4', badgeColor: '#a07825', borderColor: '#e6c478' },
@@ -76,7 +97,12 @@ function buildComment(risks: RiskType[], firstHour?: number): string {
 }
 
 // 日0-2: hourly 精密判定
-function detectHourlyRisks(hours: HourlyForecast[]): {
+function detectHourlyRisks(
+  hours: HourlyForecast[],
+  t: RiskThresholds,
+  thunderCape: number,
+  hailCape: number
+): {
   risks: RiskType[];
   firstHour: number | undefined;
   metrics: Partial<Record<RiskType, string>>;
@@ -97,24 +123,26 @@ function detectHourlyRisks(hours: HourlyForecast[]): {
     const hour = parseInt(h.time.slice(11, 13), 10);
     const detected: RiskType[] = [];
 
-    if (h.dewPoint <= 0 && h.temperature <= 3) {
+    // 霜：気温 ≤ t.frost ＆ 露点 ≤ t.frostDewPoint（複合条件）
+    if (h.dewPoint <= t.frostDewPoint && h.temperature <= t.frost) {
       detected.push('frost');
       if (h.temperature < frostMinTemp) frostMinTemp = h.temperature;
       if (h.dewPoint    < frostMinDew)  frostMinDew  = h.dewPoint;
     }
-    if (h.cape >= 500 || (h.weatherCode >= 95 && h.weatherCode <= 99)) {
+    if (h.cape >= thunderCape || (h.weatherCode >= 95 && h.weatherCode <= 99)) {
       detected.push('thunder');
       if (h.cape > thunderMaxCape) thunderMaxCape = h.cape;
     }
-    if (h.cape >= 1000 && h.freezingLevel <= 3500) {
+    // 雹：CAPE ≥ hailCape ＆ 0℃層高度 ≤ t.hailFreezingLevel（複合条件）
+    if (h.cape >= hailCape && h.freezingLevel <= t.hailFreezingLevel) {
       detected.push('hail');
-      if (h.cape         > hailMaxCape)    hailMaxCape    = h.cape;
+      if (h.cape          > hailMaxCape)    hailMaxCape    = h.cape;
       if (h.freezingLevel < hailMinFreezing) hailMinFreezing = h.freezingLevel;
     }
-    if (h.windSpeed >= 15)    { detected.push('wind');    if (h.windSpeed    > windMax)  windMax  = h.windSpeed; }
-    if (h.precipitation >= 30){ detected.push('rain');    if (h.precipitation > rainMax) rainMax  = h.precipitation; }
-    if (h.temperature >= 35)  { detected.push('heat');    if (h.temperature  > heatMax)  heatMax  = h.temperature; }
-    if (h.humidity <= 30)     { detected.push('dry');     if (h.humidity     < dryMin)   dryMin   = h.humidity; }
+    if (h.windSpeed >= t.wind)          { detected.push('wind');  if (h.windSpeed    > windMax)  windMax  = h.windSpeed; }
+    if (h.precipitation >= t.rainHourly){ detected.push('rain');  if (h.precipitation > rainMax) rainMax  = h.precipitation; }
+    if (h.temperature >= t.heat)        { detected.push('heat');  if (h.temperature  > heatMax)  heatMax  = h.temperature; }
+    if (h.humidity <= t.dry)            { detected.push('dry');   if (h.humidity     < dryMin)   dryMin   = h.humidity; }
 
     if (detected.length > 0) {
       if (detected.some(r => ARATEN_RISK_SET.has(r)) && firstAratenHour === undefined) {
@@ -138,20 +166,23 @@ function detectHourlyRisks(hours: HourlyForecast[]): {
 }
 
 // 日3-10: daily 代替判定
-function detectDailyRisks(day: DailyForecastData): {
+function detectDailyRisks(
+  day: DailyForecastData,
+  t: RiskThresholds
+): {
   risks: RiskType[];
   metrics: Partial<Record<RiskType, string>>;
 } {
   const risks: RiskType[] = [];
   const metrics: Partial<Record<RiskType, string>> = {};
 
-  if (day.tempMin <= 3)                                { risks.push('frost');   metrics.frost   = `最低気温 ${day.tempMin.toFixed(1)}℃`; }
-  if (day.weatherCode >= 95 && day.weatherCode <= 99)  { risks.push('thunder'); /* 天気コード判定のため指標値なし */ }
-  if (day.weatherCode === 96 || day.weatherCode === 99){ risks.push('hail');    /* 天気コード判定のため指標値なし */ }
-  if (day.windSpeedMax >= 15)                          { risks.push('wind');    metrics.wind    = `最大風速 ${day.windSpeedMax.toFixed(1)} m/s`; }
-  if (day.precipSum >= 80)                             { risks.push('rain');    metrics.rain    = `降水量 ${day.precipSum.toFixed(1)} mm`; }
-  if (day.tempMax >= 35)                               { risks.push('heat');    metrics.heat    = `最高気温 ${day.tempMax.toFixed(1)}℃`; }
-  if (day.humidMin <= 30)                              { risks.push('dry');     metrics.dry     = `最低湿度 ${day.humidMin}%`; }
+  if (day.tempMin <= t.frost)                               { risks.push('frost');   metrics.frost   = `最低気温 ${day.tempMin.toFixed(1)}℃`; }
+  if (day.weatherCode >= 95 && day.weatherCode <= 99)       { risks.push('thunder'); /* 天気コード判定のため指標値なし */ }
+  if (day.weatherCode === 96 || day.weatherCode === 99)     { risks.push('hail');    /* 天気コード判定のため指標値なし */ }
+  if (day.windSpeedMax >= t.wind)                           { risks.push('wind');    metrics.wind    = `最大風速 ${day.windSpeedMax.toFixed(1)} m/s`; }
+  if (day.precipSum >= t.rainDaily)                         { risks.push('rain');    metrics.rain    = `降水量 ${day.precipSum.toFixed(1)} mm`; }
+  if (day.tempMax >= t.heat)                                { risks.push('heat');    metrics.heat    = `最高気温 ${day.tempMax.toFixed(1)}℃`; }
+  if (day.humidMin <= t.dry)                                { risks.push('dry');     metrics.dry     = `最低湿度 ${day.humidMin}%`; }
 
   return { risks, metrics };
 }
@@ -160,15 +191,23 @@ function detectDailyRisks(day: DailyForecastData): {
  * 全11日分のリスクを判定して返す。
  * hourly データが存在する日（日0-2）は精密判定、それ以外は daily 代替判定。
  */
-export function detectRisks(hourly: HourlyForecast[], daily: DailyForecastData[]): DayRisk[] {
+export function detectRisks(
+  hourly: HourlyForecast[],
+  daily: DailyForecastData[],
+  thresholds?: RiskThresholds
+): DayRisk[] {
+  const t = { ...DEFAULT_RISK_THRESHOLDS, ...thresholds };
+  const thunderCape = THUNDER_CAPE_MAP[t.thunderSensitivity];
+  const hailCape    = HAIL_CAPE_MAP[t.hailSensitivity];
+
   return daily.map((day) => {
     const dayHours = hourly.filter(h => h.time.slice(0, 10) === day.date);
 
     if (dayHours.length > 0) {
-      const { risks, firstHour, metrics } = detectHourlyRisks(dayHours);
+      const { risks, firstHour, metrics } = detectHourlyRisks(dayHours, t, thunderCape, hailCape);
       return { date: day.date, risks, comment: buildComment(risks, firstHour), metrics };
     } else {
-      const { risks, metrics } = detectDailyRisks(day);
+      const { risks, metrics } = detectDailyRisks(day, t);
       return { date: day.date, risks, comment: buildComment(risks), metrics };
     }
   });
