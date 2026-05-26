@@ -20,7 +20,7 @@ const SUB_TABS: SettingsSubTab[] = ['location', 'weather', 'analysis'];
 export function SettingsTab() {
   const [subTab, setSubTab] = useState<SettingsSubTab>('location');
   const { user } = useAppStore();
-  const isMobile = window.innerWidth < 768;
+  const [isMobile] = useState(() => window.innerWidth < 768);
 
   return (
     <div className="app-container">
