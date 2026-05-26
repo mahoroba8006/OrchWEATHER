@@ -31,33 +31,24 @@ const SENSITIVITY_LABELS: Record<RiskSensitivity, string> = {
 
 const SENSITIVITY_OPTIONS: RiskSensitivity[] = ['low', 'medium', 'high'];
 
+// direction はボックスの後ろに表示する日本語表現
 interface NumericField {
   key:       keyof Pick<RiskThresholds, 'frost' | 'frostDewPoint' | 'wind' | 'rainHourly' | 'rainDaily' | 'heat' | 'dry' | 'hailFreezingLevel'>;
-  label:     string;
   unit:      string;
-  direction: '≤' | '≥';
+  direction: '以上' | '以下';
   min:       number;
   max:       number;
   step:      number;
 }
 
-// 霜行・雹行以外の単独フィールド（2カラムグリッドに並べる）
-const SOLO_NUMERIC_FIELDS: NumericField[] = [
-  { key: 'wind',       label: '強風',        unit: 'm/s',  direction: '≥', min: 5,   max: 30,  step: 1   },
-  { key: 'heat',       label: '高温',        unit: '℃',   direction: '≥', min: 28,  max: 42,  step: 0.5 },
-  { key: 'dry',        label: '乾燥',        unit: '%',    direction: '≤', min: 10,  max: 60,  step: 5   },
-  { key: 'rainHourly', label: '大雨 時間雨量', unit: 'mm/h', direction: '≥', min: 10,  max: 100, step: 5   },
-];
-
-// 霜の複合条件フィールド（気温 ＆ 露点、1行に並べる）
-const FROST_FIELDS: [NumericField, NumericField] = [
-  { key: 'frost',        label: '気温', unit: '℃', direction: '≤', min: -5, max: 5, step: 0.5 },
-  { key: 'frostDewPoint', label: '露点', unit: '℃', direction: '≤', min: -5, max: 3, step: 0.5 },
-];
-
-// 雹の 0℃層高度フィールド（感度トグルの隣に ＆ で接続）
-const HAIL_FREEZING_FIELD: NumericField =
-  { key: 'hailFreezingLevel', label: '0℃層高度', unit: 'm', direction: '≤', min: 2000, max: 5000, step: 100 };
+const FROST_TEMP:    NumericField = { key: 'frost',             unit: '℃',   direction: '以下', min: -5,  max: 5,    step: 0.5 };
+const FROST_DEW:     NumericField = { key: 'frostDewPoint',     unit: '℃',   direction: '以下', min: -5,  max: 3,    step: 0.5 };
+const WIND_FIELD:    NumericField = { key: 'wind',              unit: 'm/s',  direction: '以上', min: 5,   max: 30,   step: 1   };
+const HEAT_FIELD:    NumericField = { key: 'heat',              unit: '℃',   direction: '以上', min: 28,  max: 42,   step: 0.5 };
+const DRY_FIELD:     NumericField = { key: 'dry',               unit: '%',    direction: '以下', min: 10,  max: 60,   step: 5   };
+const RAIN_DAILY:    NumericField = { key: 'rainDaily',         unit: 'mm',   direction: '以上', min: 20,  max: 300,  step: 10  };
+const RAIN_HOURLY:   NumericField = { key: 'rainHourly',        unit: 'mm/h', direction: '以上', min: 10,  max: 100,  step: 5   };
+const HAIL_FREEZING: NumericField = { key: 'hailFreezingLevel', unit: 'm',    direction: '以下', min: 2000, max: 5000, step: 100 };
 
 function sanitiseThresholds(form: RiskThresholds): RiskThresholds {
   const clamp = (v: number, min: number, max: number, fallback: number) =>
@@ -75,6 +66,37 @@ function sanitiseThresholds(form: RiskThresholds): RiskThresholds {
     hailFreezingLevel:  clamp(form.hailFreezingLevel, 2000, 5000, DEFAULT_RISK_THRESHOLDS.hailFreezingLevel),
   };
 }
+
+// 各リスク行のラベル
+const RISK_LABEL: CSSProperties = {
+  fontSize: '0.88rem',
+  fontWeight: 600,
+  minWidth: '3rem',
+  flexShrink: 0,
+};
+
+// 「気温」「露点」「24時間雨量」などのサブラベル
+const SUB: CSSProperties = {
+  fontSize: '0.78rem',
+  color: 'var(--text-secondary)',
+  whiteSpace: 'nowrap',
+};
+
+// ＆ セパレータ
+const AND_SEP: CSSProperties = {
+  fontSize: '0.85rem',
+  fontWeight: 700,
+  color: 'var(--text-secondary)',
+  flexShrink: 0,
+};
+
+// 1行コンテナ
+const ROW: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.6rem',
+  flexWrap: 'wrap',
+};
 
 export function WeatherSettings() {
   const { userSettings, updateRiskThresholds } = useAppStore();
@@ -138,131 +160,116 @@ export function WeatherSettings() {
     );
   };
 
-  // 単一フィールドのレンダラー（再利用）
-  const renderNumericInput = (field: NumericField) => (
-    <div className="form-group" key={field.key}>
-      <label>{field.label} {field.direction}</label>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-        <input
-          type="number"
-          min={field.min}
-          max={field.max}
-          step={field.step}
-          value={form[field.key] as number}
-          onChange={(e) => handleNumericChange(field.key, e.target.value)}
-          style={{ width: '100%' }}
-        />
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-          {field.unit}
-        </span>
-      </div>
-      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-        {field.min}〜{field.max}
-      </div>
+  // インライン入力：[ input ] unit 以上/以下
+  const renderInlineInput = (field: NumericField) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+      <input
+        type="number"
+        min={field.min}
+        max={field.max}
+        step={field.step}
+        value={form[field.key] as number}
+        onChange={(e) => handleNumericChange(field.key, e.target.value)}
+        style={{ width: '4.5rem' }}
+      />
+      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+        {field.unit}　{field.direction}
+      </span>
+    </div>
+  );
+
+  // 感度トグル（控えめ / 標準 / 敏感）
+  const renderSensitivityToggle = (key: 'thunderSensitivity' | 'hailSensitivity') => (
+    <div style={{ display: 'flex', gap: '0.35rem' }}>
+      {SENSITIVITY_OPTIONS.map((opt) => (
+        <button
+          key={opt}
+          onClick={() => handleSensitivityChange(key, opt)}
+          className="secondary"
+          style={{
+            padding: '0.25rem 0.7rem', fontSize: '0.8rem',
+            background: form[key] === opt ? 'rgba(244,167,185,0.45)' : undefined,
+            color:      form[key] === opt ? '#7a2840' : undefined,
+            fontWeight: form[key] === opt ? 600 : undefined,
+          }}
+        >
+          {SENSITIVITY_LABELS[opt]}
+        </button>
+      ))}
     </div>
   );
 
   return (
     <div
       className="glass-panel"
-      style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+      style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
     >
       <h3 style={{ margin: 0, fontSize: '1.1rem' }}>リスク検知の閾値</h3>
 
-      {/* 霜：気温 ≤ X ℃ ＆ 露点 ≤ X ℃（複合条件を1行で表示） */}
-      <div>
-        <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>霜</label>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginTop: '0.4rem' }}>
-          <div style={{ flex: 1 }}>{renderNumericInput(FROST_FIELDS[0])}</div>
-          <span style={{
-            paddingTop: '1.6rem', fontSize: '0.85rem', fontWeight: 700,
-            color: 'var(--text-secondary)', flexShrink: 0,
-          }}>＆</span>
-          <div style={{ flex: 1 }}>{renderNumericInput(FROST_FIELDS[1])}</div>
-        </div>
+      {/* 霜：気温 [input] ℃ 以下  ＆  露点 [input] ℃ 以下 */}
+      <div style={ROW}>
+        <span style={RISK_LABEL}>霜</span>
+        <span style={SUB}>気温</span>
+        {renderInlineInput(FROST_TEMP)}
+        <span style={AND_SEP}>＆</span>
+        <span style={SUB}>露点</span>
+        {renderInlineInput(FROST_DEW)}
       </div>
 
-      {/* その他の単独数値閾値 — 2カラムグリッド */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-        {SOLO_NUMERIC_FIELDS.map(renderNumericInput)}
+      {/* 強風 */}
+      <div style={ROW}>
+        <span style={RISK_LABEL}>強風</span>
+        <span style={SUB}>風速</span>
+        {renderInlineInput(WIND_FIELD)}
       </div>
 
-      {/* 大雨 日雨量（単独行、左寄せ） */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-        {renderNumericInput({ key: 'rainDaily', label: '大雨 日雨量', unit: 'mm', direction: '≥', min: 20, max: 300, step: 10 })}
+      {/* 高温 */}
+      <div style={ROW}>
+        <span style={RISK_LABEL}>高温</span>
+        <span style={SUB}>気温</span>
+        {renderInlineInput(HEAT_FIELD)}
+      </div>
+
+      {/* 乾燥 */}
+      <div style={ROW}>
+        <span style={RISK_LABEL}>乾燥</span>
+        <span style={SUB}>湿度</span>
+        {renderInlineInput(DRY_FIELD)}
+      </div>
+
+      {/* 大雨：24時間雨量 ／ 1時間雨量 */}
+      <div style={ROW}>
+        <span style={RISK_LABEL}>大雨</span>
+        <span style={SUB}>（24時間雨量）</span>
+        {renderInlineInput(RAIN_DAILY)}
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>／</span>
+        <span style={SUB}>（1時間雨量）</span>
+        {renderInlineInput(RAIN_HOURLY)}
       </div>
 
       {/* 区切り線 */}
-      <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)' }} />
+      <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', margin: '0.25rem 0' }} />
 
-      {/* 感度トグル（雷雨・雹） */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {/* 雷雨感度 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, minWidth: '4.5rem' }}>雷雨感度</span>
-          <div style={{ display: 'flex', gap: '0.35rem' }}>
-            {SENSITIVITY_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => handleSensitivityChange('thunderSensitivity', opt)}
-                className="secondary"
-                style={{
-                  padding: '0.25rem 0.7rem', fontSize: '0.8rem',
-                  background: form.thunderSensitivity === opt ? 'rgba(244,167,185,0.45)' : undefined,
-                  color:      form.thunderSensitivity === opt ? '#7a2840' : undefined,
-                  fontWeight: form.thunderSensitivity === opt ? 600 : undefined,
-                }}
-              >
-                {SENSITIVITY_LABELS[opt]}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* 雷雨 */}
+      <div style={ROW}>
+        <span style={RISK_LABEL}>雷雨</span>
+        {renderSensitivityToggle('thunderSensitivity')}
+      </div>
 
-        {/* 雹感度 ＆ 0℃層高度（複合条件を1行で表示） */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, minWidth: '4.5rem' }}>雹 感度</span>
-          <div style={{ display: 'flex', gap: '0.35rem' }}>
-            {SENSITIVITY_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => handleSensitivityChange('hailSensitivity', opt)}
-                className="secondary"
-                style={{
-                  padding: '0.25rem 0.7rem', fontSize: '0.8rem',
-                  background: form.hailSensitivity === opt ? 'rgba(244,167,185,0.45)' : undefined,
-                  color:      form.hailSensitivity === opt ? '#7a2840' : undefined,
-                  fontWeight: form.hailSensitivity === opt ? 600 : undefined,
-                }}
-              >
-                {SENSITIVITY_LABELS[opt]}
-              </button>
-            ))}
-          </div>
-          {/* ＆ 0℃層高度インライン */}
-          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>＆</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              {HAIL_FREEZING_FIELD.label} {HAIL_FREEZING_FIELD.direction}
-            </span>
-            <input
-              type="number"
-              min={HAIL_FREEZING_FIELD.min}
-              max={HAIL_FREEZING_FIELD.max}
-              step={HAIL_FREEZING_FIELD.step}
-              value={form.hailFreezingLevel}
-              onChange={(e) => handleNumericChange('hailFreezingLevel', e.target.value)}
-              style={{ width: '5rem' }}
-            />
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              {HAIL_FREEZING_FIELD.unit}
-            </span>
-          </div>
-        </div>
+      {/* 雹：感度  ＆  0℃層高度 [input] m 以下 */}
+      <div style={ROW}>
+        <span style={RISK_LABEL}>雹</span>
+        {renderSensitivityToggle('hailSensitivity')}
+        <span style={AND_SEP}>＆</span>
+        <span style={SUB}>0℃層高度</span>
+        {renderInlineInput(HAIL_FREEZING)}
       </div>
 
       {/* フッター：デフォルトに戻す + 保存 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.25rem' }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        paddingTop: '0.5rem', borderTop: '1px solid rgba(0,0,0,0.06)',
+      }}>
         <button
           onClick={handleReset}
           disabled={status.kind === 'saving'}
