@@ -57,7 +57,7 @@ export const RISK_BADGES: Record<RiskType, RiskBadge> = {
   dry:     { type: 'dry',     iconFile: 'thermometer-raindrop',label: '乾燥', badgeBg: '#ece6d4', badgeColor: '#766a3f', borderColor: '#b8a878' },
   cold: {
     type: 'cold',
-    iconFile: 'thermometer-snow',
+    iconFile: 'overcast-sleet',   // thermometer-snow から変更（frost と区別するため）
     label: '低温',
     badgeBg:    '#d4e8fc',
     badgeColor: '#1a5276',

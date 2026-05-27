@@ -129,7 +129,9 @@ export function WeatherSettings() {
     setForm(prev => ({
       ...prev,
       enabledRisks: checked
-        ? [...prev.enabledRisks, type]
+        ? prev.enabledRisks.includes(type)
+            ? prev.enabledRisks
+            : [...prev.enabledRisks, type]
         : prev.enabledRisks.filter(r => r !== type),
     }));
   };
