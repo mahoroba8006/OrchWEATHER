@@ -1053,10 +1053,22 @@ function App() {
 
           const computeAccumDiff = (p: any): string | null => {
             if (!accumDiffConfig || !refId || typeof v0 !== 'number') return null;
+            const t0id = targets[0]?.id;
+            if (!t0id || typeof p.dataKey !== 'string') return null;
+
+            // 通常キーと予報キーの両方を許容する
             const prefix = accumDiffConfig.refKeyPrefix;
-            if (typeof p.dataKey !== 'string' || !p.dataKey.startsWith(prefix)) return null;
-            const targetId = p.dataKey.slice(prefix.length);
-            if (targetId === refId || typeof p.value !== 'number') return null;
+            const forecastPrefixMap: Record<string, string> = {
+              'accum_':           'forecast_accum_gdd_',
+              'accumRadiation_':  'forecast_accum_radiation_',
+              'accumPrecip_':     'forecast_accum_precip_',
+              'accumSunshine_':   'forecast_accum_sunshine_',
+            };
+            const forecastPrefix = forecastPrefixMap[prefix];
+            const isRegularKey  = p.dataKey === `${prefix}${t0id}`;
+            const isForecastKey = !!forecastPrefix && p.dataKey === `${forecastPrefix}${t0id}`;
+            if (!isRegularKey && !isForecastKey) return null;
+            if (typeof p.value !== 'number') return null;
 
             const delta = p.value - v0;
             const deltaStr = accumDiffConfig.formatDelta(delta);
@@ -1071,7 +1083,8 @@ function App() {
             if (v0 < accumDiffConfig.threshold) return `(${deltaStr})`;
             if (hoverDoy == null) return `(${deltaStr})`;
 
-            const series = accumDiffConfig.seriesByTarget?.get(targetId);
+            // Δ日逆引き: targets[0] の確定データ系列を使用（予報日でも同様）
+            const series = accumDiffConfig.seriesByTarget?.get(t0id);
             if (!series) return `(${deltaStr})`;
 
             const crossDate = findDateByAccum(series, v0);
