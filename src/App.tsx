@@ -270,7 +270,7 @@ function App() {
   );
 
   const addTarget = () => {
-    if (targets.length >= 3) return;
+    if (targets.length >= 2) return;
     const lastTarget = targets[targets.length - 1];
     setTargets([
       ...targets, 
@@ -1310,7 +1310,7 @@ function App() {
       <div className="app-container">
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象 (最大3件)</span>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象 (最大2件)</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
@@ -1366,7 +1366,7 @@ function App() {
                 )}
               </div>
             ))}
-            {targets.length < 3 && (
+            {targets.length < 2 && (
               <button
                 onClick={addTarget}
                 className="secondary"
