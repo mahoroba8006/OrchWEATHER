@@ -7,14 +7,14 @@ import { WeatherIcon, codeToLabel, dayTransitionLabel } from './WeatherIcon';
 interface Props {
   daily: DailyForecastData[];
   dayRisks: DayRisk[];
-  onHalfDayClick?: (date: string, ampm: 'am' | 'pm') => void;
+  onHalfDayClick?: (date: string, period: 'am' | 'pm' | 'night') => void;
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
-const CARD_W = 86;   // px per day — mini chart geometry depends on this
-const HALF_W = 65;   // px per AM / PM cell (split days = 2 × HALF_W)
-const CHART_H = 60;
-const SPLIT_DAYS = 3; // first N days get AM/PM split
+const CARD_W   = 86;  // px per day (non-split)
+const PERIOD_W = 50;  // px per AM / PM / Night cell (split days = 3 × PERIOD_W)
+const CHART_H  = 60;
+const SPLIT_DAYS = 3; // first N days get AM/PM/Night split
 
 function probColor(p: number): string {
   if (p >= 70) return 'var(--accent-blue)';
@@ -44,10 +44,11 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   const tRange = tMax - tMin || 1;
   const pMax  = Math.max(...precips, 1);
 
-  // 列幅は実測値ベース → AM/PM 中央も実測幅から算出
-  const cx   = (i: number) => dayX[i] + dayWidths[i] / 2;
-  const cxAm = (i: number) => dayX[i] + dayWidths[i] / 4;
-  const cxPm = (i: number) => dayX[i] + dayWidths[i] * 0.75;
+  // 列幅は実測値ベース → 各時間帯の中央も実測幅から算出
+  const cx      = (i: number) => dayX[i] + dayWidths[i] / 2;
+  const cxAm    = (i: number) => dayX[i] + dayWidths[i] * (1 / 6);
+  const cxPm    = (i: number) => dayX[i] + dayWidths[i] * (3 / 6);
+  const cxNight = (i: number) => dayX[i] + dayWidths[i] * (5 / 6);
   const ty   = (t: number) => padT + (1 - (t - tMin) / tRange) * innerH;
   // バー高さ：気温線の下半分に収める（innerH の 45%）
   const ph  = (p: number) => p === 0 ? 0 : Math.max(1, (p / pMax) * innerH * 0.45);
@@ -83,11 +84,13 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
       {daily.map((day, i) => {
         const split = i < SPLIT_DAYS;
         if (split && day.amPrecipSum !== null) {
-          // 分割日: AM 列・PM 列それぞれの中央にバーを配置（実測幅ベース）
+          // 分割日: 午前・午後・夜間 それぞれの中央にバーを配置（実測幅ベース）
           const cxA = cxAm(i);
           const cxP = cxPm(i);
-          const amBh = ph(day.amPrecipSum);
-          const pmBh = ph(day.pmPrecipSum ?? 0);
+          const cxN = cxNight(i);
+          const amBh    = ph(day.amPrecipSum);
+          const pmBh    = ph(day.pmPrecipSum ?? 0);
+          const nightBh = ph(day.nightPrecipSum ?? 0);
           return (
             <g key={i}>
               {amBh > 0 && (
@@ -103,6 +106,14 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
                   <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
                   <text x={cxP} y={H - padB - pmBh - 2} fontSize={7} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
                     {(day.pmPrecipSum ?? 0).toFixed(1)}
+                  </text>
+                </>
+              )}
+              {nightBh > 0 && (
+                <>
+                  <rect x={cxN - barW / 2} y={H - padB - nightBh} width={barW} height={nightBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
+                  <text x={cxN} y={H - padB - nightBh - 2} fontSize={7} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
+                    {(day.nightPrecipSum ?? 0).toFixed(1)}
                   </text>
                 </>
               )}
@@ -148,10 +159,11 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
       for (let i = 0; i < daily.length; i++) {
         newDayX.push(xAcc);
         if (i < SPLIT_DAYS) {
-          const w = (widths[colIdx] ?? HALF_W) + (widths[colIdx + 1] ?? HALF_W);
+          // 3 列（午前・午後・夜間）
+          const w = (widths[colIdx] ?? PERIOD_W) + (widths[colIdx + 1] ?? PERIOD_W) + (widths[colIdx + 2] ?? PERIOD_W);
           newDayWidths.push(w);
           xAcc += w;
-          colIdx += 2;
+          colIdx += 3;
         } else {
           const w = widths[colIdx] ?? CARD_W;
           newDayWidths.push(w);
@@ -178,7 +190,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
   const dayBorder = (i: number) =>
     i < daily.length - 1 ? '1px solid var(--card-border-sub)' : undefined;
 
-  // colSpan=2 per day (date / temp / risk rows for split days)
+  // colSpan=3 per split day (date / temp / risk rows)
   const spanCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
     background: cellBg(day),
     textAlign: 'center',
@@ -188,7 +200,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
     ...extra,
   });
 
-  // single cell for days 3+ (original layout)
+  // single cell for days SPLIT_DAYS+ (original layout)
   const singleCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
     width: CARD_W,
     minWidth: CARD_W,
@@ -200,32 +212,46 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
     ...extra,
   });
 
-  // AM cell (left half of split day)
+  const innerBorder = '1px solid var(--card-border-sub)';
+
+  // AM cell (left of 3-column split day)
   const amCell = (day: DailyForecastData, extra?: CSSProperties): CSSProperties => ({
-    width: HALF_W,
-    minWidth: HALF_W,
+    width: PERIOD_W,
+    minWidth: PERIOD_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.3rem 0.15rem',
+    padding: '0.3rem 0.1rem',
     verticalAlign: 'middle',
-    borderRight: '1px solid var(--card-border-sub)',
+    borderRight: innerBorder,
     ...extra,
   });
 
-  // PM cell (right half of split day)
-  const pmCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
-    width: HALF_W,
-    minWidth: HALF_W,
+  // PM cell (middle of 3-column split day)
+  const pmCell = (day: DailyForecastData, extra?: CSSProperties): CSSProperties => ({
+    width: PERIOD_W,
+    minWidth: PERIOD_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.3rem 0.15rem',
+    padding: '0.3rem 0.1rem',
+    verticalAlign: 'middle',
+    borderRight: innerBorder,
+    ...extra,
+  });
+
+  // Night cell (right of 3-column split day)
+  const nightCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
+    width: PERIOD_W,
+    minWidth: PERIOD_W,
+    background: cellBg(day),
+    textAlign: 'center',
+    padding: '0.3rem 0.1rem',
     verticalAlign: 'middle',
     borderRight: dayBorder(i),
     ...extra,
   });
 
-  // mini chart colSpan: split days × 2 + single days × 1
-  const chartColSpan = SPLIT_DAYS * 2 + (daily.length - SPLIT_DAYS);
+  // mini chart colSpan: split days × 3 + single days × 1
+  const chartColSpan = SPLIT_DAYS * 3 + (daily.length - SPLIT_DAYS);
 
   return (
     <div>
@@ -235,8 +261,9 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
             {daily.flatMap((day, i) =>
               i < SPLIT_DAYS
                 ? [
-                    <col key={`${day.date}-am`} style={{ width: HALF_W }} />,
-                    <col key={`${day.date}-pm`} style={{ width: HALF_W }} />,
+                    <col key={`${day.date}-am`}    style={{ width: PERIOD_W }} />,
+                    <col key={`${day.date}-pm`}    style={{ width: PERIOD_W }} />,
+                    <col key={`${day.date}-night`} style={{ width: PERIOD_W }} />,
                   ]
                 : [<col key={day.date} style={{ width: CARD_W }} />]
             )}
@@ -254,7 +281,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 return (
                   <td
                     key={day.date}
-                    colSpan={split ? 2 : 1}
+                    colSpan={split ? 3 : 1}
                     style={{ ...(split ? spanCell(day, i) : singleCell(day, i)), paddingTop: '0.75rem' }}
                   >
                     <div style={{ fontSize: '0.75rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500 }}>
@@ -272,7 +299,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 );
               })}
             </tr>
-            {/* 天気アイコン（午前・午後ラベルをセル内に内包） */}
+            {/* 天気アイコン（時間帯ラベルをセル内に内包） */}
             <tr>
               {daily.map((day, i) => {
                 if (i < SPLIT_DAYS) {
@@ -288,12 +315,21 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         </div>
                       </td>
                       <td
-                        style={{ ...pmCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
+                        style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'pm')}
                       >
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午後</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={84} /> : '—'}
+                        </div>
+                      </td>
+                      <td
+                        style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
+                        onClick={() => onHalfDayClick?.(day.date, 'night')}
+                      >
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>夜間</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
+                          {day.nightWeatherCode !== null ? <WeatherIcon code={day.nightWeatherCode} size={84} isNight /> : '—'}
                         </div>
                       </td>
                     </Fragment>
@@ -323,13 +359,22 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                           {day.amPrecipProb !== null ? `${day.amPrecipProb}%` : '—'}
                         </div>
                       </td>
-                      <td style={pmCell(day, i)}>
+                      <td style={pmCell(day)}>
                         <div style={{
                           fontSize: '0.72rem',
                           color: day.pmPrecipProb !== null ? probColor(day.pmPrecipProb) : 'var(--text-tertiary)',
                           fontWeight: day.pmPrecipProb !== null && day.pmPrecipProb >= 70 ? 700 : undefined,
                         }}>
                           {day.pmPrecipProb !== null ? `${day.pmPrecipProb}%` : '—'}
+                        </div>
+                      </td>
+                      <td style={nightCell(day, i)}>
+                        <div style={{
+                          fontSize: '0.72rem',
+                          color: day.nightPrecipProb !== null ? probColor(day.nightPrecipProb) : 'var(--text-tertiary)',
+                          fontWeight: day.nightPrecipProb !== null && day.nightPrecipProb >= 70 ? 700 : undefined,
+                        }}>
+                          {day.nightPrecipProb !== null ? `${day.nightPrecipProb}%` : '—'}
                         </div>
                       </td>
                     </Fragment>
@@ -347,7 +392,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
               {daily.map((day, i) => {
                 const split = i < SPLIT_DAYS;
                 return (
-                  <td key={day.date} colSpan={split ? 2 : 1} style={split ? spanCell(day, i) : singleCell(day, i)}>
+                  <td key={day.date} colSpan={split ? 3 : 1} style={split ? spanCell(day, i) : singleCell(day, i)}>
                     <div style={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
                       <span style={{ color: '#fb7185', fontWeight: 700 }}>{Math.round(day.tempMax)}</span>
                       <span style={{ color: 'var(--text-tertiary)', margin: '0 0.2rem', fontSize: '0.8rem' }}>/</span>
@@ -376,7 +421,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 return (
                   <td
                     key={day.date}
-                    colSpan={split ? 2 : 1}
+                    colSpan={split ? 3 : 1}
                     style={{ ...(split ? spanCell(day, i) : singleCell(day, i)), paddingBottom: '0.6rem', verticalAlign: 'top' }}
                   >
                     {hasRisk && riskDay && (

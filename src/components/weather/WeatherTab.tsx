@@ -68,8 +68,9 @@ export function WeatherTab() {
       )
     : [];
 
-  const scrollToHour = useCallback((date: string, ampm: 'am' | 'pm') => {
-    setScrollTarget(`${date}T${ampm === 'am' ? '00' : '12'}:00`);
+  const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
+    const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
+    setScrollTarget(`${date}T${hour}:00`);
   }, []);
 
   return (

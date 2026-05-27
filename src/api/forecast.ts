@@ -33,12 +33,15 @@ export interface DailyForecastData {
   snowfallSum: number;   // cm
   windSpeedMax: number;  // m/s
   sunshineDuration: number;  // h（日照時間、秒→時間に変換済み）
-  amWeatherCode: number | null; // WMO max 06:00-11:00
-  pmWeatherCode: number | null; // WMO max 12:00-17:00
-  amPrecipProb:  number | null; // % max 06:00-11:00
-  pmPrecipProb:  number | null; // % max 12:00-17:00
-  amPrecipSum:   number | null; // mm sum 00:00-11:59（時間別データがある日のみ）
-  pmPrecipSum:   number | null; // mm sum 12:00-23:59（時間別データがある日のみ）
+  amWeatherCode:    number | null; // WMO max 04:00-11:00
+  pmWeatherCode:    number | null; // WMO max 12:00-19:00
+  nightWeatherCode: number | null; // WMO max 20:00-翌3:00
+  amPrecipProb:     number | null; // % max 04:00-11:00
+  pmPrecipProb:     number | null; // % max 12:00-19:00
+  nightPrecipProb:  number | null; // % max 20:00-翌3:00
+  amPrecipSum:      number | null; // mm sum 04:00-11:59（時間別データがある日のみ）
+  pmPrecipSum:      number | null; // mm sum 12:00-19:59（時間別データがある日のみ）
+  nightPrecipSum:   number | null; // mm sum 20:00-翌3:59（時間別データがある日のみ）
 }
 
 export interface ForecastData {
@@ -102,25 +105,56 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     uvIndex:       raw.hourly.uv_index?.[i]                   ?? 0,
   }));
 
-  // 午前(6-11時)・午後(12-17時)別に最大 weatherCode / precipProb を hourly から集計
+  // 午前(4-11時)・午後(12-19時)・夜間(20-翌3時)別に最大 weatherCode / precipProb を hourly から集計
+  // 夜間は 0-3 時を前日の夜間として扱う
   const dayAmPm = new Map<string, {
-    amCode: number | null; pmCode: number | null;
-    amProb: number | null; pmProb: number | null;
-    amPrecipSum: number;   pmPrecipSum: number;
+    amCode: number | null; pmCode: number | null; nightCode: number | null;
+    amProb: number | null; pmProb: number | null; nightProb: number | null;
+    amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
   }>();
   for (const h of hourly) {
     const date = h.time.slice(0, 10);
     const hr = parseInt(h.time.slice(11, 13), 10);
-    if (!dayAmPm.has(date)) dayAmPm.set(date, { amCode: null, pmCode: null, amProb: null, pmProb: null, amPrecipSum: 0, pmPrecipSum: 0 });
-    const d = dayAmPm.get(date)!;
-    if (hr < 12) {
+
+    // 0-3 時は前日の夜間に属する
+    let targetDate: string;
+    let period: 'am' | 'pm' | 'night';
+    if (hr < 4) {
+      const d = new Date(date + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      targetDate = d.toISOString().slice(0, 10);
+      period = 'night';
+    } else if (hr < 12) {
+      targetDate = date;
+      period = 'am';
+    } else if (hr < 20) {
+      targetDate = date;
+      period = 'pm';
+    } else {
+      targetDate = date;
+      period = 'night';
+    }
+
+    if (!dayAmPm.has(targetDate)) {
+      dayAmPm.set(targetDate, {
+        amCode: null, pmCode: null, nightCode: null,
+        amProb: null, pmProb: null, nightProb: null,
+        amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
+      });
+    }
+    const d = dayAmPm.get(targetDate)!;
+    if (period === 'am') {
       d.amCode       = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
       d.amPrecipSum += h.precipitation;
-    } else {
+    } else if (period === 'pm') {
       d.pmCode       = d.pmCode === null ? h.weatherCode : Math.max(d.pmCode, h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
+    } else {
+      d.nightCode       = d.nightCode === null ? h.weatherCode : Math.max(d.nightCode, h.weatherCode);
+      d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
+      d.nightPrecipSum += h.precipitation;
     }
   }
 
@@ -139,12 +173,15 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     snowfallSum:   raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:  raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    amWeatherCode: dayAmPm.get(t)?.amCode ?? null,
-    pmWeatherCode: dayAmPm.get(t)?.pmCode ?? null,
-    amPrecipProb:  dayAmPm.get(t)?.amProb ?? null,
-    pmPrecipProb:  dayAmPm.get(t)?.pmProb ?? null,
-    amPrecipSum:   dayAmPm.has(t) ? dayAmPm.get(t)!.amPrecipSum : null,
-    pmPrecipSum:   dayAmPm.has(t) ? dayAmPm.get(t)!.pmPrecipSum : null,
+    amWeatherCode:    dayAmPm.get(t)?.amCode    ?? null,
+    pmWeatherCode:    dayAmPm.get(t)?.pmCode    ?? null,
+    nightWeatherCode: dayAmPm.get(t)?.nightCode ?? null,
+    amPrecipProb:     dayAmPm.get(t)?.amProb    ?? null,
+    pmPrecipProb:     dayAmPm.get(t)?.pmProb    ?? null,
+    nightPrecipProb:  dayAmPm.get(t)?.nightProb ?? null,
+    amPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.amPrecipSum    : null,
+    pmPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.pmPrecipSum    : null,
+    nightPrecipSum:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSum : null,
   }));
 
   return { hourly, daily, fetchedAt: Date.now() };
