@@ -47,28 +47,31 @@ async function fetchRawHistorical(
   startDate: string,
   endDate: string,
 ): Promise<ForecastData> {
+  // アーカイブAPIは precipitation_probability / cape / freezinglevel_height / uv_index を持たない。
+  // これらは該当フィールドのデフォルト値（0 / 0 / 9999 / 0）で代替する。
   const hourlyParams = [
-    'temperature_2m', 'precipitation', 'precipitation_probability',
+    'temperature_2m', 'precipitation',
     'dew_point_2m', 'relative_humidity_2m',
     'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
-    'cape', 'freezinglevel_height', 'pressure_msl',
+    'pressure_msl',
     'weather_code', 'shortwave_radiation', 'snowfall',
-    'uv_index',
   ].join(',');
 
+  // アーカイブAPIは precipitation_probability_max を持たない（null → 0 でフォールバック）
   const dailyParams = [
     'weather_code', 'temperature_2m_max', 'temperature_2m_min',
-    'precipitation_probability_max',
     'precipitation_sum', 'relative_humidity_2m_min', 'relative_humidity_2m_max',
     'sunrise', 'sunset',
     'shortwave_radiation_sum', 'snowfall_sum', 'wind_speed_10m_max',
     'sunshine_duration',
   ].join(',');
 
-  const url = 'https://api.open-meteo.com/v1/forecast'
+  // アーカイブAPI: 任意の過去日付の実測データを取得できる
+  // 風速は wind_speed_unit=ms で m/s に統一（デフォルトは km/h）
+  const url = 'https://archive-api.open-meteo.com/v1/archive'
     + `?latitude=${lat}&longitude=${lon}`
     + '&timezone=Asia%2FTokyo'
-    + '&models=best_match'
+    + '&wind_speed_unit=ms'
     + `&start_date=${startDate}`
     + `&end_date=${endDate}`
     + `&hourly=${hourlyParams}`
@@ -82,24 +85,24 @@ async function fetchRawHistorical(
     throw new Error('気象データの形式が不正です');
   }
 
-  // hourly マッピング
+  // hourly マッピング（アーカイブAPI非対応フィールドはデフォルト値で補完）
   const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({
     time:          t,
     temperature:   raw.hourly.temperature_2m?.[i]              ?? 0,
     precipitation: raw.hourly.precipitation?.[i]                ?? 0,
-    precipProb:    raw.hourly.precipitation_probability?.[i]    ?? 0,
+    precipProb:    0,    // アーカイブAPIは降水確率なし
     dewPoint:      raw.hourly.dew_point_2m?.[i]                 ?? 0,
     humidity:      raw.hourly.relative_humidity_2m?.[i]         ?? 0,
     windSpeed:     raw.hourly.wind_speed_10m?.[i]               ?? 0,
     windDirection: raw.hourly.wind_direction_10m?.[i]           ?? 0,
     windGusts:     raw.hourly.wind_gusts_10m?.[i]               ?? 0,
-    cape:          raw.hourly.cape?.[i]                          ?? 0,
-    freezingLevel: raw.hourly.freezinglevel_height?.[i]         ?? 9999,
+    cape:          0,    // アーカイブAPIはCAPEなし
+    freezingLevel: 9999, // アーカイブAPIは0℃層高度なし
     pressure:      raw.hourly.pressure_msl?.[i]                 ?? 1013,
     weatherCode:   raw.hourly.weather_code?.[i]                 ?? 0,
     radiation:     raw.hourly.shortwave_radiation?.[i]          ?? 0,
     snowfall:      raw.hourly.snowfall?.[i]                     ?? 0,
-    uvIndex:       raw.hourly.uv_index?.[i]                    ?? 0,
+    uvIndex:       0,    // アーカイブAPIはUV指数なし
   }));
 
   // AM(4-12) / PM(12-20) / 夜間(20-翌4) 集計
