@@ -43,6 +43,7 @@ export interface DailyForecastData {
   amPrecipSum:      number | null; // mm sum 04:00-11:59（時間別データがある日のみ）
   pmPrecipSum:      number | null; // mm sum 12:00-19:59（時間別データがある日のみ）
   nightPrecipSum:   number | null; // mm sum 20:00-翌3:59（時間別データがある日のみ）
+  isPlaceholder?:   boolean;       // true: 取得データなし（未来日など）—表示用
 }
 
 export interface ForecastData {

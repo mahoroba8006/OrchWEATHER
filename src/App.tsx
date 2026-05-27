@@ -11,6 +11,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
 import { WeatherTab } from './components/weather/WeatherTab';
+import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
 import { Footer } from './components/Footer';
 import './App.css';
 
@@ -162,7 +163,7 @@ function calcMobileDefaultViewport(
 
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
-  const [topTab, setTopTab] = useState<'weather' | 'analysis' | 'settings'>('weather');
+  const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
@@ -1266,7 +1267,7 @@ function App() {
 
         {/* メインタブ */}
         <div className="premium-segmented-tab" style={{ background: 'rgba(167, 203, 192, 0.15)', flex: 1 }}>
-          {(['weather', 'analysis', 'settings'] as const).map((tab) => (
+          {(['weather', 'history', 'analysis', 'settings'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setTopTab(tab)}
@@ -1287,6 +1288,7 @@ function App() {
               }}
             >
               {tab === 'weather' ? '天気情報'
+                : tab === 'history' ? 'あの時の天気'
                 : tab === 'analysis' ? '比較分析'
                 : <><Settings size={13} /> 設定</>}
             </button>
@@ -1318,6 +1320,8 @@ function App() {
       </div>
 
       {topTab === 'weather' && <WeatherTab />}
+
+      {topTab === 'history' && <HistoricalWeatherTab />}
 
       {topTab === 'analysis' && (
       <div className="app-container">

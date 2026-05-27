@@ -19,8 +19,9 @@ function detectHourRisks(h: HourlyForecast): RiskType[] {
 interface Props {
   hourly: HourlyForecast[];
   daily: DailyForecastData[];
-  scrollRef: RefObject<HTMLDivElement | null>;
+  scrollRef?: RefObject<HTMLDivElement | null>;
   scrollTarget?: string; // "YYYY-MM-DDTHH:00" — scroll this column to left edge
+  disablePastOpacity?: boolean; // true: 過去時刻のグレーアウトを無効化（履歴タブ用）
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -242,9 +243,11 @@ const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => strin
 ];
 
 // ── Main component ────────────────────────────────────────
-export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
+export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
+  // 履歴タブはすべての時刻が「過去」になるため、グレーアウトを無効化する
+  const effectiveCutoff = disablePastOpacity ? new Date(0) : cutoff;
 
   // Build timeline: hourly entries interleaved with sun events inside the range
   const firstTime = hourly.length > 0 ? hourly[0].time : '';
@@ -263,7 +266,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
 
   // Scroll to the 1-hour-before-now column on load
   useEffect(() => {
-    if (!scrollRef.current || tl.length === 0) return;
+    if (!scrollRef?.current || tl.length === 0) return;
     const STICKY_W = 90;
     let targetIdx = 0;
     for (let i = 0; i < tl.length; i++) {
@@ -277,7 +280,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
   }, [hourly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!scrollTarget || !scrollRef.current) return;
+    if (!scrollTarget || !scrollRef?.current) return;
     const container = scrollRef.current;
     const cell = container.querySelector(`[data-time="${scrollTarget}"]`) as HTMLElement | null;
     if (!cell) return;
@@ -285,7 +288,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
     container.scrollLeft += cell.getBoundingClientRect().left - container.getBoundingClientRect().left - STICKY_W;
   }, [scrollTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isPast = (e: TLEntry) => new Date(tlTime(e)) < cutoff;
+  const isPast = (e: TLEntry) => new Date(tlTime(e)) < effectiveCutoff;
 
   // 夜間判定: daily の sunrise/sunset を時刻順に並べ、直前のイベントが sunset なら夜
   const allSunEvents = daily
@@ -309,7 +312,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
 
   return (
     <div>
-      <div ref={scrollRef} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)' }}>
+      <div ref={scrollRef ?? undefined} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)' }}>
         <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
           <tbody>
             {/* 日付 */}
@@ -375,9 +378,9 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget }: Props) {
                 );
               })}
             </tr>
-            <RiskBadgesRow tl={tl} cutoff={cutoff} />
+            <RiskBadgesRow tl={tl} cutoff={effectiveCutoff} />
             <MiniChartRow tl={tl} />
-            <UVRow tl={tl} isNighttime={isNighttime} cutoff={cutoff} />
+            <UVRow tl={tl} isNighttime={isNighttime} cutoff={effectiveCutoff} />
             {/* データ行 */}
             {DATA_ROWS.map(row => (
               <tr key={row.key} style={{ borderBottom: '1px solid #f0f2f8' }}>

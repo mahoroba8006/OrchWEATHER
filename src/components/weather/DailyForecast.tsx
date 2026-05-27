@@ -35,12 +35,13 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   const padB = 6;
   const innerH = H - padT - padB;
 
-  const tempMaxes = daily.map(d => d.tempMax);
-  const tempMins  = daily.map(d => d.tempMin);
+  const tempMaxes: (number | null)[] = daily.map(d => d.isPlaceholder ? null : d.tempMax);
+  const tempMins:  (number | null)[] = daily.map(d => d.isPlaceholder ? null : d.tempMin);
   const precips   = daily.map(d => d.precipSum);
 
-  const tMin = Math.min(...tempMins, ...tempMaxes);
-  const tMax = Math.max(...tempMaxes, ...tempMins);
+  const validTemps = [...tempMaxes, ...tempMins].filter((t): t is number => t !== null);
+  const tMin = validTemps.length > 0 ? Math.min(...validTemps) : 0;
+  const tMax = validTemps.length > 0 ? Math.max(...validTemps) : 1;
   const tRange = tMax - tMin || 1;
   const pMax  = Math.max(...precips, 1);
 
@@ -55,8 +56,10 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   // バー幅：非分割日（CARD_W）と同じ固定幅で統一
   const barW = Math.round(CARD_W * 0.35);
 
-  const makePath = (temps: number[]) => {
-    const pts = temps.map((t, i) => [cx(i), ty(t)] as [number, number]);
+  const makePath = (temps: (number | null)[]) => {
+    const pts: [number, number][] = [];
+    temps.forEach((t, i) => { if (t !== null) pts.push([cx(i), ty(t)]); });
+    if (pts.length === 0) return '';
     let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
     for (let i = 1; i < pts.length; i++) {
       const [x0, y0] = pts[i - 1];
@@ -82,6 +85,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
         </g>
       ))}
       {daily.map((day, i) => {
+        if (day.isPlaceholder) return null;
         const split = i < SPLIT_DAYS;
         if (split && day.amPrecipSum !== null) {
           // 分割日: 午前・午後・夜間 それぞれの中央にバーを配置（実測幅ベース）
@@ -320,6 +324,25 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
             <tr>
               {daily.map((day, i) => {
                 if (i < SPLIT_DAYS) {
+                  const dashCell: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84, color: 'var(--text-tertiary)', fontSize: '1rem' };
+                  if (day.isPlaceholder) {
+                    return (
+                      <Fragment key={day.date}>
+                        <td style={amCell(day)}>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午前(4-12)</div>
+                          <div style={dashCell}>—</div>
+                        </td>
+                        <td style={pmCell(day)}>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午後(12-20)</div>
+                          <div style={dashCell}>—</div>
+                        </td>
+                        <td style={nightCell(day, i)}>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>夜間(20-翌4)</div>
+                          <div style={dashCell}>—</div>
+                        </td>
+                      </Fragment>
+                    );
+                  }
                   return (
                     <Fragment key={day.date}>
                       <td
@@ -355,7 +378,9 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
-                      <WeatherIcon code={day.weatherCode} size={84} />
+                      {day.isPlaceholder
+                        ? <span style={{ color: 'var(--text-tertiary)', fontSize: '1rem' }}>—</span>
+                        : <WeatherIcon code={day.weatherCode} size={84} />}
                     </div>
                   </td>
                 );
@@ -365,6 +390,15 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
             <tr>
               {daily.map((day, i) => {
                 if (i < SPLIT_DAYS) {
+                  if (day.isPlaceholder) {
+                    return (
+                      <Fragment key={day.date}>
+                        <td style={amCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                        <td style={pmCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                        <td style={nightCell(day, i)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                      </Fragment>
+                    );
+                  }
                   return (
                     <Fragment key={day.date}>
                       <td style={amCell(day)}>
@@ -399,7 +433,9 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>降水 {day.precipProbMax}%</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                      {day.isPlaceholder ? '—' : `降水 ${day.precipProbMax}%`}
+                    </div>
                   </td>
                 );
               })}
@@ -410,11 +446,15 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 const split = i < SPLIT_DAYS;
                 return (
                   <td key={day.date} colSpan={split ? 3 : 1} style={split ? spanCell(day, i) : singleCell(day, i)}>
-                    <div style={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
-                      <span style={{ color: '#fb7185', fontWeight: 700 }}>{Math.round(day.tempMax)}</span>
-                      <span style={{ color: 'var(--text-tertiary)', margin: '0 0.2rem', fontSize: '0.8rem' }}>/</span>
-                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>{Math.round(day.tempMin)}</span>
-                    </div>
+                    {day.isPlaceholder ? (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>—</div>
+                    ) : (
+                      <div style={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
+                        <span style={{ color: '#fb7185', fontWeight: 700 }}>{Math.round(day.tempMax)}</span>
+                        <span style={{ color: 'var(--text-tertiary)', margin: '0 0.2rem', fontSize: '0.8rem' }}>/</span>
+                        <span style={{ color: '#38bdf8', fontWeight: 700 }}>{Math.round(day.tempMin)}</span>
+                      </div>
+                    )}
                   </td>
                 );
               })}
