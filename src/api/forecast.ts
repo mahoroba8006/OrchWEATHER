@@ -8,6 +8,7 @@ export interface HourlyForecast {
   dewPoint: number;      // ℃
   humidity: number;      // %
   windSpeed: number;     // m/s
+  windDirection: number; // degrees (0-360)
   windGusts: number;     // m/s
   cape: number;          // J/kg
   freezingLevel: number; // m
@@ -54,7 +55,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   const hourlyParams = [
     'temperature_2m', 'precipitation', 'precipitation_probability',
     'dew_point_2m', 'relative_humidity_2m',
-    'wind_speed_10m', 'wind_gusts_10m',
+    'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
     'cape', 'freezinglevel_height', 'pressure_msl',
     'weather_code', 'shortwave_radiation', 'snowfall',
     'uv_index',
@@ -95,6 +96,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     dewPoint:      raw.hourly.dew_point_2m?.[i]                ?? 0,
     humidity:      raw.hourly.relative_humidity_2m?.[i]        ?? 0,
     windSpeed:     raw.hourly.wind_speed_10m?.[i]              ?? 0,
+    windDirection: raw.hourly.wind_direction_10m?.[i]          ?? 0,
     windGusts:     raw.hourly.wind_gusts_10m?.[i]              ?? 0,
     cape:          raw.hourly.cape?.[i]                         ?? 0,
     freezingLevel: raw.hourly.freezinglevel_height?.[i]        ?? 9999,

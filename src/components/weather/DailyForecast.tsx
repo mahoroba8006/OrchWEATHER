@@ -96,7 +96,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
               {amBh > 0 && (
                 <>
                   <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-                  <text x={cxA} y={H - padB - amBh - 2} fontSize={7} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
+                  <text x={cxA} y={H - padB - amBh - 2} fontSize={10} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
                     {day.amPrecipSum.toFixed(1)}
                   </text>
                 </>
@@ -104,7 +104,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
               {pmBh > 0 && (
                 <>
                   <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={7} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
+                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={10} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
                     {(day.pmPrecipSum ?? 0).toFixed(1)}
                   </text>
                 </>
@@ -112,7 +112,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
               {nightBh > 0 && (
                 <>
                   <rect x={cxN - barW / 2} y={H - padB - nightBh} width={barW} height={nightBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-                  <text x={cxN} y={H - padB - nightBh - 2} fontSize={7} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
+                  <text x={cxN} y={H - padB - nightBh - 2} fontSize={10} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
                     {(day.nightPrecipSum ?? 0).toFixed(1)}
                   </text>
                 </>
@@ -127,7 +127,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
         return (
           <g key={i}>
             <rect x={cx(i) - barW / 2} y={H - padB - bh} width={barW} height={bh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-            <text x={cx(i)} y={H - padB - bh - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
+            <text x={cx(i)} y={H - padB - bh - 2} fontSize={12} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
               {p.toFixed(1)}
             </text>
           </g>
@@ -277,20 +277,37 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                 const dow = new Date(`${day.date}T00:00:00`).getDay();
                 const mm = parseInt(day.date.slice(5, 7), 10);
                 const dd = parseInt(day.date.slice(8, 10), 10);
-                const label = isToday ? `今日 ${mm}/${dd}` : `${mm}/${dd}(${DAY_NAMES[dow]})`;
+                const label = isToday
+                  ? `今日 ${mm}/${dd}(${DAY_NAMES[dow]})`
+                  : `${mm}/${dd}(${DAY_NAMES[dow]})`;
+                if (split) {
+                  // 分割日: 日付を午前列のみに左寄せ表示。午後・夜間列は空セル
+                  const tl = dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode);
+                  return (
+                    <Fragment key={day.date}>
+                      <td style={{ ...amCell(day), textAlign: 'left', paddingTop: '0.75rem', paddingLeft: '0.35rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
+                          {label}
+                        </div>
+                        {tl && (
+                          <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
+                        )}
+                      </td>
+                      <td style={{ ...pmCell(day), paddingTop: '0.75rem' }} />
+                      <td style={{ ...nightCell(day, i), paddingTop: '0.75rem' }} />
+                    </Fragment>
+                  );
+                }
                 return (
                   <td
                     key={day.date}
-                    colSpan={split ? 3 : 1}
-                    style={{ ...(split ? spanCell(day, i) : singleCell(day, i)), paddingTop: '0.75rem' }}
+                    style={{ ...singleCell(day, i), paddingTop: '0.75rem' }}
                   >
                     <div style={{ fontSize: '0.75rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500 }}>
                       {label}
                     </div>
                     {(() => {
-                      const tl = split
-                        ? dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode)
-                        : codeToLabel(day.weatherCode);
+                      const tl = codeToLabel(day.weatherCode);
                       return tl ? (
                         <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
                       ) : null;
@@ -309,7 +326,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'am')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午前</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午前(4-12)</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={84} /> : '—'}
                         </div>
@@ -318,7 +335,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'pm')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午後</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午後(12-20)</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={84} /> : '—'}
                         </div>
@@ -327,7 +344,7 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                         style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'night')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>夜間</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>夜間(20-翌4)</div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.nightWeatherCode !== null ? <WeatherIcon code={day.nightWeatherCode} size={84} isNight /> : '—'}
                         </div>

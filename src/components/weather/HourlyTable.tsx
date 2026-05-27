@@ -220,17 +220,25 @@ function UVRow({ tl, isNighttime, cutoff }: {
   );
 }
 
+// 度数 → 16方位の日本語
+function degreesToCompass(deg: number): string {
+  const dirs = ['北', '北北東', '北東', '東北東', '東', '東南東', '南東', '南南東', '南', '南南西', '南西', '西南西', '西', '西北西', '北西', '北北西'];
+  const idx = Math.round(((deg % 360) + 360) % 360 / 22.5) % 16;
+  return dirs[idx];
+}
+
 // ── Data rows (excluding date / time / weather handled inline) ──
 const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string; isRisk: (h: HourlyForecast) => boolean }[] = [
-  { key: 'temperature', label: '気温(℃)',     fmt: h => h.temperature.toFixed(1),            isRisk: h => h.temperature >= 35 || h.temperature <= 3 },
-  { key: 'precip',      label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1),          isRisk: h => h.precipitation >= 30 },
-  { key: 'dewPoint',    label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1),                isRisk: h => h.dewPoint <= 0 },
-  { key: 'humidity',    label: '湿度(%)',      fmt: h => String(h.humidity),                  isRisk: h => h.humidity <= 30 },
-  { key: 'vpd',         label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1), isRisk: () => false },
-  { key: 'windSpeed',   label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1),              isRisk: h => h.windSpeed >= 15 },
-  { key: 'cape',        label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString(),        isRisk: h => h.cape >= 500 },
-  { key: 'freezing',    label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString(), isRisk: h => h.freezingLevel <= 3500 && h.cape >= 1000 },
-  { key: 'pressure',    label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString(),   isRisk: () => false },
+  { key: 'temperature',  label: '気温(℃)',     fmt: h => h.temperature.toFixed(1),            isRisk: h => h.temperature >= 35 || h.temperature <= 3 },
+  { key: 'precip',       label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1),          isRisk: h => h.precipitation >= 30 },
+  { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1),                isRisk: h => h.dewPoint <= 0 },
+  { key: 'humidity',     label: '湿度(%)',      fmt: h => String(h.humidity),                  isRisk: h => h.humidity <= 30 },
+  { key: 'vpd',          label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1), isRisk: () => false },
+  { key: 'windDir',      label: '風向き',       fmt: h => degreesToCompass(h.windDirection),   isRisk: () => false },
+  { key: 'windSpeed',    label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1),              isRisk: h => h.windSpeed >= 15 },
+  { key: 'cape',         label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString(),        isRisk: h => h.cape >= 500 },
+  { key: 'freezing',     label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString(), isRisk: h => h.freezingLevel <= 3500 && h.cape >= 1000 },
+  { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString(),   isRisk: () => false },
 ];
 
 // ── Main component ────────────────────────────────────────
