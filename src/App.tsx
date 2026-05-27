@@ -1603,7 +1603,7 @@ function App() {
                           yAxisId="right"
                           type="monotone"
                           dataKey={`forecast_accum_precip_${t0.id}`}
-                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積降水`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積降水`}
                           stroke={getYearColor(0, 'var(--chart-precip)')}
                           strokeWidth={3}
                           strokeDasharray="5 4"
@@ -1703,7 +1703,7 @@ function App() {
                           yAxisId="right"
                           type="monotone"
                           dataKey={`forecast_accum_sunshine_${t0.id}`}
-                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積日照`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積日照`}
                           stroke={getYearColor(0, 'var(--chart-sunshine)')}
                           strokeWidth={3}
                           strokeDasharray="5 4"
@@ -1800,7 +1800,7 @@ function App() {
                           yAxisId="right"
                           type="monotone"
                           dataKey={`forecast_accum_radiation_${t0.id}`}
-                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積日射`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積日射`}
                           stroke={getYearColor(0, 'var(--chart-sunshine)')}
                           strokeWidth={3}
                           strokeDasharray="5 4"
@@ -1919,7 +1919,7 @@ function App() {
                           yAxisId="right"
                           type="monotone"
                           dataKey={`forecast_accum_gdd_${t0.id}`}
-                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予報累積積算`}
+                          name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積積算`}
                           stroke={getYearColor(0, 'var(--chart-sunshine)')}
                           strokeWidth={3}
                           strokeDasharray="5 4"
