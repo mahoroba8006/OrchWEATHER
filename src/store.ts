@@ -83,6 +83,8 @@ const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
   radiation: 100,
 };
 
+// SYNC: このオブジェクトは src/lib/userRepository.ts・src/lib/riskDetection.ts にも
+//       ローカルコピーがある（循環 import 回避のため）。新フィールド追加時は3箇所を同時に更新すること。
 const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
   frost:              3,
   frostDewPoint:      0,

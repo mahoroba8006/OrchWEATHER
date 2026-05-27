@@ -106,7 +106,7 @@ export const RISK_BADGES: Record<RiskType, RiskBadge> = {
   // 既存7件はそのまま...
   cold: {
     type: 'cold',
-    iconFile: 'thermometer-snow',        // 霜と同アイコン・色で区別
+    iconFile: 'overcast-sleet',          // frost の thermometer-snow と区別するため変更
     label: '低温',
     badgeBg:    '#d4e8fc',
     badgeColor: '#1a5276',

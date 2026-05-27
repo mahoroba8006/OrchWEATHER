@@ -22,6 +22,8 @@ export interface RiskBadge {
 
 const ARATEN_RISK_SET: ReadonlySet<RiskType> = new Set(['thunder', 'hail', 'wind', 'rain']);
 
+// SYNC: このオブジェクトは src/store.ts・src/lib/userRepository.ts にも
+//       ローカルコピーがある（循環 import 回避のため）。新フィールド追加時は3箇所を同時に更新すること。
 const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
   frost:              3,
   frostDewPoint:      0,
@@ -33,8 +35,8 @@ const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
   thunderSensitivity: 'medium',
   hailSensitivity:    'medium',
   hailFreezingLevel:  3500,
-  snow:         3,
-  cold:         0,
+  snow:               3,
+  cold:               0,
   enabledRisks: [
     'frost', 'thunder', 'hail', 'rain', 'wind', 'heat', 'dry', 'cold', 'snow',
   ] as RiskType[],
@@ -189,7 +191,7 @@ function detectHourlyRisks(
   if (riskSet.has('heat'))    metrics.heat    = `気温 ${heatMax.toFixed(1)}℃`;
   if (riskSet.has('dry'))     metrics.dry     = `湿度 ${dryMin}%`;
   if (riskSet.has('cold')) metrics.cold = `気温 ${coldMinTemp.toFixed(1)}℃`;
-  if (riskSet.has('snow')) metrics.snow = `積雪 ${snowMax.toFixed(1)} cm/h`;
+  if (riskSet.has('snow')) metrics.snow = `積雪 ${snowMax.toFixed(1)} cm`;
 
   return { risks, firstHour: firstAratenHour, metrics };
 }
