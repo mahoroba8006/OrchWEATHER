@@ -1317,23 +1317,25 @@ function App() {
             {targets.map((target, index) => (
               <div key={target.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', background: 'rgba(255, 255, 255, 0.45)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border-sub)' }}>
                 <div style={{ flexShrink: 0, width: '4px', height: '24px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
-                <span
-                  title={index === 0 ? '比較の基準となる対象（差表示の基点）' : '基準との差が表示されます'}
-                  style={{
-                    flexShrink: 0,
-                    minWidth: '38px',
-                    textAlign: 'center',
-                    padding: '0.2rem 0.5rem',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    borderRadius: '999px',
-                    background: index === 0 ? 'rgba(13,148,136,0.12)' : 'rgba(2,132,199,0.08)',
-                    color: index === 0 ? 'var(--accent-color)' : 'var(--accent-blue)',
-                    border: index === 0 ? '1px solid rgba(13,148,136,0.25)' : '1px solid rgba(2,132,199,0.2)',
-                  }}
-                >
-                  {index === 0 ? '基準' : '比較'}
-                </span>
+                {index > 0 && (
+                  <span
+                    title="1件目との差が表示されます"
+                    style={{
+                      flexShrink: 0,
+                      minWidth: '38px',
+                      textAlign: 'center',
+                      padding: '0.2rem 0.5rem',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      borderRadius: '999px',
+                      background: 'rgba(2,132,199,0.08)',
+                      color: 'var(--accent-blue)',
+                      border: '1px solid rgba(2,132,199,0.2)',
+                    }}
+                  >
+                    比較
+                  </span>
+                )}
                 <select
                   value={target.locationId}
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
