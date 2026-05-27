@@ -1044,7 +1044,7 @@ function App() {
             }
             : null;
 
-          const refId = accumDiffConfig && targets.length > 1 ? targets[0]?.id : null;
+          const refId = accumDiffConfig && targets.length > 1 ? targets[1]?.id : null;
           const refKey = refId && accumDiffConfig ? `${accumDiffConfig.refKeyPrefix}${refId}` : null;
           const v0 = refKey
             ? hover.payload.find((p: any) => p.dataKey === refKey)?.value
