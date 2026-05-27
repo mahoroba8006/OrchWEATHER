@@ -54,25 +54,11 @@ export const RISK_BADGES: Record<RiskType, RiskBadge> = {
   thunder: { type: 'thunder', iconFile: 'lightning-bolts',     label: '雷雨', badgeBg: '#f7d4cf', badgeColor: '#a35047', borderColor: '#d99c93' },
   hail:    { type: 'hail',    iconFile: 'snowflake',           label: '雹',   badgeBg: '#f3d4e3', badgeColor: '#9c456e', borderColor: '#d693b3' },
   wind:    { type: 'wind',    iconFile: 'umbrella-wind-alt',   label: '強風', badgeBg: '#dee0ef', badgeColor: '#5c6385', borderColor: '#9aa1bf' },
-  rain:    { type: 'rain',    iconFile: 'water',               label: '大雨', badgeBg: '#e6dff0', badgeColor: '#634b85', borderColor: '#ab98c8' },
-  heat:    { type: 'heat',    iconFile: 'thermometer-sun',     label: '高温', badgeBg: '#fcdcc4', badgeColor: '#c0392b', borderColor: '#d39867' },
+  rain:    { type: 'rain',    iconFile: 'raindrops',           label: '大雨', badgeBg: '#e6dff0', badgeColor: '#634b85', borderColor: '#ab98c8' },
+  heat:    { type: 'heat',    iconFile: 'thermometer-warmer',  label: '高温', badgeBg: '#fcdcc4', badgeColor: '#c0392b', borderColor: '#d39867' },
   dry:     { type: 'dry',     iconFile: 'thermometer-raindrop',label: '乾燥', badgeBg: '#ece6d4', badgeColor: '#766a3f', borderColor: '#b8a878' },
-  cold: {
-    type: 'cold',
-    iconFile: 'overcast-sleet',   // thermometer-snow から変更（frost と区別するため）
-    label: '低温',
-    badgeBg:    '#d4e8fc',
-    badgeColor: '#1a5276',
-    borderColor:'#7ab3e0',
-  },
-  snow: {
-    type: 'snow',
-    iconFile: 'overcast-snow',
-    label: '降雪',
-    badgeBg:    '#e8f0f8',
-    badgeColor: '#2c5f8a',
-    borderColor:'#a0c4e8',
-  },
+  cold:    { type: 'cold',    iconFile: 'thermometer-colder',  label: '低温', badgeBg: '#d4e8fc', badgeColor: '#1a5276', borderColor: '#7ab3e0' },
+  snow:    { type: 'snow',    iconFile: 'snowman',             label: '降雪', badgeBg: '#e8f0f8', badgeColor: '#2c5f8a', borderColor: '#a0c4e8' },
 };
 
 // WMO weather code → 絵文字（昼）

@@ -219,8 +219,8 @@ export function WeatherSettings() {
       />
       <img
         src={`/icons/weather/${RISK_BADGES[type].iconFile}.svg`}
-        width={18}
-        height={18}
+        width={27}
+        height={27}
         alt={RISK_BADGES[type].label}
         style={{ flexShrink: 0 }}
       />
