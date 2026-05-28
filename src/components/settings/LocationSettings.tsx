@@ -33,8 +33,9 @@ const pinkButtonStyle: CSSProperties = {
 };
 
 export function LocationSettings() {
-  const { locations, addLocation, updateLocation, deleteLocation } =
+  const { locations, addLocation, updateLocation, deleteLocation, userSettings, updateDefaultLocationId } =
     useAppStore();
+  const defaultLocationId = userSettings?.defaultLocationId ?? null;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<LocationInfo>>({});
@@ -202,7 +203,38 @@ export function LocationSettings() {
               緯度: {loc.lat} / 経度: {loc.lon}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {defaultLocationId === loc.id ? (
+              <>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--accent-color)',
+                  background: 'rgba(13,148,136,0.12)',
+                  border: '1px solid rgba(13,148,136,0.3)',
+                  borderRadius: '999px',
+                  padding: '0.2rem 0.6rem',
+                  whiteSpace: 'nowrap',
+                }}>
+                  ★ デフォルト
+                </span>
+                <button
+                  className="secondary"
+                  onClick={() => updateDefaultLocationId(null)}
+                  style={{ fontSize: '0.75rem' }}
+                >
+                  解除
+                </button>
+              </>
+            ) : (
+              <button
+                className="secondary"
+                onClick={() => updateDefaultLocationId(loc.id)}
+                style={{ fontSize: '0.75rem' }}
+              >
+                デフォルトに設定
+              </button>
+            )}
             <button className="secondary" onClick={() => handleEdit(loc)}>
               編集
             </button>
