@@ -141,7 +141,7 @@ export function WeatherTab() {
           </section>
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} />
+            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} riskThresholds={userSettings?.riskThresholds} />
           </section>
         </div>
       )}

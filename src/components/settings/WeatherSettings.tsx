@@ -36,11 +36,12 @@ interface NumericField {
   key: keyof Pick<RiskThresholds,
     'frost' | 'frostDewPoint' | 'wind' | 'rainHourly' | 'rainDaily' |
     'heat' | 'dry' | 'hailFreezingLevel' | 'snow' | 'cold'>;
-  unit:      string;
-  direction: '以上' | '以下';
-  min:       number;
-  max:       number;
-  step:      number;
+  unit:        string;
+  direction:   '以上' | '以下';
+  min:         number;
+  max:         number;
+  step:        number;
+  inputWidth?: string; // 省略時は '4.5rem'（4桁以上の値を持つフィールドで上書き）
 }
 
 const FROST_TEMP:    NumericField = { key: 'frost',             unit: '℃',   direction: '以下', min: -5,   max: 5,    step: 0.5 };
@@ -50,7 +51,7 @@ const HEAT_FIELD:    NumericField = { key: 'heat',              unit: '℃',   d
 const DRY_FIELD:     NumericField = { key: 'dry',               unit: '%',    direction: '以下', min: 10,   max: 60,   step: 5   };
 const RAIN_DAILY:    NumericField = { key: 'rainDaily',         unit: 'mm',   direction: '以上', min: 20,   max: 300,  step: 10  };
 const RAIN_HOURLY:   NumericField = { key: 'rainHourly',        unit: 'mm/h', direction: '以上', min: 10,   max: 100,  step: 5   };
-const HAIL_FREEZING: NumericField = { key: 'hailFreezingLevel', unit: 'm',    direction: '以下', min: 2000, max: 5000, step: 100 };
+const HAIL_FREEZING: NumericField = { key: 'hailFreezingLevel', unit: 'm',    direction: '以下', min: 2000, max: 5000, step: 100, inputWidth: '5.5rem' };
 const COLD_FIELD:    NumericField = { key: 'cold',              unit: '℃',   direction: '以下', min: -15,  max: 5,    step: 0.5 };
 const SNOW_FIELD:    NumericField = { key: 'snow',              unit: 'cm',   direction: '以上', min: 1,    max: 30,   step: 1   };
 
@@ -180,7 +181,7 @@ export function WeatherSettings() {
         step={field.step}
         value={form[field.key] as number}
         onChange={e => handleNumericChange(field.key, e.target.value)}
-        style={{ width: '4.5rem' }}
+        style={{ width: field.inputWidth ?? '4.5rem' }}
       />
       <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
         {field.unit}　{field.direction}

@@ -137,7 +137,7 @@ export function HistoricalWeatherTab() {
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <DailyForecast
-              daily={data.daily}
+              daily={nonPlaceholderDaily}
               dayRisks={dayRisks}
               onHalfDayClick={scrollToHour}
             />
@@ -150,6 +150,7 @@ export function HistoricalWeatherTab() {
                 daily={nonPlaceholderDaily}
                 scrollRef={hourlyScrollRef}
                 scrollTarget={scrollTarget}
+                riskThresholds={userSettings?.riskThresholds}
                 disablePastOpacity
               />
             </section>

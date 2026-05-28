@@ -1,4 +1,221 @@
 
+## 2026-05-28 セッション（13回目）
+
+### 作業内容
+
+#### 時間別テーブル・リスク表示の各種改善（コミットなし）
+
+**概要:** HourlyTable のリスク関連 UI 改善、HistoricalWeatherTab の表示修正をまとめて実装。
+
+**実装内容:**
+
+| 変更 | 内容 |
+|------|------|
+| リスクアイコン背景色削除 | `RiskBadgesRow` の `background: '#fff0f5'` を削除（アイコンのみ残す） |
+| データ行の背景色をユーザー設定連動に変更 | `DATA_ROWS` の `isRisk`（ハードコード）→ `riskTypes: RiskType[]` に変換。`hourlyRiskMap`（`Map<string, Set<RiskType>>`）を本体で事前計算し、`detectSingleHourRisks` 結果と照合 |
+| 「あの時の天気」初期スクロール修正 | `disablePastOpacity=true` のとき「現在時刻スクロール」処理を早期 return でスキップ → 左端から表示 |
+| 「あの時の天気」日別 placeholder 除去 | `DailyForecast` に渡す `daily` を `data.daily` → `nonPlaceholderDaily` に変更（指定日以降のみ表示） |
+
+**変更ファイル:**
+- `src/components/weather/HourlyTable.tsx`
+- `src/components/weather/HistoricalWeatherTab.tsx`
+
+**DATA_ROWS riskTypes マッピング（確定）:**
+| 行 | riskTypes |
+|---|---|
+| 気温 | `['heat', 'cold', 'frost']` |
+| 降水 | `['rain']` |
+| 露点 | `['frost']` |
+| 湿度 | `['dry']` |
+| 風速 | `['wind']` |
+| CAPE | `['thunder', 'hail']` |
+| 0℃層高度 | `['hail']` |
+| 飽差・風向き・気圧 | `[]`（常に背景なし） |
+
+### 決定事項
+- データ行の背景色は `detectSingleHourRisks`（ユーザー設定・enabledRisks 完全反映）と連動
+- 「あの時の天気」の時間別テーブルは左端（開始日の00:00）から表示
+- 最終 HEAD: `720776a`（コミット済み・push 未実施）
+
+### 未完了・次回への引き継ぎ
+- 本日実装分は未 push（必要に応じてコミット・push すること）
+- 次のアクション候補：
+  1. AI 農作業コメント（Gemini 2.0 Flash + Firebase Functions プロキシ）
+  2. 地点登録方法の拡充（住所・マップ登録）
+
+---
+
+## 2026-05-27 セッション（12回目）
+
+### 作業内容
+
+#### 比較分析タブ リファクタリング（設計・実装・push 完了）
+
+**概要:** 比較件数を最大2件に絞り、差の方向を「2件目基準で1件目の行に表示」へ反転。予報日でも差を表示できるよう `computeAccumDiff` を拡張。
+
+**実装方針の決定:**
+| 項目 | 決定内容 |
+|------|---------|
+| 最大件数 | 3件→2件（addTargetガード・ヘッダー・ボタン条件） |
+| ラベル | 「基準」削除、2件目のみ「比較」表示 |
+| 差の方向 | `refId = targets[1]`（2件目が基準）、差は1件目の行に表示 |
+| 差の算出 | `delta = 1件目.value − 2件目.value` |
+| 予報日対応 | `forecastPrefixMap` で forecast key も同様に差を表示 |
+| 予報ラベル | 「予報累積○○」→「予想累積○○」（4チャート） |
+| 差の対象チャート | 累積系のみ（GDD・日射量・降水量・日照時間）、気温・湿度・飽差は対象外 |
+
+**成果物（コミット・push 済み）:**
+
+| コミット | 内容 |
+|---------|------|
+| `accb8fa` | 設計スペック: `docs/superpowers/specs/2026-05-27-comparison-analysis-refactor-design.md` |
+| `19d6be0` | 実装計画: `docs/superpowers/plans/2026-05-27-comparison-analysis-refactor.md` |
+| `d09e1e3` | feat: 最大件数 3→2（addTarget ガード・ヘッダー・ボタン条件） |
+| `e3a72b4` | feat: 「基準」ラベル削除・2件目のみ「比較」表示 |
+| `d63786e` | feat: refId を targets[1] に変更（差の方向反転） |
+| `c8ebb89` | feat: computeAccumDiff に forecastPrefixMap 追加（予報日も差を表示） |
+| `d4ab7bb` | fix: 予報 series name を「予報」→「予想」に変更（値ボックス表示） |
+
+**技術的ポイント:**
+- `refId` 1行変更（`targets[0]→targets[1]`）で差の方向を完全反転できる設計
+- `computeAccumDiff` は確定キー（`accum_${id}`）と予報キー（`forecast_accum_gdd_${id}`）の両方をマッチさせる
+- Δ日逆引きは `seriesByTarget.get(t0id)`（targets[0] の確定系列）を使用（予報日でも同様）
+- サブエージェント駆動開発（4タスク × 実装＋スペックレビュー＋品質レビュー）で実施
+
+**予報日の値ボックス表示（確定後）:**
+```
+予想累積積算 ○○℃  (+XX℃ / X日早い)   ← 1件目（緑）
+日別積算 ○○℃  累積積算 ○○℃           ← 2件目（紫）
+```
+
+### 決定事項
+- 設計スペック: `docs/superpowers/specs/2026-05-27-comparison-analysis-refactor-design.md`
+- 実装計画: `docs/superpowers/plans/2026-05-27-comparison-analysis-refactor.md`
+- 最終 HEAD: `d4ab7bb`（リモート push 済み）
+
+### 未完了・次回への引き継ぎ
+- 次のアクション候補：
+  1. 過去気象再現（日付指定で 10 日間の実績気象を天気タブ同様 UI で表示）
+  2. AI 農作業コメント（Gemini 2.0 Flash + Firebase Functions プロキシ）
+  3. 地点登録方法の拡充（住所・マップ登録）
+
+---
+
+## 2026-05-27 セッション（11回目）
+
+### 作業内容
+
+#### リスク表示制御 + 冬リスク追加（実装・レビュー・push 完了）
+
+**概要:** WeatherSettings のリスク行にアイコン追加・表示要否チェックボックス追加、降雪（snow）・低温（cold）の冬リスク2種を新規追加。app-wide フィルタリングを WeatherTab に実装。
+
+**実装方針の決定:**
+| 項目 | 決定内容 |
+|------|---------|
+| フィルタ範囲 | app-wide（WeatherTab 1箇所でフィルタ、全コンポーネントに自動適用） |
+| 低温と霜の関係 | 独立（重複検知を許容） |
+| 初期状態 | 全9種チェック ON |
+| 表示順 | 春（霜）→ 夏秋（雷雨・雹・大雨・強風・高温・乾燥）→ 冬（低温・降雪） |
+| enabledRisks の型 | `RiskType[]`（`RiskThresholds` に追加、Firestore 永続化） |
+
+**成果物（コミット・push 済み）:**
+
+| コミット | 内容 |
+|---------|------|
+| `b0e54bb` | store.ts: RiskType（snow/cold追加）・RiskThresholds（snow/cold/enabledRisks追加） |
+| `9cc1ca2` | userRepository.ts: ローカル DEFAULT_RISK_THRESHOLDS コピー更新 |
+| `ec8034b` | riskDetection.ts: RiskType を store へ移行・snow/cold 検知ロジック・RISK_BADGES 追加 |
+| `442b4b6` | WeatherTab.tsx: enabledRisks フィルタリング追加 / RiskSummary.tsx: ORDERED_TYPES 更新 |
+| `f5bb3b5` | WeatherSettings.tsx: アイコン・チェックボックス・低温/降雪行の完全実装 |
+| `c9b67ff` | fix: cold アイコンを overcast-sleet に変更（frost と区別）・handleEnabledChange dedup ガード追加 |
+| `060efd9` | fix: 積雪メトリクス単位 cm/h → cm・DEFAULT_RISK_THRESHOLDS 3ファイルに同期コメント追加・spec の cold アイコン記載更新 |
+
+**技術的ポイント:**
+- `RiskType` は `store.ts` で定義し `riskDetection.ts` が `import type` + `export type` で再エクスポート（循環 import 回避）
+- `DEFAULT_RISK_THRESHOLDS` は store.ts / userRepository.ts / riskDetection.ts の3ファイルにローカルコピー（同期コメント付与済み）
+- 既存 Firestore ユーザーは `enabledRisks` フィールドなし → `??` フォールバックで全9種 ON の安全なデフォルト
+- 時間別・日別ともに snowfall/snowfallSum は API に既存（変更不要）
+
+**レビューで発見・修正した問題:**
+1. cold アイコンが frost と重複（thermometer-snow → overcast-sleet に変更）
+2. handleEnabledChange に dedup ガードなし（追加）
+3. 積雪の時間別 metrics 文字列が `cm/h`（正しくは `cm` に修正）
+4. DEFAULT_RISK_THRESHOLDS の3コピーに sync コメントなし（追加）
+
+### 決定事項
+- 設計スペック: `docs/superpowers/specs/2026-05-27-risk-display-toggle-winter-risks-design.md`
+- 実装計画: `docs/superpowers/plans/2026-05-27-risk-display-toggle-winter-risks.md`
+- 最終 HEAD: `060efd9`（リモート push 済み）
+
+### 未完了・次回への引き継ぎ
+- 次のアクション候補：
+  1. 過去気象再現（日付指定で 10 日間の実績気象を天気タブ同様 UI で表示）
+  2. AI 農作業コメント（Gemini 2.0 Flash + Firebase Functions プロキシ）
+  3. 地点登録方法の拡充（住所・マップ登録）
+
+---
+
+## 2026-05-26 セッション（10回目）
+
+### 作業内容
+
+#### リスク閾値カスタマイズ 設計（brainstorming → writing-plans 完了）
+
+**概要:** 天気リスク検知の閾値をユーザーごとに Firestore へ永続化し、WeatherSettings.tsx（気象情報サブタブ）でカスタマイズできる機能の設計。実装は次回。
+
+**設計フェーズ（brainstorming）での決定事項:**
+
+| 項目 | 決定内容 |
+|------|---------|
+| 対象リスク | 全7種（霜・強風・大雨・高温・乾燥・雷雨・雹） |
+| 霜の条件 | 気温 ≤ X ＆ 露点 ≤ Y（複合条件、両方をユーザー設定可） |
+| 大雨の閾値 | 時間雨量（mm/h）と日雨量（mm）を別設定（夕立型 vs 長雨型の区別） |
+| 雷雨・雹 | CAPE 感度スライダー（控えめ/標準/敏感）で内部マッピング |
+| 雹の条件 | CAPE 感度 ＆ 0℃層高度 ≤ Z m（複合条件、両方をユーザー設定可） |
+| 通知機能 | スコープ外（本フェーズは「通知条件の定義UI」のみ） |
+| Firestore | `/users/{uid}` に `riskThresholds` フィールド追加（既存構造を拡張） |
+
+**成果物（コミット済み）:**
+
+| コミット | 内容 |
+|---------|------|
+| `aaf5afb` | スペック作成: `docs/superpowers/specs/2026-05-26-risk-threshold-customization-design.md` |
+| `d1d924d` | 計画作成: `docs/superpowers/plans/2026-05-26-risk-threshold-customization.md` |
+| `10c130b` | `frostDewPoint`・`hailFreezingLevel` を追加（仕様変更をスペック・計画に反映） |
+
+**RiskThresholds の確定フィールド:**
+```typescript
+interface RiskThresholds {
+  frost: number;              // 霜 気温 ≤ X ℃  (デフォルト: 3)
+  frostDewPoint: number;      // 霜 露点 ≤ X ℃  (デフォルト: 0)  ※時間別のみ
+  wind: number;               // 強風 ≥ X m/s   (デフォルト: 15)
+  rainHourly: number;         // 大雨 ≥ X mm/h  (デフォルト: 30)
+  rainDaily: number;          // 大雨 ≥ X mm    (デフォルト: 80)
+  heat: number;               // 高温 ≥ X ℃    (デフォルト: 35)
+  dry: number;                // 乾燥 ≤ X %    (デフォルト: 30)
+  thunderSensitivity: 'low'|'medium'|'high';  // 雷雨CAPE感度 (デフォルト: 'medium')
+  hailSensitivity: 'low'|'medium'|'high';     // 雹CAPE感度   (デフォルト: 'medium')
+  hailFreezingLevel: number;  // 雹 0℃層高度 ≤ X m (デフォルト: 3500) ※時間別のみ
+}
+```
+
+**変更予定ファイル（実装フェーズ）:**
+- `src/store.ts`
+- `src/lib/userRepository.ts`
+- `src/lib/riskDetection.ts`
+- `src/components/weather/WeatherTab.tsx`
+- `src/components/settings/WeatherSettings.tsx`
+
+### 決定事項
+- ユーザーニーズ「あの時の状況に近い条件になったら通知」の実現に向け、まず閾値定義UIを先行実装
+- 霜と雹は複合条件（＆）をUI上で「＆」テキストで視覚的に明示する
+
+### 未完了・次回への引き継ぎ
+- **次のアクション:** リスク閾値カスタマイズの実装（計画ファイルに従ってサブエージェント駆動 or インライン実行）
+- 実装後: 過去気象再現 or AI機能プロトタイプに移行
+
+---
+
 ## 2026-05-26 セッション（9回目）
 
 ### 作業内容

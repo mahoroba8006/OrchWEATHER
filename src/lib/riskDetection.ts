@@ -46,7 +46,7 @@ const THUNDER_CAPE_MAP: Record<RiskSensitivity, number> = {
   low: 1000, medium: 500, high: 250,
 };
 const HAIL_CAPE_MAP: Record<RiskSensitivity, number> = {
-  low: 2000, medium: 1000, high: 500,
+  low: 2000, medium: 1000, high: 300,
 };
 
 export const RISK_BADGES: Record<RiskType, RiskBadge> = {
@@ -204,6 +204,32 @@ function detectDailyRisks(
   if (day.snowfallSum >= t.snow) { risks.push('snow'); metrics.snow = `積雪 ${day.snowfallSum.toFixed(1)} cm`; }
 
   return { risks, metrics };
+}
+
+/**
+ * 1時間分のリスクを判定して返す（HourlyTable の行ごとの表示用）。
+ * ユーザー設定・enabledRisks を完全に反映する。
+ */
+export function detectSingleHourRisks(
+  h: HourlyForecast,
+  thresholds?: RiskThresholds,
+): RiskType[] {
+  const t           = { ...DEFAULT_RISK_THRESHOLDS, ...thresholds };
+  const thunderCape = THUNDER_CAPE_MAP[t.thunderSensitivity];
+  const hailCape    = HAIL_CAPE_MAP[t.hailSensitivity];
+  const enabledSet  = new Set(t.enabledRisks);
+
+  const risks: RiskType[] = [];
+  if (enabledSet.has('frost')   && h.dewPoint <= t.frostDewPoint && h.temperature <= t.frost)                    risks.push('frost');
+  if (enabledSet.has('thunder') && (h.cape >= thunderCape || (h.weatherCode >= 95 && h.weatherCode <= 99)))      risks.push('thunder');
+  if (enabledSet.has('hail')    && h.cape >= hailCape && h.freezingLevel <= t.hailFreezingLevel)                 risks.push('hail');
+  if (enabledSet.has('wind')    && h.windSpeed >= t.wind)                                                        risks.push('wind');
+  if (enabledSet.has('rain')    && h.precipitation >= t.rainHourly)                                              risks.push('rain');
+  if (enabledSet.has('heat')    && h.temperature >= t.heat)                                                      risks.push('heat');
+  if (enabledSet.has('dry')     && h.humidity <= t.dry)                                                          risks.push('dry');
+  if (enabledSet.has('cold')    && h.temperature <= t.cold)                                                      risks.push('cold');
+  if (enabledSet.has('snow')    && h.snowfall >= t.snow)                                                         risks.push('snow');
+  return risks;
 }
 
 /**
