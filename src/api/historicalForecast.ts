@@ -1,6 +1,30 @@
 // src/api/historicalForecast.ts
-// 過去の気象データ取得 — Open-Meteo forecast API with start_date / end_date
+// 過去の気象データ取得 — 3段階APIストラテジー
+//
+//   段階1: startDate >= today-14
+//          → forecast API（完全データ）
+//            CAPE ✅ / 0℃層高度 ✅ / 降水確率 ✅ / UV指数 ✅
+//
+//   段階2: 2022-01-01 <= startDate < today-14
+//          → historical-forecast API（完全データ）
+//            CAPE ✅ / 0℃層高度 ✅ / 降水確率 ✅ / UV指数 ✅
+//
+//   段階3: startDate < 2022-01-01
+//          → archive API + ecmwf_ifs（CAPEのみ）
+//            CAPE ✅（約8ヶ月分） / 0℃層高度 ❌（9999固定） / 降水確率 ❌ / UV指数 ❌
+//
 import type { ForecastData, DailyForecastData, HourlyForecast } from './forecast';
+
+// ── 定数 ──────────────────────────────────────────────────────────────────────
+
+/** forecast API が過去を遡れる日数（open-meteo の仕様上 ~14日） */
+const FORECAST_LOOKBACK_DAYS = 14;
+
+/**
+ * historical-forecast API のデータ開始日（実測により 2022-01-01 から有効値が返る）
+ * これより前は freezinglevel_height / cape 等が null になるため archive API へフォールバック。
+ */
+const HISTORICAL_FORECAST_START = '2022-01-01';
 
 // ── ヘルパー ─────────────────────────────────────────────────────────────────
 
@@ -39,78 +63,17 @@ function createPlaceholderDay(date: string): DailyForecastData {
   };
 }
 
-// ── API フェッチ ──────────────────────────────────────────────────────────────
+// ── AM/PM/夜間集計 ────────────────────────────────────────────────────────────
 
-async function fetchRawHistorical(
-  lat: number,
-  lon: number,
-  startDate: string,
-  endDate: string,
-): Promise<ForecastData> {
-  // アーカイブAPIは precipitation_probability / cape / freezinglevel_height / uv_index を持たない。
-  // これらは該当フィールドのデフォルト値（0 / 0 / 9999 / 0）で代替する。
-  const hourlyParams = [
-    'temperature_2m', 'precipitation',
-    'dew_point_2m', 'relative_humidity_2m',
-    'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
-    'pressure_msl',
-    'weather_code', 'shortwave_radiation', 'snowfall',
-  ].join(',');
+type DayAmPmEntry = {
+  amCode: number | null; pmCode: number | null; nightCode: number | null;
+  amProb: number | null; pmProb: number | null; nightProb: number | null;
+  amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
+};
 
-  // アーカイブAPIは precipitation_probability_max を持たない（null → 0 でフォールバック）
-  const dailyParams = [
-    'weather_code', 'temperature_2m_max', 'temperature_2m_min',
-    'precipitation_sum', 'relative_humidity_2m_min', 'relative_humidity_2m_max',
-    'sunrise', 'sunset',
-    'shortwave_radiation_sum', 'snowfall_sum', 'wind_speed_10m_max',
-    'sunshine_duration',
-  ].join(',');
-
-  // アーカイブAPI: 任意の過去日付の実測データを取得できる
-  // 風速は wind_speed_unit=ms で m/s に統一（デフォルトは km/h）
-  const url = 'https://archive-api.open-meteo.com/v1/archive'
-    + `?latitude=${lat}&longitude=${lon}`
-    + '&timezone=Asia%2FTokyo'
-    + '&wind_speed_unit=ms'
-    + `&start_date=${startDate}`
-    + `&end_date=${endDate}`
-    + `&hourly=${hourlyParams}`
-    + `&daily=${dailyParams}`;
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`過去の気象データの取得に失敗しました (${res.status})`);
-  const raw = await res.json();
-
-  if (!raw?.hourly?.time || !raw?.daily?.time) {
-    throw new Error('気象データの形式が不正です');
-  }
-
-  // hourly マッピング（アーカイブAPI非対応フィールドはデフォルト値で補完）
-  const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({
-    time:          t,
-    temperature:   raw.hourly.temperature_2m?.[i]              ?? 0,
-    precipitation: raw.hourly.precipitation?.[i]                ?? 0,
-    precipProb:    0,    // アーカイブAPIは降水確率なし
-    dewPoint:      raw.hourly.dew_point_2m?.[i]                 ?? 0,
-    humidity:      raw.hourly.relative_humidity_2m?.[i]         ?? 0,
-    windSpeed:     raw.hourly.wind_speed_10m?.[i]               ?? 0,
-    windDirection: raw.hourly.wind_direction_10m?.[i]           ?? 0,
-    windGusts:     raw.hourly.wind_gusts_10m?.[i]               ?? 0,
-    cape:          0,    // アーカイブAPIはCAPEなし
-    freezingLevel: 9999, // アーカイブAPIは0℃層高度なし
-    pressure:      raw.hourly.pressure_msl?.[i]                 ?? 1013,
-    weatherCode:   raw.hourly.weather_code?.[i]                 ?? 0,
-    radiation:     raw.hourly.shortwave_radiation?.[i]          ?? 0,
-    snowfall:      raw.hourly.snowfall?.[i]                     ?? 0,
-    uvIndex:       0,    // アーカイブAPIはUV指数なし
-  }));
-
-  // AM(4-12) / PM(12-20) / 夜間(20-翌4) 集計
-  const dayAmPm = new Map<string, {
-    amCode: number | null; pmCode: number | null; nightCode: number | null;
-    amProb: number | null; pmProb: number | null; nightProb: number | null;
-    amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
-  }>();
+/** 時間別データから AM(4-12) / PM(12-20) / 夜間(20-翌4) の集計マップを構築する */
+function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
+  const map = new Map<string, DayAmPmEntry>();
 
   for (const h of hourly) {
     const date = h.time.slice(0, 10);
@@ -134,14 +97,14 @@ async function fetchRawHistorical(
       period = 'night';
     }
 
-    if (!dayAmPm.has(targetDate)) {
-      dayAmPm.set(targetDate, {
+    if (!map.has(targetDate)) {
+      map.set(targetDate, {
         amCode: null, pmCode: null, nightCode: null,
         amProb: null, pmProb: null, nightProb: null,
         amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
       });
     }
-    const d = dayAmPm.get(targetDate)!;
+    const d = map.get(targetDate)!;
     if (period === 'am') {
       d.amCode       = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
@@ -157,7 +120,95 @@ async function fetchRawHistorical(
     }
   }
 
-  // daily マッピング
+  return map;
+}
+
+/** AM/PM/夜間集計マップから daily エントリのフィールドを展開する */
+function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string) {
+  return {
+    amWeatherCode:    map.get(t)?.amCode    ?? null,
+    pmWeatherCode:    map.get(t)?.pmCode    ?? null,
+    nightWeatherCode: map.get(t)?.nightCode ?? null,
+    amPrecipProb:     map.get(t)?.amProb    ?? null,
+    pmPrecipProb:     map.get(t)?.pmProb    ?? null,
+    nightPrecipProb:  map.get(t)?.nightProb ?? null,
+    amPrecipSum:      map.has(t) ? map.get(t)!.amPrecipSum    : null,
+    pmPrecipSum:      map.has(t) ? map.get(t)!.pmPrecipSum    : null,
+    nightPrecipSum:   map.has(t) ? map.get(t)!.nightPrecipSum : null,
+  };
+}
+
+// ── API フェッチ（段階1・2共通） ─────────────────────────────────────────────
+
+/**
+ * forecast / historical-forecast の両エンドポイントで使えるフェッチ共通実装。
+ * どちらも同じパラメーター体系・レスポンス形式を持つ。
+ *
+ * @param baseUrl  'https://api.open-meteo.com/v1/forecast'
+ *              or 'https://historical-forecast-api.open-meteo.com/v1/forecast'
+ */
+async function fetchViaForecastEndpoint(
+  baseUrl: string,
+  lat: number,
+  lon: number,
+  startDate: string,
+  endDate: string,
+): Promise<ForecastData> {
+  const hourlyParams = [
+    'temperature_2m', 'precipitation', 'precipitation_probability',
+    'dew_point_2m', 'relative_humidity_2m',
+    'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
+    'cape', 'freezinglevel_height',
+    'pressure_msl', 'weather_code', 'shortwave_radiation', 'snowfall', 'uv_index',
+  ].join(',');
+
+  const dailyParams = [
+    'weather_code', 'temperature_2m_max', 'temperature_2m_min',
+    'precipitation_sum', 'precipitation_probability_max',
+    'relative_humidity_2m_min', 'relative_humidity_2m_max',
+    'sunrise', 'sunset',
+    'shortwave_radiation_sum', 'snowfall_sum', 'wind_speed_10m_max',
+    'sunshine_duration',
+  ].join(',');
+
+  const url = baseUrl
+    + `?latitude=${lat}&longitude=${lon}`
+    + '&timezone=Asia%2FTokyo'
+    + '&wind_speed_unit=ms'
+    + `&start_date=${startDate}`
+    + `&end_date=${endDate}`
+    + `&hourly=${hourlyParams}`
+    + `&daily=${dailyParams}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`過去の気象データの取得に失敗しました (${res.status})`);
+  const raw = await res.json();
+
+  if (!raw?.hourly?.time || !raw?.daily?.time) {
+    throw new Error('気象データの形式が不正です');
+  }
+
+  const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({
+    time:          t,
+    temperature:   raw.hourly.temperature_2m?.[i]            ?? 0,
+    precipitation: raw.hourly.precipitation?.[i]             ?? 0,
+    precipProb:    raw.hourly.precipitation_probability?.[i] ?? 0,
+    dewPoint:      raw.hourly.dew_point_2m?.[i]              ?? 0,
+    humidity:      raw.hourly.relative_humidity_2m?.[i]      ?? 0,
+    windSpeed:     raw.hourly.wind_speed_10m?.[i]            ?? 0,
+    windDirection: raw.hourly.wind_direction_10m?.[i]        ?? 0,
+    windGusts:     raw.hourly.wind_gusts_10m?.[i]            ?? 0,
+    cape:          raw.hourly.cape?.[i]                      ?? 0,
+    freezingLevel: raw.hourly.freezinglevel_height?.[i]      ?? 9999,
+    pressure:      raw.hourly.pressure_msl?.[i]              ?? 1013,
+    weatherCode:   raw.hourly.weather_code?.[i]              ?? 0,
+    radiation:     raw.hourly.shortwave_radiation?.[i]       ?? 0,
+    snowfall:      raw.hourly.snowfall?.[i]                  ?? 0,
+    uvIndex:       raw.hourly.uv_index?.[i]                  ?? 0,
+  }));
+
+  const dayAmPm = buildDayAmPmMap(hourly);
+
   const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => ({
     date:             t,
     weatherCode:      raw.daily.weather_code?.[i]                   ?? 0,
@@ -173,15 +224,98 @@ async function fetchRawHistorical(
     snowfallSum:      raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:     raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    amWeatherCode:    dayAmPm.get(t)?.amCode    ?? null,
-    pmWeatherCode:    dayAmPm.get(t)?.pmCode    ?? null,
-    nightWeatherCode: dayAmPm.get(t)?.nightCode ?? null,
-    amPrecipProb:     dayAmPm.get(t)?.amProb    ?? null,
-    pmPrecipProb:     dayAmPm.get(t)?.pmProb    ?? null,
-    nightPrecipProb:  dayAmPm.get(t)?.nightProb ?? null,
-    amPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.amPrecipSum    : null,
-    pmPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.pmPrecipSum    : null,
-    nightPrecipSum:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSum : null,
+    ...expandDayAmPm(dayAmPm, t),
+  }));
+
+  return { hourly, daily, fetchedAt: Date.now() };
+}
+
+// ── API フェッチ（段階3） ─────────────────────────────────────────────────────
+
+/**
+ * 段階3: archive API + ecmwf_ifs（2022-01-01 より前）
+ * CAPEは約8ヶ月前まで取得可能。0℃層高度・降水確率・UV指数は非対応（固定値で補完）。
+ */
+async function fetchViaArchiveApi(
+  lat: number,
+  lon: number,
+  startDate: string,
+  endDate: string,
+): Promise<ForecastData> {
+  // ecmwf_ifs: アーカイブAPIでCAPEを提供できる唯一のモデル（ERA5はCAPEなし）
+  // freezinglevel_height は全モデルで取得不可（null → 9999 でフォールバック）
+  const hourlyParams = [
+    'temperature_2m', 'precipitation',
+    'cape',
+    'dew_point_2m', 'relative_humidity_2m',
+    'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
+    'pressure_msl', 'weather_code', 'shortwave_radiation', 'snowfall',
+  ].join(',');
+
+  // アーカイブAPIは precipitation_probability_max を持たない（null → 0 でフォールバック）
+  const dailyParams = [
+    'weather_code', 'temperature_2m_max', 'temperature_2m_min',
+    'precipitation_sum', 'relative_humidity_2m_min', 'relative_humidity_2m_max',
+    'sunrise', 'sunset',
+    'shortwave_radiation_sum', 'snowfall_sum', 'wind_speed_10m_max',
+    'sunshine_duration',
+  ].join(',');
+
+  const url = 'https://archive-api.open-meteo.com/v1/archive'
+    + `?latitude=${lat}&longitude=${lon}`
+    + '&timezone=Asia%2FTokyo'
+    + '&wind_speed_unit=ms'
+    + '&models=ecmwf_ifs'
+    + `&start_date=${startDate}`
+    + `&end_date=${endDate}`
+    + `&hourly=${hourlyParams}`
+    + `&daily=${dailyParams}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`過去の気象データの取得に失敗しました (${res.status})`);
+  const raw = await res.json();
+
+  if (!raw?.hourly?.time || !raw?.daily?.time) {
+    throw new Error('気象データの形式が不正です');
+  }
+
+  const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({
+    time:          t,
+    temperature:   raw.hourly.temperature_2m?.[i]         ?? 0,
+    precipitation: raw.hourly.precipitation?.[i]          ?? 0,
+    precipProb:    0,    // archive API は降水確率なし
+    dewPoint:      raw.hourly.dew_point_2m?.[i]           ?? 0,
+    humidity:      raw.hourly.relative_humidity_2m?.[i]   ?? 0,
+    windSpeed:     raw.hourly.wind_speed_10m?.[i]         ?? 0,
+    windDirection: raw.hourly.wind_direction_10m?.[i]     ?? 0,
+    windGusts:     raw.hourly.wind_gusts_10m?.[i]         ?? 0,
+    cape:          raw.hourly.cape?.[i]                   ?? 0,  // ecmwf_ifs で約8ヶ月分取得可
+    freezingLevel: 9999,  // archive API はいかなるモデルでも 0℃層高度なし
+    pressure:      raw.hourly.pressure_msl?.[i]           ?? 1013,
+    weatherCode:   raw.hourly.weather_code?.[i]           ?? 0,
+    radiation:     raw.hourly.shortwave_radiation?.[i]    ?? 0,
+    snowfall:      raw.hourly.snowfall?.[i]               ?? 0,
+    uvIndex:       0,    // archive API はUV指数なし
+  }));
+
+  const dayAmPm = buildDayAmPmMap(hourly);
+
+  const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => ({
+    date:             t,
+    weatherCode:      raw.daily.weather_code?.[i]                   ?? 0,
+    tempMax:          raw.daily.temperature_2m_max?.[i]             ?? 0,
+    tempMin:          raw.daily.temperature_2m_min?.[i]             ?? 0,
+    precipProbMax:    raw.daily.precipitation_probability_max?.[i]  ?? 0,  // 常に null → 0
+    precipSum:        raw.daily.precipitation_sum?.[i]              ?? 0,
+    humidMin:         raw.daily.relative_humidity_2m_min?.[i]       ?? 100,
+    humidMax:         raw.daily.relative_humidity_2m_max?.[i]       ?? 0,
+    sunrise:          raw.daily.sunrise?.[i]                        ?? '',
+    sunset:           raw.daily.sunset?.[i]                         ?? '',
+    radiationSum:     raw.daily.shortwave_radiation_sum?.[i]        ?? 0,
+    snowfallSum:      raw.daily.snowfall_sum?.[i]                   ?? 0,
+    windSpeedMax:     raw.daily.wind_speed_10m_max?.[i]             ?? 0,
+    sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
+    ...expandDayAmPm(dayAmPm, t),
   }));
 
   return { hourly, daily, fetchedAt: Date.now() };
@@ -191,7 +325,16 @@ async function fetchRawHistorical(
 
 /**
  * startDate から 10 日分の過去気象データを取得する。
- * 昨日以降の日はプレースホルダー（isPlaceholder=true）として補完する。
+ *
+ * API 選択ロジック（3段階）:
+ *   段階1: startDate >= today-14
+ *          → forecast API（完全データ）
+ *   段階2: HISTORICAL_FORECAST_START <= startDate < today-14
+ *          → historical-forecast API（完全データ、2022年以降）
+ *   段階3: startDate < HISTORICAL_FORECAST_START
+ *          → archive API + ecmwf_ifs（CAPE取得可、0℃層高度は9999固定）
+ *
+ * 今日以降の日はプレースホルダー（isPlaceholder=true）として補完する。
  */
 export async function fetchHistoricalForecast(
   lat: number,
@@ -200,17 +343,34 @@ export async function fetchHistoricalForecast(
 ): Promise<ForecastData> {
   const { today, yesterday } = jstTodayAndYesterday();
 
+  // forecast API が遡れる上限日（inclusive）
+  const forecastCutoff = addDays(today, -FORECAST_LOOKBACK_DAYS);
+
   // API に渡す終了日: startDate+9 と昨日の小さい方
   const tentativeEnd = addDays(startDate, 9);
   const apiEndDate   = tentativeEnd < yesterday ? tentativeEnd : yesterday;
 
-  // 昨日より後に開始している場合はデータなし
   let apiData: ForecastData | null = null;
   if (startDate <= yesterday) {
-    apiData = await fetchRawHistorical(lat, lon, startDate, apiEndDate);
+    if (startDate >= forecastCutoff) {
+      // 段階1: 直近14日 → forecast API（完全データ）
+      apiData = await fetchViaForecastEndpoint(
+        'https://api.open-meteo.com/v1/forecast',
+        lat, lon, startDate, apiEndDate,
+      );
+    } else if (startDate >= HISTORICAL_FORECAST_START) {
+      // 段階2: 2022-01-01 以降 → historical-forecast API（完全データ）
+      apiData = await fetchViaForecastEndpoint(
+        'https://historical-forecast-api.open-meteo.com/v1/forecast',
+        lat, lon, startDate, apiEndDate,
+      );
+    } else {
+      // 段階3: 2022年より前 → archive API + ecmwf_ifs（CAPE取得可）
+      apiData = await fetchViaArchiveApi(lat, lon, startDate, apiEndDate);
+    }
   }
 
-  // 10 日分の配列を構築（昨日より後はプレースホルダー）
+  // 10 日分の配列を構築（今日以降はプレースホルダー）
   const fullDaily: DailyForecastData[] = Array.from({ length: 10 }, (_, i) => {
     const dateStr = addDays(startDate, i);
     if (dateStr >= today) return createPlaceholderDay(dateStr);
