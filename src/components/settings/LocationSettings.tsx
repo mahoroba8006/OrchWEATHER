@@ -2,28 +2,9 @@ import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
-
-const GEO_OPTIONS: PositionOptions = {
-  enableHighAccuracy: false,
-  timeout: 10000,
-  maximumAge: 60000,
-};
+import { GEO_OPTIONS, getGeoErrorMessage, GEO_SUPPORTED } from '../../lib/geo';
 
 type GeoStatus = 'idle' | 'loading' | 'error';
-
-function getGeoErrorMessage(err: GeolocationPositionError): string {
-  switch (err.code) {
-    case err.PERMISSION_DENIED:
-      return '位置情報の許可が必要です。ブラウザの設定からオンにしてください。';
-    case err.TIMEOUT:
-      return '位置情報の取得がタイムアウトしました。再試行してください。';
-    default:
-      return '位置情報の取得に失敗しました。再試行してください。';
-  }
-}
-
-const GEO_SUPPORTED =
-  typeof navigator !== 'undefined' && 'geolocation' in navigator;
 
 const greenButtonStyle: CSSProperties = {
   padding: '0.4rem 0.8rem',
