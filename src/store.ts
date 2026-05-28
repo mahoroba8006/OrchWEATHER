@@ -12,6 +12,7 @@ import {
   updateAccumStartDates as updateAccumStartDatesRemote,
   updateAccumDeltaThresholds as updateAccumDeltaThresholdsRemote,
   updateRiskThresholds as updateRiskThresholdsRemote,
+  updateDefaultLocationId as updateDefaultLocationIdRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -69,6 +70,7 @@ export interface UserSettings {
   accumStartDates:      AccumStartDates;
   accumDeltaThresholds: AccumDeltaThresholds;
   riskThresholds:       RiskThresholds;
+  defaultLocationId:    string | null;
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -109,15 +111,20 @@ interface AppState {
   locations: LocationInfo[];
   locationsLoading: boolean;
   userSettings: UserSettings | null;
+  geoLocation: LocationInfo | null;
+  geoStatus: 'idle' | 'loading' | 'error';
 
   setUser: (user: User | null) => void;
   setAuthLoading: (loading: boolean) => void;
+  setGeoLocation: (loc: LocationInfo | null) => void;
+  setGeoStatus: (status: 'idle' | 'loading' | 'error') => void;
   loadLocations: (uid: string) => Promise<void>;
   loadUserSettings: (uid: string) => Promise<void>;
   updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
   updateAccumStartDates: (dates: AccumStartDates) => Promise<void>;
   updateAccumDeltaThresholds: (thresholds: AccumDeltaThresholds) => Promise<void>;
   updateRiskThresholds: (thresholds: RiskThresholds) => Promise<void>;
+  updateDefaultLocationId: (id: string | null) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -129,9 +136,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
   locations: [],
   locationsLoading: false,
   userSettings: null,
+  geoLocation: null,
+  geoStatus: 'idle',
 
   setUser: (user) => set({ user }),
   setAuthLoading: (loading) => set({ authLoading: loading }),
+  setGeoLocation: (loc) => set({ geoLocation: loc }),
+  setGeoStatus: (status) => set({ geoStatus: status }),
 
   loadLocations: async (uid) => {
     set({ locationsLoading: true });
@@ -184,6 +195,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, riskThresholds: thresholds }
+        : null,
+    }));
+  },
+
+  updateDefaultLocationId: async (id) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateDefaultLocationIdRemote(uid, id);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, defaultLocationId: id }
         : null,
     }));
   },
