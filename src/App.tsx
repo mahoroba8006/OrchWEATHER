@@ -162,7 +162,7 @@ function calcMobileDefaultViewport(
 }
 
 function App() {
-  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
+  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, geoStatus, setGeoLocation, setGeoStatus } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
@@ -222,6 +222,36 @@ function App() {
     return unsubscribe;
   }, []);
 
+  const geoAttemptedRef = useRef(false);
+
+  // 起動時: デフォルト地点がなければ自動で現在地を取得する
+  useEffect(() => {
+    if (authLoading) return;
+    if (geoAttemptedRef.current) return;
+    geoAttemptedRef.current = true;
+
+    const defaultLocId = userSettings?.defaultLocationId;
+    const hasValidDefault = defaultLocId && locations.some(l => l.id === defaultLocId);
+    if (hasValidDefault) return;
+
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+      setGeoStatus('error');
+      return;
+    }
+
+    setGeoStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = parseFloat(position.coords.latitude.toFixed(6));
+        const lon = parseFloat(position.coords.longitude.toFixed(6));
+        setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+        setGeoStatus('idle');
+      },
+      () => setGeoStatus('error'),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
+  }, [authLoading]);
+
   const initialLocation = locations.length > 0 ? locations[0].id : '';
   const [targets, setTargets] = useState<CompareTarget[]>([
     { id: `t_${Date.now()}`, locationId: initialLocation, year: new Date().getFullYear() }
@@ -232,16 +262,33 @@ function App() {
     setTargets(prev => {
       let changed = false;
       const validIds = new Set(locations.map(l => l.id));
+      const defaultLocId = userSettings?.defaultLocationId;
+      const hasValidDefault = defaultLocId && validIds.has(defaultLocId);
       const next = prev.map(t => {
+        // __geo__ は仮想地点なので復旧対象外
+        if (t.locationId === '__geo__') return t;
         if (!validIds.has(t.locationId)) {
           changed = true;
-          return { ...t, locationId: locations.length > 0 ? locations[0].id : '' };
+          const fallback = hasValidDefault
+            ? defaultLocId!
+            : locations.length > 0 ? locations[0].id : '';
+          return { ...t, locationId: fallback };
         }
         return t;
       });
       return changed ? next : prev;
     });
-  }, [locations]);
+  }, [locations, userSettings?.defaultLocationId]);
+
+  // geoLocation が取得されたとき locationId が空の targets を __geo__ に切り替える
+  useEffect(() => {
+    if (!geoLocation) return;
+    setTargets(prev => {
+      const hasEmpty = prev.some(t => t.locationId === '');
+      if (!hasEmpty) return prev;
+      return prev.map(t => t.locationId === '' ? { ...t, locationId: '__geo__' } : t);
+    });
+  }, [geoLocation]);
 
   const firstOfMonths = Array.from({length: 12}, (_, i) => `${String(i + 1).padStart(2, '0')}-01`);
 
@@ -297,6 +344,7 @@ function App() {
   };
 
   const getLocationName = (id: string) => {
+    if (id === '__geo__') return '現在地';
     const loc = locations.find(l => l.id === id);
     return loc ? loc.name : '未設定';
   };
@@ -1358,10 +1406,11 @@ function App() {
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
                   style={{ flex: 2, minWidth: 0, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
                 >
+                  {geoLocation && <option value="__geo__">📍 現在地</option>}
                   {locations.map(loc => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                   ))}
-                  {locations.length === 0 && <option value="">地点未設定</option>}
+                  {!geoLocation && locations.length === 0 && <option value="">地点未設定</option>}
                 </select>
                 <select
                   value={target.year}
