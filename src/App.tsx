@@ -260,6 +260,11 @@ function App() {
     { id: `t_${Date.now()}`, locationId: initialLocation, year: new Date().getFullYear() }
   ]);
 
+  // ターゲット（地点・年）が変わったときホバー値をクリア（古い payload で diff が計算されるのを防ぐ）
+  useEffect(() => {
+    setHover(null);
+  }, [targets]);
+
   // マスターデータから削除された地点を掴んでいるターゲットを自動復旧させる
   useEffect(() => {
     setTargets(prev => {
