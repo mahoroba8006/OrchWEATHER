@@ -1586,7 +1586,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Thermometer size={18} /> 気温</h2>
           </div>
           {loading ? (
-            {chartLoading}
+            chartLoading
           ) : (
             <>
               {chartFrame('temp', (
@@ -1646,7 +1646,7 @@ function App() {
             {renderAccumBadge('precip')}
           </div>
           {loading ? (
-            {chartLoading}
+            chartLoading
           ) : (
             <>
               {chartFrame('precip', (
@@ -1758,7 +1758,7 @@ function App() {
             {renderAccumBadge('sunshine')}
           </div>
           {loading ? (
-            {chartLoading}
+            chartLoading
           ) : (
             <>
               {chartFrame('sunshine', (
@@ -1855,7 +1855,7 @@ function App() {
             {renderAccumBadge('radiation')}
           </div>
           {loading ? (
-            {chartLoading}
+            chartLoading
           ) : (
             <>
               {chartFrame('radiation', (
@@ -1974,7 +1974,7 @@ function App() {
             </div>
           </div>
           {loading ? (
-            {chartLoading}
+            chartLoading
           ) : (
             <>
               {chartFrame('gdd', (
@@ -2070,7 +2070,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Droplets size={18} /> 湿度</h2>
           </div>
           {loading ? (
-            {chartLoading}
+            chartLoading
           ) : (
             <>
               {chartFrame('humid', (
@@ -2128,7 +2128,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><DropletOff size={18} /> 飽差</h2>
           </div>
           {loading ? (
-            {chartLoading}
+            chartLoading
           ) : (
             <>
               {chartFrame('vpd', (
