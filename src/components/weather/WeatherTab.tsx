@@ -1,7 +1,8 @@
 // src/components/weather/WeatherTab.tsx
-import { useState, useRef, useCallback } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { RefreshCw, MapPin, Loader2 } from 'lucide-react';
 import { useAppStore, DEFAULT_RISK_THRESHOLDS } from '../../store';
+import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
@@ -10,35 +11,86 @@ import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
 export function WeatherTab() {
-  const { locations, userSettings } = useAppStore();
+  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation } = useAppStore();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
+  const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
+  const [buttonGeoError, setButtonGeoError] = useState('');
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
 
-  // selectedLocationId が未設定の場合は最初の地点にフォールバック
-  const location = locations.find(l => l.id === selectedLocationId) ?? locations[0] ?? null;
+  // デフォルト地点 or geoLocation が揃ったとき初期選択を確定させる
+  useEffect(() => {
+    if (selectedLocationId !== '') return;
+    const defaultLocId = userSettings?.defaultLocationId;
+    if (defaultLocId && locations.some(l => l.id === defaultLocId)) {
+      setSelectedLocationId(defaultLocId);
+      return;
+    }
+    if (geoLocation) {
+      setSelectedLocationId('__geo__');
+    }
+  }, [selectedLocationId, userSettings?.defaultLocationId, geoLocation, locations]);
+
+  // 地点の解決: __geo__ → geoLocation、それ以外 → locations から検索してフォールバック
+  const location = (() => {
+    if (selectedLocationId === '__geo__') return geoLocation;
+    return locations.find(l => l.id === selectedLocationId) ?? geoLocation ?? locations[0] ?? null;
+  })();
+
+  // 現在地ボタンのハンドラ
+  const handleGetCurrentLocation = () => {
+    setButtonGeoLoading(true);
+    setButtonGeoError('');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = parseFloat(position.coords.latitude.toFixed(6));
+        const lon = parseFloat(position.coords.longitude.toFixed(6));
+        setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+        setSelectedLocationId('__geo__');
+        setButtonGeoLoading(false);
+      },
+      (err) => {
+        setButtonGeoError(getGeoErrorMessage(err));
+        setButtonGeoLoading(false);
+      },
+      GEO_OPTIONS,
+    );
+  };
 
   const { data, loading, error, lastUpdated, refresh } = useForecast(
     location?.lat ?? null,
     location?.lon ?? null,
   );
 
-  // 地点未登録
-  if (locations.length === 0) {
+  // 地点未登録かつ geo も未取得
+  if (locations.length === 0 && !geoLocation) {
+    const emptyStyle = {
+      maxWidth: 1200,
+      margin: '0 auto',
+      padding: '4rem 1rem',
+      textAlign: 'center' as const,
+      color: '#8a93a6',
+    };
+    if (geoStatus === 'loading') {
+      return (
+        <div style={emptyStyle}>
+          <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '0.75rem' }} />
+          <p style={{ fontSize: '1rem' }}>位置情報を取得中…</p>
+        </div>
+      );
+    }
+    if (geoStatus === 'error') {
+      return (
+        <div style={emptyStyle}>
+          <p style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>位置情報が取得できませんでした</p>
+          <p style={{ fontSize: '0.85rem' }}>設定タブから地点を登録するか、上のボタンで現在地を取得してください</p>
+        </div>
+      );
+    }
     return (
-      <div style={{
-        maxWidth: 1200,
-        margin: '0 auto',
-        padding: '4rem 1rem',
-        textAlign: 'center',
-        color: '#8a93a6',
-      }}>
-        <p style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>
-          地点を登録すると予報が表示されます
-        </p>
-        <p style={{ fontSize: '0.85rem' }}>
-          「分析」タブの設定から地点を追加してください
-        </p>
+      <div style={emptyStyle}>
+        <p style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>地点を登録すると予報が表示されます</p>
+        <p style={{ fontSize: '0.85rem' }}>「設定」タブから地点を追加してください</p>
       </div>
     );
   }
@@ -83,18 +135,43 @@ export function WeatherTab() {
         borderRadius: 'var(--radius-md)',
         flexWrap: 'wrap',
       }}>
+        <button
+          onClick={handleGetCurrentLocation}
+          disabled={buttonGeoLoading}
+          style={{
+            padding: '0.4rem 0.8rem',
+            fontSize: '0.8rem',
+            background: 'rgba(13,148,136,0.12)',
+            color: 'var(--accent-color)',
+            border: '1px solid rgba(13,148,136,0.3)',
+            borderRadius: 'var(--radius-md, 6px)',
+            cursor: buttonGeoLoading ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            opacity: buttonGeoLoading ? 0.7 : 1,
+            flexShrink: 0,
+          }}
+        >
+          {buttonGeoLoading
+            ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />取得中…</>
+            : <><MapPin size={14} />現在地を表示</>}
+        </button>
         <select
           value={location?.id ?? ''}
           onChange={e => setSelectedLocationId(e.target.value)}
-          style={{
-            fontSize: '0.85rem',
-            padding: '0.4rem 0.75rem',
-          }}
+          style={{ fontSize: '0.85rem', padding: '0.4rem 0.75rem' }}
         >
+          {geoLocation && <option value="__geo__">📍 現在地</option>}
           {locations.map(loc => (
             <option key={loc.id} value={loc.id}>{loc.name}</option>
           ))}
         </select>
+        {buttonGeoError && (
+          <span style={{ fontSize: '0.78rem', color: '#c62828', width: '100%' }}>
+            ⚠ {buttonGeoError}
+          </span>
+        )}
         <span style={{ flex: 1 }} />
         {timeStr && (
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, marginRight: '0.5rem' }}>
