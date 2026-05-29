@@ -308,9 +308,11 @@ function App() {
   const forecastLoc = useMemo(() => {
     const t = targets[0];
     if (!t) return null;
-    const loc = locations.find(l => l.id === t.locationId);
+    const loc = t.locationId === '__geo__'
+      ? geoLocation
+      : locations.find(l => l.id === t.locationId);
     return loc ? { lat: loc.lat, lon: loc.lon } : null;
-  }, [targets, locations]);
+  }, [targets, locations, geoLocation]);
 
   const { data: forecastData } = useForecast(
     forecastLoc?.lat ?? null,
