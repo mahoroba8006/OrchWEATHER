@@ -305,7 +305,7 @@ function App() {
     });
   };
 
-  const { data: weatherData, loading, error } = useWeatherData(targets);
+  const { data: weatherData, loading, loadingStatus, error } = useWeatherData(targets);
 
   // 分析タブ用予報データ（targets[0] の地点のみ取得）
   const forecastLoc = useMemo(() => {
@@ -948,6 +948,15 @@ function App() {
     setHover(null);
   };
 
+  const chartLoading = (
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '350px', gap: '0.9rem' }}>
+      <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)' }} />
+      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>
+        {loadingStatus || 'データを取得中...'}
+      </span>
+    </div>
+  );
+
   // 全モード 横幅100%。render ヘルパー（コンポーネントでなく関数）にすることで
   // state 更新時の App 再描画でもアンマウント→マウントが起きないようにしている
   const chartFrame = (chartId: string, children: React.ReactNode, measure?: boolean) => (
@@ -1577,7 +1586,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Thermometer size={18} /> 気温</h2>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            {chartLoading}
           ) : (
             <>
               {chartFrame('temp', (
@@ -1637,7 +1646,7 @@ function App() {
             {renderAccumBadge('precip')}
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            {chartLoading}
           ) : (
             <>
               {chartFrame('precip', (
@@ -1749,7 +1758,7 @@ function App() {
             {renderAccumBadge('sunshine')}
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            {chartLoading}
           ) : (
             <>
               {chartFrame('sunshine', (
@@ -1846,7 +1855,7 @@ function App() {
             {renderAccumBadge('radiation')}
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            {chartLoading}
           ) : (
             <>
               {chartFrame('radiation', (
@@ -1965,7 +1974,7 @@ function App() {
             </div>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            {chartLoading}
           ) : (
             <>
               {chartFrame('gdd', (
@@ -2061,7 +2070,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Droplets size={18} /> 湿度</h2>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            {chartLoading}
           ) : (
             <>
               {chartFrame('humid', (
@@ -2119,7 +2128,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><DropletOff size={18} /> 飽差</h2>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            {chartLoading}
           ) : (
             <>
               {chartFrame('vpd', (

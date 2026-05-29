@@ -14,6 +14,7 @@ export function useWeatherData(targets: CompareTarget[]) {
   const { locations, geoLocation } = useAppStore();
   const [data, setData] = useState<Record<string, WeatherData>>({});
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   // 直前にフェッチ済みのターゲット仕様を記憶する（id → {locationId, year}）
@@ -49,6 +50,7 @@ export function useWeatherData(targets: CompareTarget[]) {
 
     const loadData = async () => {
       setLoading(true);
+      setLoadingStatus('気象データを取得中...');
       setError(null);
 
       try {
@@ -68,6 +70,7 @@ export function useWeatherData(targets: CompareTarget[]) {
         const results = await Promise.all(promises);
 
         if (isMounted) {
+          setLoadingStatus('データを分析中...');
           // フェッチ済み仕様を更新
           targetsToFetch.forEach(t => {
             fetchedSpecsRef.current.set(t.id, { locationId: t.locationId, year: t.year });
@@ -92,6 +95,7 @@ export function useWeatherData(targets: CompareTarget[]) {
       } finally {
         if (isMounted) {
           setLoading(false);
+          setLoadingStatus('');
         }
       }
     };
@@ -101,5 +105,5 @@ export function useWeatherData(targets: CompareTarget[]) {
     return () => { isMounted = false; };
   }, [JSON.stringify(targets), geoLocation, locations]);
 
-  return { data, loading, error };
+  return { data, loading, loadingStatus, error };
 }
