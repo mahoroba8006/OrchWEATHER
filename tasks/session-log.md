@@ -1,4 +1,61 @@
 
+## 2026-05-29 セッション（15回目）
+
+### 作業内容
+
+#### 現在地表示・デフォルト地点機能の実装（feature/current-location ブランチ → main マージ）
+
+**機能概要:**
+- 天気情報・あの時の天気・比較分析タブに「現在地を表示」ボタン追加
+- GPS取得した仮想地点（`id = '__geo__'`）を Zustand store で全タブ共有
+- 設定タブの地点設定に「デフォルトに設定」ボタン・「★ デフォルト」バッジ追加
+- 起動時にデフォルト地点なければ自動で現在地を取得（`geoAttemptedRef` で重複防止）
+- `UserSettings.defaultLocationId` を Firestore に保存（`setDoc merge: true`）
+
+**主要コミット（feature/current-location）:**
+
+| コミット | 内容 |
+|---------|------|
+| `e1c0c33` | refactor: extract geo utilities to `src/lib/geo.ts` |
+| `3b31c49` | feat: add geoLocation/geoStatus to store and defaultLocationId to UserSettings |
+| `5db5cc8` | feat: support `__geo__` locationId in useWeatherData（キャッシュ無効化含む） |
+| `f8dabc4` | feat: add default location UI to LocationSettings |
+| `7754eb9` | feat: startup geo fetch, getLocationName __geo__ support, analysis tab geo dropdown |
+| `c15296e` | feat: add current location button and geo support to WeatherTab |
+| `99164bd` | feat: add current location button and geo support to HistoricalWeatherTab |
+| `a46c394` | fix: resolve __geo__ in forecastLoc for analysis tab forecast overlay |
+| `5156ad6` | fix: remove unused geoStatus from App.tsx destructure |
+| `1e1c0ea` | feat: add current location button to analysis tab |
+| `d5a4e0c` | fix: auto-select __geo__ target on analysis tab geo button click |
+| `5774b84` | feat: animated loading indicator with phase status in analysis tab |
+| `2846178` | fix: remove invalid curly braces around chartLoading in ternary |
+| `dd05db6` | feat: animated loading indicator with status in weather tabs |
+
+**マージコミット:** `25f4d74` feat: merge current-location feature into main（push 済み）
+
+**技術的ポイント:**
+- `__geo__` は Firestore に保存しない仮想 locationId（store のみで管理）
+- `prevGeoKeyRef` で座標変化を検知して `__geo__` キャッシュを無効化
+- React hooks ルール遵守: useForecast/useHistoricalForecast は条件分岐より前に呼び出し
+
+#### ローディングアニメーション改善
+
+- `useWeatherData`: `loadingStatus` 追加（「気象データを取得中...」→「データを分析中...」）
+- `useForecast`: `loadingStatus` 追加（「天気予報を取得中...」）
+- `useHistoricalForecast`: `loadingStatus` 追加（「気象データを取得中...」）
+- 全タブの「取得中...」テキストを `Loader2` スピナー + ステータス文字列に統一
+
+### 決定事項
+- `__geo__` 仮想地点方式で Firestore を汚染せずに現在地を共有する設計を採用
+- ローディング UI は Loader2 アイコン（spin アニメーション）+ フェーズ別テキストで統一
+
+### 未完了・次回への引き継ぎ
+- 2バージョン管理の実装（Vite フィーチャーフラグ + Cloudflare Pages 2プロジェクト）
+- AI 農作業コメント機能の設計・実装
+- 地点登録方法の拡充（住所・マップ登録）
+
+---
+
 ## 2026-05-28 セッション（14回目）
 
 ### 作業内容
