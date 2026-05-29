@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage, GEO_SUPPORTED } from '../../lib/geo';
+import { resolveJmaAreaCode } from '../../lib/jmaAreaResolver';
 
 type GeoStatus = 'idle' | 'loading' | 'error';
 
@@ -39,6 +40,8 @@ export function LocationSettings() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<LocationInfo>>({});
+  // 編集開始時点の lat/lon を記憶して、変化した場合のみエリアコードを再解決する
+  const [originalLatLon, setOriginalLatLon] = useState<{ lat: number; lon: number } | null>(null);
 
   const [geoStatus, setGeoStatus] = useState<GeoStatus>('idle');
   const [geoError, setGeoError] = useState<string>('');
@@ -49,6 +52,7 @@ export function LocationSettings() {
   const handleEdit = (loc: LocationInfo) => {
     setEditingId(loc.id);
     setFormData(loc);
+    setOriginalLatLon({ lat: loc.lat, lon: loc.lon });
     setGeoError('');
     setGeoStatus('idle');
     setSaveStatus('idle');
@@ -58,6 +62,7 @@ export function LocationSettings() {
   const handleAddNew = () => {
     setEditingId('new');
     setFormData({ name: '新規地点', lat: 35.0, lon: 135.0 });
+    setOriginalLatLon(null);
     setGeoError('');
     setSaveStatus('idle');
     setSaveError('');
@@ -74,6 +79,7 @@ export function LocationSettings() {
         setGeoStatus('idle');
         setEditingId('new');
         setFormData({ name: '現在地', lat, lon });
+        setOriginalLatLon(null); // 新規なので常にエリアコードを解決させる
         setSaveStatus('idle');
         setSaveError('');
       },
@@ -89,10 +95,29 @@ export function LocationSettings() {
     setSaveStatus('saving');
     setSaveError('');
     try {
+      let dataToSave: Partial<LocationInfo> = { ...formData };
+
+      // lat/lon が変化した場合（または新規登録時）は JMA エリアコードを解決する
+      const latLonChanged =
+        editingId === 'new' ||
+        !originalLatLon ||
+        formData.lat !== originalLatLon.lat ||
+        formData.lon !== originalLatLon.lon;
+
+      if (latLonChanged && typeof formData.lat === 'number' && typeof formData.lon === 'number') {
+        try {
+          const jmaAreaCode = await resolveJmaAreaCode(formData.lat, formData.lon);
+          dataToSave = { ...dataToSave, jmaAreaCode: jmaAreaCode ?? undefined };
+        } catch {
+          // エリアコード解決失敗は致命的ではない。警報表示がされないだけ
+          console.warn('[LocationSettings] jmaAreaCode resolution failed');
+        }
+      }
+
       if (editingId === 'new') {
-        await addLocation(formData as Omit<LocationInfo, 'id'>);
+        await addLocation(dataToSave as Omit<LocationInfo, 'id'>);
       } else if (editingId) {
-        await updateLocation(editingId, formData);
+        await updateLocation(editingId, dataToSave);
       }
       setSaveStatus('idle');
       setEditingId(null);

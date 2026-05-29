@@ -4,9 +4,11 @@ import { RefreshCw, MapPin, Loader2 } from 'lucide-react';
 import { useAppStore, DEFAULT_RISK_THRESHOLDS } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
+import { useJmaWarning } from '../../hooks/useJmaWarning';
 import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
 import { RiskSummary } from './RiskSummary';
+import { JmaWarningSummary } from './JmaWarningSummary';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
@@ -61,6 +63,9 @@ export function WeatherTab() {
     location?.lat ?? null,
     location?.lon ?? null,
   );
+
+  // 気象庁注意報・警報（jmaAreaCode が設定済みの登録地点のみ有効）
+  const { data: jmaWarning, loading: jmaLoading } = useJmaWarning(location?.jmaAreaCode);
 
   // 地点未登録かつ geo も未取得
   if (locations.length === 0 && !geoLocation) {
@@ -214,6 +219,7 @@ export function WeatherTab() {
 
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <JmaWarningSummary result={jmaWarning} loading={jmaLoading} />
           <RiskSummary dayRisks={dayRisks} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
