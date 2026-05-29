@@ -1,12 +1,10 @@
 // src/components/weather/HistoricalWeatherTab.tsx
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
-import { useAppStore, DEFAULT_RISK_THRESHOLDS } from '../../store';
+import { useAppStore } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useHistoricalForecast } from '../../hooks/useHistoricalForecast';
-import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
-import { RiskSummary } from './RiskSummary';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
@@ -106,20 +104,8 @@ export function HistoricalWeatherTab() {
     );
   }
 
-  const enabledSet = new Set(
-    userSettings?.riskThresholds?.enabledRisks ?? DEFAULT_RISK_THRESHOLDS.enabledRisks
-  );
-
-  // isPlaceholder でない日のみリスク判定・時間別表示に使用
+  // isPlaceholder でない日のみ時間別表示に使用
   const nonPlaceholderDaily = data ? data.daily.filter(d => !d.isPlaceholder) : [];
-
-  const dayRisks = data
-    ? detectRisks(data.hourly, nonPlaceholderDaily, userSettings?.riskThresholds)
-        .map(d => ({
-          ...d,
-          risks: d.risks.filter(r => enabledSet.has(r)),
-        }))
-    : [];
 
   const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
     const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
@@ -217,12 +203,9 @@ export function HistoricalWeatherTab() {
 
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-          <RiskSummary dayRisks={dayRisks} />
-
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <DailyForecast
               daily={nonPlaceholderDaily}
-              dayRisks={dayRisks}
               onHalfDayClick={scrollToHour}
             />
           </section>
@@ -234,7 +217,6 @@ export function HistoricalWeatherTab() {
                 daily={nonPlaceholderDaily}
                 scrollRef={hourlyScrollRef}
                 scrollTarget={scrollTarget}
-                riskThresholds={userSettings?.riskThresholds}
                 disablePastOpacity
               />
             </section>

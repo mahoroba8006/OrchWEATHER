@@ -1,9 +1,6 @@
 import { useEffect, type CSSProperties, type RefObject } from 'react';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
-import { RISK_BADGES, detectSingleHourRisks } from '../../lib/riskDetection';
-import type { RiskType } from '../../lib/riskDetection';
-import type { RiskThresholds } from '../../store';
 import { WeatherIcon } from './WeatherIcon';
 
 interface Props {
@@ -12,7 +9,6 @@ interface Props {
   scrollRef?: RefObject<HTMLDivElement | null>;
   scrollTarget?: string; // "YYYY-MM-DDTHH:00" — scroll this column to left edge
   disablePastOpacity?: boolean; // true: 過去時刻のグレーアウトを無効化（履歴タブ用）
-  riskThresholds?: RiskThresholds; // ユーザー設定の閾値・有効リスク（未指定時はデフォルト値）
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -62,25 +58,6 @@ type TLEntry     = HourlyEntry | SunEntry;
 const tlTime = (e: TLEntry) => (e.kind === 'hourly' ? e.data.time : e.time);
 
 // ── Sub-components ────────────────────────────────────────
-function RiskBadgesRow({ tl, cutoff, riskThresholds }: { tl: TLEntry[]; cutoff: Date; riskThresholds?: RiskThresholds }) {
-  return (
-    <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
-      <td style={STICKY} />
-      {tl.map((entry, i) => {
-        if (entry.kind === 'sun') return <td key={`risk-sun-${i}`} style={{ minWidth: COL_W }} />;
-        const h = entry.data;
-        const risks = detectSingleHourRisks(h, riskThresholds);
-        const isPast = new Date(h.time) < cutoff;
-        return (
-          <td key={`risk-${h.time}`} style={{ padding: '0.15rem 0.1rem', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: isPast ? 0.35 : undefined }}>
-            {risks.map(r => <img key={r} src={`/icons/weather/${RISK_BADGES[r].iconFile}.svg`} width={24} height={24} alt={RISK_BADGES[r].label} style={{ display: 'inline-block', verticalAlign: 'middle' }} />)}
-          </td>
-        );
-      })}
-    </tr>
-  );
-}
-
 
 function MiniChartRow({ tl }: { tl: TLEntry[] }) {
   const hourlyPos: number[]   = [];
@@ -220,31 +197,24 @@ function degreesToCompass(deg: number): string {
 }
 
 // ── Data rows (excluding date / time / weather handled inline) ──
-// riskTypes: この行の値が背景色を持つきっかけとなるリスク種別。
-//            detectSingleHourRisks の結果にいずれかが含まれる場合のみ背景色を付ける。
-const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string; riskTypes: RiskType[] }[] = [
-  { key: 'temperature',  label: '気温(℃)',     fmt: h => h.temperature.toFixed(1),                    riskTypes: ['heat', 'cold', 'frost'] },
-  { key: 'precip',       label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1),                  riskTypes: ['rain'] },
-  { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1),                        riskTypes: ['frost'] },
-  { key: 'humidity',     label: '湿度(%)',      fmt: h => String(h.humidity),                          riskTypes: ['dry'] },
-  { key: 'vpd',          label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1), riskTypes: [] },
-  { key: 'windDir',      label: '風向き',       fmt: h => degreesToCompass(h.windDirection),            riskTypes: [] },
-  { key: 'windSpeed',    label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1),                      riskTypes: ['wind'] },
-  { key: 'cape',         label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString(),                riskTypes: ['thunder', 'hail'] },
-  { key: 'freezing',     label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString(),       riskTypes: ['hail'] },
-  { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString(),           riskTypes: [] },
+const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string }[] = [
+  { key: 'temperature',  label: '気温(℃)',     fmt: h => h.temperature.toFixed(1) },
+  { key: 'precip',       label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1) },
+  { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1) },
+  { key: 'humidity',     label: '湿度(%)',      fmt: h => String(h.humidity) },
+  { key: 'vpd',          label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1) },
+  { key: 'windDir',      label: '風向き',       fmt: h => degreesToCompass(h.windDirection) },
+  { key: 'windSpeed',    label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1) },
+  { key: 'cape',         label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString() },
+  { key: 'freezing',     label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString() },
+  { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString() },
 ];
 
 // ── Main component ────────────────────────────────────────
-export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, riskThresholds }: Props) {
+export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
 
-  // 時刻 → 検出リスクの Set（DATA_ROWS の背景色判定に使用）
-  const hourlyRiskMap = new Map<string, Set<RiskType>>();
-  for (const h of hourly) {
-    hourlyRiskMap.set(h.time, new Set(detectSingleHourRisks(h, riskThresholds)));
-  }
   // 履歴タブはすべての時刻が「過去」になるため、グレーアウトを無効化する
   const effectiveCutoff = disablePastOpacity ? new Date(0) : cutoff;
 
@@ -379,7 +349,6 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 );
               })}
             </tr>
-            <RiskBadgesRow tl={tl} cutoff={effectiveCutoff} riskThresholds={riskThresholds} />
             <MiniChartRow tl={tl} />
             <UVRow tl={tl} isNighttime={isNighttime} cutoff={effectiveCutoff} />
             {/* データ行 */}
@@ -389,10 +358,8 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 {tl.map((entry, i) => {
                   if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W }} />;
                   const h = entry.data;
-                  const detectedRisks = hourlyRiskMap.get(h.time) ?? new Set<RiskType>();
-                  const risk = row.riskTypes.some(rt => detectedRisks.has(rt));
                   return (
-                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', background: risk ? '#fff0f5' : undefined, fontWeight: risk ? 700 : undefined, minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#4b5563' }}>
+                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#4b5563' }}>
                       {row.fmt(h)}
                     </td>
                   );

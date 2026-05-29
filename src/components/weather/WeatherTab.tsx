@@ -1,13 +1,11 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { RefreshCw, MapPin, Loader2 } from 'lucide-react';
-import { useAppStore, DEFAULT_RISK_THRESHOLDS } from '../../store';
+import { useAppStore, ALL_JMA_GROUPS, JMA_GROUP_CODES } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
-import { detectRisks } from '../../lib/riskDetection';
 import { DailyForecast } from './DailyForecast';
-import { RiskSummary } from './RiskSummary';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
@@ -67,6 +65,16 @@ export function WeatherTab() {
   // 気象庁注意報・警報（jmaAreaCode が設定済みの登録地点のみ有効）
   const { data: jmaWarning, loading: jmaLoading } = useJmaWarning(location?.jmaAreaCode);
 
+  // 有効グループでフィルタリング（特別警報は常に表示）
+  const enabledJmaGroups = userSettings?.enabledJmaGroups ?? ALL_JMA_GROUPS;
+  const enabledJmaCodeSet = new Set(enabledJmaGroups.flatMap(g => JMA_GROUP_CODES[g] ?? []));
+  const filteredJmaWarning = jmaWarning && {
+    ...jmaWarning,
+    items: jmaWarning.items.filter(item =>
+      parseInt(item.code, 10) >= 33 || enabledJmaCodeSet.has(item.code)
+    ),
+  };
+
   // 地点未登録かつ geo も未取得
   if (locations.length === 0 && !geoLocation) {
     const emptyStyle = {
@@ -106,18 +114,6 @@ export function WeatherTab() {
         return `${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}`;
       })()
     : null;
-
-  const enabledSet = new Set(
-    userSettings?.riskThresholds?.enabledRisks ?? DEFAULT_RISK_THRESHOLDS.enabledRisks
-  );
-
-  const dayRisks = data
-    ? detectRisks(data.hourly, data.daily, userSettings?.riskThresholds)
-        .map(d => ({
-          ...d,
-          risks: d.risks.filter(r => enabledSet.has(r)),
-        }))
-    : [];
 
   const filteredHourly = data
     ? data.hourly.filter(h =>
@@ -219,15 +215,14 @@ export function WeatherTab() {
 
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-          <JmaWarningSummary result={jmaWarning} loading={jmaLoading} />
-          <RiskSummary dayRisks={dayRisks} />
+          <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <DailyForecast daily={data.daily} dayRisks={dayRisks} onHalfDayClick={scrollToHour} />
+            <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} />
           </section>
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} riskThresholds={userSettings?.riskThresholds} />
+            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} />
           </section>
         </div>
       )}

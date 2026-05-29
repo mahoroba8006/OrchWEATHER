@@ -1,12 +1,9 @@
 import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
-import type { DayRisk } from '../../lib/riskDetection';
-import { RISK_BADGES } from '../../lib/riskDetection';
 import { WeatherIcon, codeToLabel, dayTransitionLabel } from './WeatherIcon';
 
 interface Props {
   daily: DailyForecastData[];
-  dayRisks: DayRisk[];
   onHalfDayClick?: (date: string, period: 'am' | 'pm' | 'night') => void;
 }
 
@@ -143,7 +140,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   );
 }
 
-export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
+export function DailyForecast({ daily, onHalfDayClick }: Props) {
   const tableRef = useRef<HTMLTableElement>(null);
   const [dayX, setDayX] = useState<number[] | null>(null);
   const [dayWidths, setDayWidths] = useState<number[] | null>(null);
@@ -468,43 +465,6 @@ export function DailyForecast({ daily, dayRisks, onHalfDayClick }: Props) {
                   <div style={{ height: CHART_H }} />
                 )}
               </td>
-            </tr>
-            {/* リスク */}
-            <tr>
-              {daily.map((day, i) => {
-                const split = i < SPLIT_DAYS;
-                const riskDay = dayRisks.find(r => r.date === day.date);
-                const hasRisk = riskDay !== undefined && riskDay.risks.length > 0;
-                return (
-                  <td
-                    key={day.date}
-                    colSpan={split ? 3 : 1}
-                    style={{ ...(split ? spanCell(day, i) : singleCell(day, i)), paddingBottom: '0.6rem', verticalAlign: 'top' }}
-                  >
-                    {hasRisk && riskDay && (
-                      <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                        {riskDay.risks.map(r => {
-                          const badge = RISK_BADGES[r];
-                          return (
-                            <img
-                              key={r}
-                              src={`/icons/weather/${badge.iconFile}.svg`}
-                              width={32}
-                              height={32}
-                              alt={badge.label}
-                              style={{
-                                display: 'inline-block',
-                                verticalAlign: 'middle',
-                                ...(r === 'heat' ? { filter: 'drop-shadow(0 0 3px #f87171)' } : {}),
-                              }}
-                            />
-                          );
-                        })}
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
             </tr>
           </tbody>
         </table>

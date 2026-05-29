@@ -11,8 +11,8 @@ import {
   updateBaseTempSettings as updateBaseTempSettingsRemote,
   updateAccumStartDates as updateAccumStartDatesRemote,
   updateAccumDeltaThresholds as updateAccumDeltaThresholdsRemote,
-  updateRiskThresholds as updateRiskThresholdsRemote,
   updateDefaultLocationId as updateDefaultLocationIdRemote,
+  updateEnabledJmaGroups as updateEnabledJmaGroupsRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -37,41 +37,41 @@ export interface AccumDeltaThresholds {
   radiation: number;
 }
 
-export type RiskSensitivity = 'low' | 'medium' | 'high';
+// ─── JMA 注意報・警報 表示グループ ───────────────────────────────────────────
+export type JmaWarningGroup =
+  | '大雨' | '洪水' | '大雪' | '強風' | '風雪' | '波浪' | '高潮'
+  | '乾燥' | '霜' | '低温' | '雷' | '濃霧' | 'なだれ' | '融雪' | '着氷' | '着雪';
 
-export type RiskType =
-  | 'frost'
-  | 'thunder'
-  | 'hail'
-  | 'wind'
-  | 'rain'
-  | 'heat'
-  | 'dry'
-  | 'snow'
-  | 'cold';
+export const JMA_GROUP_CODES: Record<JmaWarningGroup, string[]> = {
+  '大雨': ['02', '21', '33'],
+  '洪水': ['03', '22'],
+  '大雪': ['12', '23', '40'],
+  '強風': ['16', '20', '39'],
+  '風雪': ['13', '19', '38'],
+  '波浪': ['17', '25', '37'],
+  '高潮': ['18', '26', '35'],
+  '乾燥': ['04'],
+  '霜':   ['05'],
+  '低温': ['07'],
+  '雷':   ['15'],
+  '濃霧': ['14'],
+  'なだれ': ['06'],
+  '融雪': ['10'],
+  '着氷': ['08'],
+  '着雪': ['09'],
+};
 
-export interface RiskThresholds {
-  frost:              number;          // 霜：気温 ≤ X ℃             デフォルト: 3
-  frostDewPoint:      number;          // 霜：露点温度 ≤ X ℃  ＆      デフォルト: 0  ※時間別のみ
-  wind:               number;          // 強風：風速 ≥ X m/s           デフォルト: 15
-  rainHourly:         number;          // 大雨：時間雨量 ≥ X mm/h      デフォルト: 30
-  rainDaily:          number;          // 大雨：日雨量 ≥ X mm           デフォルト: 80
-  heat:               number;          // 高温：気温 ≥ X ℃             デフォルト: 35
-  dry:                number;          // 乾燥：湿度 ≤ X %             デフォルト: 30
-  thunderSensitivity: RiskSensitivity; // 雷雨感度（CAPE閾値に内部マッピング） デフォルト: 'medium'
-  hailSensitivity:    RiskSensitivity; // 雹感度（CAPE閾値に内部マッピング）   デフォルト: 'medium'
-  hailFreezingLevel:  number;          // 雹：0℃層高度 ≤ X m    ＆    デフォルト: 3500  ※時間別のみ
-  snow:               number;          // 降雪：積雪量 ≥ X cm           デフォルト: 3   NEW
-  cold:               number;          // 低温：気温 ≤ X ℃             デフォルト: 0   NEW
-  enabledRisks:       RiskType[];      // 表示するリスク種別             デフォルト: 全9種 NEW
-}
+export const ALL_JMA_GROUPS: JmaWarningGroup[] = [
+  '大雨', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
+  '乾燥', '霜', '低温', '雷', '濃霧', 'なだれ', '融雪', '着氷', '着雪',
+];
 
 export interface UserSettings {
   baseTempSettings:     [number, number];
   accumStartDates:      AccumStartDates;
   accumDeltaThresholds: AccumDeltaThresholds;
-  riskThresholds:       RiskThresholds;
   defaultLocationId:    string | null;
+  enabledJmaGroups:     JmaWarningGroup[];
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -84,26 +84,6 @@ const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
 const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
   gdd: 30,
   radiation: 100,
-};
-
-// SYNC: このオブジェクトは src/lib/userRepository.ts・src/lib/riskDetection.ts にも
-//       ローカルコピーがある（循環 import 回避のため）。新フィールド追加時は3箇所を同時に更新すること。
-const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
-  frost:              3,
-  frostDewPoint:      0,
-  wind:               15,
-  rainHourly:         30,
-  rainDaily:          80,
-  heat:               35,
-  dry:                30,
-  thunderSensitivity: 'medium',
-  hailSensitivity:    'medium',
-  hailFreezingLevel:  3500,
-  snow:               3,
-  cold:               0,
-  enabledRisks:       [
-    'frost', 'thunder', 'hail', 'rain', 'wind', 'heat', 'dry', 'cold', 'snow',
-  ] as RiskType[],
 };
 
 interface AppState {
@@ -124,8 +104,8 @@ interface AppState {
   updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
   updateAccumStartDates: (dates: AccumStartDates) => Promise<void>;
   updateAccumDeltaThresholds: (thresholds: AccumDeltaThresholds) => Promise<void>;
-  updateRiskThresholds: (thresholds: RiskThresholds) => Promise<void>;
   updateDefaultLocationId: (id: string | null) => Promise<void>;
+  updateEnabledJmaGroups: (groups: JmaWarningGroup[]) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -189,17 +169,6 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }));
   },
 
-  updateRiskThresholds: async (thresholds) => {
-    const uid = get().user?.uid;
-    if (!uid) return;
-    await updateRiskThresholdsRemote(uid, thresholds);
-    set((state) => ({
-      userSettings: state.userSettings
-        ? { ...state.userSettings, riskThresholds: thresholds }
-        : null,
-    }));
-  },
-
   updateDefaultLocationId: async (id) => {
     const uid = get().user?.uid;
     if (!uid) return;
@@ -207,6 +176,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, defaultLocationId: id }
+        : null,
+    }));
+  },
+
+  updateEnabledJmaGroups: async (groups) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateEnabledJmaGroupsRemote(uid, groups);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, enabledJmaGroups: groups }
         : null,
     }));
   },
@@ -243,5 +223,4 @@ export {
   DEFAULT_BASE_TEMP_SETTINGS,
   DEFAULT_ACCUM_START_DATES,
   DEFAULT_ACCUM_DELTA_THRESHOLDS,
-  DEFAULT_RISK_THRESHOLDS,
 };

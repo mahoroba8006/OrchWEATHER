@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useAppStore } from '../../store';
 import { LocationSettings } from './LocationSettings';
-import { WeatherSettings } from './WeatherSettings';
+import { JmaWarningSettings } from './JmaWarningSettings';
 import { AnalysisSettings } from './AnalysisSettings';
 
 type SettingsSubTab = 'location' | 'weather' | 'analysis';
@@ -91,7 +91,7 @@ export function SettingsTab() {
 
       {/* サブタブコンテンツ */}
       {subTab === 'location' && <LocationSettings />}
-      {subTab === 'weather' && <WeatherSettings />}
+      {subTab === 'weather' && <JmaWarningSettings />}
       {subTab === 'analysis' && <AnalysisSettings />}
     </div>
   );
