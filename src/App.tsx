@@ -1164,10 +1164,30 @@ function App() {
             return `(${deltaStr} / ${daysStr})`;
           };
 
-          return Array.from(groups.entries()).map(([color, groupItems], gi) => (
+          // 予想域でhistorical系列が先にペイロードに現れることで順序が逆転するため
+          // targets の定義順（index 0 が上段）にグループを並べ直す
+          const expectedColorOrder = targets.map((_, i) => getYearColor(i, ''));
+          const sortedGroupEntries = Array.from(groups.entries()).sort(([ca], [cb]) => {
+            const ia = expectedColorOrder.indexOf(ca);
+            const ib = expectedColorOrder.indexOf(cb);
+            return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
+          });
+
+          // forecast_ dataKey に対して実績表示と一致するメトリック名を返す
+          const getForecastMetric = (dataKey: string, rawMetric: string): string => {
+            if (dataKey.startsWith('forecast_tempRange_'))  return '気温(最低-最高)';
+            if (dataKey.startsWith('forecast_humidRange_')) return '湿度(最低-最高)';
+            if (dataKey.startsWith('forecast_vpdRange_'))   return '飽差(最低-最高)';
+            // 累積系: 先頭の「予想」を除去して「累積積算」「累積降水」等に統一
+            return rawMetric.replace(/^予想/, '');
+          };
+
+          return sortedGroupEntries.map(([color, groupItems], gi) => (
             <div key={gi} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.75rem', marginTop: gi > 0 ? '0.2rem' : 0 }}>
               {groupItems.map((p: any, i: number) => {
-                const metric = p.name.split(' ').slice(2).join(' ') || p.name;
+                const isForecastItem = typeof p.dataKey === 'string' && p.dataKey.startsWith('forecast_');
+                const rawMetric = p.name.split(' ').slice(2).join(' ') || p.name;
+                const metric = isForecastItem ? getForecastMetric(p.dataKey, rawMetric) : rawMetric;
                 const diffNote = computeAccumDiff(p);
                 return (
                   <span key={i} style={{ color, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
@@ -1175,6 +1195,11 @@ function App() {
                     {diffNote && (
                       <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '0.72rem' }}>
                         {diffNote}
+                      </span>
+                    )}
+                    {isForecastItem && (
+                      <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                        ※予報値
                       </span>
                     )}
                   </span>
