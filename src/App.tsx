@@ -584,6 +584,8 @@ function App() {
             const dailyGdd = diff > 0 ? diff : 0;
             forecastGddRunning += dailyGdd;
             existing[`forecast_accum_gdd_${target.id}`] = forecastGddRunning;
+            // Δ日逆引き用に予報期間も series に追加（確定データだけでは未到達と誤判定されるため）
+            series.push({ mmdd, accum: forecastGddRunning });
           }
           overlay.set(mmdd, existing);
         });
@@ -610,9 +612,18 @@ function App() {
         series.push({ mmdd, accum: running });
       });
       seriesByTarget.set(target.id, series);
+      // Δ日逆引き用に予報期間も series に追加（targets[0]かつ今年のみ）
+      if (targets[0]?.id === target.id && forecastData && target.year === currentYear) {
+        forecastData.daily.forEach(fDay => {
+          const mmdd = fDay.date.slice(5);
+          if (mmdd < radiationStart) return;
+          running += fDay.radiationSum;
+          series.push({ mmdd, accum: running });
+        });
+      }
     });
     return { seriesByTarget };
-  }, [weatherData, targets, userSettings]);
+  }, [weatherData, targets, userSettings, forecastData, currentYear]);
 
   const filteredBaseChartData = useMemo(() => {
     const startMM = displayRange.startMM;
