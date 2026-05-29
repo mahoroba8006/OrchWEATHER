@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, MapPin, Loader2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -10,6 +10,7 @@ import { MonthsTable } from './components/MonthsTable';
 import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
+import { GEO_OPTIONS, getGeoErrorMessage } from './lib/geo';
 import { WeatherTab } from './components/weather/WeatherTab';
 import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
 import { Footer } from './components/Footer';
@@ -162,7 +163,7 @@ function calcMobileDefaultViewport(
 }
 
 function App() {
-  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings } = useAppStore();
+  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
@@ -222,6 +223,38 @@ function App() {
     return unsubscribe;
   }, []);
 
+  const geoAttemptedRef = useRef(false);
+  const [analysisGeoLoading, setAnalysisGeoLoading] = useState(false);
+  const [analysisGeoError, setAnalysisGeoError] = useState('');
+
+  // 起動時: デフォルト地点がなければ自動で現在地を取得する
+  useEffect(() => {
+    if (authLoading) return;
+    if (geoAttemptedRef.current) return;
+    geoAttemptedRef.current = true;
+
+    const defaultLocId = userSettings?.defaultLocationId;
+    const hasValidDefault = defaultLocId && locations.some(l => l.id === defaultLocId);
+    if (hasValidDefault) return;
+
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
+      setGeoStatus('error');
+      return;
+    }
+
+    setGeoStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = parseFloat(position.coords.latitude.toFixed(6));
+        const lon = parseFloat(position.coords.longitude.toFixed(6));
+        setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+        setGeoStatus('idle');
+      },
+      () => setGeoStatus('error'),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
+  }, [authLoading]);
+
   const initialLocation = locations.length > 0 ? locations[0].id : '';
   const [targets, setTargets] = useState<CompareTarget[]>([
     { id: `t_${Date.now()}`, locationId: initialLocation, year: new Date().getFullYear() }
@@ -232,16 +265,33 @@ function App() {
     setTargets(prev => {
       let changed = false;
       const validIds = new Set(locations.map(l => l.id));
+      const defaultLocId = userSettings?.defaultLocationId;
+      const hasValidDefault = defaultLocId && validIds.has(defaultLocId);
       const next = prev.map(t => {
+        // __geo__ は仮想地点なので復旧対象外
+        if (t.locationId === '__geo__') return t;
         if (!validIds.has(t.locationId)) {
           changed = true;
-          return { ...t, locationId: locations.length > 0 ? locations[0].id : '' };
+          const fallback = hasValidDefault
+            ? defaultLocId!
+            : locations.length > 0 ? locations[0].id : '';
+          return { ...t, locationId: fallback };
         }
         return t;
       });
       return changed ? next : prev;
     });
-  }, [locations]);
+  }, [locations, userSettings?.defaultLocationId]);
+
+  // geoLocation が取得されたとき locationId が空の targets を __geo__ に切り替える
+  useEffect(() => {
+    if (!geoLocation) return;
+    setTargets(prev => {
+      const hasEmpty = prev.some(t => t.locationId === '');
+      if (!hasEmpty) return prev;
+      return prev.map(t => t.locationId === '' ? { ...t, locationId: '__geo__' } : t);
+    });
+  }, [geoLocation]);
 
   const firstOfMonths = Array.from({length: 12}, (_, i) => `${String(i + 1).padStart(2, '0')}-01`);
 
@@ -255,15 +305,17 @@ function App() {
     });
   };
 
-  const { data: weatherData, loading, error } = useWeatherData(targets);
+  const { data: weatherData, loading, loadingStatus, error } = useWeatherData(targets);
 
   // 分析タブ用予報データ（targets[0] の地点のみ取得）
   const forecastLoc = useMemo(() => {
     const t = targets[0];
     if (!t) return null;
-    const loc = locations.find(l => l.id === t.locationId);
+    const loc = t.locationId === '__geo__'
+      ? geoLocation
+      : locations.find(l => l.id === t.locationId);
     return loc ? { lat: loc.lat, lon: loc.lon } : null;
-  }, [targets, locations]);
+  }, [targets, locations, geoLocation]);
 
   const { data: forecastData } = useForecast(
     forecastLoc?.lat ?? null,
@@ -297,6 +349,7 @@ function App() {
   };
 
   const getLocationName = (id: string) => {
+    if (id === '__geo__') return '現在地';
     const loc = locations.find(l => l.id === id);
     return loc ? loc.name : '未設定';
   };
@@ -895,6 +948,15 @@ function App() {
     setHover(null);
   };
 
+  const chartLoading = (
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '350px', gap: '0.9rem' }}>
+      <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)' }} />
+      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>
+        {loadingStatus || 'データを取得中...'}
+      </span>
+    </div>
+  );
+
   // 全モード 横幅100%。render ヘルパー（コンポーネントでなく関数）にすることで
   // state 更新時の App 再描画でもアンマウント→マウントが起きないようにしている
   const chartFrame = (chartId: string, children: React.ReactNode, measure?: boolean) => (
@@ -1326,8 +1388,51 @@ function App() {
       {topTab === 'analysis' && (
       <div className="app-container">
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象 (最大2件)</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+              <button
+                onClick={() => {
+                  setAnalysisGeoLoading(true);
+                  setAnalysisGeoError('');
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      const lat = parseFloat(position.coords.latitude.toFixed(6));
+                      const lon = parseFloat(position.coords.longitude.toFixed(6));
+                      setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+                      setTargets(prev => prev.map((t, i) => i === 0 ? { ...t, locationId: '__geo__' } : t));
+                      setAnalysisGeoLoading(false);
+                    },
+                    (err) => {
+                      setAnalysisGeoError(getGeoErrorMessage(err));
+                      setAnalysisGeoLoading(false);
+                    },
+                    GEO_OPTIONS,
+                  );
+                }}
+                disabled={analysisGeoLoading}
+                style={{
+                  padding: '0.4rem 0.8rem',
+                  fontSize: '0.8rem',
+                  background: 'rgba(13,148,136,0.12)',
+                  color: 'var(--accent-color)',
+                  border: '1px solid rgba(13,148,136,0.3)',
+                  borderRadius: 'var(--radius-md, 6px)',
+                  cursor: analysisGeoLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  opacity: analysisGeoLoading ? 0.7 : 1,
+                }}
+              >
+                {analysisGeoLoading
+                  ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />取得中…</>
+                  : <><MapPin size={14} />現在地を表示</>}
+              </button>
+              {analysisGeoError && (
+                <span style={{ fontSize: '0.75rem', color: '#c62828' }}>⚠ {analysisGeoError}</span>
+              )}
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
@@ -1358,10 +1463,11 @@ function App() {
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
                   style={{ flex: 2, minWidth: 0, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
                 >
+                  {geoLocation && <option value="__geo__">📍 現在地</option>}
                   {locations.map(loc => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                   ))}
-                  {locations.length === 0 && <option value="">地点未設定</option>}
+                  {!geoLocation && locations.length === 0 && <option value="">地点未設定</option>}
                 </select>
                 <select
                   value={target.year}
@@ -1480,7 +1586,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Thermometer size={18} /> 気温</h2>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            chartLoading
           ) : (
             <>
               {chartFrame('temp', (
@@ -1540,7 +1646,7 @@ function App() {
             {renderAccumBadge('precip')}
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            chartLoading
           ) : (
             <>
               {chartFrame('precip', (
@@ -1652,7 +1758,7 @@ function App() {
             {renderAccumBadge('sunshine')}
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            chartLoading
           ) : (
             <>
               {chartFrame('sunshine', (
@@ -1749,7 +1855,7 @@ function App() {
             {renderAccumBadge('radiation')}
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            chartLoading
           ) : (
             <>
               {chartFrame('radiation', (
@@ -1868,7 +1974,7 @@ function App() {
             </div>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            chartLoading
           ) : (
             <>
               {chartFrame('gdd', (
@@ -1964,7 +2070,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Droplets size={18} /> 湿度</h2>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            chartLoading
           ) : (
             <>
               {chartFrame('humid', (
@@ -2022,7 +2128,7 @@ function App() {
             <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><DropletOff size={18} /> 飽差</h2>
           </div>
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '350px' }}>データを取得中...</div>
+            chartLoading
           ) : (
             <>
               {chartFrame('vpd', (

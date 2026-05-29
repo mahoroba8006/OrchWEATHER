@@ -61,7 +61,8 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     ...DEFAULT_RISK_THRESHOLDS,
     ...(data?.riskThresholds ?? {}),
   };
-  return { baseTempSettings, accumStartDates, accumDeltaThresholds, riskThresholds };
+  const defaultLocationId: string | null = data?.defaultLocationId ?? null;
+  return { baseTempSettings, accumStartDates, accumDeltaThresholds, riskThresholds, defaultLocationId };
 }
 
 export async function updateBaseTempSettings(
@@ -90,4 +91,11 @@ export async function updateRiskThresholds(
   thresholds: RiskThresholds
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { riskThresholds: thresholds }, { merge: true });
+}
+
+export async function updateDefaultLocationId(
+  uid: string,
+  id: string | null
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { defaultLocationId: id }, { merge: true });
 }

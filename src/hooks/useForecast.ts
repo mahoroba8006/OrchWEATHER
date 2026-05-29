@@ -8,6 +8,7 @@ const forecastCache = new Map<string, { data: ForecastData; fetchedAt: number }>
 export function useForecast(lat: number | null, lon: number | null) {
   const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   // stale レスポンスを無視するために、最後にリクエストしたキーを追跡する
@@ -33,6 +34,7 @@ export function useForecast(lat: number | null, lon: number | null) {
 
     inflightRef.current++;
     setLoading(true);
+    setLoadingStatus('天気予報を取得中...');
     setError(null);
 
     try {
@@ -50,6 +52,7 @@ export function useForecast(lat: number | null, lon: number | null) {
       inflightRef.current--;
       if (inflightRef.current === 0) {
         setLoading(false);
+        setLoadingStatus('');
       }
     }
   }, [lat, lon]);
@@ -64,5 +67,5 @@ export function useForecast(lat: number | null, lon: number | null) {
 
   const refresh = useCallback(() => load(true), [load]);
 
-  return { data, loading, error, lastUpdated, refresh };
+  return { data, loading, loadingStatus, error, lastUpdated, refresh };
 }

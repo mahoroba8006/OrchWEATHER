@@ -11,19 +11,31 @@ export interface CompareTarget {
 type TargetSpec = { locationId: string; year: number };
 
 export function useWeatherData(targets: CompareTarget[]) {
-  const { locations } = useAppStore();
+  const { locations, geoLocation } = useAppStore();
   const [data, setData] = useState<Record<string, WeatherData>>({});
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   // 直前にフェッチ済みのターゲット仕様を記憶する（id → {locationId, year}）
   const fetchedSpecsRef = useRef<Map<string, TargetSpec>>(new Map());
+  // geoLocation の変化を検知して __geo__ エントリを無効化する
+  const prevGeoKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (targets.length === 0) {
       setData({});
       fetchedSpecsRef.current.clear();
       return;
+    }
+
+    // geoLocation が変化したとき __geo__ キャッシュを無効化して再取得を促す
+    const geoKey = geoLocation ? `${geoLocation.lat},${geoLocation.lon}` : null;
+    if (geoKey !== prevGeoKeyRef.current) {
+      prevGeoKeyRef.current = geoKey;
+      fetchedSpecsRef.current.forEach((spec, id) => {
+        if (spec.locationId === '__geo__') fetchedSpecsRef.current.delete(id);
+      });
     }
 
     // 変更・追加されたターゲットだけ抽出
@@ -38,11 +50,15 @@ export function useWeatherData(targets: CompareTarget[]) {
 
     const loadData = async () => {
       setLoading(true);
+      setLoadingStatus('気象データを取得中...');
       setError(null);
 
       try {
         const promises = targetsToFetch.map(async (target) => {
-          const loc = locations.find(l => l.id === target.locationId);
+          // __geo__ は store の geoLocation を使う
+          const loc = target.locationId === '__geo__'
+            ? (geoLocation ?? undefined)
+            : locations.find(l => l.id === target.locationId);
           if (!loc) {
             console.warn(`対象地点が見つかりません(削除済み等): ${target.locationId}`);
             return { id: target.id, result: { year: target.year, daily: [] } as WeatherData };
@@ -54,6 +70,7 @@ export function useWeatherData(targets: CompareTarget[]) {
         const results = await Promise.all(promises);
 
         if (isMounted) {
+          setLoadingStatus('データを分析中...');
           // フェッチ済み仕様を更新
           targetsToFetch.forEach(t => {
             fetchedSpecsRef.current.set(t.id, { locationId: t.locationId, year: t.year });
@@ -78,6 +95,7 @@ export function useWeatherData(targets: CompareTarget[]) {
       } finally {
         if (isMounted) {
           setLoading(false);
+          setLoadingStatus('');
         }
       }
     };
@@ -85,7 +103,7 @@ export function useWeatherData(targets: CompareTarget[]) {
     loadData();
 
     return () => { isMounted = false; };
-  }, [JSON.stringify(targets), locations]);
+  }, [JSON.stringify(targets), geoLocation, locations]);
 
-  return { data, loading, error };
+  return { data, loading, loadingStatus, error };
 }
