@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react';
 import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage, GEO_SUPPORTED } from '../../lib/geo';
-import { resolveJmaAreaCode } from '../../lib/jmaAreaResolver';
+import { resolveJmaAreaCode, getAreaName } from '../../lib/jmaAreaResolver';
 
 type GeoStatus = 'idle' | 'loading' | 'error';
 
@@ -104,7 +104,8 @@ export function LocationSettings() {
         formData.lat !== originalLatLon.lat ||
         formData.lon !== originalLatLon.lon;
 
-      if (latLonChanged && typeof formData.lat === 'number' && typeof formData.lon === 'number') {
+      // lat/lon が変わった場合、または jmaAreaCode がまだ未設定の場合は解決する
+      if ((latLonChanged || !formData.jmaAreaCode) && typeof formData.lat === 'number' && typeof formData.lon === 'number') {
         try {
           const jmaAreaCode = await resolveJmaAreaCode(formData.lat, formData.lon);
           dataToSave = { ...dataToSave, jmaAreaCode: jmaAreaCode ?? undefined };
@@ -226,6 +227,11 @@ export function LocationSettings() {
               }}
             >
               緯度: {loc.lat} / 経度: {loc.lon}
+            </div>
+            <div style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: loc.jmaAreaCode ? '#7cb8a8' : '#b8c0cf' }}>
+              {loc.jmaAreaCode
+                ? `🏛 気象庁エリア: ${getAreaName(loc.jmaAreaCode) ?? loc.jmaAreaCode}`
+                : '🏛 気象庁エリア: 未連携（地点を再保存してください）'}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

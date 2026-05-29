@@ -12,8 +12,10 @@
  */
 
 import lookup from '../data/jmaAreaLookup.json';
+import names  from '../data/jmaAreaNames.json';
 
 const areaLookup = lookup as Record<string, string>;
+const areaNames  = names  as Record<string, string>;
 
 const GSI_REVERSE_URL = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress';
 
@@ -41,6 +43,14 @@ export async function resolveJmaAreaCode(lat: number, lon: number): Promise<stri
 
   // jmaAreaLookup.json は5桁ゼロパディング形式で格納済み
   return areaLookup[muniCd] ?? null;
+}
+
+/**
+ * jmaAreaCode からエリア名（日本語）を返す。
+ * 例: "2010200" → "松本"
+ */
+export function getAreaName(areaCode: string): string | null {
+  return areaNames[areaCode] ?? null;
 }
 
 /**

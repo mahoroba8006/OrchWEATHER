@@ -13,7 +13,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT_PATH = path.resolve(__dirname, '../src/data/jmaAreaLookup.json');
+const OUT_PATH       = path.resolve(__dirname, '../src/data/jmaAreaLookup.json');
+const OUT_NAMES_PATH = path.resolve(__dirname, '../src/data/jmaAreaNames.json');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. 気象庁 area.json 取得
@@ -214,4 +215,12 @@ const cleaned = Object.fromEntries(
 writeFileSync(OUT_PATH, JSON.stringify(cleaned), 'utf-8');
 
 const sizeKB = (JSON.stringify(cleaned).length / 1024).toFixed(1);
-console.log(`  完了: ${Object.keys(cleaned).length} 件, ${sizeKB} KB\n`);
+console.log(`  完了: ${Object.keys(cleaned).length} 件, ${sizeKB} KB`);
+
+// エリアコード → エリア名テーブル (class20s をそのまま利用)
+const areaNames = Object.fromEntries(
+  Object.entries(class20s).map(([code, info]) => [code, info.name.replace(/\s/g, '')])
+);
+writeFileSync(OUT_NAMES_PATH, JSON.stringify(areaNames), 'utf-8');
+const namesSizeKB = (JSON.stringify(areaNames).length / 1024).toFixed(1);
+console.log(`  エリア名テーブル: ${Object.keys(areaNames).length} 件, ${namesSizeKB} KB (${OUT_NAMES_PATH})\n`);
