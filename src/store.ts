@@ -20,6 +20,7 @@ export interface LocationInfo {
   name: string;
   lat: number;
   lon: number;
+  jmaAreaCode?: string;  // 気象庁 class20s コード（7桁, 例: "0120200"）
 }
 
 // 累積開始日（MM-DD）— precip/sunshine/radiation/gdd の4チャート分
