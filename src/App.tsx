@@ -14,7 +14,6 @@ import { GEO_OPTIONS, getGeoErrorMessage } from './lib/geo';
 import { WeatherTab } from './components/weather/WeatherTab';
 import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
 import { Footer } from './components/Footer';
-import { InfoTooltip } from './components/InfoTooltip';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -73,14 +72,14 @@ const ForecastRangeBar = (props: any) => {
 
 type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid' | 'vpd';
 
-const CHART_TABS: { id: ChartId; label: string; info: string }[] = [
-  { id: 'temp',      label: '気温',     info: '日別の最高・最低気温の幅を帯グラフで表示します。異なる地点や年の気温推移を比較し、高温・低温期のズレや開花・収穫期の温度差を把握できます。' },
-  { id: 'precip',    label: '降水量',   info: '日別降水量（棒グラフ）と累積降水量（折れ線）を表示します。累積値の差から、作期全体の水分状況の違いを比較できます。' },
-  { id: 'gdd',       label: '積算温度', info: '設定した基準温度（初期値10℃）を超えた気温の積算値（有効積算温度）です。作物の生育ステージ予測に広く使われ、出穂・開花・収穫時期の比較に役立ちます。' },
-  { id: 'radiation', label: '日射量',   info: '日別の日射量（MJ/m²）と累積日射量を表示します。光合成エネルギーの受け取り量を地点・年間で比較でき、曇天の多い年や地域差の把握に役立ちます。' },
-  { id: 'sunshine',  label: '日照時間', info: '日別日照時間（h）と累積日照時間を表示します。晴天・曇天傾向の地域差や年差を把握できます。日射量と比較することで、薄曇りや霞の影響も推察できます。' },
-  { id: 'humid',     label: '湿度',     info: '日別の最低・最高湿度の幅を表示します。乾燥・多湿の傾向を地点・年間で比較できます。病害リスクや収穫物の品質管理の参考指標として活用できます。' },
-  { id: 'vpd',       label: '飽差',     info: '大気の乾燥度を示す指標（g/m³）です。日別の最低・最高飽差の幅を表示します。施設園芸での蒸散・灌水管理の指標として広く使われ、1〜3 g/m³ が多くの作物の適正域とされます。' },
+const CHART_TABS: { id: ChartId; label: string }[] = [
+  { id: 'temp',      label: '気温' },
+  { id: 'precip',    label: '降水量' },
+  { id: 'gdd',       label: '積算温度' },
+  { id: 'radiation', label: '日射量' },
+  { id: 'sunshine',  label: '日照時間' },
+  { id: 'humid',     label: '湿度' },
+  { id: 'vpd',       label: '飽差' },
 ];
 
 // 飽差 = 飽和水蒸気量 - 実水蒸気量 [g/m³]（施設園芸の現場標準単位）
@@ -1609,10 +1608,8 @@ function App() {
               key={tab.id}
               onClick={() => setActiveChart(tab.id)}
               className={`premium-pill ${activeChart === tab.id ? 'active' : ''}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}
             >
               {tab.label}
-              <InfoTooltip text={tab.info} />
             </button>
           ))}
         </div>

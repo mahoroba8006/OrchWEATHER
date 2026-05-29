@@ -5,7 +5,6 @@ import { RISK_BADGES, detectSingleHourRisks } from '../../lib/riskDetection';
 import type { RiskType } from '../../lib/riskDetection';
 import type { RiskThresholds } from '../../store';
 import { WeatherIcon } from './WeatherIcon';
-import { InfoTooltip } from '../InfoTooltip';
 
 interface Props {
   hourly: HourlyForecast[];
@@ -223,7 +222,7 @@ function degreesToCompass(deg: number): string {
 // ── Data rows (excluding date / time / weather handled inline) ──
 // riskTypes: この行の値が背景色を持つきっかけとなるリスク種別。
 //            detectSingleHourRisks の結果にいずれかが含まれる場合のみ背景色を付ける。
-const DATA_ROWS: { key: string; label: string; info?: string; fmt: (h: HourlyForecast) => string; riskTypes: RiskType[] }[] = [
+const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string; riskTypes: RiskType[] }[] = [
   { key: 'temperature',  label: '気温(℃)',     fmt: h => h.temperature.toFixed(1),                    riskTypes: ['heat', 'cold', 'frost'] },
   { key: 'precip',       label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1),                  riskTypes: ['rain'] },
   { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1),                        riskTypes: ['frost'] },
@@ -231,16 +230,8 @@ const DATA_ROWS: { key: string; label: string; info?: string; fmt: (h: HourlyFor
   { key: 'vpd',          label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1), riskTypes: [] },
   { key: 'windDir',      label: '風向き',       fmt: h => degreesToCompass(h.windDirection),            riskTypes: [] },
   { key: 'windSpeed',    label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1),                      riskTypes: ['wind'] },
-  {
-    key: 'cape', label: 'CAPE(J/kg)', riskTypes: ['thunder', 'hail'],
-    info: '大気の爆発力を示す指標です。一般に300を超えると、公式予報が曇りや雨であっても、局地的な激しい雷雨や突風が突発的に発生しやすい大気状態であることを意味します。',
-    fmt: h => Math.round(h.cape).toString(),
-  },
-  {
-    key: 'freezing', label: '0℃層高度(m)', riskTypes: ['hail'],
-    info: '上空で氷が溶け始める高さです。この数値が3000mを下回る環境で激しい雷雨が予報された場合、氷の粒が溶けずに地上に届く「雹（ひょう）」のリスクが高まります。',
-    fmt: h => Math.round(h.freezingLevel).toString(),
-  },
+  { key: 'cape',         label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString(),                riskTypes: ['thunder', 'hail'] },
+  { key: 'freezing',     label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString(),       riskTypes: ['hail'] },
   { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString(),           riskTypes: [] },
 ];
 
@@ -394,10 +385,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
             {/* データ行 */}
             {DATA_ROWS.map(row => (
               <tr key={row.key} style={{ borderBottom: '1px solid #f0f2f8' }}>
-                <td style={STICKY}>
-                  {row.label}
-                  {row.info && <InfoTooltip text={row.info} />}
-                </td>
+                <td style={STICKY}>{row.label}</td>
                 {tl.map((entry, i) => {
                   if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W }} />;
                   const h = entry.data;
