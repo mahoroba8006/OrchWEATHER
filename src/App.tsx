@@ -1391,6 +1391,7 @@ function App() {
                       const lat = parseFloat(position.coords.latitude.toFixed(6));
                       const lon = parseFloat(position.coords.longitude.toFixed(6));
                       setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+                      setTargets(prev => prev.map((t, i) => i === 0 ? { ...t, locationId: '__geo__' } : t));
                       setAnalysisGeoLoading(false);
                     },
                     (err) => {
