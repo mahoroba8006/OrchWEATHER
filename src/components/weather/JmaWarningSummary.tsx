@@ -49,6 +49,11 @@ function WarningRow({ item }: { item: JmaWarningItem }) {
       <span style={{ fontWeight: 700, fontSize: '0.82rem', color: style.color, whiteSpace: 'nowrap' }}>
         {item.name}
       </span>
+      {item.validPeriod && (
+        <span style={{ fontSize: '0.75rem', color: style.color, opacity: 0.7, whiteSpace: 'nowrap' }}>
+          {item.validPeriod}
+        </span>
+      )}
     </div>
   );
 }

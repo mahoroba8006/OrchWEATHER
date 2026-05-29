@@ -4,9 +4,12 @@
  * 気象庁 防災情報 JSON から、指定エリアの注意報・警報を取得する。
  *
  * API: https://www.jma.go.jp/bosai/warning/data/warning/{prefCode}.json
- * レスポンス構造: json.areaTypes[].areas[].warnings[] = [{ code, status }]
- *   - areaTypes[0] = 一次細分区域 (class10s)
- *   - areaTypes[1] = 二次細分区域 (class20s) ← jmaAreaCode はここに対応
+ * レスポンス構造:
+ *   json.areaTypes[].areas[].warnings[] = [{ code, status }]
+ *     - areaTypes[0] = 一次細分区域 (class10s)
+ *     - areaTypes[1] = 二次細分区域 (class20s) ← jmaAreaCode はここに対応
+ *   json.timeSeries[].timeDefines[] + areaTypes[].areas[].warnings[].levels[]
+ *     → 各時刻ステップの警報有効フラグ。有効期間算出に使用。
  *
  * コード体系:
  *   02-18: 注意報 (advisory)
@@ -59,6 +62,8 @@ export interface JmaWarningItem {
   code: string;
   name: string;
   level: WarningLevel;
+  /** timeSeries から算出した有効期間。例: "5/29 06:00〜09:00" */
+  validPeriod?: string;
 }
 
 /** fetchJmaWarnings の返り値 */
@@ -78,6 +83,73 @@ function toLevel(code: string): WarningLevel {
   if (n >= 19) return 'warning';
   if (n >= 2)  return 'advisory';
   return 'none';
+}
+
+/**
+ * JST の ISO8601 文字列（例: "2026-05-29T06:00:00+09:00"）から
+ * 月・日・時を取り出す。オフセット付きなのでそのままパースで OK。
+ */
+function parseJST(iso: string): { month: number; date: number; hour: number } | null {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):/);
+  if (!m) return null;
+  return { month: parseInt(m[2], 10), date: parseInt(m[3], 10), hour: parseInt(m[4], 10) };
+}
+
+function fmtHH(h: number): string { return `${h}:00`; }
+function fmtMDHH(mon: number, d: number, h: number): string { return `${mon}/${d} ${fmtHH(h)}`; }
+
+/**
+ * timeSeries から警報コードごとの有効期間文字列マップを構築する。
+ * timeSeries[].areaTypes[].areas[].warnings[].levels[] の非 "00" スロットを探索し、
+ * 開始〜終了を "M/D HH:00〜HH:00" 形式で返す。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildValidPeriodMap(timeSeries: any[], areaCode: string): Map<string, string> {
+  const map = new Map<string, string>();
+
+  for (const ts of timeSeries) {
+    const defines: string[] = ts.timeDefines ?? [];
+    if (defines.length === 0) continue;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let tsArea: any = null;
+    for (const at of ts.areaTypes ?? []) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const found = at.areas?.find((a: any) => a.code === areaCode);
+      if (found) { tsArea = found; break; }
+    }
+    if (!tsArea) continue;
+
+    for (const w of tsArea.warnings ?? []) {
+      const code = String(w.code);
+      if (map.has(code)) continue; // 先の timeSeries エントリ優先
+
+      const levels: string[] = w.levels ?? [];
+      const active: number[] = [];
+      for (let i = 0; i < levels.length; i++) {
+        if (levels[i] && levels[i] !== '00') active.push(i);
+      }
+      if (active.length === 0) continue;
+
+      const from = parseJST(defines[active[0]]);
+      if (!from) continue;
+
+      const endIdx = active[active.length - 1] + 1;
+      if (endIdx < defines.length) {
+        const to = parseJST(defines[endIdx]);
+        if (!to) continue;
+        const period = from.date === to.date
+          ? `${fmtMDHH(from.month, from.date, from.hour)}〜${fmtHH(to.hour)}`
+          : `${fmtMDHH(from.month, from.date, from.hour)}〜${fmtMDHH(to.month, to.date, to.hour)}`;
+        map.set(code, period);
+      } else {
+        // 予報期間終端まで続く場合
+        map.set(code, `${fmtMDHH(from.month, from.date, from.hour)}〜`);
+      }
+    }
+  }
+
+  return map;
 }
 
 /**
@@ -103,6 +175,7 @@ export async function fetchJmaWarnings(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let targetArea: any = null;
   for (const at of areaTypes) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const found = at.areas?.find((a: any) => a.code === jmaAreaCode);
     if (found) { targetArea = found; break; }
   }
@@ -111,15 +184,21 @@ export async function fetchJmaWarnings(
     return { reportDatetime, areaCode: jmaAreaCode, items: [] };
   }
 
+  // timeSeries から有効期間マップを構築
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const timeSeries: any[] = json.timeSeries ?? [];
+  const validPeriodMap = buildValidPeriodMap(timeSeries, jmaAreaCode);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const warnings: any[] = targetArea.warnings ?? [];
 
   const items: JmaWarningItem[] = warnings
-    .filter((w: any) => w.status === '発表' || w.status === '更新')
+    .filter((w: any) => w.status === '発表' || w.status === '更新' || w.status === '継続')
     .map((w: any) => ({
-      code:  String(w.code),
-      name:  JMA_WARNING_NAMES[String(w.code)] ?? `現象コード${w.code}`,
-      level: toLevel(String(w.code)),
+      code:       String(w.code),
+      name:       JMA_WARNING_NAMES[String(w.code)] ?? `現象コード${w.code}`,
+      level:      toLevel(String(w.code)),
+      validPeriod: validPeriodMap.get(String(w.code)),
     }))
     .filter(item => item.level !== 'none');
 
