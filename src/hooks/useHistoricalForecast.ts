@@ -13,6 +13,7 @@ export function useHistoricalForecast(
 ) {
   const [data,    setData]    = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState('');
   const [error,   setError]   = useState<string | null>(null);
   const activeKey = useRef<string | null>(null);
 
@@ -31,6 +32,7 @@ export function useHistoricalForecast(
     }
 
     setLoading(true);
+    setLoadingStatus('気象データを取得中...');
     setError(null);
 
     try {
@@ -44,7 +46,10 @@ export function useHistoricalForecast(
         setError(message);
       }
     } finally {
-      if (activeKey.current === key) setLoading(false);
+      if (activeKey.current === key) {
+        setLoading(false);
+        setLoadingStatus('');
+      }
     }
   }, [lat, lon, startDate]);
 
@@ -54,5 +59,5 @@ export function useHistoricalForecast(
     load();
   }, [load]);
 
-  return { data, loading, error };
+  return { data, loading, loadingStatus, error };
 }
