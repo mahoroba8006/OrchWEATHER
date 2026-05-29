@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, MapPin, Loader2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -10,6 +10,7 @@ import { MonthsTable } from './components/MonthsTable';
 import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
+import { GEO_OPTIONS, getGeoErrorMessage } from './lib/geo';
 import { WeatherTab } from './components/weather/WeatherTab';
 import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
 import { Footer } from './components/Footer';
@@ -223,6 +224,8 @@ function App() {
   }, []);
 
   const geoAttemptedRef = useRef(false);
+  const [analysisGeoLoading, setAnalysisGeoLoading] = useState(false);
+  const [analysisGeoError, setAnalysisGeoError] = useState('');
 
   // 起動時: デフォルト地点がなければ自動で現在地を取得する
   useEffect(() => {
@@ -1376,8 +1379,50 @@ function App() {
       {topTab === 'analysis' && (
       <div className="app-container">
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象 (最大2件)</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+              <button
+                onClick={() => {
+                  setAnalysisGeoLoading(true);
+                  setAnalysisGeoError('');
+                  navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                      const lat = parseFloat(position.coords.latitude.toFixed(6));
+                      const lon = parseFloat(position.coords.longitude.toFixed(6));
+                      setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+                      setAnalysisGeoLoading(false);
+                    },
+                    (err) => {
+                      setAnalysisGeoError(getGeoErrorMessage(err));
+                      setAnalysisGeoLoading(false);
+                    },
+                    GEO_OPTIONS,
+                  );
+                }}
+                disabled={analysisGeoLoading}
+                style={{
+                  padding: '0.4rem 0.8rem',
+                  fontSize: '0.8rem',
+                  background: 'rgba(13,148,136,0.12)',
+                  color: 'var(--accent-color)',
+                  border: '1px solid rgba(13,148,136,0.3)',
+                  borderRadius: 'var(--radius-md, 6px)',
+                  cursor: analysisGeoLoading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  opacity: analysisGeoLoading ? 0.7 : 1,
+                }}
+              >
+                {analysisGeoLoading
+                  ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />取得中…</>
+                  : <><MapPin size={14} />現在地を表示</>}
+              </button>
+              {analysisGeoError && (
+                <span style={{ fontSize: '0.75rem', color: '#c62828' }}>⚠ {analysisGeoError}</span>
+              )}
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
