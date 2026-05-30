@@ -64,6 +64,10 @@ export interface JmaWarningItem {
   level: WarningLevel;
   /** timeSeries から算出した有効期間。例: "5/29 06:00〜09:00" */
   validPeriod?: string;
+  /** 有効期間開始時刻の UTC ms */
+  startMs?: number;
+  /** 有効期間終了時刻の UTC ms。継続中（解除未定）の場合は undefined */
+  endMs?: number;
 }
 
 /** fetchJmaWarnings の返り値 */
@@ -101,6 +105,8 @@ function fmtMDHH(mon: number, d: number, h: number): string { return `${mon}/${d
 /** buildValidPeriodMap の返り値型 */
 interface ValidPeriodEntry {
   period: string;
+  /** 有効期間開始時刻の UTC ms。 */
+  startMs?: number;
   /** 有効期間終了時刻の UTC ms。予報期間終端まで続く場合は undefined。 */
   endMs?: number;
 }
@@ -149,11 +155,20 @@ function buildValidPeriodMap(timeSeries: any[], areaCode: string): Map<string, V
           ? `${fmtMDHH(from.month, from.date, from.hour)}〜${fmtHH(to.hour)}`
           : `${fmtMDHH(from.month, from.date, from.hour)}〜${fmtMDHH(to.month, to.date, to.hour)}`;
         // ISO 文字列をそのまま Date.parse して UTC ms を得る（タイムゾーン込みで正確）
+        const startMs = Date.parse(defines[active[0]]);
         const endMs = Date.parse(defines[endIdx]);
-        map.set(code, { period, endMs: isNaN(endMs) ? undefined : endMs });
+        map.set(code, {
+          period,
+          startMs: isNaN(startMs) ? undefined : startMs,
+          endMs: isNaN(endMs) ? undefined : endMs,
+        });
       } else {
         // 予報期間終端まで続く場合（終了時刻算出不可）
-        map.set(code, { period: `${fmtMDHH(from.month, from.date, from.hour)}〜` });
+        const startMs = Date.parse(defines[active[0]]);
+        map.set(code, {
+          period: `${fmtMDHH(from.month, from.date, from.hour)}〜`,
+          startMs: isNaN(startMs) ? undefined : startMs,
+        });
       }
     }
   }
@@ -210,12 +225,17 @@ export async function fetchJmaWarnings(
       const validity = validPeriodMap.get(String(w.code));
       return !validity?.endMs || validity.endMs > now;
     })
-    .map((w: any) => ({
-      code:       String(w.code),
-      name:       JMA_WARNING_NAMES[String(w.code)] ?? `現象コード${w.code}`,
-      level:      toLevel(String(w.code)),
-      validPeriod: validPeriodMap.get(String(w.code))?.period,
-    }))
+    .map((w: any) => {
+      const entry = validPeriodMap.get(String(w.code));
+      return {
+        code:        String(w.code),
+        name:        JMA_WARNING_NAMES[String(w.code)] ?? `現象コード${w.code}`,
+        level:       toLevel(String(w.code)),
+        validPeriod: entry?.period,
+        startMs:     entry?.startMs,
+        endMs:       entry?.endMs,
+      };
+    })
     .filter(item => item.level !== 'none');
 
   // 重複排除
