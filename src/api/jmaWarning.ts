@@ -98,14 +98,21 @@ function parseJST(iso: string): { month: number; date: number; hour: number } | 
 function fmtHH(h: number): string { return `${h}:00`; }
 function fmtMDHH(mon: number, d: number, h: number): string { return `${mon}/${d} ${fmtHH(h)}`; }
 
+/** buildValidPeriodMap の返り値型 */
+interface ValidPeriodEntry {
+  period: string;
+  /** 有効期間終了時刻の UTC ms。予報期間終端まで続く場合は undefined。 */
+  endMs?: number;
+}
+
 /**
- * timeSeries から警報コードごとの有効期間文字列マップを構築する。
+ * timeSeries から警報コードごとの有効期間情報マップを構築する。
  * timeSeries[].areaTypes[].areas[].warnings[].levels[] の非 "00" スロットを探索し、
- * 開始〜終了を "M/D HH:00〜HH:00" 形式で返す。
+ * 開始〜終了を "M/D HH:00〜HH:00" 形式と終了 UTC ms で返す。
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildValidPeriodMap(timeSeries: any[], areaCode: string): Map<string, string> {
-  const map = new Map<string, string>();
+function buildValidPeriodMap(timeSeries: any[], areaCode: string): Map<string, ValidPeriodEntry> {
+  const map = new Map<string, ValidPeriodEntry>();
 
   for (const ts of timeSeries) {
     const defines: string[] = ts.timeDefines ?? [];
@@ -141,10 +148,12 @@ function buildValidPeriodMap(timeSeries: any[], areaCode: string): Map<string, s
         const period = from.date === to.date
           ? `${fmtMDHH(from.month, from.date, from.hour)}〜${fmtHH(to.hour)}`
           : `${fmtMDHH(from.month, from.date, from.hour)}〜${fmtMDHH(to.month, to.date, to.hour)}`;
-        map.set(code, period);
+        // ISO 文字列をそのまま Date.parse して UTC ms を得る（タイムゾーン込みで正確）
+        const endMs = Date.parse(defines[endIdx]);
+        map.set(code, { period, endMs: isNaN(endMs) ? undefined : endMs });
       } else {
-        // 予報期間終端まで続く場合
-        map.set(code, `${fmtMDHH(from.month, from.date, from.hour)}〜`);
+        // 予報期間終端まで続く場合（終了時刻算出不可）
+        map.set(code, { period: `${fmtMDHH(from.month, from.date, from.hour)}〜` });
       }
     }
   }
@@ -188,17 +197,24 @@ export async function fetchJmaWarnings(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timeSeries: any[] = json.timeSeries ?? [];
   const validPeriodMap = buildValidPeriodMap(timeSeries, jmaAreaCode);
+  const now = Date.now();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const warnings: any[] = targetArea.warnings ?? [];
 
   const items: JmaWarningItem[] = warnings
     .filter((w: any) => w.status === '発表' || w.status === '更新' || w.status === '継続')
+    .filter((w: any) => {
+      // 有効期間終了時刻が取得でき、かつ現在時刻より過去の場合は除外
+      // (JMA が 解除 を発行しないまま継続ステータスが残るケースへの対策)
+      const validity = validPeriodMap.get(String(w.code));
+      return !validity?.endMs || validity.endMs > now;
+    })
     .map((w: any) => ({
       code:       String(w.code),
       name:       JMA_WARNING_NAMES[String(w.code)] ?? `現象コード${w.code}`,
       level:      toLevel(String(w.code)),
-      validPeriod: validPeriodMap.get(String(w.code)),
+      validPeriod: validPeriodMap.get(String(w.code))?.period,
     }))
     .filter(item => item.level !== 'none');
 
