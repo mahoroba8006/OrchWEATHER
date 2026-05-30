@@ -53,12 +53,27 @@ export function getAreaName(areaCode: string): string | null {
   return areaNames[areaCode] ?? null;
 }
 
+// 沖縄は気象台が4つに分かれており、先頭2桁の法則が通用しない。
+// 471000=本島地方, 472000=南大東島, 473000=宮古島地方, 474000=八重山地方
+const OKINAWA_AREA_TO_PREF: Record<string, string> = {
+  '4735700': '472000', // 南大東村
+  '4735800': '472000', // 北大東村
+  '4721400': '473000', // 宮古島市
+  '4737500': '473000', // 多良間村
+  '4720700': '474000', // 石垣市
+  '4738100': '474000', // 竹富町
+  '4738200': '474000', // 与那国町
+};
+
 /**
  * jmaAreaCode の先頭2桁（都道府県相当）から警報 API に使う6桁都道府県コードを導出する。
  * 例: "0110000" → "010000"（北海道）, "1310100" → "130000"（東京）
+ * 沖縄（47）は複数気象台に分かれるため個別マッピングで上書きする。
  */
 export function prefCodeFromAreaCode(areaCode: string): string {
-  // 7桁コードの先頭2桁 = 都道府県識別
+  if (OKINAWA_AREA_TO_PREF[areaCode]) return OKINAWA_AREA_TO_PREF[areaCode];
   const pref2 = areaCode.slice(0, 2);
+  // 沖縄の大多数（本島地方）は 471000
+  if (pref2 === '47') return '471000';
   return `${pref2}0000`;
 }
