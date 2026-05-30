@@ -218,11 +218,11 @@ export function WeatherTab() {
           <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} />
+            <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} jmaWarnings={filteredJmaWarning?.items} />
           </section>
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} />
+            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={filteredJmaWarning?.items} />
           </section>
         </div>
       )}
