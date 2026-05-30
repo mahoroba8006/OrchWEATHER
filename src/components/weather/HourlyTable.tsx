@@ -2,6 +2,9 @@ import { useEffect, type CSSProperties, type RefObject } from 'react';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
+import type { JmaWarningItem } from '../../api/jmaWarning';
+import { computeWarningLanes } from '../../lib/warningGantt';
+import { WarningBar } from './WarningBar';
 
 interface Props {
   hourly: HourlyForecast[];
@@ -9,6 +12,7 @@ interface Props {
   scrollRef?: RefObject<HTMLDivElement | null>;
   scrollTarget?: string; // "YYYY-MM-DDTHH:00" — scroll this column to left edge
   disablePastOpacity?: boolean; // true: 過去時刻のグレーアウトを無効化（履歴タブ用）
+  jmaWarnings?: JmaWarningItem[];
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -59,10 +63,8 @@ const tlTime = (e: TLEntry) => (e.kind === 'hourly' ? e.data.time : e.time);
 
 // ── Sub-components ────────────────────────────────────────
 
-function MiniChartRow({ tl }: { tl: TLEntry[] }) {
-  const hourlyPos: number[]   = [];
-  const hourlyItems: HourlyEntry[] = [];
-  tl.forEach((e, i) => { if (e.kind === 'hourly') { hourlyPos.push(i); hourlyItems.push(e); } });
+function MiniChartRow({ tl, hourlyPos }: { tl: TLEntry[]; hourlyPos: number[] }) {
+  const hourlyItems: HourlyEntry[] = tl.filter((e): e is HourlyEntry => e.kind === 'hourly');
 
   const W = tl.length * COL_W;
   const H = 64, padT = 6, padB = 6;
@@ -210,8 +212,58 @@ const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => strin
   { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString() },
 ];
 
+// ── Gantt helpers ─────────────────────────────────────────
+
+/** UTC ms を JST 時刻文字列 "YYYY-MM-DDTHH:00" に変換する */
+function toJSTHourStr(utcMs: number): string {
+  const jstMs = utcMs + 9 * 60 * 60 * 1000;
+  const d = new Date(jstMs);
+  const y  = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dy = String(d.getUTCDate()).padStart(2, '0');
+  const h  = String(d.getUTCHours()).padStart(2, '0');
+  return `${y}-${mo}-${dy}T${h}:00`;
+}
+
+function warningToHourlyBar(
+  warning: JmaWarningItem,
+  hourly: HourlyForecast[],
+  hourlyPos: number[],
+): { left: number; width: number } | null {
+  if (!warning.startMs || hourly.length === 0) return null;
+
+  const startStr = toJSTHourStr(warning.startMs);
+
+  let startHIdx = 0;
+  for (let i = 0; i < hourly.length; i++) {
+    if (hourly[i].time <= startStr) startHIdx = i;
+    else break;
+  }
+  if (startStr > hourly[hourly.length - 1].time) return null;
+
+  let endHIdx: number;
+  if (!warning.endMs) {
+    endHIdx = hourly.length - 1;
+    const left  = hourlyPos[startHIdx] * COL_W;
+    const right = (hourlyPos[endHIdx] + 1) * COL_W;
+    return { left, width: right - left };
+  }
+
+  const endStr = toJSTHourStr(warning.endMs);
+
+  endHIdx = hourly.length - 1;
+  for (let i = 0; i < hourly.length; i++) {
+    if (hourly[i].time >= endStr) { endHIdx = i; break; }
+  }
+
+  const left  = hourlyPos[startHIdx] * COL_W;
+  const right = hourlyPos[endHIdx] * COL_W;
+  if (right <= left) return null;
+  return { left, width: right - left };
+}
+
 // ── Main component ────────────────────────────────────────
-export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity }: Props) {
+export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, jmaWarnings }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
 
@@ -232,6 +284,10 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
     ...hourly.map(data => ({ kind: 'hourly' as const, data })),
     ...sunEntries,
   ].sort((a, b) => tlTime(a).localeCompare(tlTime(b)));
+
+  // hourly エントリの tl 列インデックス（MiniChartRow と gantt 行で共用）
+  const hourlyPos: number[] = [];
+  tl.forEach((e, i) => { if (e.kind === 'hourly') hourlyPos.push(i); });
 
   // Scroll to the 1-hour-before-now column on load.
   // 履歴タブ (disablePastOpacity=true) はすべてが過去なので末尾に飛ばず左端をそのまま表示。
@@ -349,7 +405,30 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 );
               })}
             </tr>
-            <MiniChartRow tl={tl} />
+            <MiniChartRow tl={tl} hourlyPos={hourlyPos} />
+            {/* ガントバー行 */}
+            {jmaWarnings && jmaWarnings.length > 0 && (() => {
+              const lanes = computeWarningLanes(jmaWarnings);
+              return lanes.map((lane, laneIdx) => (
+                <tr key={`gantt-${laneIdx}`}>
+                  <td style={{ ...STICKY, padding: 0, borderBottom: 'none' }} />
+                  <td colSpan={tl.length} style={{ padding: 0, position: 'relative', height: 22 }}>
+                    {lane.map(warning => {
+                      const bar = warningToHourlyBar(warning, hourly, hourlyPos);
+                      if (!bar) return null;
+                      return (
+                        <WarningBar
+                          key={warning.code}
+                          warning={warning}
+                          left={bar.left}
+                          width={bar.width}
+                        />
+                      );
+                    })}
+                  </td>
+                </tr>
+              ));
+            })()}
             <UVRow tl={tl} isNighttime={isNighttime} cutoff={effectiveCutoff} />
             {/* データ行 */}
             {DATA_ROWS.map(row => (
