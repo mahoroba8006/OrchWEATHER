@@ -1,10 +1,14 @@
 import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
 import { WeatherIcon, codeToLabel, dayTransitionLabel } from './WeatherIcon';
+import type { JmaWarningItem } from '../../api/jmaWarning';
+import { computeWarningLanes } from '../../lib/warningGantt';
+import { WarningBar } from './WarningBar';
 
 interface Props {
   daily: DailyForecastData[];
   onHalfDayClick?: (date: string, period: 'am' | 'pm' | 'night') => void;
+  jmaWarnings?: JmaWarningItem[];
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -140,7 +144,94 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   );
 }
 
-export function DailyForecast({ daily, onHalfDayClick }: Props) {
+/** "YYYY-MM-DD" に n 日加算して返す */
+function addDays(dateStr: string, n: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + n));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+interface DailyColumn {
+  x: number;
+  width: number;
+  startMs: number;
+  endMs: number; // exclusive
+}
+
+function buildDailyColumns(
+  daily: DailyForecastData[],
+  dayX: number[],
+  dayWidths: number[],
+): DailyColumn[] {
+  const cols: DailyColumn[] = [];
+  for (let i = 0; i < daily.length; i++) {
+    const dateStr = daily[i].date;
+    if (i < SPLIT_DAYS) {
+      const subW = dayWidths[i] / 3;
+      const nextDate = i + 1 < daily.length ? daily[i + 1].date : addDays(dateStr, 1);
+      cols.push({
+        x: dayX[i],
+        width: subW,
+        startMs: Date.parse(`${dateStr}T04:00:00+09:00`),
+        endMs:   Date.parse(`${dateStr}T12:00:00+09:00`),
+      });
+      cols.push({
+        x: dayX[i] + subW,
+        width: subW,
+        startMs: Date.parse(`${dateStr}T12:00:00+09:00`),
+        endMs:   Date.parse(`${dateStr}T20:00:00+09:00`),
+      });
+      cols.push({
+        x: dayX[i] + 2 * subW,
+        width: subW,
+        startMs: Date.parse(`${dateStr}T20:00:00+09:00`),
+        endMs:   Date.parse(`${nextDate}T04:00:00+09:00`),
+      });
+    } else {
+      const nextDate = i + 1 < daily.length ? daily[i + 1].date : addDays(dateStr, 1);
+      cols.push({
+        x: dayX[i],
+        width: dayWidths[i],
+        startMs: Date.parse(`${dateStr}T00:00:00+09:00`),
+        endMs:   Date.parse(`${nextDate}T00:00:00+09:00`),
+      });
+    }
+  }
+  return cols;
+}
+
+function warningToBar(
+  warning: JmaWarningItem,
+  cols: DailyColumn[],
+): { left: number; width: number } | null {
+  if (!warning.startMs || cols.length === 0) return null;
+
+  const wStart = warning.startMs;
+  const wEnd   = warning.endMs ?? Infinity;
+
+  let startColIdx = cols.findIndex(c => wStart >= c.startMs && wStart < c.endMs);
+  if (startColIdx === -1) {
+    if (wStart < cols[0].startMs && wEnd > cols[0].startMs) {
+      startColIdx = 0;
+    } else {
+      return null;
+    }
+  }
+
+  let endColIdx = startColIdx;
+  for (let i = cols.length - 1; i >= startColIdx; i--) {
+    if (cols[i].startMs < wEnd) {
+      endColIdx = i;
+      break;
+    }
+  }
+
+  const left  = cols[startColIdx].x;
+  const right = cols[endColIdx].x + cols[endColIdx].width;
+  return { left, width: right - left };
+}
+
+export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
   const tableRef = useRef<HTMLTableElement>(null);
   const [dayX, setDayX] = useState<number[] | null>(null);
   const [dayWidths, setDayWidths] = useState<number[] | null>(null);
@@ -466,6 +557,29 @@ export function DailyForecast({ daily, onHalfDayClick }: Props) {
                 )}
               </td>
             </tr>
+            {/* ガントバー行（jmaWarnings があり dayX が確定してから描画） */}
+            {jmaWarnings && jmaWarnings.length > 0 && dayX && dayWidths && (() => {
+              const cols = buildDailyColumns(daily, dayX, dayWidths);
+              const lanes = computeWarningLanes(jmaWarnings);
+              return lanes.map((lane, laneIdx) => (
+                <tr key={`gantt-${laneIdx}`}>
+                  <td colSpan={chartColSpan} style={{ padding: 0, position: 'relative', height: 22 }}>
+                    {lane.map(warning => {
+                      const bar = warningToBar(warning, cols);
+                      if (!bar) return null;
+                      return (
+                        <WarningBar
+                          key={warning.code}
+                          warning={warning}
+                          left={bar.left}
+                          width={bar.width}
+                        />
+                      );
+                    })}
+                  </td>
+                </tr>
+              ));
+            })()}
           </tbody>
         </table>
       </div>
