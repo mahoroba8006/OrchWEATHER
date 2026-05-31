@@ -226,7 +226,7 @@ export function WeatherTab() {
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
-            <AiCommentCard comment={aiComment} loading={aiCommentLoading} />
+          <AiCommentCard comment={aiComment} loading={aiCommentLoading} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} jmaWarnings={filteredJmaWarning?.items} />
