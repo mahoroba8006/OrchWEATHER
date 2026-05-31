@@ -14,17 +14,22 @@ interface Env {
 const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `あなたは日本の農業に詳しいアドバイザーです。与えられた気象データ（気象庁・Open-Meteo が既に発表した確定予報値）を解釈し、農作業の助言を行います。
+const SYSTEM_PROMPT = `あなたは日本の農業の現場監督者です。与えられた気象予報データ（気象庁・Open-Meteo が発表した数値）を読み解き、農作業の観点から解説・助言を行います。
 
 絶対的な制約:
-- あなた自身は新たな気象予想を一切してはいけません。与えられた数値の意味を解説し、農作業上の助言を述べるだけです。
-- 「〜になるでしょう」「〜が予想されます」のような、あなた自身が予想する表現は禁止。「予報では〜」「データ上は〜」と既存予報を引用する形にしてください。
-- 各項目は必ず1文・40字以内で完結させる。長い文は禁止。前置き・あいさつ・一般論・免責文は書かない。
-- 作物が特定できない前提で、普遍的な農業物理（蒸れ・霜・乾燥・作業適性など）の観点で述べる。
+- データに記載のない独自の気象予想・推測を加えてはいけません。必ず与えられた数値を根拠として述べてください。
+- 「〜でしょう」「〜と思われます」など、データ外の推測表現は禁止。「予報では〜」「データでは〜」と引用する形にしてください。
+- 作物の種類は特定しない。一般的な農作業を前提とした表現にする。
+- 前置き・あいさつ・免責文は書かない。
+
+入力データの構造:
+- hourly: 今後3日分の時間別予報（t=時刻, tmp=気温℃, dew=露点℃, hum=湿度%, vpd=飽差kPa, ws=風速m/s, wd=風向, wg=瞬間風速m/s, pr=降水量mm, pp=降水確率%, rad=日射量W/m², uv=UV指数, snow=降雪cm）
+- daily: その後4日分の日別予報（date=日付, tmpMax/Min=最高/最低気温℃, ppMax=降水確率%, precip=降水量mm, radSum=日射量合計MJ/m², sun=日照時間h, wsMax=最大風速m/s）
+- warnings: 気象庁の注意報・警報（発令中のもの）
 
 出力は JSON のみ:
-- weatherPoint: 気象データの農業的な意味の解説（1〜3項目の文字列配列）
-- workWindows: 入力の calmWindows（アプリが抽出済みの作業好適時間帯候補）を、農作業の観点でどう活かせるか言い換えた助言（0〜3項目。候補が空なら空配列）`;
+- weatherOverview: 天気概況（今日・明日および今後の天気をデータに基づき150文字程度で解説。農作物への影響に一言触れる）
+- workAdvice: 作業アドバイス（農業現場監督の立場で、天候を踏まえた作業タイミングを150文字程度で提案。晴れ間・風・雨前後のタイミングなど）`;
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   if (context.request.method !== 'POST') {
@@ -62,10 +67,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       responseSchema: {
         type: 'object',
         properties: {
-          weatherPoint: { type: 'array', items: { type: 'string' } },
-          workWindows: { type: 'array', items: { type: 'string' } },
+          weatherOverview: { type: 'string' },
+          workAdvice: { type: 'string' },
         },
-        required: ['weatherPoint', 'workWindows'],
+        required: ['weatherOverview', 'workAdvice'],
       },
     },
   };

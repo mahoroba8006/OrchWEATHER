@@ -20,8 +20,8 @@ export async function readAiCommentCache(
   const cachedAt: number = data.cachedAt?.toMillis?.() ?? 0;
   if (Date.now() - cachedAt > TTL_MS) return null;
   return {
-    weatherPoint: Array.isArray(data.weatherPoint) ? data.weatherPoint : [],
-    workWindows: Array.isArray(data.workWindows) ? data.workWindows : [],
+    weatherOverview: typeof data.weatherOverview === 'string' ? data.weatherOverview : '',
+    workAdvice: typeof data.workAdvice === 'string' ? data.workAdvice : '',
   };
 }
 
@@ -31,8 +31,8 @@ export async function writeAiCommentCache(
   data: AiCommentData,
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid, 'aiComments', hash), {
-    weatherPoint: data.weatherPoint,
-    workWindows: data.workWindows,
+    weatherOverview: data.weatherOverview,
+    workAdvice: data.workAdvice,
     cachedAt: serverTimestamp(),
   });
 }
