@@ -49,6 +49,7 @@ export function useAiComment(
   useEffect(() => {
     if (!uid || !hash) {
       setComment(null);
+      setLoading(false);
       return;
     }
     const currentInput = inputRef.current;
@@ -64,6 +65,9 @@ export function useAiComment(
         if (cancelled) return;
         if (cached) {
           setComment(cached);
+          // 直前の run がキャンセルされ loading=true のまま残るケースを確実に解消
+          // （地点切替で fetch 中 → 切替先がキャッシュヒット のシーケンス対策）
+          setLoading(false);
           return;
         }
       } catch {
