@@ -170,7 +170,7 @@ function buildValidPeriodMap(timeSeries: any[], areaCode: string): Map<string, V
         // 予報期間終端まで続く場合（終了時刻算出不可）
         const startMs = Date.parse(defines[active[0]]);
         map.set(code, {
-          period: `${fmtMDHH(from.month, from.date, from.hour)}〜`,
+          period: `${fmtMDHH(from.month, from.date, from.hour)}〜（解除未定）`,
           startMs: isNaN(startMs) ? undefined : startMs,
         });
       }

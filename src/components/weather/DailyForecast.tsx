@@ -207,7 +207,7 @@ function warningToBar(
   if (!warning.startMs || cols.length === 0) return null;
 
   const wStart = warning.startMs;
-  const wEnd   = warning.endMs ?? Infinity;
+  const wEnd   = warning.endMs ?? (wStart + 6 * 60 * 60 * 1000);
 
   let startColIdx = cols.findIndex(c => wStart >= c.startMs && wStart < c.endMs);
   if (startColIdx === -1) {
