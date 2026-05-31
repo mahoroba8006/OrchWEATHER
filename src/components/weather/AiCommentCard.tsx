@@ -65,6 +65,9 @@ export function AiCommentCard({ comment, loading }: Props) {
         </div>
       )}
 
+      <div style={{ fontSize: '0.68rem', color: '#b8c0cf', marginTop: '0.6rem' }}>
+        ※気象庁・Open-Meteo の予報データに基づく解説です
+      </div>
     </section>
   );
 }
