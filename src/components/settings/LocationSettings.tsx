@@ -415,8 +415,8 @@ export function LocationSettings() {
       )}
       {showMapModal && editingId && (
         <LocationMapModal
-          initialLat={typeof formData.lat === 'number' ? formData.lat : 35.0}
-          initialLon={typeof formData.lon === 'number' ? formData.lon : 135.0}
+          initialLat={typeof formData.lat === 'number' && !Number.isNaN(formData.lat) ? formData.lat : 35.0}
+          initialLon={typeof formData.lon === 'number' && !Number.isNaN(formData.lon) ? formData.lon : 135.0}
           onConfirm={handleMapConfirm}
           onClose={() => setShowMapModal(false)}
         />

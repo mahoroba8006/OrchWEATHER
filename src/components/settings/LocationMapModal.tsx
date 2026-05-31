@@ -33,6 +33,7 @@ export function LocationMapModal({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const [markerPos, setMarkerPos] = useState<[number, number]>([initialLat, initialLon]);
   const [resolving, setResolving] = useState(false);
@@ -50,6 +51,11 @@ export function LocationMapModal({
     setResolving(false);
     onConfirm(lat, lon, suggestedName);
   }, [markerPos, onConfirm]);
+
+  // モーダルマウント時にオーバーレイにフォーカスして Escape キーを有効化
+  useEffect(() => {
+    overlayRef.current?.focus();
+  }, []);
 
   // マップ初期化（マウント時1回のみ）
   useEffect(() => {
@@ -88,6 +94,7 @@ export function LocationMapModal({
     // GPS で現在地に移動（成功したらビューとマーカーも移動）
     navigator.geolocation?.getCurrentPosition(
       (pos) => {
+        if (!mapRef.current) return; // アンマウント済みガード
         const lat = parseFloat(pos.coords.latitude.toFixed(6));
         const lon = parseFloat(pos.coords.longitude.toFixed(6));
         map.setView([lat, lon], 13);
@@ -95,6 +102,7 @@ export function LocationMapModal({
         setMarkerPos([lat, lon]);
       },
       () => {
+        if (!mapRef.current) return; // アンマウント済みガード
         // GPS 失敗時は日本全体ビュー
         map.setView([36.5, 138.0], 5);
       },
@@ -135,6 +143,7 @@ export function LocationMapModal({
 
   return (
     <div
+      ref={overlayRef}
       style={overlayStyle}
       tabIndex={-1}
       onMouseDown={(e) => {
