@@ -235,6 +235,10 @@ export function WeatherTab() {
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={filteredJmaWarning?.items} />
           </section>
+
+          <div style={{ fontSize: '0.68rem', color: '#b8c0cf', textAlign: 'right', paddingRight: '0.25rem' }}>
+            ※気象庁・Open-Meteo の予報データに基づく解説です
+          </div>
         </div>
       )}
       <Footer />
