@@ -137,7 +137,11 @@ function buildValidPeriodMap(timeSeries: any[], areaCode: string): Map<string, V
       const code = String(w.code);
       if (map.has(code)) continue; // 先の timeSeries エントリ優先
 
-      const levels: string[] = w.levels ?? [];
+      const levels: unknown[] = w.levels ?? [];
+      // levels が文字列配列でない場合（雷危険度など複合オブジェクト形式）はスキップ。
+      // エントリをマップに追加しないことで validPeriodMap.get() が undefined を返し、
+      // フィルタ側で「期限未設定 = 除外しない」として正しく扱われる。
+      if (levels.length === 0 || typeof levels[0] !== 'string') continue;
       const active: number[] = [];
       for (let i = 0; i < levels.length; i++) {
         if (levels[i] && levels[i] !== '00') active.push(i);
