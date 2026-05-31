@@ -57,7 +57,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     contents: [{ parts: [{ text: JSON.stringify(payload) }] }],
     generationConfig: {
       temperature: 0.4,
-      maxOutputTokens: 600,
+      maxOutputTokens: 1024,
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'object',
