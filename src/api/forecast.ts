@@ -75,6 +75,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + `?latitude=${lat}&longitude=${lon}`
     + '&timezone=Asia%2FTokyo'
     + '&models=best_match'
+    + '&wind_speed_unit=ms'
     + '&past_hours=6'
     + '&forecast_days=11'
     + '&forecast_hours=72'
