@@ -4,6 +4,7 @@ import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage, GEO_SUPPORTED } from '../../lib/geo';
 import { resolveJmaAreaCode, getAreaName } from '../../lib/jmaAreaResolver';
+import { LocationMapModal } from './LocationMapModal';
 
 type GeoStatus = 'idle' | 'loading' | 'error';
 
@@ -48,6 +49,7 @@ export function LocationSettings() {
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
+  const [showMapModal, setShowMapModal] = useState(false);
 
   const handleEdit = (loc: LocationInfo) => {
     setEditingId(loc.id);
@@ -89,6 +91,20 @@ export function LocationSettings() {
       },
       GEO_OPTIONS,
     );
+  };
+
+  const handleMapConfirm = (lat: number, lon: number, suggestedName?: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      lat,
+      lon,
+      // 名称が未入力または初期値の場合のみ候補名で上書き
+      name:
+        prev.name && prev.name !== '新規地点'
+          ? prev.name
+          : (suggestedName ?? prev.name),
+    }));
+    setShowMapModal(false);
   };
 
   const handleSave = async () => {
@@ -342,6 +358,19 @@ export function LocationSettings() {
                 />
               </div>
             </div>
+            {/* マップ選択ボタン */}
+            <button
+              type="button"
+              onClick={() => setShowMapModal(true)}
+              style={{
+                ...greenButtonStyle,
+                alignSelf: 'flex-start',
+                fontSize: '0.82rem',
+              }}
+            >
+              <MapPin size={15} />
+              マップから選ぶ
+            </button>
             <div
               style={{
                 display: 'flex',
@@ -379,6 +408,14 @@ export function LocationSettings() {
             </div>
           </div>
         </div>
+      )}
+      {showMapModal && editingId && (
+        <LocationMapModal
+          initialLat={typeof formData.lat === 'number' ? formData.lat : 35.0}
+          initialLon={typeof formData.lon === 'number' ? formData.lon : 135.0}
+          onConfirm={handleMapConfirm}
+          onClose={() => setShowMapModal(false)}
+        />
       )}
     </div>
   );
