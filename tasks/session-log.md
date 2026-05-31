@@ -1,4 +1,62 @@
 
+## 2026-05-31 セッション（21回目）
+
+### 作業内容
+
+#### AI農作業コメント機能 実装（サブエージェント駆動、6タスク）
+
+**最終コミット:** `adc97ff`（push済み）
+
+**実装ファイル:**
+- `functions/api/ai-comment.ts` — Cloudflare Pages Function（Gemini 2.5-flash プロキシ）
+- `src/lib/workWindows.ts` — 作業好適ウィンドウ決定論的抽出（後に廃止）
+- `src/lib/aiCommentInput.ts` — 入力ペイロード組立 + djb2 ハッシュ
+- `src/api/aiComment.ts` — クライアント fetch
+- `src/lib/aiCommentCache.ts` — Firestore ユーザー別キャッシュ（TTL 4時間）
+- `src/hooks/useAiComment.ts` — オーケストレーション Hook
+- `src/components/weather/AiCommentCard.tsx` — カード UI（スケルトン付き）
+- `src/components/weather/WeatherTab.tsx` — 統合
+
+**重要な設計決定:**
+- Firebase Functions ではなく Cloudflare Pages Function を使用（既存パターン踏襲）
+- `useAiComment` の effect 依存を `[uid, hash]`（プリミティブのみ）に限定し無限ループ防止
+- キャッシュヒット経路でも `setLoading(false)` を明示（スケルトン永久表示バグ修正）
+- Firestore aiComments ドキュメント蓄積は既知の制約として許容（TTL ポリシーで後日対応予定）
+
+**本番動作確認での修正:**
+- `gemini-2.0-flash` → `gemini-2.5-flash`（新規ユーザーに廃止）
+- `maxOutputTokens` 600 → 2048（JSON 途中切れ対策）
+- Google Cloud プロジェクトへの請求先アカウント紐付けが必要（クォータ 0 解消）
+
+#### AI機能 プロンプト・入力データ刷新（20回目後半）
+
+**最終コミット:** `d6a482f`（push済み）
+
+**変更内容:**
+- 入力データ: 今後3日分の時間別全項目（気温/露点/湿度/飽差/風速/風向/瞬間風速/降水/降水確率/日射/UV/降雪）＋その後4日分の日別データ
+- 出力形式: `weatherPoint[]`/`workWindows[]` → `weatherOverview`/`workAdvice`（各文字列150字程度）
+- プロンプト: 天気概況（農作物への影響言及）＋作業アドバイス（現場監督視点）
+- `workWindows.ts`（決定論的抽出）廃止・削除
+- 命令的表現（「〜してください」「〜すべきです」）を禁止し、提案表現（「〜をおすすめします」「〜するとよいでしょう」）に限定
+- `.gitignore` に `.wrangler/` を追加
+
+### 決定事項
+- AI機能の実行環境: Cloudflare Pages Function（Firebase Functions は不採用）
+- Gemini モデル: `gemini-2.5-flash`
+- キャッシュ TTL: 4時間（ユーザー別 Firestore）
+- Firestore TTL ポリシー設定は後日（開発ひと段落後）
+- 入力: 72時間時間別 + 4日日別（全項目）
+- 出力: 天気概況 / 作業アドバイス の2ブロック構成
+
+### 未完了タスク
+- なし
+
+### 次回への引き継ぎ
+- AI機能は稼働済み。プロンプト品質は引き続きチューニング余地あり
+- 次の着手候補：①2バージョン管理の実装 ②Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-05-31 セッション（20回目）
 
 ### 作業内容
