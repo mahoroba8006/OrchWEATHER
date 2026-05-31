@@ -10,8 +10,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)['_getIconUrl'];
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
@@ -107,6 +106,7 @@ export function LocationMapModal({
       mapRef.current = null;
       markerRef.current = null;
     };
+  // initialLat/initialLon are intentionally excluded: map init runs once only
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const overlayStyle: CSSProperties = {
@@ -136,8 +136,12 @@ export function LocationMapModal({
   return (
     <div
       style={overlayStyle}
+      tabIndex={-1}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
       }}
     >
       <div style={panelStyle}>
@@ -165,6 +169,7 @@ export function LocationMapModal({
             マップから地点を選択
           </span>
           <button
+            aria-label="閉じる"
             onClick={onClose}
             style={{
               background: 'none',
