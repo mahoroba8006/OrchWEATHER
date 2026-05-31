@@ -4,6 +4,9 @@
 # Cloudflare Pages Functions ローカル環境変数（wrangler pages dev 用）
 .dev.vars
 
+# Wrangler ローカル開発の一時ファイル
+.wrangler/
+
 # Git worktrees
 .worktrees
 
