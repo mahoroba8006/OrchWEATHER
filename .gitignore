@@ -1,6 +1,9 @@
 # Environment variables (Firebase config)
 .env
 
+# Cloudflare Pages Functions ローカル環境変数（wrangler pages dev 用）
+.dev.vars
+
 # Git worktrees
 .worktrees
 

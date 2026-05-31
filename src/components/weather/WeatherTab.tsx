@@ -7,11 +7,13 @@ import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
 import { DailyForecast } from './DailyForecast';
 import { JmaWarningSummary } from './JmaWarningSummary';
+import { AiCommentCard } from './AiCommentCard';
+import { useAiComment } from '../../hooks/useAiComment';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
 export function WeatherTab() {
-  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation } = useAppStore();
+  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user } = useAppStore();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');
@@ -74,6 +76,14 @@ export function WeatherTab() {
       parseInt(item.code, 10) >= 33 || enabledJmaCodeSet.has(item.code)
     ),
   };
+
+  // AI 農作業コメント（予報・警報が揃ったら非同期取得）
+  const { comment: aiComment, loading: aiCommentLoading } = useAiComment(
+    user?.uid,
+    location?.name,
+    data,
+    filteredJmaWarning?.items,
+  );
 
   // 地点未登録かつ geo も未取得
   if (locations.length === 0 && !geoLocation) {
@@ -216,6 +226,7 @@ export function WeatherTab() {
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
+          <AiCommentCard comment={aiComment} loading={aiCommentLoading} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} jmaWarnings={filteredJmaWarning?.items} />
