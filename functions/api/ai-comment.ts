@@ -11,7 +11,7 @@ interface Env {
   GEMINI_API_KEY: string;
 }
 
-const MODEL = 'gemini-2.0-flash';
+const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `あなたは日本の農業に詳しいアドバイザーです。与えられた気象データ（気象庁・Open-Meteo が既に発表した確定予報値）を解釈し、農作業の助言を行います。
