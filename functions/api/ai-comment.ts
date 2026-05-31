@@ -34,8 +34,8 @@ const SYSTEM_PROMPT = `あなたは日本の農作業をサポートする親切
 - warnings: 気象庁の注意報・警報（発令中のもの）
 
 出力は JSON のみ:
-- weatherOverview: 天気概況（今日・明日および今後の天気をデータに基づき解説。農作物への影響に一言触れる。200文字程度、適宜改行を含む）
-- workAdvice: 作業アドバイス（天候を踏まえた作業タイミングを提案。晴れ間・風・雨前後のタイミングなど。200文字程度、適宜改行を含む）`;
+- weatherOverview: 天気概況（今日・明日および今後の天気をデータに基づき解説。農作物への影響に一言触れる。150文字程度、適宜改行を含む）
+- workAdvice: 作業アドバイス（天候を踏まえた作業タイミングを提案。晴れ間・風・雨前後のタイミングなど。150文字程度、適宜改行を含む）`;
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   if (context.request.method !== 'POST') {
