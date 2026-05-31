@@ -59,6 +59,7 @@ export function LocationSettings() {
     setGeoStatus('idle');
     setSaveStatus('idle');
     setSaveError('');
+    setShowMapModal(false);
   };
 
   const handleAddNew = () => {
@@ -68,6 +69,7 @@ export function LocationSettings() {
     setGeoError('');
     setSaveStatus('idle');
     setSaveError('');
+    setShowMapModal(false);
   };
 
   const handleGetCurrentLocation = () => {
@@ -104,6 +106,7 @@ export function LocationSettings() {
           ? prev.name
           : (suggestedName ?? prev.name),
     }));
+    setOriginalLatLon(null); // マップ確定後は常に JMA エリアコードを再解決する
     setShowMapModal(false);
   };
 
@@ -137,6 +140,7 @@ export function LocationSettings() {
         await updateLocation(editingId, dataToSave);
       }
       setSaveStatus('idle');
+      setShowMapModal(false);
       setEditingId(null);
     } catch (err: unknown) {
       console.error('[LocationSettings] save failed', err);
