@@ -50,6 +50,7 @@ export function LocationSettings() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
   const [showMapModal, setShowMapModal] = useState(false);
+  const [showHeaderMapModal, setShowHeaderMapModal] = useState(false);
 
   const handleEdit = (loc: LocationInfo) => {
     setEditingId(loc.id);
@@ -60,6 +61,7 @@ export function LocationSettings() {
     setSaveStatus('idle');
     setSaveError('');
     setShowMapModal(false);
+    setShowHeaderMapModal(false);
   };
 
   const handleAddNew = () => {
@@ -70,6 +72,7 @@ export function LocationSettings() {
     setSaveStatus('idle');
     setSaveError('');
     setShowMapModal(false);
+    setShowHeaderMapModal(false);
   };
 
   const handleGetCurrentLocation = () => {
@@ -86,6 +89,8 @@ export function LocationSettings() {
         setOriginalLatLon(null); // 新規なので常にエリアコードを解決させる
         setSaveStatus('idle');
         setSaveError('');
+        setShowMapModal(false);
+        setShowHeaderMapModal(false);
       },
       (err) => {
         setGeoStatus('error');
@@ -93,6 +98,17 @@ export function LocationSettings() {
       },
       GEO_OPTIONS,
     );
+  };
+
+  // ヘッダーの「マップから選ぶ」ボタン用：確定後に新規フォームを展開
+  const handleHeaderMapConfirm = (lat: number, lon: number, suggestedName?: string) => {
+    setEditingId('new');
+    setFormData({ name: suggestedName ?? '新規地点', lat, lon });
+    setOriginalLatLon(null);
+    setGeoError('');
+    setSaveStatus('idle');
+    setSaveError('');
+    setShowHeaderMapModal(false);
   };
 
   const handleMapConfirm = (lat: number, lon: number, suggestedName?: string) => {
@@ -197,6 +213,15 @@ export function LocationSettings() {
                 現在地で登録
               </>
             )}
+          </button>
+
+          {/* マップから選ぶ */}
+          <button
+            onClick={() => { setEditingId(null); setShowHeaderMapModal(true); }}
+            style={greenButtonStyle}
+          >
+            <MapPin size={16} />
+            マップから選ぶ
           </button>
 
           {/* 手動で追加 */}
@@ -362,18 +387,27 @@ export function LocationSettings() {
                 />
               </div>
             </div>
-            {/* マップ選択ボタン */}
+            {/* 地図で座標を修正 */}
             <button
               type="button"
               onClick={() => setShowMapModal(true)}
               style={{
-                ...greenButtonStyle,
                 alignSelf: 'flex-start',
-                fontSize: '0.82rem',
+                padding: '0.25rem 0.6rem',
+                fontSize: '0.75rem',
+                background: 'none',
+                color: 'var(--accent-color)',
+                border: '1px solid rgba(13,148,136,0.3)',
+                borderRadius: 'var(--radius-md, 6px)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                opacity: 0.85,
               }}
             >
-              <MapPin size={15} />
-              マップから選ぶ
+              <MapPin size={13} />
+              地図で修正
             </button>
             <div
               style={{
@@ -419,6 +453,14 @@ export function LocationSettings() {
           initialLon={typeof formData.lon === 'number' && !Number.isNaN(formData.lon) ? formData.lon : 135.0}
           onConfirm={handleMapConfirm}
           onClose={() => setShowMapModal(false)}
+        />
+      )}
+      {showHeaderMapModal && (
+        <LocationMapModal
+          initialLat={35.0}
+          initialLon={135.0}
+          onConfirm={handleHeaderMapConfirm}
+          onClose={() => setShowHeaderMapModal(false)}
         />
       )}
     </div>
