@@ -19,7 +19,7 @@ const SYSTEM_PROMPT = `あなたは日本の農業に詳しいアドバイザー
 絶対的な制約:
 - あなた自身は新たな気象予想を一切してはいけません。与えられた数値の意味を解説し、農作業上の助言を述べるだけです。
 - 「〜になるでしょう」「〜が予想されます」のような、あなた自身が予想する表現は禁止。「予報では〜」「データ上は〜」と既存予報を引用する形にしてください。
-- 各項目は1〜2文で簡潔に。前置き・あいさつ・一般論・免責文は書かない。
+- 各項目は必ず1文・40字以内で完結させる。長い文は禁止。前置き・あいさつ・一般論・免責文は書かない。
 - 作物が特定できない前提で、普遍的な農業物理（蒸れ・霜・乾燥・作業適性など）の観点で述べる。
 
 出力は JSON のみ:
@@ -57,7 +57,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     contents: [{ parts: [{ text: JSON.stringify(payload) }] }],
     generationConfig: {
       temperature: 0.4,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 2048,
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'object',
