@@ -14,7 +14,7 @@ interface Env {
 const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `あなたは日本の農作業をサポートする親切なアドバイザーです。与えられた気象予報データ（気象庁・Open-Meteo が発表した数値）を読み解き、農作業の観点から解説・助言を行います。
+const BASE_SYSTEM_PROMPT = `あなたは日本の農作業をサポートする親切なアドバイザーです。与えられた気象予報データ（気象庁・Open-Meteo が発表した数値）を読み解き、農作業の観点から解説・助言を行います。
 
 絶対的な制約:
 - データに記載のない独自の気象予想・推測を加えてはいけません。必ず与えられた数値を根拠として述べてください。
@@ -22,6 +22,7 @@ const SYSTEM_PROMPT = `あなたは日本の農作業をサポートする親切
 - 作物の種類は特定しない。一般的な農作業を前提とした表現にする。
 - 前置き・あいさつ・免責文は書かない。
 - 「〜してください」「〜すべきです」「〜を徹底してください」など断定的・命令的な表現は禁止。「〜をおすすめします」「〜するとよいでしょう」「〜が好機です」など、提案・示唆する表現にする。
+- 思考過程、意図の解釈、データ分析のメモなどの途中経過は絶対に書かないでください。最終的な回答テキストのみを直接出力してください。
 
 表現についての制約（重要）:
 - 専門用語（VPD、飽差、露点など）は使用禁止。「空気が乾燥する」「蒸し暑くなる」など、日常的でわかりやすい言葉に言い換えてください。
@@ -33,10 +34,15 @@ const SYSTEM_PROMPT = `あなたは日本の農作業をサポートする親切
 - hourly: 今後2日分の2時間ごとの予報（t=時刻, tmp=気温℃, hum=湿度%, ws=風速m/s, wd=風向, wg=瞬間風速m/s, pr=降水量mm, pp=降水確率%, snow=降雪cm, cape=CAPE J/kg, frz=0℃層高度m, prs=気圧hPa）
 - daily: その後4日分の日別予報（date=日付, tmpMax/Min=最高/最低気温℃, ppMax=降水確率%, precip=降水量mm, radSum=日射量合計MJ/m², sun=日照時間h, wsMax=最大風速m/s）
 - warnings: 気象庁の注意報・警報（発令中のもの）
+`;
 
+const PROMPT_1 = `${BASE_SYSTEM_PROMPT}
 出力は JSON のみ:
 - weatherOverview: 天気概況（今日・明日の天気に加え、3日目以降の長期的な天候の傾向にも触れてわかりやすく解説する。あわせて、その天候が農作物の生育や畑・施設に与える影響（例：日照不足や低温による生育の遅れ、高温や乾燥による水分不足、長雨による過湿や病気の出やすさ、強風や霜による物理的なダメージなど）にも一言ふれる。作物の種類は特定せず、一般的な影響として述べること。150文字程度、適宜改行を含む）
-- disasterPrep: 天気の備え（荒天（強風・大雨・霜・猛暑など）だけでなく、晴天続きによる乾燥・土の乾き・熱ストレス、曇天続きによる日照不足・湿気による病気のリスクなど、天候のあらゆる側面から作物や施設への影響と備えを提案する。数日先の傾向も見据えること。特に注意すべき天候がなければ「現在、特に気になる天候リスクはありません」と記載する。150文字程度、適宜改行を含む）
+- disasterPrep: 天気の備え（荒天（強風・大雨・霜・猛暑など）だけでなく、晴天続きによる乾燥・土の乾き・熱ストレス、曇天続きによる日照不足・湿気による病気のリスクなど、天候のあらゆる側面から作物や施設への影響と備えを提案する。数日先の傾向も見据えること。特に注意すべき天候がなければ「現在、特に気になる天候リスクはありません」と記載する。150文字程度、適宜改行を含む）`;
+
+const PROMPT_2 = `${BASE_SYSTEM_PROMPT}
+出力は JSON のみ:
 - sprayingAdvice: 防除・散布のアドバイス（風が穏やかで雨が降らないタイミングを提案する。今日明日の好機だけでなく、数日先の天候の崩れ等を見据えた計画的な散布のタイミングも提案する。150文字程度、適宜改行を含む）
 - generalWorkAdvice: 一般外作業のアドバイス（雨を避けた晴れ間のタイミングや作業・体調管理を提案する。今日明日の作業に加え、週後半の天気を考慮した段取りのアドバイスも含める。150文字程度、適宜改行を含む）`;
 
@@ -66,64 +72,73 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     });
   }
 
-  const body = {
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    contents: [{ parts: [{ text: JSON.stringify(payload) }] }],
-    generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: 4096,
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'object',
-        properties: {
-          weatherOverview:  { type: 'string' },
-          disasterPrep:     { type: 'string' },
-          sprayingAdvice:   { type: 'string' },
-          generalWorkAdvice:{ type: 'string' },
-        },
-        required: ['weatherOverview', 'disasterPrep', 'sprayingAdvice', 'generalWorkAdvice'],
+  // 指定されたプロンプトとスキーマで Gemini を呼び出し（内部でリトライを行う）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fetchPart = async (promptText: string, schema: any): Promise<Record<string, string>> => {
+    const body = {
+      system_instruction: { parts: [{ text: promptText }] },
+      contents: [{ parts: [{ text: JSON.stringify(payload) }] }],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 2048,
+        responseMimeType: 'application/json',
+        responseSchema: schema,
       },
-    },
-  };
-
-  // Gemini を呼び出し、パース済みオブジェクトを返す。失敗時は Error を投げる。
-  const callGemini = async (): Promise<unknown> => {
-    const geminiRes = await fetch(`${ENDPOINT}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!geminiRes.ok) {
-      const detail = await geminiRes.text();
-      throw new Error(`gemini_http:${geminiRes.status}:${detail}`);
-    }
-    const json = await geminiRes.json() as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('gemini_empty');
-    return JSON.parse(text); // トークン超過で途切れた場合は SyntaxError を投げる
+
+    const MAX_ATTEMPTS = 3;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const geminiRes = await fetch(`${ENDPOINT}?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!geminiRes.ok) {
+          const detail = await geminiRes.text();
+          throw new Error(`gemini_http:${geminiRes.status}:${detail}`);
+        }
+        const json = await geminiRes.json() as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error('gemini_empty');
+        return JSON.parse(text); // パース失敗時は catch へ
+      } catch (e) {
+        lastError = e;
+        if (e instanceof Error && e.message.startsWith('gemini_http:4')) break;
+      }
+    }
+    throw lastError;
   };
 
-  const MAX_ATTEMPTS = 3;
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const parsed = await callGemini();
-      return new Response(JSON.stringify(parsed), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-      });
-    } catch (e) {
-      lastError = e;
-      // 即座に解決しない HTTP エラー（4xx）はリトライしない
-      if (e instanceof Error && e.message.startsWith('gemini_http:4')) break;
-    }
-  }
+  try {
+    // 2つのAPIリクエストを並行して実行
+    const [part1, part2] = await Promise.all([
+      fetchPart(PROMPT_1, {
+        type: 'object',
+        properties: { weatherOverview: { type: 'string' }, disasterPrep: { type: 'string' } },
+        required: ['weatherOverview', 'disasterPrep'],
+      }),
+      fetchPart(PROMPT_2, {
+        type: 'object',
+        properties: { sprayingAdvice: { type: 'string' }, generalWorkAdvice: { type: 'string' } },
+        required: ['sprayingAdvice', 'generalWorkAdvice'],
+      })
+    ]);
 
-  const detail = lastError instanceof Error ? lastError.message : String(lastError);
-  return new Response(JSON.stringify({ error: 'ai-comment proxy failed', detail }), {
-    status: 502,
-    headers: { 'Content-Type': 'application/json' },
-  });
+    // 結果をマージしてクライアントへ1つのJSONとして返す
+    const parsed = { ...part1, ...part2 };
+    return new Response(JSON.stringify(parsed), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    });
+  } catch (lastError) {
+    const detail = lastError instanceof Error ? lastError.message : String(lastError);
+    return new Response(JSON.stringify({ error: 'ai-comment proxy failed', detail }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 };
