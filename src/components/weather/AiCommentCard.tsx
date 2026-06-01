@@ -13,10 +13,10 @@ interface Props {
 }
 
 const TABS = [
-  { key: 'weatherOverview'   as const, Icon: CloudSun,      label: '天気概況' },
-  { key: 'disasterPrep'      as const, Icon: AlertTriangle, label: '悪天候の備え' },
-  { key: 'sprayingAdvice'    as const, Icon: Droplets,      label: '防除・散布' },
-  { key: 'generalWorkAdvice' as const, Icon: Shovel,        label: '一般外作業' },
+  { key: 'weatherOverview'   as const, Icon: CloudSun,      label: '空ごよみ' },
+  { key: 'generalWorkAdvice' as const, Icon: Shovel,        label: '外しごと' },
+  { key: 'sprayingAdvice'    as const, Icon: Droplets,      label: '散布どき' },
+  { key: 'disasterPrep'      as const, Icon: AlertTriangle, label: '天気の備え' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -33,12 +33,30 @@ export function AiCommentCard({ comment, loading }: Props) {
   if (loading) {
     return (
       <section className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
-        <div style={{ fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '0.5rem' }}>
-          🌱 AI 農作業コメント
-        </div>
-        <div style={{ display: 'flex', gap: '0', marginBottom: '0.7rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-          {TABS.map(t => (
-            <div key={t.key} style={{ flex: 1, height: 30, background: 'rgba(13,148,136,0.06)', margin: '0 2px 0 0' }} />
+        {/* ローディング中もタブバーは実表示（クリック不可） */}
+        <div style={{ display: 'flex', gap: '0', marginBottom: '0.8rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+          {TABS.map(({ key, Icon, label }, idx) => (
+            <div
+              key={key}
+              style={{
+                flex: 1,
+                borderBottom: idx === 0 ? '2px solid var(--accent-color)' : '2px solid transparent',
+                padding: '0.25rem 0.1rem 0.5rem',
+                fontSize: '0.72rem',
+                fontWeight: idx === 0 ? 700 : 500,
+                color: idx === 0 ? 'var(--accent-color)' : 'var(--text-secondary)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '0.2rem',
+                opacity: idx === 0 ? 1 : 0.5,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Icon size={15} />
+              {label}
+            </div>
           ))}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
