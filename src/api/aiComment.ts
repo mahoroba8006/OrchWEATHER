@@ -4,7 +4,7 @@
 // vite dev（wrangler 不使用）では Function が存在せず SPA の index.html が返るため、
 // Content-Type が JSON でない場合はエラーにして呼び出し元でグレースフルに無視させる。
 
-import type { AiCommentInput } from '../lib/aiCommentInput';
+import type { AiCommentInput, AiCustomInput } from '../lib/aiCommentInput';
 
 export interface AiCommentData {
   weatherOverview:   string; // 天気概況
@@ -14,7 +14,7 @@ export interface AiCommentData {
 }
 
 export async function fetchAiCustomComment(
-  input: AiCommentInput,
+  input: AiCustomInput,
   customPrompt: string,
 ): Promise<string> {
   const res = await fetch('/api/ai-custom', {

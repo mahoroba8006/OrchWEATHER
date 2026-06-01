@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { ForecastData } from '../api/forecast';
 import type { JmaWarningItem } from '../api/jmaWarning';
 import { fetchAiCustomComment } from '../api/aiComment';
-import { buildAiCommentInput, hashAiCommentInput } from '../lib/aiCommentInput';
+import { buildAiCustomInput, hashAiCustomInput } from '../lib/aiCommentInput';
 import { readAiCustomCache, writeAiCustomCache } from '../lib/aiCommentCache';
 
 function hashString(s: string): string {
@@ -34,10 +34,10 @@ export function useAiCustomComment(
 
   const input =
     enabled
-      ? buildAiCommentInput(locationName!, forecast!, warnings ?? [])
+      ? buildAiCustomInput(locationName!, forecast!, warnings ?? [])
       : null;
 
-  const inputHash  = input ? hashAiCommentInput(input) : null;
+  const inputHash  = input ? hashAiCustomInput(input) : null;
   const promptHash = customPrompt.trim() ? hashString(customPrompt.trim()) : null;
   const hash = inputHash && promptHash ? `${inputHash}-${promptHash}` : null;
 

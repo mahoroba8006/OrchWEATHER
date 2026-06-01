@@ -1,8 +1,9 @@
 // src/lib/aiCommentInput.ts
 //
 // AI コメント用の入力ペイロードを組み立て、キャッシュキー用の安定ハッシュを計算する。
-// 今後3日分の時間別データ（HourlyTable 表示項目すべて）+
-// その後4日分の日別データを Gemini に渡す。
+//
+// AiCommentInput    … 標準4タブ用（軽量）: 2時間おき24エントリ、cape/frz/prs なし
+// AiCustomInput     … カスタマイズ用（詳細）: 1時間おき48エントリ、cape/frz/prs あり
 
 import type { ForecastData } from '../api/forecast';
 import type { JmaWarningItem } from '../api/jmaWarning';
@@ -14,6 +15,7 @@ function windDirLabel(deg: number): string {
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
+/** 標準4タブ用の時間別エントリ（軽量） */
 export interface AiHourlyEntry {
   t: string;        // 時刻 "MM/DD HH時"
   tmp: number;      // 気温 ℃
@@ -24,6 +26,10 @@ export interface AiHourlyEntry {
   pr: number;       // 降水量 mm
   pp: number;       // 降水確率 %
   snow: number;     // 降雪量 cm
+}
+
+/** カスタマイズ用の時間別エントリ（詳細: cape/frz/prs を追加） */
+export interface AiHourlyEntryRich extends AiHourlyEntry {
   cape: number;     // CAPE J/kg
   frz: number;      // 0℃層高度 m
   prs: number;      // 海面気圧 hPa
@@ -40,13 +46,24 @@ export interface AiDailyEntry {
   wsMax: number;        // 最大風速 m/s
 }
 
+/** 標準4タブ用の入力ペイロード（軽量） */
 export interface AiCommentInput {
   location: string;
   now: string;               // 現在日時 "M/D H時" (JST)
   month: number;
   warnings: string[];
-  hourly: AiHourlyEntry[];   // 今後3日分の時間別
-  daily: AiDailyEntry[];     // その後4日分の日別
+  hourly: AiHourlyEntry[];   // 2時間おき 24エントリ（約2日分）
+  daily: AiDailyEntry[];     // 3〜7日目の日別
+}
+
+/** カスタマイズ用の入力ペイロード（詳細） */
+export interface AiCustomInput {
+  location: string;
+  now: string;
+  month: number;
+  warnings: string[];
+  hourly: AiHourlyEntryRich[]; // 1時間おき 48エントリ（2日分）
+  daily: AiDailyEntry[];
 }
 
 const LEVEL_SUFFIX: Record<string, string> = {
@@ -69,35 +86,18 @@ function fmtDate(d: string): string {
   return `${parseInt(m)}/${parseInt(day)}`;
 }
 
-export function buildAiCommentInput(
-  locationName: string,
-  forecast: ForecastData,
-  warnings: JmaWarningItem[],
-): AiCommentInput {
-  const nowMs = Date.now();
+/** 警報名リストと現在時刻ラベルを共通生成 */
+function buildCommon(nowMs: number, warnings: JmaWarningItem[]) {
+  const warningNames = warnings.map(w => `${w.name}${LEVEL_SUFFIX[w.level] ?? ''}`);
+  const jstNow = new Date(nowMs + 9 * 60 * 60 * 1000);
+  const nowLabel = `${jstNow.getUTCMonth() + 1}/${jstNow.getUTCDate()} ${jstNow.getUTCHours()}時`;
+  const month = jstNow.getUTCMonth() + 1;
+  return { warningNames, nowLabel, month };
+}
 
-  // 時間別: 現在時刻以降を2時間おきにサンプリング、24エントリまで（約2日分をカバー）
-  const hourly: AiHourlyEntry[] = forecast.hourly
-    .filter(h => Date.parse(`${h.time}:00+09:00`) >= nowMs)
-    .filter((_, i) => i % 2 === 0)
-    .slice(0, 24)
-    .map(h => ({
-      t: fmtTime(h.time),
-      tmp: Math.round(h.temperature * 10) / 10,
-      hum: h.humidity,
-      ws: Math.round(h.windSpeed * 10) / 10,
-      wd: windDirLabel(h.windDirection),
-      wg: Math.round(h.windGusts * 10) / 10,
-      pr: h.precipitation,
-      pp: h.precipProb,
-      snow: h.snowfall,
-      cape: Math.round(h.cape),
-      frz: Math.round(h.freezingLevel),
-      prs: Math.round(h.pressure * 10) / 10,
-    }));
-
-  // 日別: 3日目以降（時間別でカバーされる2日をスキップ）
-  const daily: AiDailyEntry[] = forecast.daily
+/** 日別データを共通生成 */
+function buildDaily(forecast: ForecastData): AiDailyEntry[] {
+  return forecast.daily
     .filter(d => !d.isPlaceholder)
     .slice(2, 7)
     .map(d => ({
@@ -110,33 +110,103 @@ export function buildAiCommentInput(
       sun: Math.round(d.sunshineDuration * 10) / 10,
       wsMax: Math.round(d.windSpeedMax * 10) / 10,
     }));
-
-  // 注意報・警報は fetchJmaWarnings の時点で「期限切れ・発表から6時間超の解除未定」を
-  // 既に除外済み（単一の判定箇所）。ここでは名前整形のみ行う。
-  const warningNames = warnings.map(w => `${w.name}${LEVEL_SUFFIX[w.level] ?? ''}`);
-
-  const jstNow = new Date(nowMs + 9 * 60 * 60 * 1000);
-  const nowLabel = `${jstNow.getUTCMonth() + 1}/${jstNow.getUTCDate()} ${jstNow.getUTCHours()}時`;
-
-  return {
-    location: locationName,
-    now: nowLabel,
-    month: jstNow.getUTCMonth() + 1,
-    warnings: warningNames,
-    hourly,
-    daily,
-  };
 }
 
-/**
- * 入力ペイロードから安定したキャッシュキーを計算する（djb2 ハッシュ）。
- * 時間別データは現在時刻以降でフィルタするため、1時間ごとにハッシュが変わる。
- */
-export function hashAiCommentInput(input: AiCommentInput): string {
-  const str = JSON.stringify(input);
+/** djb2 ハッシュ */
+function djb2(str: string): string {
   let hash = 5381;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
   }
   return (hash >>> 0).toString(16);
+}
+
+// ─── 標準4タブ用 ─────────────────────────────────────────────────────────────
+
+/**
+ * 標準4タブ用（軽量版）。2時間おき・24エントリ。cape/frz/prs なし。
+ */
+export function buildAiCommentInput(
+  locationName: string,
+  forecast: ForecastData,
+  warnings: JmaWarningItem[],
+): AiCommentInput {
+  const nowMs = Date.now();
+  const { warningNames, nowLabel, month } = buildCommon(nowMs, warnings);
+
+  const hourly: AiHourlyEntry[] = forecast.hourly
+    .filter(h => Date.parse(`${h.time}:00+09:00`) >= nowMs)
+    .filter((_, i) => i % 2 === 0)
+    .slice(0, 24)
+    .map(h => ({
+      t:    fmtTime(h.time),
+      tmp:  Math.round(h.temperature * 10) / 10,
+      hum:  h.humidity,
+      ws:   Math.round(h.windSpeed * 10) / 10,
+      wd:   windDirLabel(h.windDirection),
+      wg:   Math.round(h.windGusts * 10) / 10,
+      pr:   h.precipitation,
+      pp:   h.precipProb,
+      snow: h.snowfall,
+    }));
+
+  return {
+    location: locationName,
+    now: nowLabel,
+    month,
+    warnings: warningNames,
+    hourly,
+    daily: buildDaily(forecast),
+  };
+}
+
+/** 標準4タブ用キャッシュキー */
+export function hashAiCommentInput(input: AiCommentInput): string {
+  return djb2(JSON.stringify(input));
+}
+
+// ─── カスタマイズ用 ────────────────────────────────────────────────────────────
+
+/**
+ * カスタマイズ用（詳細版）。1時間おき・48エントリ。cape/frz/prs あり。
+ */
+export function buildAiCustomInput(
+  locationName: string,
+  forecast: ForecastData,
+  warnings: JmaWarningItem[],
+): AiCustomInput {
+  const nowMs = Date.now();
+  const { warningNames, nowLabel, month } = buildCommon(nowMs, warnings);
+
+  const hourly: AiHourlyEntryRich[] = forecast.hourly
+    .filter(h => Date.parse(`${h.time}:00+09:00`) >= nowMs)
+    .slice(0, 48)
+    .map(h => ({
+      t:    fmtTime(h.time),
+      tmp:  Math.round(h.temperature * 10) / 10,
+      hum:  h.humidity,
+      ws:   Math.round(h.windSpeed * 10) / 10,
+      wd:   windDirLabel(h.windDirection),
+      wg:   Math.round(h.windGusts * 10) / 10,
+      pr:   h.precipitation,
+      pp:   h.precipProb,
+      snow: h.snowfall,
+      cape: Math.round(h.cape),
+      frz:  Math.round(h.freezingLevel),
+      prs:  Math.round(h.pressure * 10) / 10,
+    }));
+
+  return {
+    location: locationName,
+    now: nowLabel,
+    month,
+    warnings: warningNames,
+    hourly,
+    daily: buildDaily(forecast),
+  };
+}
+
+/** カスタマイズ用キャッシュキー */
+export function hashAiCustomInput(input: AiCustomInput): string {
+  return djb2(JSON.stringify(input));
 }
