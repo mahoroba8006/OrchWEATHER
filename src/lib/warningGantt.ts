@@ -1,14 +1,14 @@
 import type { JmaWarningItem, WarningLevel } from '../api/jmaWarning';
 
 /**
- * 警報レベルごとのグラデーション背景色
- * 設定UIのボタン配色（注意報=黄、警報=ピンク、特別警報=パープル）と一致させる
+ * 警報レベルごとの配色（気象庁の注意報・警報ボックスに合わせた色調）
+ * JmaWarningSettings の LEVEL_STYLE と同系色で統一。
  */
-export const GANTT_GRADIENT: Record<WarningLevel, string> = {
-  advisory: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
-  warning:  'linear-gradient(90deg, #fb7185, #f43f5e)',
-  special:  'linear-gradient(90deg, #c084fc, #a855f7)',
-  none:     '',
+export const GANTT_COLOR: Record<WarningLevel, { bg: string; text: string }> = {
+  advisory: { bg: 'rgba(251,146,60,0.30)',  text: '#7c4b00' },
+  warning:  { bg: 'rgba(239,68,68,0.25)',   text: '#9b2226' },
+  special:  { bg: 'rgba(220,38,127,0.22)',  text: '#6d1a3e' },
+  none:     { bg: '', text: '' },
 };
 
 /**

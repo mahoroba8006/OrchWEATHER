@@ -1,5 +1,5 @@
 import type { JmaWarningItem } from '../../api/jmaWarning';
-import { GANTT_GRADIENT } from '../../lib/warningGantt';
+import { GANTT_COLOR } from '../../lib/warningGantt';
 
 interface WarningBarProps {
   warning: JmaWarningItem;
@@ -8,7 +8,7 @@ interface WarningBarProps {
 }
 
 export function WarningBar({ warning, left, width }: WarningBarProps) {
-  const bg = GANTT_GRADIENT[warning.level] || GANTT_GRADIENT.advisory;
+  const color = GANTT_COLOR[warning.level] ?? GANTT_COLOR.advisory;
   const indefinite = warning.endMs === undefined;
   const showText = width >= 32;
 
@@ -18,10 +18,10 @@ export function WarningBar({ warning, left, width }: WarningBarProps) {
         position: 'absolute',
         left,
         width,
-        top: 1,
-        height: 20,
-        background: bg,
-        borderRadius: 4,
+        top: 2,
+        height: 14,
+        background: color.bg,
+        borderRadius: 3,
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
@@ -30,10 +30,10 @@ export function WarningBar({ warning, left, width }: WarningBarProps) {
       {showText && (
         <span
           style={{
-            fontSize: 10,
-            fontWeight: 600,
-            color: '#fff',
-            paddingLeft: 4,
+            fontSize: 9,
+            fontWeight: 700,
+            color: color.text,
+            paddingLeft: 3,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -46,31 +46,19 @@ export function WarningBar({ warning, left, width }: WarningBarProps) {
         </span>
       )}
       {indefinite && (
-        <>
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 16,
-              width: 28,
-              height: '100%',
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.65))',
-              pointerEvents: 'none',
-            }}
-          />
-          <span
-            style={{
-              fontSize: 11,
-              color: '#fff',
-              paddingRight: 4,
-              flexShrink: 0,
-              lineHeight: 1,
-              fontWeight: 700,
-            }}
-          >
-            →
-          </span>
-        </>
+        <span
+          style={{
+            fontSize: 10,
+            color: color.text,
+            paddingRight: 3,
+            flexShrink: 0,
+            lineHeight: 1,
+            fontWeight: 700,
+            opacity: 0.7,
+          }}
+        >
+          →
+        </span>
       )}
     </div>
   );
