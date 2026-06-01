@@ -24,6 +24,9 @@ export interface AiHourlyEntry {
   pr: number;       // 降水量 mm
   pp: number;       // 降水確率 %
   snow: number;     // 降雪量 cm
+  cape: number;     // CAPE J/kg
+  frz: number;      // 0℃層高度 m
+  prs: number;      // 海面気圧 hPa
 }
 
 export interface AiDailyEntry {
@@ -88,6 +91,9 @@ export function buildAiCommentInput(
       pr: h.precipitation,
       pp: h.precipProb,
       snow: h.snowfall,
+      cape: Math.round(h.cape),
+      frz: Math.round(h.freezingLevel),
+      prs: Math.round(h.pressure * 10) / 10,
     }));
 
   // 日別: 3日目以降（時間別でカバーされる2日をスキップ）
