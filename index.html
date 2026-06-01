@@ -7,7 +7,25 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#51c49f" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Orch.Weather</title>
+    <script>
+      window.addEventListener('error', function(e) {
+        var root = document.getElementById('root');
+        if (root && !root.firstChild) {
+          root.style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;';
+          root.innerHTML = '<div style="text-align:center;font-family:sans-serif;color:#475569;max-width:400px"><img src="/icon.png" style="width:48px;height:48px;margin-bottom:16px"><br><b style="color:#e11d48">起動エラーが発生しました</b><br><small style="display:block;margin-top:8px;word-break:break-all;color:#94a3b8">' + (e.message || String(e)) + '</small></div>';
+        }
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var root = document.getElementById('root');
+        if (root && !root.firstChild) {
+          root.style.cssText = 'display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;';
+          root.innerHTML = '<div style="text-align:center;font-family:sans-serif;color:#475569;max-width:400px"><img src="/icon.png" style="width:48px;height:48px;margin-bottom:16px"><br><b style="color:#e11d48">起動エラーが発生しました</b><br><small style="display:block;margin-top:8px;word-break:break-all;color:#94a3b8">' + String(e.reason) + '</small></div>';
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,9 +1,14 @@
 import { useState } from 'react';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { Leaf } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
 const provider = new GoogleAuthProvider();
+
+// iOS Safari (PWA含む) はポップアップを正しく扱えないためリダイレクト認証を使う
+const isIOS = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 export function LoginScreen() {
   const [loading, setLoading] = useState(false);
@@ -13,7 +18,12 @@ export function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithPopup(auth, provider);
+      if (isIOS()) {
+        // iOS Safari ではリダイレクト認証。この後ページが遷移するので以降は実行されない
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
     } catch {
       setError('ログインに失敗しました。もう一度お試しください。');
       setLoading(false);

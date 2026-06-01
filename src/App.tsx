@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, MapPin, Loader2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsTab } from './components/settings/SettingsTab';
 import { useWeatherData, type CompareTarget } from './hooks/useWeather';
@@ -203,6 +203,10 @@ function App() {
   }, [activeChart]);
 
   useEffect(() => {
+    // iOS リダイレクト認証後の結果処理。onAuthStateChanged が自動で状態を更新するが
+    // エラー（キャンセル等）をここで捕捉してサイレントに処理する
+    getRedirectResult(auth).catch(() => {});
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
