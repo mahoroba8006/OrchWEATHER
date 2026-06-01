@@ -70,7 +70,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     contents: [{ parts: [{ text: JSON.stringify(payload) }] }],
     generationConfig: {
       temperature: 0.4,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'object',
@@ -85,55 +85,44 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     },
   };
 
-  try {
+  // Gemini を呼び出し、パース済みオブジェクトを返す。失敗時は Error を投げる。
+  const callGemini = async (): Promise<unknown> => {
     const geminiRes = await fetch(`${ENDPOINT}?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-
     if (!geminiRes.ok) {
       const detail = await geminiRes.text();
-      return new Response(JSON.stringify({ error: 'gemini error', detail }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      throw new Error(`gemini_http:${geminiRes.status}:${detail}`);
     }
-
     const json = await geminiRes.json() as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return new Response(JSON.stringify({ error: 'empty gemini response' }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    if (!text) throw new Error('gemini_empty');
+    return JSON.parse(text); // トークン超過で途切れた場合は SyntaxError を投げる
+  };
 
-    // text は responseSchema により JSON 文字列。そのまま透過して返す
-    // （クライアントが JSON.parse する。ここでパース検証だけ行う）
-    let parsed: unknown;
+  const MAX_ATTEMPTS = 3;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      parsed = JSON.parse(text);
-    } catch {
-      return new Response(JSON.stringify({ error: 'gemini returned non-JSON', detail: text }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
+      const parsed = await callGemini();
+      return new Response(JSON.stringify(parsed), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       });
+    } catch (e) {
+      lastError = e;
+      // 即座に解決しない HTTP エラー（4xx）はリトライしない
+      if (e instanceof Error && e.message.startsWith('gemini_http:4')) break;
     }
-
-    return new Response(JSON.stringify(parsed), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-      },
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: 'ai-comment proxy failed', detail: String(e) }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json' },
-    });
   }
+
+  const detail = lastError instanceof Error ? lastError.message : String(lastError);
+  return new Response(JSON.stringify({ error: 'ai-comment proxy failed', detail }), {
+    status: 502,
+    headers: { 'Content-Type': 'application/json' },
+  });
 };
