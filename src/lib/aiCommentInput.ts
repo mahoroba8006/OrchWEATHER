@@ -7,12 +7,6 @@
 import type { ForecastData } from '../api/forecast';
 import type { JmaWarningItem } from '../api/jmaWarning';
 
-/** 飽差 (kPa) = 飽和水蒸気圧 × (1 - 相対湿度/100) */
-function calcVPD(temp: number, humidity: number): number {
-  const es = 0.6108 * Math.exp((17.27 * temp) / (temp + 237.3));
-  return Math.round(es * (1 - humidity / 100) * 100) / 100;
-}
-
 /** 角度(°)を16方位文字列に変換 */
 function windDirLabel(deg: number): string {
   const dirs = ['北','北北東','北東','東北東','東','東南東','南東','南南東',
@@ -23,16 +17,12 @@ function windDirLabel(deg: number): string {
 export interface AiHourlyEntry {
   t: string;        // 時刻 "MM/DD HH時"
   tmp: number;      // 気温 ℃
-  dew: number;      // 露点温度 ℃
   hum: number;      // 湿度 %
-  vpd: number;      // 飽差 kPa
   ws: number;       // 風速 m/s
   wd: string;       // 風向
   wg: number;       // 瞬間風速 m/s
   pr: number;       // 降水量 mm
   pp: number;       // 降水確率 %
-  rad: number;      // 日射量 W/m²
-  uv: number;       // UV指数
   snow: number;     // 降雪量 cm
 }
 
@@ -82,30 +72,26 @@ export function buildAiCommentInput(
 ): AiCommentInput {
   const nowMs = Date.now();
 
-  // 時間別: 現在時刻以降72エントリまで（約3日分）
+  // 時間別: 現在時刻以降48エントリまで（約2日分に短縮しAPI高速化）
   const hourly: AiHourlyEntry[] = forecast.hourly
     .filter(h => Date.parse(`${h.time}:00+09:00`) >= nowMs)
-    .slice(0, 72)
+    .slice(0, 48)
     .map(h => ({
       t: fmtTime(h.time),
       tmp: Math.round(h.temperature * 10) / 10,
-      dew: Math.round(h.dewPoint * 10) / 10,
       hum: h.humidity,
-      vpd: calcVPD(h.temperature, h.humidity),
       ws: Math.round(h.windSpeed * 10) / 10,
       wd: windDirLabel(h.windDirection),
       wg: Math.round(h.windGusts * 10) / 10,
       pr: h.precipitation,
       pp: h.precipProb,
-      rad: Math.round(h.radiation),
-      uv: Math.round(h.uvIndex * 10) / 10,
       snow: h.snowfall,
     }));
 
-  // 日別: 4日目以降（今日=index0、時間別でカバーされる3日をスキップ）
+  // 日別: 3日目以降（時間別でカバーされる2日をスキップ）
   const daily: AiDailyEntry[] = forecast.daily
     .filter(d => !d.isPlaceholder)
-    .slice(3, 7)
+    .slice(2, 7)
     .map(d => ({
       date: fmtDate(d.date),
       tmpMax: Math.round(d.tempMax),

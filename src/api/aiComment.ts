@@ -7,8 +7,10 @@
 import type { AiCommentInput } from '../lib/aiCommentInput';
 
 export interface AiCommentData {
-  weatherOverview: string;  // 天気概況（~150字）
-  workAdvice: string;       // 作業アドバイス（~150字）
+  weatherOverview:   string; // 天気概況
+  disasterPrep:      string; // 悪天候への備え
+  sprayingAdvice:    string; // 防除・散布
+  generalWorkAdvice: string; // 一般外作業
 }
 
 export async function fetchAiComment(input: AiCommentInput): Promise<AiCommentData> {
@@ -30,7 +32,9 @@ export async function fetchAiComment(input: AiCommentInput): Promise<AiCommentDa
 
   const data = await res.json() as Partial<AiCommentData>;
   return {
-    weatherOverview: typeof data.weatherOverview === 'string' ? data.weatherOverview : '',
-    workAdvice: typeof data.workAdvice === 'string' ? data.workAdvice : '',
+    weatherOverview:   typeof data.weatherOverview   === 'string' ? data.weatherOverview   : '',
+    disasterPrep:      typeof data.disasterPrep      === 'string' ? data.disasterPrep      : '',
+    sprayingAdvice:    typeof data.sprayingAdvice    === 'string' ? data.sprayingAdvice    : '',
+    generalWorkAdvice: typeof data.generalWorkAdvice === 'string' ? data.generalWorkAdvice : '',
   };
 }

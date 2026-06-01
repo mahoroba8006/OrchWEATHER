@@ -29,13 +29,15 @@ const SYSTEM_PROMPT = `あなたは日本の農作業をサポートする親切
 - 読みやすくなるよう、意味の区切りや日ごとに適度に改行（\\n）を入れてください。
 
 入力データの構造:
-- hourly: 今後3日分の時間別予報（t=時刻, tmp=気温℃, dew=露点℃, hum=湿度%, vpd=飽差kPa, ws=風速m/s, wd=風向, wg=瞬間風速m/s, pr=降水量mm, pp=降水確率%, rad=日射量W/m², uv=UV指数, snow=降雪cm）
+- hourly: 今後2日分の時間別予報（t=時刻, tmp=気温℃, hum=湿度%, ws=風速m/s, wd=風向, wg=瞬間風速m/s, pr=降水量mm, pp=降水確率%, snow=降雪cm）
 - daily: その後4日分の日別予報（date=日付, tmpMax/Min=最高/最低気温℃, ppMax=降水確率%, precip=降水量mm, radSum=日射量合計MJ/m², sun=日照時間h, wsMax=最大風速m/s）
 - warnings: 気象庁の注意報・警報（発令中のもの）
 
 出力は JSON のみ:
-- weatherOverview: 天気概況（今日・明日および今後の天気をデータに基づき解説。農作物への影響に一言触れる。重要なポイントには気温・降水量・風速などの具体的な数値を添える。150文字程度、適宜改行を含む）
-- workAdvice: 作業アドバイス（天候を踏まえた作業タイミングを提案。晴れ間・風・雨前後のタイミングなど。重要なポイントには気温・降水確率などの具体的な数値を添える。150文字程度、適宜改行を含む）`;
+- weatherOverview: 天気概況（今日・明日の天気を中心に、気温・雨・風の状況をわかりやすく解説する。100文字程度、適宜改行を含む）
+- disasterPrep: 悪天候への備え（強風・大雨・霜・猛暑など作物や施設に影響するリスクがあれば具体的な数値を添えて注意喚起する。リスクがなければ「現在、特に注意すべき悪天候の予報はありません」と記載する。100文字程度、適宜改行を含む）
+- sprayingAdvice: 防除・散布のアドバイス（農薬や肥料の散布向けに、風が穏やかで雨が降らないタイミングを提案する。風速や降水確率の具体的な数値を添える。100文字程度、適宜改行を含む）
+- generalWorkAdvice: 一般外作業のアドバイス（雨を避けた晴れ間のタイミングや、気温・日差しを考慮した作業・体調管理を提案する。100文字程度、適宜改行を含む）`;
 
 export const onRequest: PagesFunction<Env> = async (context) => {
   if (context.request.method !== 'POST') {
@@ -73,10 +75,12 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       responseSchema: {
         type: 'object',
         properties: {
-          weatherOverview: { type: 'string' },
-          workAdvice: { type: 'string' },
+          weatherOverview:  { type: 'string' },
+          disasterPrep:     { type: 'string' },
+          sprayingAdvice:   { type: 'string' },
+          generalWorkAdvice:{ type: 'string' },
         },
-        required: ['weatherOverview', 'workAdvice'],
+        required: ['weatherOverview', 'disasterPrep', 'sprayingAdvice', 'generalWorkAdvice'],
       },
     },
   };
