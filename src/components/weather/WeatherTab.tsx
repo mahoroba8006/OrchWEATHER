@@ -1,7 +1,7 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { RefreshCw, MapPin, Loader2 } from 'lucide-react';
-import { useAppStore, ALL_JMA_GROUPS, warningNameToGroup } from '../../store';
+import { useAppStore, ALL_JMA_GROUPS, DEFAULT_AI_SECTIONS, warningNameToGroup } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
@@ -9,6 +9,7 @@ import { DailyForecast } from './DailyForecast';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
 import { useAiComment } from '../../hooks/useAiComment';
+import { useAiCustomComment } from '../../hooks/useAiCustomComment';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
@@ -67,6 +68,10 @@ export function WeatherTab() {
   // 気象庁注意報・警報（jmaAreaCode が設定済みの登録地点のみ有効）
   const { data: jmaWarning, loading: jmaLoading } = useJmaWarning(location?.jmaAreaCode);
 
+  // AI コメント設定
+  const enabledAiSections = userSettings?.enabledAiSections ?? DEFAULT_AI_SECTIONS;
+  const aiCustomPrompt = userSettings?.aiCustomPrompt ?? '';
+
   // 有効グループでフィルタリング（特別警報は常に表示）
   const enabledJmaGroups = userSettings?.enabledJmaGroups ?? ALL_JMA_GROUPS;
   const enabledGroupSet = new Set(enabledJmaGroups);
@@ -85,6 +90,16 @@ export function WeatherTab() {
     location?.name,
     data,
     filteredJmaWarning?.items,
+  );
+
+  // カスタマイズAIコメント（'custom' セクションが有効かつプロンプト設定済みのとき取得）
+  const customEnabled = enabledAiSections.includes('custom');
+  const { text: aiCustomText, loading: aiCustomLoading } = useAiCustomComment(
+    customEnabled ? user?.uid : null,
+    customEnabled ? location?.name : null,
+    customEnabled ? data : null,
+    customEnabled ? filteredJmaWarning?.items : undefined,
+    customEnabled ? aiCustomPrompt : '',
   );
 
   // 地点未登録かつ geo も未取得
@@ -227,7 +242,14 @@ export function WeatherTab() {
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
-          <AiCommentCard comment={aiComment} loading={aiCommentLoading} />
+          <AiCommentCard
+            comment={aiComment}
+            loading={aiCommentLoading}
+            enabledSections={enabledAiSections}
+            customText={aiCustomText}
+            customLoading={aiCustomLoading}
+            hasCustomPrompt={aiCustomPrompt.trim().length > 0}
+          />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} jmaWarnings={filteredJmaWarning?.items} />

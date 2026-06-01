@@ -1,0 +1,242 @@
+import { useState, useEffect } from 'react';
+import type { CSSProperties } from 'react';
+import { Save } from 'lucide-react';
+import { useAppStore, DEFAULT_AI_SECTIONS, type AiSection } from '../../store';
+
+type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
+
+const MAX_CUSTOM_PROMPT = 200;
+
+interface SectionMeta { label: string; desc: string }
+
+const SECTION_INFO: Record<AiSection, SectionMeta> = {
+  weatherOverview:   { label: '空ごよみ',   desc: '今日・明日の天気概況と数日先の傾向、作物の生育への影響を解説します。' },
+  generalWorkAdvice: { label: '外しごと',   desc: '雨を避けた晴れ間の作業タイミングや体調管理のアドバイスです。' },
+  sprayingAdvice:    { label: '散布どき',   desc: '防除・薬剤散布に適した風・雨の条件と最適時間帯を提案します。' },
+  disasterPrep:      { label: '天気の備え', desc: '荒天・乾燥・低温など気候リスクと作物・施設への備えを提案します。' },
+  custom:            { label: 'カスタマイズ', desc: '自分でプロンプトを入力して、天気データに基づく任意の回答を取得できます。' },
+};
+
+const SECTION_ORDER: AiSection[] = [
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'disasterPrep', 'custom',
+];
+
+const SAVE_BTN: CSSProperties = {
+  background: 'rgba(13,148,136,0.15)',
+  color: 'var(--accent-color)',
+  border: '1px solid rgba(13,148,136,0.35)',
+  borderRadius: 'var(--radius-md, 6px)',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.3rem',
+  padding: '0.4rem 0.9rem',
+  fontSize: '0.85rem',
+};
+
+export function AiCommentSettings() {
+  const { userSettings, updateEnabledAiSections, updateAiCustomPrompt } = useAppStore();
+
+  const [enabledSections, setEnabledSections] = useState<AiSection[]>(
+    userSettings?.enabledAiSections ?? DEFAULT_AI_SECTIONS
+  );
+  const [customPrompt, setCustomPrompt] = useState(
+    userSettings?.aiCustomPrompt ?? ''
+  );
+  const [sectionsStatus, setSectionsStatus] = useState<SaveStatus>({ kind: 'idle' });
+  const [promptStatus, setPromptStatus] = useState<SaveStatus>({ kind: 'idle' });
+
+  useEffect(() => {
+    if (userSettings) {
+      setEnabledSections(userSettings.enabledAiSections ?? DEFAULT_AI_SECTIONS);
+      setCustomPrompt(userSettings.aiCustomPrompt ?? '');
+    }
+  }, [userSettings]);
+
+  const isCustomEnabled = enabledSections.includes('custom');
+
+  const toggleSection = (section: AiSection, checked: boolean) => {
+    setEnabledSections(prev =>
+      checked
+        ? prev.includes(section) ? prev : [...prev, section]
+        : prev.filter(s => s !== section)
+    );
+  };
+
+  const handleSaveSections = async () => {
+    setSectionsStatus({ kind: 'saving' });
+    try {
+      await updateEnabledAiSections(enabledSections);
+      setSectionsStatus({ kind: 'saved', msg: '保存しました' });
+      setTimeout(() => setSectionsStatus({ kind: 'idle' }), 2500);
+    } catch (err: unknown) {
+      setSectionsStatus({
+        kind: 'error',
+        msg: `保存失敗: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    setPromptStatus({ kind: 'saving' });
+    try {
+      await updateAiCustomPrompt(customPrompt);
+      setPromptStatus({ kind: 'saved', msg: '保存しました' });
+      setTimeout(() => setPromptStatus({ kind: 'idle' }), 2500);
+    } catch (err: unknown) {
+      setPromptStatus({
+        kind: 'error',
+        msg: `保存失敗: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  };
+
+  const renderStatus = (status: SaveStatus) => {
+    if (status.kind === 'idle') return null;
+    const color =
+      status.kind === 'error' ? '#c62828' :
+      status.kind === 'saved' ? '#2e7d32' :
+      'var(--text-secondary)';
+    return (
+      <span style={{ marginRight: '0.6rem', fontSize: '0.78rem', color, alignSelf: 'center' }}>
+        {status.kind === 'saving' ? '保存中…' : status.msg}
+      </span>
+    );
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* タブ表示設定 */}
+      <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div>
+          <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>表示するタブ</h3>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            チェックを外したタブはAIコメントに表示されません。
+          </p>
+        </div>
+
+        <div style={{
+          border: '1px solid var(--card-border)',
+          borderRadius: 'var(--radius-md, 8px)',
+          overflow: 'hidden',
+        }}>
+          {SECTION_ORDER.map((section, idx) => {
+            const info = SECTION_INFO[section];
+            const isChecked = enabledSections.includes(section);
+            const isLast = idx === SECTION_ORDER.length - 1;
+
+            return (
+              <label
+                key={section}
+                style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1rem',
+                  borderBottom: isLast ? 'none' : '1px solid var(--card-border)',
+                  cursor: 'pointer',
+                  background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
+                  transition: 'background 0.15s',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={e => toggleSection(section, e.target.checked)}
+                  style={{
+                    width: '1rem',
+                    height: '1rem',
+                    marginTop: '0.15rem',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    accentColor: 'var(--accent-color)',
+                  }}
+                />
+                <div style={{ flex: 1, opacity: isChecked ? 1 : 0.45, transition: 'opacity 0.15s' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                    {info.label}
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    {info.desc}
+                  </p>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingTop: '0.25rem' }}>
+          {renderStatus(sectionsStatus)}
+          <button
+            onClick={handleSaveSections}
+            disabled={sectionsStatus.kind === 'saving'}
+            style={{
+              ...SAVE_BTN,
+              cursor: sectionsStatus.kind === 'saving' ? 'not-allowed' : 'pointer',
+              opacity: sectionsStatus.kind === 'saving' ? 0.6 : 1,
+            }}
+          >
+            <Save size={14} /> 保存
+          </button>
+        </div>
+      </div>
+
+      {/* カスタマイズプロンプト設定 */}
+      {isCustomEnabled && (
+        <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>カスタマイズプロンプト</h3>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              天気予報データを渡した上で、AIへの質問・指示を自由に入力できます。（最大{MAX_CUSTOM_PROMPT}文字）
+            </p>
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <textarea
+              value={customPrompt}
+              onChange={e => setCustomPrompt(e.target.value.slice(0, MAX_CUSTOM_PROMPT))}
+              placeholder="例: 今日の午後に農薬散布を計画しています。風速・降水確率を踏まえて実施できるか教えてください。"
+              rows={4}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '0.75rem',
+                fontSize: '0.85rem',
+                lineHeight: 1.7,
+                borderRadius: 'var(--radius-md, 6px)',
+                border: '1px solid var(--card-border)',
+                background: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              bottom: '0.5rem',
+              right: '0.75rem',
+              fontSize: '0.72rem',
+              color: customPrompt.length >= MAX_CUSTOM_PROMPT ? '#c62828' : 'var(--text-secondary)',
+            }}>
+              {customPrompt.length} / {MAX_CUSTOM_PROMPT}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+            {renderStatus(promptStatus)}
+            <button
+              onClick={handleSavePrompt}
+              disabled={promptStatus.kind === 'saving'}
+              style={{
+                ...SAVE_BTN,
+                cursor: promptStatus.kind === 'saving' ? 'not-allowed' : 'pointer',
+                opacity: promptStatus.kind === 'saving' ? 0.6 : 1,
+              }}
+            >
+              <Save size={14} /> 保存
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -13,6 +13,29 @@ export interface AiCommentData {
   generalWorkAdvice: string; // 一般外作業
 }
 
+export async function fetchAiCustomComment(
+  input: AiCommentInput,
+  customPrompt: string,
+): Promise<string> {
+  const res = await fetch('/api/ai-custom', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...input, customPrompt }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`AI custom comment API error: ${res.status}`);
+  }
+
+  const contentType = res.headers.get('Content-Type') ?? '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('AI custom endpoint unavailable (non-JSON response)');
+  }
+
+  const data = await res.json() as { text?: unknown };
+  return typeof data.text === 'string' ? data.text : '';
+}
+
 export async function fetchAiComment(input: AiCommentInput): Promise<AiCommentData> {
   const res = await fetch('/api/ai-comment', {
     method: 'POST',

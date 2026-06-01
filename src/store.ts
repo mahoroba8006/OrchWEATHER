@@ -13,6 +13,8 @@ import {
   updateAccumDeltaThresholds as updateAccumDeltaThresholdsRemote,
   updateDefaultLocationId as updateDefaultLocationIdRemote,
   updateEnabledJmaGroups as updateEnabledJmaGroupsRemote,
+  updateEnabledAiSections as updateEnabledAiSectionsRemote,
+  updateAiCustomPrompt as updateAiCustomPromptRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -36,6 +38,23 @@ export interface AccumDeltaThresholds {
   gdd: number;
   radiation: number;
 }
+
+// ─── AI コメント 表示セクション ──────────────────────────────────────────────
+export type AiSection =
+  | 'weatherOverview'   // 空ごよみ
+  | 'generalWorkAdvice' // 外しごと
+  | 'sprayingAdvice'    // 散布どき
+  | 'disasterPrep'      // 天気の備え
+  | 'custom';           // カスタマイズ（ユーザー入力プロンプト）
+
+export const ALL_AI_SECTIONS: AiSection[] = [
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'disasterPrep', 'custom',
+];
+
+// カスタマイズはデフォルト無効（明示的にオプトインする）
+export const DEFAULT_AI_SECTIONS: AiSection[] = [
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'disasterPrep',
+];
 
 // ─── JMA 注意報・警報 表示グループ ───────────────────────────────────────────
 export type JmaWarningGroup =
@@ -79,6 +98,8 @@ export interface UserSettings {
   accumDeltaThresholds: AccumDeltaThresholds;
   defaultLocationId:    string | null;
   enabledJmaGroups:     JmaWarningGroup[];
+  enabledAiSections:    AiSection[];
+  aiCustomPrompt:       string;
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -113,6 +134,8 @@ interface AppState {
   updateAccumDeltaThresholds: (thresholds: AccumDeltaThresholds) => Promise<void>;
   updateDefaultLocationId: (id: string | null) => Promise<void>;
   updateEnabledJmaGroups: (groups: JmaWarningGroup[]) => Promise<void>;
+  updateEnabledAiSections: (sections: AiSection[]) => Promise<void>;
+  updateAiCustomPrompt: (prompt: string) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -194,6 +217,28 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, enabledJmaGroups: groups }
+        : null,
+    }));
+  },
+
+  updateEnabledAiSections: async (sections) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateEnabledAiSectionsRemote(uid, sections);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, enabledAiSections: sections }
+        : null,
+    }));
+  },
+
+  updateAiCustomPrompt: async (prompt) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateAiCustomPromptRemote(uid, prompt);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, aiCustomPrompt: prompt }
         : null,
     }));
   },

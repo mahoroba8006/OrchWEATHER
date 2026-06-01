@@ -3,6 +3,9 @@
 // AI コメントの Firestore ユーザー別キャッシュ。
 // パス: /users/{uid}/aiComments/{hash}（既存セキュリティルールがそのまま効く）
 // TTL: 4時間。書き込みは await + try/catch（プロジェクト方針）で呼び出し元が保護する。
+//
+// カスタムコメントは同コレクションに "c:" プレフィックス付きハッシュで保存。
+// Firestore の同じセキュリティルールが適用される。
 
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
@@ -37,6 +40,29 @@ export async function writeAiCommentCache(
     disasterPrep:      data.disasterPrep,
     sprayingAdvice:    data.sprayingAdvice,
     generalWorkAdvice: data.generalWorkAdvice,
+    cachedAt: serverTimestamp(),
+  });
+}
+
+export async function readAiCustomCache(
+  uid: string,
+  hash: string,
+): Promise<string | null> {
+  const snap = await getDoc(doc(db, 'users', uid, 'aiComments', `c:${hash}`));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  const cachedAt: number = data.cachedAt?.toMillis?.() ?? 0;
+  if (Date.now() - cachedAt > TTL_MS) return null;
+  return typeof data.text === 'string' ? data.text : null;
+}
+
+export async function writeAiCustomCache(
+  uid: string,
+  hash: string,
+  text: string,
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid, 'aiComments', `c:${hash}`), {
+    text,
     cachedAt: serverTimestamp(),
   });
 }

@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
-import type { UserSettings, AccumStartDates, AccumDeltaThresholds, JmaWarningGroup } from '../store';
+import type { UserSettings, AccumStartDates, AccumDeltaThresholds, JmaWarningGroup, AiSection } from '../store';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
@@ -18,6 +18,11 @@ const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
 const DEFAULT_JMA_GROUPS: JmaWarningGroup[] = [
   '大雨', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
   '乾燥', '霜', '低温', '雷', '濃霧', 'なだれ', '融雪', '着氷', '着雪',
+];
+
+// SYNC: store.ts の DEFAULT_AI_SECTIONS と同期すること
+const DEFAULT_AI_SECTIONS: AiSection[] = [
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'disasterPrep',
 ];
 
 // ユーザードキュメントを「存在しなければ作る」だけにする。
@@ -46,7 +51,13 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   const defaultLocationId: string | null = data?.defaultLocationId ?? null;
   const enabledJmaGroups: JmaWarningGroup[] =
     (data?.enabledJmaGroups as JmaWarningGroup[] | undefined) ?? DEFAULT_JMA_GROUPS;
-  return { baseTempSettings, accumStartDates, accumDeltaThresholds, defaultLocationId, enabledJmaGroups };
+  const enabledAiSections: AiSection[] =
+    (data?.enabledAiSections as AiSection[] | undefined) ?? DEFAULT_AI_SECTIONS;
+  const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : '';
+  return {
+    baseTempSettings, accumStartDates, accumDeltaThresholds,
+    defaultLocationId, enabledJmaGroups, enabledAiSections, aiCustomPrompt,
+  };
 }
 
 export async function updateBaseTempSettings(
@@ -82,4 +93,18 @@ export async function updateEnabledJmaGroups(
   groups: JmaWarningGroup[]
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { enabledJmaGroups: groups }, { merge: true });
+}
+
+export async function updateEnabledAiSections(
+  uid: string,
+  sections: AiSection[]
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { enabledAiSections: sections }, { merge: true });
+}
+
+export async function updateAiCustomPrompt(
+  uid: string,
+  prompt: string
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { aiCustomPrompt: prompt }, { merge: true });
 }

@@ -6,16 +6,18 @@ import { useAppStore } from '../../store';
 import { LocationSettings } from './LocationSettings';
 import { JmaWarningSettings } from './JmaWarningSettings';
 import { AnalysisSettings } from './AnalysisSettings';
+import { AiCommentSettings } from './AiCommentSettings';
 
-type SettingsSubTab = 'location' | 'weather' | 'analysis';
+type SettingsSubTab = 'location' | 'weather' | 'ai' | 'analysis';
 
 const SUB_TAB_LABELS: Record<SettingsSubTab, string> = {
   location: '地点設定',
   weather: '気象情報',
+  ai: '気象コメント',
   analysis: '比較分析',
 };
 
-const SUB_TABS: SettingsSubTab[] = ['location', 'weather', 'analysis'];
+const SUB_TABS: SettingsSubTab[] = ['location', 'weather', 'ai', 'analysis'];
 
 export function SettingsTab() {
   const [subTab, setSubTab] = useState<SettingsSubTab>('location');
@@ -90,9 +92,10 @@ export function SettingsTab() {
       </div>
 
       {/* サブタブコンテンツ */}
-      {subTab === 'location' && <LocationSettings />}
-      {subTab === 'weather' && <JmaWarningSettings />}
-      {subTab === 'analysis' && <AnalysisSettings />}
+      {subTab === 'location'  && <LocationSettings />}
+      {subTab === 'weather'   && <JmaWarningSettings />}
+      {subTab === 'ai'        && <AiCommentSettings />}
+      {subTab === 'analysis'  && <AnalysisSettings />}
     </div>
   );
 }
