@@ -104,15 +104,9 @@ export function buildAiCommentInput(
       wsMax: Math.round(d.windSpeedMax * 10) / 10,
     }));
 
-  // 解除未定の警報は発令から24時間超のものを除外（古い情報がずっと渡り続けるのを防ぐ）
-  const WARN_INDEFINITE_MAX_MS = 24 * 60 * 60 * 1000;
-  const warningNames = warnings
-    .filter(w => {
-      if (w.endMs !== undefined) return true;          // 期限あり → そのまま渡す
-      if (w.startMs === undefined) return true;        // 開始時刻不明 → 安全側で渡す
-      return (nowMs - w.startMs) <= WARN_INDEFINITE_MAX_MS;
-    })
-    .map(w => `${w.name}${LEVEL_SUFFIX[w.level] ?? ''}`);
+  // 注意報・警報は fetchJmaWarnings の時点で「期限切れ・発表から6時間超の解除未定」を
+  // 既に除外済み（単一の判定箇所）。ここでは名前整形のみ行う。
+  const warningNames = warnings.map(w => `${w.name}${LEVEL_SUFFIX[w.level] ?? ''}`);
 
   return {
     location: locationName,

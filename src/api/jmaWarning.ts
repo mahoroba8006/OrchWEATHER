@@ -102,6 +102,20 @@ function parseJST(iso: string): { month: number; date: number; hour: number } | 
 function fmtHH(h: number): string { return `${h}:00`; }
 function fmtMDHH(mon: number, d: number, h: number): string { return `${mon}/${d} ${fmtHH(h)}`; }
 
+/**
+ * JST ISO 文字列（オフセット付き、例 "2026-05-28T06:51:00+09:00"）を
+ * "M/D H:MM"（例 "5/28 6:51"）に整形する。発表時刻の表示用。
+ */
+function fmtIssuance(iso: string): string | null {
+  const ms = Date.parse(iso);
+  if (isNaN(ms)) return null;
+  const jst = new Date(ms + 9 * 60 * 60 * 1000);
+  return `${jst.getUTCMonth() + 1}/${jst.getUTCDate()} ${jst.getUTCHours()}:${String(jst.getUTCMinutes()).padStart(2, '0')}`;
+}
+
+/** 期限情報のない注意報を発表時刻から除外するまでの時間（6時間） */
+const WARN_INDEFINITE_MAX_MS = 6 * 60 * 60 * 1000;
+
 /** buildValidPeriodMap の返り値型 */
 interface ValidPeriodEntry {
   period: string;
@@ -217,6 +231,8 @@ export async function fetchJmaWarnings(
   const timeSeries: any[] = json.timeSeries ?? [];
   const validPeriodMap = buildValidPeriodMap(timeSeries, jmaAreaCode);
   const now = Date.now();
+  const reportMs = Date.parse(reportDatetime);     // 発表時刻（期限なし注意報の基準）
+  const issuanceLabel = fmtIssuance(reportDatetime); // "5/28 6:51"（期間表示フォールバック用）
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const warnings: any[] = targetArea.warnings ?? [];
@@ -224,10 +240,14 @@ export async function fetchJmaWarnings(
   const items: JmaWarningItem[] = warnings
     .filter((w: any) => w.status === '発表' || w.status === '更新' || w.status === '継続')
     .filter((w: any) => {
-      // 有効期間終了時刻が取得でき、かつ現在時刻より過去の場合は除外
-      // (JMA が 解除 を発行しないまま継続ステータスが残るケースへの対策)
       const validity = validPeriodMap.get(String(w.code));
-      return !validity?.endMs || validity.endMs > now;
+      // 終了時刻あり: 過去なら除外（JMA が 解除 を出さず継続が残るケース対策）
+      if (validity?.endMs !== undefined) return validity.endMs > now;
+      // 終了時刻なし（濃霧など期限情報のない注意報・解除未定）:
+      // 発表時刻から WARN_INDEFINITE_MAX_MS を超えたものは除外する。
+      // ここで除外すると UI・AI・ガントバー全てから消える（単一の判定箇所）。
+      if (isNaN(reportMs)) return true; // 基準不明は安全側で残す
+      return (now - reportMs) <= WARN_INDEFINITE_MAX_MS;
     })
     .map((w: any) => {
       const entry = validPeriodMap.get(String(w.code));
@@ -235,7 +255,8 @@ export async function fetchJmaWarnings(
         code:        String(w.code),
         name:        JMA_WARNING_NAMES[String(w.code)] ?? `現象コード${w.code}`,
         level:       toLevel(String(w.code)),
-        validPeriod: entry?.period,
+        // 期間が取れない注意報は発表時刻を表示（例 "5/28 6:51〜"）
+        validPeriod: entry?.period ?? (issuanceLabel ? `${issuanceLabel}〜` : undefined),
         startMs:     entry?.startMs,
         endMs:       entry?.endMs,
       };
