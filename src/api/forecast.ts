@@ -1,5 +1,7 @@
 // src/api/forecast.ts
 
+import { addDays } from '../lib/dateUtils';
+
 export interface HourlyForecast {
   time: string;          // "2026-05-21T15:00"
   temperature: number;   // ℃
@@ -124,9 +126,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     let targetDate: string;
     let period: 'am' | 'pm' | 'night';
     if (hr < 4) {
-      const d = new Date(date + 'T00:00:00');
-      d.setDate(d.getDate() - 1);
-      targetDate = d.toISOString().slice(0, 10);
+      targetDate = addDays(date, -1);
       period = 'night';
     } else if (hr < 12) {
       targetDate = date;

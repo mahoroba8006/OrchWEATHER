@@ -4,6 +4,7 @@ import { WeatherIcon, codeToLabel, dayTransitionLabel } from './WeatherIcon';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import { computeWarningLanes } from '../../lib/warningGantt';
 import { WarningBar } from './WarningBar';
+import { addDays } from '../../lib/dateUtils';
 
 interface Props {
   daily: DailyForecastData[];
@@ -142,13 +143,6 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
       <path d={makePath(tempMaxes)} fill="none" style={{ stroke: 'var(--chart-temp)' }} strokeWidth={2} strokeLinecap="round" />
     </svg>
   );
-}
-
-/** "YYYY-MM-DD" に n 日加算して返す */
-function addDays(dateStr: string, n: number): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d + n));
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
 interface DailyColumn {
