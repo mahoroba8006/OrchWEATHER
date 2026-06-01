@@ -1,7 +1,7 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { RefreshCw, MapPin, Loader2 } from 'lucide-react';
-import { useAppStore, ALL_JMA_GROUPS, JMA_GROUP_CODES } from '../../store';
+import { useAppStore, ALL_JMA_GROUPS, warningNameToGroup } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
@@ -69,12 +69,14 @@ export function WeatherTab() {
 
   // 有効グループでフィルタリング（特別警報は常に表示）
   const enabledJmaGroups = userSettings?.enabledJmaGroups ?? ALL_JMA_GROUPS;
-  const enabledJmaCodeSet = new Set(enabledJmaGroups.flatMap(g => JMA_GROUP_CODES[g] ?? []));
+  const enabledGroupSet = new Set(enabledJmaGroups);
   const filteredJmaWarning = jmaWarning && {
     ...jmaWarning,
-    items: jmaWarning.items.filter(item =>
-      parseInt(item.code, 10) >= 33 || enabledJmaCodeSet.has(item.code)
-    ),
+    items: jmaWarning.items.filter(item => {
+      if (item.level === 'special') return true; // 特別警報は常に表示
+      const group = warningNameToGroup(item.name);
+      return group === null || enabledGroupSet.has(group); // 未分類（土砂災害等）は常に表示
+    }),
   };
 
   // AI 農作業コメント（予報・警報が揃ったら非同期取得）
@@ -125,11 +127,10 @@ export function WeatherTab() {
       })()
     : null;
 
-  const filteredHourly = data
-    ? data.hourly.filter(h =>
-        new Date(h.time + ':00+09:00').getTime() >= Date.now() - 6 * 60 * 60 * 1000
-      )
-    : [];
+  // data.hourly は API の past_hours=6 により既に約6時間前から始まる。
+  // ここで追加フィルターをかけると端数時間が除外され、
+  // nightPrecipSum など日別集計値と表示値がずれるため、そのまま渡す。
+  const filteredHourly = data ? data.hourly : [];
 
   const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
     const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';

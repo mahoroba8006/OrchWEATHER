@@ -42,24 +42,31 @@ export type JmaWarningGroup =
   | '大雨' | '洪水' | '大雪' | '強風' | '風雪' | '波浪' | '高潮'
   | '乾燥' | '霜' | '低温' | '雷' | '濃霧' | 'なだれ' | '融雪' | '着氷' | '着雪';
 
-export const JMA_GROUP_CODES: Record<JmaWarningGroup, string[]> = {
-  '大雨': ['02', '21', '33'],
-  '洪水': ['03', '22'],
-  '大雪': ['12', '23', '40'],
-  '強風': ['16', '20', '39'],
-  '風雪': ['13', '19', '24', '38'],
-  '波浪': ['17', '25', '37'],
-  '高潮': ['18', '26', '35'],
-  '乾燥': ['04'],
-  '霜':   ['05'],
-  '低温': ['07'],
-  '雷':   ['15'],
-  '濃霧': ['14'],
-  'なだれ': ['06'],
-  '融雪': ['10'],
-  '着氷': ['08'],
-  '着雪': ['09'],
-};
+/**
+ * 警報・注意報の名前からグループを導出する。
+ * r8 フォーマットでは JmaWarningItem.code の体系が変わったため、
+ * name ベースのマッチングに切り替えた。
+ * '暴風雪' は '暴風' より先にチェックすること（前方一致の誤判定を防ぐ）。
+ */
+export function warningNameToGroup(name: string): JmaWarningGroup | null {
+  if (name.startsWith('大雨'))   return '大雨';
+  if (name.startsWith('洪水'))   return '洪水';
+  if (name.startsWith('大雪'))   return '大雪';
+  if (name.startsWith('暴風雪') || name.startsWith('風雪')) return '風雪';
+  if (name.startsWith('暴風')  || name.startsWith('強風')) return '強風';
+  if (name.startsWith('波浪'))   return '波浪';
+  if (name.startsWith('高潮'))   return '高潮';
+  if (name.startsWith('乾燥'))   return '乾燥';
+  if (name.startsWith('霜'))     return '霜';
+  if (name.startsWith('低温'))   return '低温';
+  if (name.startsWith('雷'))     return '雷';
+  if (name.startsWith('濃霧'))   return '濃霧';
+  if (name.startsWith('なだれ')) return 'なだれ';
+  if (name.startsWith('融雪'))   return '融雪';
+  if (name.startsWith('着氷'))   return '着氷';
+  if (name.startsWith('着雪'))   return '着雪';
+  return null; // 土砂災害など未分類 → 常に表示
+}
 
 export const ALL_JMA_GROUPS: JmaWarningGroup[] = [
   '大雨', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
