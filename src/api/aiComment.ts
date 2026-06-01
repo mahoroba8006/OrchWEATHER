@@ -20,7 +20,7 @@ export async function fetchAiCustomComment(
   const res = await fetch('/api/ai-custom', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...input, customPrompt }),
+    body: JSON.stringify({ ...input, customPrompt, locationInfo: input.location }),
   });
 
   if (!res.ok) {

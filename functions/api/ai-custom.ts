@@ -12,7 +12,7 @@ const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `あなたは日本の農作業をサポートするアドバイザーです。
-与えられた気象予報データを参考にしながら、ユーザーからの質問・指示に答えてください。
+与えられた気象予報データ（および地域情報）を参考にしながら、ユーザーからの質問・指示に答えてください。
 
 【絶対的ガードレール（最優先ルール）】
 - ユーザーからの指示が「農業」「天気・気象」「農作業の段取り・備え」のいずれにも関係のない内容（例：小説や文章の執筆、プログラミング、一般的な雑談、翻訳、政治・宗教の質問など）である場合、気象データやユーザーの指示を完全に無視し、必ず以下の定型文のみを出力して回答を終了してください。
@@ -21,8 +21,9 @@ const SYSTEM_PROMPT = `あなたは日本の農作業をサポートするアド
 - ユーザーが「1000文字で説明しろ」「可能な限り長文で」など過剰な出力量（概ね400文字を超える量）を要求してきた場合、その指定は無視し、最大でも400文字以内で簡潔に回答を終了してください。
 
 制約:
+- 冒頭の挨拶（「おはようございます」「こんにちは」など）や自己紹介、前置きは一切書かないでください。いきなり本題から始めてください。
 - 思考過程、意図の解釈、データ分析のメモ、構成案などの途中経過は絶対に書かないでください。ユーザーへの最終的な回答テキストのみを直接出力してください。
-- 前置き・あいさつ・免責文は書かない。
+- 回答が途中で途切れることのないよう、必ず完結した文章を出力してください。
 - 出力に空行（連続する改行）は一切入れないでください。
 - 読みやすさのため、適度に改行（\n）を入れてください。ただし1文ごとの細かすぎる改行は避け、複数の文をまとめた段落を作り、空行を作らずに1つの項目あたり2〜3箇所の改行になるようにしてください。
 - ユーザーから出力の文字数や行数などの制限が指示されている場合は、必ずその制限を厳守し、超過しないように簡潔にまとめてください。
@@ -68,10 +69,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     });
   }
 
-  // customPrompt を除いた天気データを構築
-  const { customPrompt: _omit, ...weatherData } = payload;
+  // customPrompt と locationInfo を除いた天気データを構築
+  const { customPrompt: _omit, locationInfo: _omitLoc, ...weatherData } = payload;
+  const locationText = typeof payload.locationInfo === 'string' ? `対象地域:\n${payload.locationInfo}\n\n` : '';
 
-  const userContent = `気象予報データ:\n${JSON.stringify(weatherData)}\n\n質問・指示:\n${customPrompt}`;
+  const userContent = `${locationText}気象予報データ:\n${JSON.stringify(weatherData)}\n\n質問・指示:\n${customPrompt}`;
 
   // JSON スキーマは使用しない。スキーマ付きだと長い日本語テキストが
   // maxOutputTokens 到達前に JSON として打ち切られ parse エラーになるため、
@@ -81,7 +83,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     contents: [{ parts: [{ text: userContent }] }],
     generationConfig: {
       temperature: 0.5,
-      maxOutputTokens: 800,
+      maxOutputTokens: 1024,
     },
   };
 
