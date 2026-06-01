@@ -39,6 +39,7 @@ export interface AiDailyEntry {
 
 export interface AiCommentInput {
   location: string;
+  now: string;               // 現在日時 "M/D H時" (JST)
   month: number;
   warnings: string[];
   hourly: AiHourlyEntry[];   // 今後3日分の時間別
@@ -108,9 +109,13 @@ export function buildAiCommentInput(
   // 既に除外済み（単一の判定箇所）。ここでは名前整形のみ行う。
   const warningNames = warnings.map(w => `${w.name}${LEVEL_SUFFIX[w.level] ?? ''}`);
 
+  const jstNow = new Date(nowMs + 9 * 60 * 60 * 1000);
+  const nowLabel = `${jstNow.getUTCMonth() + 1}/${jstNow.getUTCDate()} ${jstNow.getUTCHours()}時`;
+
   return {
     location: locationName,
-    month: new Date(nowMs + 9 * 60 * 60 * 1000).getUTCMonth() + 1,
+    now: nowLabel,
+    month: jstNow.getUTCMonth() + 1,
     warnings: warningNames,
     hourly,
     daily,
