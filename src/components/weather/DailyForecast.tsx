@@ -378,11 +378,11 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                   return (
                     <Fragment key={day.date}>
                       <td style={{ ...amCell(day), textAlign: 'left', paddingTop: '0.75rem', paddingLeft: '0.35rem' }}>
-                        <div style={{ fontSize: '0.75rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
                           {label}
                         </div>
                         {tl && (
-                          <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
+                          <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
                         )}
                       </td>
                       <td style={{ ...pmCell(day), paddingTop: '0.75rem' }} />
@@ -395,13 +395,13 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                     key={day.date}
                     style={{ ...singleCell(day, i), paddingTop: '0.75rem' }}
                   >
-                    <div style={{ fontSize: '0.75rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500 }}>
+                    <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500 }}>
                       {label}
                     </div>
                     {(() => {
                       const tl = codeToLabel(day.weatherCode);
                       return tl ? (
-                        <div style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
+                        <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
                       ) : null;
                     })()}
                   </td>
@@ -417,15 +417,15 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                     return (
                       <Fragment key={day.date}>
                         <td style={amCell(day)}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午前(4-12)</div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午前</div><div>(4-12)</div></div>
                           <div style={dashCell}>—</div>
                         </td>
                         <td style={pmCell(day)}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午後(12-20)</div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午後</div><div>(12-20)</div></div>
                           <div style={dashCell}>—</div>
                         </td>
                         <td style={nightCell(day, i)}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>夜間(20-翌4)</div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>(20-翌4)</div></div>
                           <div style={dashCell}>—</div>
                         </td>
                       </Fragment>
@@ -437,7 +437,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'am')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午前(4-12)</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午前</div><div>(4-12)</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={84} /> : '—'}
                         </div>
@@ -446,7 +446,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'pm')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>午後(12-20)</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午後</div><div>(12-20)</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={84} /> : '—'}
                         </div>
@@ -455,7 +455,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'night')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}>夜間(20-翌4)</div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>(20-翌4)</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.nightWeatherCode !== null ? <WeatherIcon code={day.nightWeatherCode} size={84} isNight /> : '—'}
                         </div>
