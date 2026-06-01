@@ -94,7 +94,8 @@ export function AiCommentCard({
           </p>
         );
       }
-      if (customLoading) {
+      // loading 中 または fetch 未完了・失敗（text=null）は同じスケルトンを表示
+      if (customLoading || customText === null) {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {[90, 75, 80].map((w, i) => (
@@ -104,7 +105,6 @@ export function AiCommentCard({
           </div>
         );
       }
-      if (!customText) return null;
       return (
         <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.8, color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
           {customText}
@@ -112,7 +112,6 @@ export function AiCommentCard({
       );
     }
 
-    if (!comment) return null;
     return (
       <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.8, color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
         {standardContent || '—'}
@@ -121,7 +120,6 @@ export function AiCommentCard({
   };
 
   const content = getContent();
-  if (content === null) return null;
 
   return (
     <section className="glass-panel" style={{ padding: '0.75rem 1rem' }}>

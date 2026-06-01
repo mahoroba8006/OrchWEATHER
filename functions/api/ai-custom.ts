@@ -57,20 +57,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const userContent = `気象予報データ:\n${JSON.stringify(weatherData)}\n\n質問・指示:\n${customPrompt}`;
 
+  // JSON スキーマは使用しない。スキーマ付きだと長い日本語テキストが
+  // maxOutputTokens 到達前に JSON として打ち切られ parse エラーになるため、
+  // プレーンテキストで受け取り、こちら側で JSON ラップして返す。
   const body = {
     system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
     contents: [{ parts: [{ text: userContent }] }],
     generationConfig: {
       temperature: 0.5,
-      maxOutputTokens: 1024,
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'object',
-        properties: {
-          text: { type: 'string' },
-        },
-        required: ['text'],
-      },
+      maxOutputTokens: 2048,
     },
   };
 
@@ -89,8 +84,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     };
     const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error('gemini_empty');
-    const parsed = JSON.parse(text) as { text?: unknown };
-    return typeof parsed.text === 'string' ? parsed.text : '';
+    return text;
   };
 
   const MAX_ATTEMPTS = 3;
