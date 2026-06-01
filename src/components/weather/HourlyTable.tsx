@@ -201,7 +201,7 @@ function degreesToCompass(deg: number): string {
 // ── Data rows (excluding date / time / weather handled inline) ──
 const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string }[] = [
   { key: 'temperature',  label: '気温(℃)',     fmt: h => h.temperature.toFixed(1) },
-  { key: 'precip',       label: '降水(mm)',     fmt: h => h.precipitation.toFixed(1) },
+  { key: 'precip',       label: '降水(mm)',     fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1) },
   { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1) },
   { key: 'humidity',     label: '湿度(%)',      fmt: h => String(h.humidity) },
   { key: 'vpd',          label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1) },
