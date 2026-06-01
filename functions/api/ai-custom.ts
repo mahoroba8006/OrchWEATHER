@@ -84,6 +84,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     generationConfig: {
       temperature: 0.5,
       maxOutputTokens: 1024,
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
 
@@ -98,9 +99,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       throw new Error(`gemini_http:${geminiRes.status}:${detail}`);
     }
     const json = await geminiRes.json() as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      candidates?: Array<{ content?: { parts?: Array<{ thought?: boolean; text?: string }> } }>;
     };
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    const parts = json.candidates?.[0]?.content?.parts ?? [];
+    // thought:true は思考トークン（Gemini 2.5 Flash の thinking 出力）なのでスキップ
+    const text = parts.find(p => !p.thought)?.text;
     if (!text) throw new Error('gemini_empty');
     return text;
   };
