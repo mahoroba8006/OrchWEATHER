@@ -72,10 +72,11 @@ export function buildAiCommentInput(
 ): AiCommentInput {
   const nowMs = Date.now();
 
-  // 時間別: 現在時刻以降48エントリまで（約2日分に短縮しAPI高速化）
+  // 時間別: 現在時刻以降を2時間おきにサンプリング、24エントリまで（約2日分をカバー）
   const hourly: AiHourlyEntry[] = forecast.hourly
     .filter(h => Date.parse(`${h.time}:00+09:00`) >= nowMs)
-    .slice(0, 48)
+    .filter((_, i) => i % 2 === 0)
+    .slice(0, 24)
     .map(h => ({
       t: fmtTime(h.time),
       tmp: Math.round(h.temperature * 10) / 10,
