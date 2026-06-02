@@ -23,8 +23,10 @@ interface DayRow {
   precipSum: number;
   radiation: number;
   sunshineDuration: number;
-  humidMean: number;
-  vpd: number;
+  humidMax: number;
+  humidMin: number;
+  vpdMax: number;
+  vpdMin: number;
 }
 
 const METRICS: { label: string; key: keyof DayRow; fixed: number }[] = [
@@ -34,8 +36,10 @@ const METRICS: { label: string; key: keyof DayRow; fixed: number }[] = [
   { label: '降水量(mm)',     key: 'precipSum',        fixed: 1 },
   { label: '日射量(MJ/m²)', key: 'radiation',        fixed: 2 },
   { label: '日照時間(h)',    key: 'sunshineDuration', fixed: 1 },
-  { label: '平均湿度(%)',    key: 'humidMean',        fixed: 1 },
-  { label: '飽差(g/m³)',    key: 'vpd',              fixed: 2 },
+  { label: '最高湿度(%)',    key: 'humidMax',         fixed: 1 },
+  { label: '最低湿度(%)',    key: 'humidMin',         fixed: 1 },
+  { label: '最高飽差(g/m³)', key: 'vpdMax',          fixed: 2 },
+  { label: '最低飽差(g/m³)', key: 'vpdMin',          fixed: 2 },
 ];
 
 export function DailyRawTable({ targets, weatherData, getYearColor, getLocationName }: DailyRawTableProps) {
@@ -65,8 +69,10 @@ export function DailyRawTable({ targets, weatherData, getYearColor, getLocationN
           precipSum: d.precipSum,
           radiation: d.radiation,
           sunshineDuration: d.sunshineDuration,
-          humidMean: d.humidMean,
-          vpd: calcVPD(d.tempMean, d.humidMean),
+          humidMax: d.humidMax,
+          humidMin: d.humidMin,
+          vpdMax: calcVPD(d.tempMax, d.humidMin),  // 最高気温+最低湿度 → 最高飽差
+          vpdMin: calcVPD(d.tempMin, d.humidMax),  // 最低気温+最高湿度 → 最低飽差
         });
       });
       return map;

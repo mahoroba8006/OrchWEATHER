@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, MapPin, Loader2, BarChart2 } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, Loader2, BarChart2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -10,7 +10,7 @@ import { DailyRawTable } from './components/DailyRawTable';
 import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
-import { GEO_OPTIONS, getGeoErrorMessage } from './lib/geo';
+import { GEO_OPTIONS } from './lib/geo';
 import { WeatherTab } from './components/weather/WeatherTab';
 import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
 import { Footer } from './components/Footer';
@@ -228,8 +228,20 @@ function App() {
   }, []);
 
   const geoAttemptedRef = useRef(false);
-  const [analysisGeoLoading, setAnalysisGeoLoading] = useState(false);
-  const [analysisGeoError, setAnalysisGeoError] = useState('');
+  const analysisInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (analysisInitializedRef.current) return;
+    analysisInitializedRef.current = true;
+
+    const defaultLocId = userSettings?.defaultLocationId;
+    const hasValidDefault = !!(defaultLocId && locations.some(l => l.id === defaultLocId));
+    const locationId = hasValidDefault ? defaultLocId! : '__geo__';
+
+    setTargets(prev => prev.map((t, i) => i === 0 ? { ...t, locationId } : t));
+    setCommittedTargets(prev => prev.map((t, i) => i === 0 ? { ...t, locationId } : t));
+  }, [authLoading, userSettings, locations]);
 
   // 起動時: デフォルト地点がなければ自動で現在地を取得する
   useEffect(() => {
@@ -267,6 +279,7 @@ function App() {
   const [committedTargets, setCommittedTargets] = useState<CompareTarget[]>([
     { id: initialTargetIdRef.current, locationId: initialLocation, year: new Date().getFullYear() }
   ]);
+  const [isCommitting, setIsCommitting] = useState(false);
 
   // ターゲット（地点・年）が変わったときホバー値をクリア（古い payload で diff が計算されるのを防ぐ）
   useEffect(() => {
@@ -1438,50 +1451,7 @@ function App() {
       <div className="app-container">
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象 (最大2件)</span>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-              <button
-                onClick={() => {
-                  setAnalysisGeoLoading(true);
-                  setAnalysisGeoError('');
-                  navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                      const lat = parseFloat(position.coords.latitude.toFixed(6));
-                      const lon = parseFloat(position.coords.longitude.toFixed(6));
-                      setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
-                      setTargets(prev => prev.map((t, i) => i === 0 ? { ...t, locationId: '__geo__' } : t));
-                      setAnalysisGeoLoading(false);
-                    },
-                    (err) => {
-                      setAnalysisGeoError(getGeoErrorMessage(err));
-                      setAnalysisGeoLoading(false);
-                    },
-                    GEO_OPTIONS,
-                  );
-                }}
-                disabled={analysisGeoLoading}
-                style={{
-                  padding: '0.4rem 0.8rem',
-                  fontSize: '0.8rem',
-                  background: 'rgba(13,148,136,0.12)',
-                  color: 'var(--accent-color)',
-                  border: '1px solid rgba(13,148,136,0.3)',
-                  borderRadius: 'var(--radius-md, 6px)',
-                  cursor: analysisGeoLoading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  opacity: analysisGeoLoading ? 0.7 : 1,
-                }}
-              >
-                {analysisGeoLoading
-                  ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />取得中…</>
-                  : <><MapPin size={14} />現在地を表示</>}
-              </button>
-              {analysisGeoError && (
-                <span style={{ fontSize: '0.75rem', color: '#c62828' }}>⚠ {analysisGeoError}</span>
-              )}
-            </div>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
@@ -1512,7 +1482,7 @@ function App() {
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
                   style={{ flex: 2, minWidth: 0, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
                 >
-                  {geoLocation && <option value="__geo__">📍 現在地</option>}
+                  <option value="__geo__">📍 現在地</option>
                   {locations.map(loc => (
                     <option key={loc.id} value={loc.id}>{loc.name}</option>
                   ))}
@@ -1553,7 +1523,31 @@ function App() {
                 <div />
               )}
               <button
-                onClick={() => setCommittedTargets([...targets])}
+                disabled={isCommitting}
+                onClick={async () => {
+                  const needsGeo = targets.some(t => t.locationId === '__geo__');
+                  if (needsGeo && !geoLocation) {
+                    setIsCommitting(true);
+                    try {
+                      await new Promise<void>((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(
+                          pos => {
+                            const lat = parseFloat(pos.coords.latitude.toFixed(6));
+                            const lon = parseFloat(pos.coords.longitude.toFixed(6));
+                            setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+                            resolve();
+                          },
+                          reject,
+                          GEO_OPTIONS,
+                        );
+                      });
+                    } catch {
+                      // GPS 失敗時もそのまま commit（useWeatherData でエラー表示）
+                    }
+                    setIsCommitting(false);
+                  }
+                  setCommittedTargets([...targets]);
+                }}
                 style={{
                   padding: '0.5rem 1.25rem',
                   fontSize: '0.88rem',
@@ -1562,14 +1556,17 @@ function App() {
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
+                  cursor: isCommitting ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
                   boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)',
+                  opacity: isCommitting ? 0.7 : 1,
                 }}
               >
-                <BarChart2 size={16} /> 表示
+                {isCommitting
+                  ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> 取得中…</>
+                  : <><BarChart2 size={16} /> 表示</>}
               </button>
             </div>
           </div>
