@@ -26,7 +26,7 @@ interface TabDef {
 
 const ALL_TABS: TabDef[] = [
   { key: 'weatherOverview',   Icon: CloudSun,      label: '空ごよみ'   },
-  { key: 'generalWorkAdvice', Icon: Shovel,        label: '外しごと'   },
+  { key: 'generalWorkAdvice', Icon: Shovel,        label: '畑しごと'   },
   { key: 'sprayingAdvice',    Icon: Droplets,      label: '散布どき'   },
   { key: 'disasterPrep',      Icon: AlertTriangle, label: '天気の備え' },
   { key: 'custom',            Icon: Pencil,        label: 'カスタマイズ' },

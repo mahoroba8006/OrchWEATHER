@@ -42,7 +42,7 @@ export interface AccumDeltaThresholds {
 // ─── AI コメント 表示セクション ──────────────────────────────────────────────
 export type AiSection =
   | 'weatherOverview'   // 空ごよみ
-  | 'generalWorkAdvice' // 外しごと
+  | 'generalWorkAdvice' // 畑しごと
   | 'sprayingAdvice'    // 散布どき
   | 'disasterPrep'      // 天気の備え
   | 'custom';           // カスタマイズ（ユーザー入力プロンプト）

@@ -11,7 +11,7 @@ interface SectionMeta { label: string; desc: string }
 
 const SECTION_INFO: Record<AiSection, SectionMeta> = {
   weatherOverview:   { label: '空ごよみ',   desc: '今日・明日の天気概況と数日先の傾向、作物の生育への影響を解説します。' },
-  generalWorkAdvice: { label: '外しごと',   desc: '雨を避けた晴れ間の作業タイミングや体調管理のアドバイスです。' },
+  generalWorkAdvice: { label: '畑しごと',   desc: '晴れ間の作業タイミングや、悪天候でも外に出る場合の注意点のアドバイスです。' },
   sprayingAdvice:    { label: '散布どき',   desc: '防除・薬剤散布に適した風・雨の条件と最適時間帯を提案します。' },
   disasterPrep:      { label: '天気の備え', desc: '荒天・乾燥・低温など気候リスクと作物・施設への備えを提案します。' },
   custom:            { label: 'カスタマイズ', desc: '自分でプロンプトを入力して、天気データに基づく任意の回答を取得できます。' },
