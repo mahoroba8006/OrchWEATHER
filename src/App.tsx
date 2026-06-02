@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, MapPin, Loader2 } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, MapPin, Loader2, BarChart2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsTab } from './components/settings/SettingsTab';
 import { useWeatherData, type CompareTarget } from './hooks/useWeather';
 import { useForecast } from './hooks/useForecast';
-import { MonthsTable } from './components/MonthsTable';
+import { DailyRawTable } from './components/DailyRawTable';
 import { LoginScreen } from './components/LoginScreen';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
@@ -260,8 +260,12 @@ function App() {
   }, [authLoading]);
 
   const initialLocation = locations.length > 0 ? locations[0].id : '';
+  const initialTargetIdRef = useRef(`t_${Date.now()}`);
   const [targets, setTargets] = useState<CompareTarget[]>([
-    { id: `t_${Date.now()}`, locationId: initialLocation, year: new Date().getFullYear() }
+    { id: initialTargetIdRef.current, locationId: initialLocation, year: new Date().getFullYear() }
+  ]);
+  const [committedTargets, setCommittedTargets] = useState<CompareTarget[]>([
+    { id: initialTargetIdRef.current, locationId: initialLocation, year: new Date().getFullYear() }
   ]);
 
   // ターゲット（地点・年）が変わったときホバー値をクリア（古い payload で diff が計算されるのを防ぐ）
@@ -314,17 +318,17 @@ function App() {
     });
   };
 
-  const { data: weatherData, loading, loadingStatus, error } = useWeatherData(targets);
+  const { data: weatherData, loading, loadingStatus, error } = useWeatherData(committedTargets);
 
-  // 分析タブ用予報データ（targets[0] の地点のみ取得）
+  // 分析タブ用予報データ（committedTargets[0] の地点のみ取得）
   const forecastLoc = useMemo(() => {
-    const t = targets[0];
+    const t = committedTargets[0];
     if (!t) return null;
     const loc = t.locationId === '__geo__'
       ? geoLocation
       : locations.find(l => l.id === t.locationId);
     return loc ? { lat: loc.lat, lon: loc.lon } : null;
-  }, [targets, locations, geoLocation]);
+  }, [committedTargets, locations, geoLocation]);
 
   const { data: forecastData } = useForecast(
     forecastLoc?.lat ?? null,
@@ -369,7 +373,7 @@ function App() {
 
     const map = new Map<string, any>();
 
-    targets.forEach((target, index) => {
+    committedTargets.forEach((target, index) => {
       const data = weatherData[target.id];
       if (!data) return;
 
@@ -513,7 +517,7 @@ function App() {
         }
       }
 
-      // ── 予報オーバーレイ（targets[0] + 今年のみ） ──────────────────────────
+      // ── 予報オーバーレイ（committedTargets[0] + 今年のみ） ──────────────────────────
       if (index === 0 && forecastData && target.year === currentYear) {
         forecastData.daily.forEach(fDay => {
           const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
@@ -546,7 +550,7 @@ function App() {
     });
 
     return Array.from(map.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-  }, [weatherData, targets, userSettings, forecastData, currentYear]);
+  }, [weatherData, committedTargets, userSettings, forecastData, currentYear]);
 
   const gddData = useMemo(() => {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
@@ -554,7 +558,7 @@ function App() {
     const overlay = new Map<string, Record<string, number | null>>();
     const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
 
-    targets.forEach((target) => {
+    committedTargets.forEach((target) => {
       const data = weatherData[target.id];
       if (!data) return;
       let runningAccumTemp = 0;
@@ -579,8 +583,8 @@ function App() {
       });
       seriesByTarget.set(target.id, series);
 
-      // ── 予報GDD累積（targets[0] + 今年のみ） ────────────────────────────────
-      if (targets[0]?.id === target.id && forecastData && target.year === currentYear) {
+      // ── 予報GDD累積（committedTargets[0] + 今年のみ） ────────────────────────────────
+      if (committedTargets[0]?.id === target.id && forecastData && target.year === currentYear) {
         let forecastGddRunning = runningAccumTemp; // 昨日時点の累積GDD
 
         forecastData.daily.forEach(fDay => {
@@ -602,14 +606,14 @@ function App() {
     });
 
     return { overlay, seriesByTarget };
-  }, [weatherData, targets, userSettings, selectedBaseTempIndex, forecastData, currentYear]);
+  }, [weatherData, committedTargets, userSettings, selectedBaseTempIndex, forecastData, currentYear]);
 
   // 日射量チャート Δ日 逆引き用：累積日射量の MM-DD 系列
   // 累積は baseChartData と同じ開始日ベースで自前計算
   const radiationData = useMemo(() => {
     const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
     const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
-    targets.forEach((target) => {
+    committedTargets.forEach((target) => {
       const data = weatherData[target.id];
       if (!data) return;
       const series: Array<{ mmdd: string; accum: number }> = [];
@@ -621,8 +625,8 @@ function App() {
         series.push({ mmdd, accum: running });
       });
       seriesByTarget.set(target.id, series);
-      // Δ日逆引き用に予報期間も series に追加（targets[0]かつ今年のみ）
-      if (targets[0]?.id === target.id && forecastData && target.year === currentYear) {
+      // Δ日逆引き用に予報期間も series に追加（committedTargets[0]かつ今年のみ）
+      if (committedTargets[0]?.id === target.id && forecastData && target.year === currentYear) {
         forecastData.daily.forEach(fDay => {
           const mmdd = fDay.date.slice(5);
           if (mmdd < radiationStart) return;
@@ -632,7 +636,7 @@ function App() {
       }
     });
     return { seriesByTarget };
-  }, [weatherData, targets, userSettings, forecastData, currentYear]);
+  }, [weatherData, committedTargets, userSettings, forecastData, currentYear]);
 
   const filteredBaseChartData = useMemo(() => {
     const startMM = displayRange.startMM;
@@ -699,7 +703,7 @@ function App() {
       return days.reduce((s, d) => s + mapper(d), 0);
     };
 
-    targets.forEach(target => {
+    committedTargets.forEach(target => {
       const data = weatherData[target.id];
 
       if (!data) return;
@@ -780,7 +784,7 @@ function App() {
       }
     });
     return stats;
-  }, [weatherData, targets, userSettings, selectedBaseTempIndex]);
+  }, [weatherData, committedTargets, userSettings, selectedBaseTempIndex]);
 
   // 月次表示用のチャートデータ（monthlyStats から12エントリを生成）
   // 現在年の進行中の月以降は累積値（折線）を出力しない（partial合計で線が低く見える問題を回避）
@@ -797,7 +801,7 @@ function App() {
 
     for (let m = 1; m <= 12; m++) {
       const entry: any = { dateStr: String(m).padStart(2, '0') };
-      targets.forEach(target => {
+      committedTargets.forEach(target => {
         const s = monthlyStats[target.id]?.[m];
         if (!s) return;
 
@@ -842,7 +846,7 @@ function App() {
       entries.push(entry);
     }
     return entries;
-  }, [monthlyStats, targets]);
+  }, [monthlyStats, committedTargets]);
 
   const filteredMonthlyChartData = useMemo(() => {
     return monthlyChartData.filter(d => {
@@ -855,7 +859,7 @@ function App() {
   const isMonthly = chartViewMode === 'monthly';
   // 日次モード + 今年 + 予報取得済み の3条件が揃ったとき点線オーバーレイを表示
   const currentTargetHasForecast =
-    !isMonthly && !!forecastData && targets[0]?.year === currentYear;
+    !isMonthly && !!forecastData && committedTargets[0]?.year === currentYear;
   const chartData = isMonthly ? filteredMonthlyChartData : filteredBaseChartData;
   const gddChartData = isMonthly ? filteredMonthlyChartData : filteredGddChartData;
   const xTickFormatterBase = isMonthly
@@ -870,7 +874,7 @@ function App() {
     if (total === 0) { setDailyViewport(null); return; }
 
     if (isMobile) {
-      const selectedYear = targets[0]?.year ?? new Date().getFullYear();
+      const selectedYear = committedTargets[0]?.year ?? new Date().getFullYear();
       const vp = calcMobileDefaultViewport(filteredBaseChartData, new Date(), selectedYear);
       if (vp) { setDailyViewport(vp); return; }
     }
@@ -1127,7 +1131,7 @@ function App() {
             }
             : null;
 
-          const refId = accumDiffConfig && targets.length > 1 ? targets[1]?.id : null;
+          const refId = accumDiffConfig && committedTargets.length > 1 ? committedTargets[1]?.id : null;
           const refKey = refId && accumDiffConfig ? `${accumDiffConfig.refKeyPrefix}${refId}` : null;
           const v0 = refKey
             ? hover.payload.find((p: any) => p.dataKey === refKey)?.value
@@ -1136,7 +1140,7 @@ function App() {
 
           const computeAccumDiff = (p: any): string | null => {
             if (!accumDiffConfig || !refId || typeof v0 !== 'number') return null;
-            const t0id = targets[0]?.id;
+            const t0id = committedTargets[0]?.id;
             if (!t0id || typeof p.dataKey !== 'string') return null;
 
             // 通常キーと予報キーの両方を許容する
@@ -1186,7 +1190,7 @@ function App() {
 
           // 予想域でhistorical系列が先にペイロードに現れることで順序が逆転するため
           // targets の定義順（index 0 が上段）にグループを並べ直す
-          const expectedColorOrder = targets.map((_, i) => getYearColor(i, ''));
+          const expectedColorOrder = committedTargets.map((_, i) => getYearColor(i, ''));
           const sortedGroupEntries = Array.from(groups.entries()).sort(([ca], [cb]) => {
             const ia = expectedColorOrder.indexOf(ca);
             const ib = expectedColorOrder.indexOf(cb);
@@ -1298,7 +1302,7 @@ function App() {
     return (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginTop: '10px', marginBottom: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
-          {targets.map((target, index) => (
+          {committedTargets.map((target, index) => (
             <div key={target.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: getYearColor(index, '') }}></span>
               <span>{getLocationName(target.locationId)} {target.year}年</span>
@@ -1536,15 +1540,38 @@ function App() {
                 )}
               </div>
             ))}
-            {targets.length < 2 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
+              {targets.length < 2 ? (
+                <button
+                  onClick={addTarget}
+                  className="secondary"
+                  style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}
+                >
+                  <Plus size={15} /> 比較対象を追加
+                </button>
+              ) : (
+                <div />
+              )}
               <button
-                onClick={addTarget}
-                className="secondary"
-                style={{ alignSelf: 'flex-start', marginTop: '0.25rem', padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}
+                onClick={() => setCommittedTargets([...targets])}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)',
+                }}
               >
-                <Plus size={15} /> 比較対象を追加
+                <BarChart2 size={16} /> 表示
               </button>
-            )}
+            </div>
           </div>
         </div>
 
@@ -1641,7 +1668,7 @@ function App() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.temp} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const color = getYearColor(index, 'var(--chart-temp)');
                       return (
                         <React.Fragment key={target.id}>
@@ -1667,17 +1694,6 @@ function App() {
                 ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('temp')}
-              <MonthsTable
-                rowsDef={[
-                  { key: 'meanTemp', label: '月平均気温 (℃)' },
-                  { key: 'maxTemp', label: '月最高気温 (℃)' },
-                  { key: 'minTemp', label: '月最低気温 (℃)' }
-                ]}
-                targets={targets}
-                stats={monthlyStats}
-                getYearColor={getYearColor}
-                getLocationName={getLocationName}
-              />
             </>
           )}
         </section>
@@ -1703,7 +1719,7 @@ function App() {
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.precip} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
 
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-precip)');
                       return (
@@ -1720,7 +1736,7 @@ function App() {
                         </Bar>
                       );
                     })}
-                    {!isMonthly && targets.map((target, index) => {
+                    {!isMonthly && committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
                         <Bar
@@ -1733,7 +1749,7 @@ function App() {
                         />
                       );
                     })}
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
                         <Line
@@ -1752,7 +1768,7 @@ function App() {
                     })}
                     {/* 10日予報累積降水量（点線） */}
                     {currentTargetHasForecast && (() => {
-                      const t0 = targets[0]!;
+                      const t0 = committedTargets[0]!;
                       return (
                         <Line
                           yAxisId="right"
@@ -1781,15 +1797,6 @@ function App() {
                 ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('precip')}
-              <MonthsTable
-                rowsDef={[
-                  { key: 'sumPrecip', label: '月合計降水量 (mm)' }
-                ]}
-                targets={targets}
-                stats={monthlyStats}
-                getYearColor={getYearColor}
-                getLocationName={getLocationName}
-              />
             </>
           )}
         </section>
@@ -1815,7 +1822,7 @@ function App() {
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(h)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.sunshine} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
 
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-sunshine)');
                       return (
@@ -1833,7 +1840,7 @@ function App() {
                         </Bar>
                       );
                     })}
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
                         <Line
@@ -1852,7 +1859,7 @@ function App() {
                     })}
                     {/* 10日予報累積日照時間（点線） */}
                     {currentTargetHasForecast && (() => {
-                      const t0 = targets[0]!;
+                      const t0 = committedTargets[0]!;
                       return (
                         <Line
                           yAxisId="right"
@@ -1877,16 +1884,6 @@ function App() {
                 ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('sunshine')}
-              <MonthsTable
-                rowsDef={[
-                  { key: 'meanSunshine', label: '月平均日照時間 (h/日)' },
-                  { key: 'sumSunshine', label: '月合計日照時間 (h)' }
-                ]}
-                targets={targets}
-                stats={monthlyStats}
-                getYearColor={getYearColor}
-                getLocationName={getLocationName}
-              />
             </>
           )}
         </section>
@@ -1912,7 +1909,7 @@ function App() {
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.radiation} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
 
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-sunshine)');
                       return (
@@ -1930,7 +1927,7 @@ function App() {
                         </Bar>
                       );
                     })}
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
                         <Line
@@ -1949,7 +1946,7 @@ function App() {
                     })}
                     {/* 10日予報累積日射量（点線） */}
                     {currentTargetHasForecast && (() => {
-                      const t0 = targets[0]!;
+                      const t0 = committedTargets[0]!;
                       return (
                         <Line
                           yAxisId="right"
@@ -1974,16 +1971,6 @@ function App() {
                 ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('radiation')}
-              <MonthsTable
-                rowsDef={[
-                  { key: 'meanRad', label: '月平均日射量 (MJ/m²)' },
-                  { key: 'sumRad', label: '月合計日射量 (MJ/m²)' }
-                ]}
-                targets={targets}
-                stats={monthlyStats}
-                getYearColor={getYearColor}
-                getLocationName={getLocationName}
-              />
             </>
           )}
         </section>
@@ -2031,7 +2018,7 @@ function App() {
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.gdd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
 
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-sunshine)');
                       return (
@@ -2049,7 +2036,7 @@ function App() {
                         </Bar>
                       );
                     })}
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       return (
                         <Line
@@ -2068,7 +2055,7 @@ function App() {
                     })}
                     {/* 10日予報累積GDD（点線） */}
                     {currentTargetHasForecast && (() => {
-                      const t0 = targets[0]!;
+                      const t0 = committedTargets[0]!;
                       return (
                         <Line
                           yAxisId="right"
@@ -2093,16 +2080,6 @@ function App() {
                 ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('gdd')}
-              <MonthsTable
-                rowsDef={[
-                  { key: 'monthMeanAccum', label: '月平均積算温度 (℃)' },
-                  { key: 'monthAccumSum', label: '月合計積算温度 (℃)' }
-                ]}
-                targets={targets}
-                stats={monthlyStats}
-                getYearColor={getYearColor}
-                getLocationName={getLocationName}
-              />
             </>
           )}
         </section>
@@ -2125,7 +2102,7 @@ function App() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.humid} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
-                    {targets.map((target, index) => {
+                    {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
@@ -2152,15 +2129,6 @@ function App() {
                 ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('humid')}
-              <MonthsTable
-                rowsDef={[
-                  { key: 'meanHumid', label: '月平均湿度 (%)' }
-                ]}
-                targets={targets}
-                stats={monthlyStats}
-                getYearColor={getYearColor}
-                getLocationName={getLocationName}
-              />
             </>
           )}
         </section>
@@ -2183,7 +2151,7 @@ function App() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(g/m³)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <Tooltip content={tooltipContents.vpd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
-{targets.map((target, index) => {
+{committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
@@ -2210,19 +2178,21 @@ function App() {
                 ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('vpd')}
-              <MonthsTable
-                rowsDef={[
-                  { key: 'meanVpd', label: '月平均飽差 (g/m³)' },
-                  { key: 'meanVpdMax', label: '月平均最高飽差 (g/m³)' },
-                ]}
-                targets={targets}
-                stats={monthlyStats}
-                getYearColor={getYearColor}
-                getLocationName={getLocationName}
-              />
             </>
           )}
         </section>
+        )}
+
+        {/* 日別データスプレッドシート */}
+        {Object.keys(weatherData).length > 0 && (
+          <section className="glass-panel" style={{ padding: '1.25rem' }}>
+            <DailyRawTable
+              targets={committedTargets}
+              weatherData={weatherData}
+              getYearColor={getYearColor}
+              getLocationName={getLocationName}
+            />
+          </section>
         )}
 
       <Footer />
