@@ -137,8 +137,8 @@ const features = [
 
 const aiSections = [
   { icon: <CloudSun size={18} />, label: '空ごよみ', desc: '天気の概況と注目ポイント' },
-  { icon: <Shovel size={18} />, label: '畑しごと', desc: '一般的な農作業アドバイス' },
-  { icon: <Droplets size={18} />, label: '散布どき', desc: '防除・散布の適期と時間帯' },
+  { icon: <Shovel size={18} />, label: '畑しごと', desc: '外作業・土仕事のアドバイス' },
+  { icon: <Droplets size={18} />, label: '散布どき', desc: '農薬・液肥の散布適期と時間帯' },
   { icon: <AlertTriangle size={18} />, label: '天気の備え', desc: '悪天候への対処と注意点' },
 ];
 
@@ -437,7 +437,7 @@ export function LandingPage() {
                   <span style={{ color: C.primary }}>AIが毎朝判断する。</span>
                 </h2>
                 <p style={{ color: C.textSub, lineHeight: 1.8, fontSize: '0.9rem', margin: '0 0 1.5rem' }}>
-                  72時間分の気象データ（風速・温度・湿度・降水確率）をもとに、AIが「散布どき」「畑しごと」「天気の備え」を自動生成。「風が穏やかな午前10時〜12時が散布の適期」など、具体的な時間帯まで提案します。
+                  72時間分の気象データ（風速・温度・湿度・降水確率）をもとに、AIが「散布どき」「畑しごと」「天気の備え」を自動生成。農薬・液肥の散布適期から、肥料まき・外作業のタイミングまで、具体的な時間帯を提案します。
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                   {aiSections.map((s, i) => (
