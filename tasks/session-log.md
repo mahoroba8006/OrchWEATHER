@@ -1,4 +1,496 @@
 
+## 2026-06-03 セッション（34回目）
+
+### 作業内容
+
+#### 1. ランディングページ（LandingPage）新規作成
+**コミット:** `bdb5599`（push済み）
+
+- 未ログイン時に `LoginScreen` の代わりに `LandingPage` を表示
+- 姉妹アプリ（Orch.RECIT / Orch.TREE）と統一したデザイン言語（FadeIn アニメーション・緑系カラーパレット・inline styles）
+- **構成セクション（8セクション）:**
+  1. Hero「農業に必要な気象データが、ひとつに。」
+  2. Pain（農家の3つの課題）
+  3. Features（農業特化6機能カード）
+  4. AI Spotlight（散布どき・AIアドバイス）
+  5. Custom Prompt Spotlight（あなた専用プロンプト）
+  6. Warning Spotlight（気象庁注意報・警報）
+  7. Comparison Table（他ツールとの比較）
+  8. How it works（3ステップ）+ Pricing + Final CTA + Footer
+
+- **カスタムプロンプト訴求:**
+  - キャッチ「天気の「生データ」を、あなた専用の右腕に。」
+  - 3つの吹き出し例文（霜アラート・箇条書き・方言）
+  - セクション内インライン小注記（参考情報の旨）
+
+- **法的免責文をフッターに明示:**
+  - 「シミュレーション・サポートツール」として位置づけを宣言
+  - 「アプリ自体が独自の気象予測を行うものではない」と明記
+  - コソコソ隠さず、信頼性向上のための積極的な開示として掲載
+
+### 決定事項
+- 「天気予報」「気象予測」という表現は LP 全体で使用しない
+- 「Open-Meteo・気象庁の公開データを表示・活用」という表現に統一
+- 免責文は小さく・読みやすく、フッターの目立つブロックに掲載
+
+### 未完了・次回候補
+- 各スクリーンショットプレースホルダーに実際の画面キャプチャを埋め込む
+- Firestore TTL ポリシー設定（aiComments コレクション・低優先度）
+- デプロイ後に Cloudflare Pages で LP が正しく表示されるか確認
+
+---
+
+## 2026-06-03 セッション（33回目）
+
+### 作業内容
+
+#### 1. 積み残しタスクの整理
+- 比較分析タブのローカル動作確認 → OK済みとして完了
+- 2バージョン管理の実装（Viteフィーチャーフラグ）→ 不要と判断・キャンセル
+- `project_deferred_tasks.md` を更新
+
+#### 2. 土砂災害注意報を設定の表示・非表示に連動させる
+**コミット:** `e12e99f`（push済み）
+
+- **問題:** `warningNameToGroup` に `土砂災害` のマッチングがなく `null` を返すため、設定に関係なく常時表示されていた
+- `JmaWarningGroup` 型に `'土砂災害'` を追加
+- `warningNameToGroup` に `土砂災害` の分岐を追加
+- `ALL_JMA_GROUPS` / `DEFAULT_JMA_GROUPS` に追加
+- 設定UI（JmaWarningSettings）の「雨・洪水」セクションに「土砂災害（注意報〜警報）」を追加
+- `getUserSettings` に前方互換マイグレーション処理を追加（既存ユーザーの保存済みリストに自動追加）
+
+#### 3. JMA 2026/06 APIフォーマット変化の調査
+- ライブAPI（長野・東京）をWebFetchで確認
+- フォーマットが辞書型→配列に変わったが、`Object.keys(array)` の挙動により既存コードが偶然対応していた
+- 現在出現する危険度タイプは全て `R8_PHENOMENON` に含まれており、未対応タイプなし
+- `jmaWarning.ts` のコメントを配列フォーマットに更新
+
+#### 4. 注意報ガントバーの仕様見直し
+**コミット:** `bd10a4b`（push済み）
+
+- **旧仕様:**
+  - 時間別: テーブル末尾（72h先）まで固定
+  - 日別: 発表時刻+6時間固定
+- **新仕様（日別・時間別共通）:** 発令中は now+12h まで、テーブル外はクリップ＋`→`アロー
+- r8 API は終了時刻を提供しない（`status` 変化で解除を検知する設計）を確認
+
+#### 5. endMs 依存 dead code の削除（リファクタリング）
+**コミット:** `0ce73eb`（push済み）
+
+- r8 API では `endMs` が常に `undefined` のため、参照するブランチが全て死に枝だったことを確認
+- `HourlyTable.tsx`: `endMs` あり想定の `else` ブランチを削除
+- `WarningBar.tsx`: `indefinite` フラグ廃止、`→` アローを無条件表示
+- `warningGantt.ts`: `w.endMs ?? Infinity` → `Infinity` に直書き
+- `jmaWarning.ts`: `endMs` フィールドは将来拡張用として型定義に保持
+
+### 決定事項
+- 2バージョン管理の実装はキャンセル
+- 土砂災害は設定の表示・非表示に連動させる（デフォルト有効）
+- 注意報ガントバーは「now+12h まで＋アロー」で日別・時間別統一
+- r8 API に終了時刻はなく、`status: '解除'` のポーリング検知で解除を把握する設計を確認
+
+### 未完了・次回候補
+- Firestore TTL ポリシー設定（aiComments コレクション・低優先度）
+- デプロイ後の注意報ガントバー表示確認
+
+---
+
+## 2026-06-02 セッション（32回目）
+
+### 作業内容
+
+#### 1. AIコメント速度改善 Case 1 効果確認・Case 2 不要決定
+- Case 1（thinkingBudget: 0）で十分な速度改善を確認
+- Case 2（4並列リクエスト化）は不要と判断。設計メモのみ残してクローズ
+- メモリ（project_deferred_tasks.md）を更新
+
+#### 2. 比較分析タブ改善（大規模）
+**コミット:** `93c45ba`・`35dc656`（push済み）
+
+##### 表示ボタン追加（手動トリガー化）
+- `targets`（UIペンディング）/ `committedTargets`（データ取得・チャート描画）の2ステート分離
+- 選択パネル下部に「表示」ボタンを追加。ボタン押下時のみデータ取得が走る
+- `initialTargetIdRef`（useRef）で両ステートの初期IDを共有し StrictMode 対応
+- `committedTargets[0]?.year` ベースで `currentTargetHasForecast` と viewport 計算
+
+##### 初期ロード・現在地対応
+- `analysisInitializedRef` + useEffect でタブ初回表示時にデフォルト地点（または `__geo__`）を自動設定
+- 「現在地を表示」ボタン削除 → ドロップダウンに「📍 現在地」を常時表示
+- 表示ボタンで現在地選択時、`geoLocation` が未取得なら GPS を取得してからコミット（`isCommitting` ローディング）
+
+##### スプレッドシート刷新（DailyRawTable 新規コンポーネント）
+- MonthsTable（月次集計×7チャート）を廃止
+- DailyRawTable（全指標×最大365日×全ターゲット1テーブル）を新設（`src/components/DailyRawTable.tsx`）
+- 指標10列: 最高/最低/平均気温・降水量・日射量・日照時間・最高/最低湿度・最高/最低飽差
+- 2ターゲット時: 指標グループごとにA/B隣接の2行ヘッダー
+- sticky ヘッダー（2行目は top: 32px でオフセット）+ maxHeight 420px スクロール
+
+##### CSVダウンロード
+- UTF-8 BOM付き（Excel対応）
+- `setTimeout(() => URL.revokeObjectURL(url), 100)` で Safari/Firefox の競合回避
+- ファイル名: `weather_地点名_年.csv`
+
+### 決定事項
+- Case 2 不要（Case 1 で十分）
+- 「現在地を表示」ボタン廃止 → ドロップダウン + 表示ボタンで代替
+- スプレッドシートは全指標1テーブル・365日・最高最低ベース
+
+### 未完了・次回候補
+- 比較分析タブ ローカル動作確認（デプロイ後も確認推奨）
+- 2バージョン管理の実装（Viteフィーチャーフラグ + CF Pages 2プロジェクト）
+- Firestore TTL ポリシー設定（低優先度）
+
+---
+
+## 2026-06-02 セッション（31回目）
+
+### 作業内容
+
+#### 1. AIコメント タブ名変更・プロンプト改善
+**コミット:** `ef0d3fe`（push済み）
+
+- タブ名「外しごと」→「畑しごと」に変更（AiCommentCard / AiCommentSettings / store.ts）
+- `generalWorkAdvice` プロンプトを改訂：晴れ間の作業タイミング提案に加え、荒天・猛暑・強風でも外作業が必要な場合の注意点（安全確保・体調管理・服装・作業の優先度）もアドバイスできるよう指示を追加
+
+#### 2. AIコメント 速度改善 Case 1 実施
+**コミット:** `789f864`（push済み）
+
+- `functions/api/ai-comment.ts` に `thinkingConfig: { thinkingBudget: 0 }` を追加
+- 背景：JSON schema mode が thinking を抑制しているかどうか仕様上不明確なため、ai-custom.ts と同様に明示的に無効化
+- thinking が実際に動いていた場合、初回取得レイテンシが改善される
+
+#### 3. AIコメント 速度改善 Case 2 記録
+- 4並列リクエスト化の設計をメモリ（`project_deferred_tasks.md`）に記録
+- Case 1実施後に体感まだ遅ければ着手する中優先タスクとして保存
+
+### 決定事項
+- タブ名「畑しごと」で確定
+- AI速度改善はまず Case 1（thinkingBudget: 0）で様子を見る
+- Case 2（4並列化）は後日対応タスクとして保存
+
+### 未完了・次回候補
+- Case 1 の効果検証（デプロイ後にAIコメントタブの初回取得速度を確認）
+- Case 2（4並列リクエスト化）— Case 1 でも不満なら実施
+- iOS Safari の表示確認（前セッションのエラーハンドラ追加後の動作確認）
+- 2バージョン管理の実装（Viteフィーチャーフラグ + Cloudflare Pages 2プロジェクト）
+- Firestore TTL ポリシー設定（aiComments コレクション・優先度低）
+
+---
+
+## 2026-06-02 セッション（30回目）
+
+### 作業内容
+
+#### 1. AIカスタムコメント — locationInfo 送信漏れ修正
+**コミット:** 前セッションから継続（コンテキスト引き継ぎ）
+
+- `src/api/aiComment.ts`: `fetchAiCustomComment` の POST body に `locationInfo: input.location` を追加
+- バックエンド（`ai-custom.ts`）は `locationInfo` を受け取ってプロンプト冒頭に `対象地域:\n{name}\n\n` として埋め込む設計が既に完成していたが、フロントが `locationInfo` を送っていなかった
+
+#### 2. AIカスタムコメント — 思考トークン漏れ修正
+**コミット:** `7ad3cc7`（push済み）
+
+**問題:** カスタムコメントに「」(そうですね)」「めやぐだ」などの方言語彙リストが出力されていた。
+
+**根本原因:** Gemini 2.5 Flash はデフォルトで thinking（内部推論）が有効。プレーンテキスト出力では `parts[0]` が `thought: true` の思考トークン、`parts[1]` が本文になる。コードが `parts[0]` のテキストをそのまま返していた。
+
+**修正（二重防護）:**
+- `thinkingConfig: { thinkingBudget: 0 }` でAPI側からthinkingを無効化
+- `parts.find(p => !p.thought)?.text` で本文パートのみ取得（標準タブと一致させる）
+
+#### 3. iOS Safari 表示不具合・Google認証修正
+**コミット:** `60ad79d`（push済み）
+
+**問題:** iPhoneのSafariで開くと背景色のみ表示、コンテンツが一切描画されない。
+
+**対応:**
+- `index.html`: `window.onerror` / `window.onunhandledrejection` ハンドラを追加。JSクラッシュ時に真っ白にならず、エラーメッセージを `#root` に表示して原因特定を可能にする
+- `index.html`: `apple-mobile-web-app-capable` / `apple-mobile-web-app-status-bar-style` meta タグを追加（iOS PWA安定化）
+- `vite.config.ts`: `build.target: 'es2020'` を明示（Vite 8のデフォルト未設定を解消）
+- `LoginScreen.tsx`: iOS検出（`/iPad|iPhone|iPod/` + `maxTouchPoints > 1`）→ `signInWithRedirect` に切り替え。PWAモード（ホーム画面追加）では `signInWithPopup` が機能しない既知の問題を修正
+- `App.tsx`: `getRedirectResult(auth)` をonAuthStateChangedのuseEffectで呼び出し、リダイレクト後のエラーをサイレント処理
+
+### 決定事項
+- iOS Safari は `signInWithRedirect`、その他は `signInWithPopup` を使い分ける
+- エラー表示ハンドラはデバッグ用途だが恒久実装（ユーザーへの可視性向上）
+
+### 未完了・次回候補
+- iOS Safariで実際にエラーメッセージが表示されるか確認（Cloudflare Pages デプロイ後）
+- 2バージョン管理の実装（Viteフィーチャーフラグ + Cloudflare Pages 2プロジェクト）
+- Firestore TTL ポリシー設定（aiCommentsコレクション・優先度低）
+
+---
+
+## 2026-06-02 セッション（29回目）
+
+### 作業内容
+
+#### 1. AIコメント カスタマイズ機能実装
+**コミット:** `0d53a57`（push済み）
+
+- `AiSection` 型追加（store.ts）・`enabledAiSections` / `aiCustomPrompt` を UserSettings に追加
+- Firestore CRUD 追加（userRepository.ts）
+- カスタムコメント用キャッシュ（aiCommentCache.ts）：`"c:"` プレフィックスで分離
+- `/api/ai-custom` Cloudflare Pages Function 新規作成
+- `useAiCustomComment` フック新規作成
+- `AiCommentSettings` 設定コンポーネント新規作成
+- 設定タブに「気象コメント」サブタブ追加
+- `AiCommentCard` をカスタマイズタブ対応・動的タブ構成に更新
+- カスタマイズはデフォルト無効（オプトイン）
+
+#### 2. バグ修正（カスタマイズタブ・502エラー）
+**コミット:** `eec4327`（push済み）
+
+- カスタマイズタブ選択でカード全体が消えるバグ修正（`customText===null` 時 return null → スケルトン表示）
+- `/api/ai-custom` 502 修正：`responseMimeType: application/json` を廃止→プレーンテキスト取得に変更（日本語長文がJSONとして途中切断されparse errorになるのを防ぐ）
+
+#### 3. カスタムAIプロンプト改善
+**コミット:** `7f3c943`（push済み）
+
+- 農業・気象以外トピックへの回答拒否ガードレール追加
+- プロンプトインジェクション対策
+- 過剰出力制限（400文字以内）・デフォルト200文字指定
+- 入力データ構造説明をプロンプトに追加
+
+#### 4. AIへの入力データ追加（cape/frz/prs）
+**コミット:** `12cd845`（push済み）
+
+- `AiHourlyEntry` に cape / frz / prs フィールドを追加
+- `buildAiCommentInput` で各フィールドを hourly エントリに含める
+- ai-comment.ts のシステムプロンプトの入力データ説明を更新
+
+#### 5. 警報ガントバー配色変更・細くする
+**コミット:** `b54920c`（push済み）
+
+- `GANTT_GRADIENT`（鮮やかグラデーション＋白テキスト）廃止
+- `GANTT_COLOR` 追加：注意報=薄橙+茶テキスト/警報=薄赤+濃赤テキスト/特別警報=薄ピンク（JmaWarningSettings と同系色）
+- バー高さ 20px → 14px・font 10px → 9px
+
+#### 6. AIコメント並列処理の試行と差し戻し
+**コミット:** `31dfb13`（並列化）→ `a1af99a`（差し戻し）
+
+- PROMPT_1/PROMPT_2 分割・Promise.all 並列実行を実装するも差し戻し
+- 「思考過程を出力しない」制約は維持
+
+#### 7. AI入力データを軽量版・詳細版に分離
+**コミット:** `7a6db3f`（push済み）
+
+- 標準4タブ用 `buildAiCommentInput`（軽量）: cape/frz/prs を削除、2時間おき24エントリ
+- カスタマイズ用 `buildAiCustomInput`（詳細）: cape/frz/prs 含む、1時間おき48エントリ
+- `AiHourlyEntryRich` 型追加（cape/frz/prs 付き）
+- `AiCustomInput` 型・`hashAiCustomInput` 追加
+- 各プロンプトのデータ説明を対応する仕様に更新
+
+### 決定事項
+- AIコメント並列処理は差し戻し（単一リクエスト維持）
+- カスタマイズタブはデフォルト無効（設定タブからオプトイン）
+- 標準タブとカスタマイズタブで別エンドポイント・別入力データを使用
+
+### 未完了・次回候補
+- 2バージョン管理の実装（Viteフィーチャーフラグ + Cloudflare Pages 2プロジェクト）
+- Firestore TTL ポリシー設定（aiCommentsコレクション）
+
+---
+
+## 2026-06-01 セッション（28回目）
+
+### 作業内容
+
+#### 1. JMA警報API r8フォーマット完全移行
+**コミット:** `3649381`（push済み）
+
+**問題:** 奄美市に暴風警報・波浪警報・雷注意報が発令中なのに表示されない。
+
+**根本原因:**
+- JMAが `warning/data/warning/{prefCode}.json`（旧API）の更新を2026-05-28で停止
+- `warning/data/r8/{prefCode}.json`（新API）に完全移行済みだったが、アプリは旧APIを参照
+- 旧APIは全警報が「解除」状態のまま凍結（reportDatetime: 2026-05-28）
+- 新r8フォーマットは構造・コード体系ともに完全に別物
+
+**r8フォーマットの構造:**
+- `{"0": {...}, "1": {...}, ...}` 電文別オブジェクト
+- 各エントリに `warning.class20Items[].kinds[].{code, status, properties}`
+- status: `発表/継続/解除/発表警報・注意報はなし`
+- `properties[].type`（風危険度/波危険度/雷危険度等）+ `significancyPart.locals[].code`（20=注意報/30=警報/50=特別警報）から警報名・レベルを導出
+
+**修正:**
+- APIエンドポイントを `warning/data/r8/{prefCode}.json` に変更
+- `jmaWarning.ts` を全面書き直し（r8パーサー実装）
+- `R8_PHENOMENON` テーブル: 危険度type → {adv, warn, special} 名称マッピング
+- `r8LevelFromCode()`: レベルコード先頭桁 → WarningLevel
+- 検証: 奄美市(4622200)で暴風警報・波浪警報・雷注意報がJMAページと一致確認
+
+#### 2. 警報フィルタをコードベースから名前ベースに変更
+**コミット:** `f3ac894`（push済み）
+
+**問題:** 設定タブで「波浪」チェックを外しても警報表示が消えない。
+
+**根本原因:**
+- `JMA_GROUP_CODES` が旧APIコード体系（波浪: `['17','25','37']`）のまま
+- r8の新コード（`07`=波浪警報, `16`=波浪注意報）は集合に存在しない
+- `enabledJmaCodeSet.has(item.code)` が常に `false` → フィルタ無効化
+
+**修正:**
+- `JMA_GROUP_CODES`（コードベース）を廃止
+- `warningNameToGroup(name: string): JmaWarningGroup | null` を新設（名前の前方一致）
+- '暴風雪'/'風雪' → '風雪' グループ、'暴風'/'強風' → '強風' グループ（順序重要）
+- 特別警報の常時表示判定: `code >= 33` → `item.level === 'special'`
+- `WeatherTab.tsx` のフィルタを `enabledGroupSet.has(group)` に更新
+
+### 決定事項
+- JMAのr8 APIフォーマットが正式移行先（旧APIは廃止状態）
+- 警報フィルタは名前ベースマッチングで統一（コード体系に依存しない）
+- 土砂災害など未分類（groupがnull）の警報は常に表示
+
+### 未完了タスク
+- なし
+
+### 次回への引き継ぎ
+- 次の着手候補：①2バージョン管理の実装 ②Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-01 セッション（27回目）
+
+### 作業内容
+
+#### 1. Google Cloud OAuth テストユーザー追加サポート（コンソール操作ガイド）
+- Firebase Authentication に kaz.matsumoto 以外のアカウントを追加したい要望
+- Google Cloud プロジェクトが2つある状況を整理（`orchweather` = Firebase用 / `gen-lang-client-0331075600` = Gemini API自動生成用）
+- 正しいプロジェクト（orchweather）に切り替えると OAuth クライアントは設定済みであることを確認
+- テストユーザー追加: Google Auth Platform → 「対象」→「テストユーザー」を案内
+- OAuth 同意画面「本番環境」vs「テスト」モードの違いと推奨を説明
+
+#### 2. AI コメント「今日」誤認バグ修正
+**コミット:** `a8a7558`（push済み）
+
+**問題:** 21:00時点で「今日6/2は～」という誤った表現が出ていた。
+
+**原因:** `AiCommentInput` に現在日時を渡しておらず、AIがデータの多数派（夜間は翌日エントリが大半）から「今日=翌日」と誤判断。
+
+**修正:**
+- `AiCommentInput` に `now: string`（JST "M/D H時"形式）フィールドを追加
+- `buildAiCommentInput` で `Date.UTC` ベースの安全な JST 時刻から `nowLabel` を生成
+- `ai-comment.ts` プロンプトに「`now` を基準に今日・明日を判断せよ」を追記
+
+### 決定事項
+- なし（既存方針を維持）
+
+### 未完了タスク
+- なし
+
+### 次回への引き継ぎ
+- 次の着手候補：①2バージョン管理の実装 ②Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-01 セッション（26回目）
+
+### 作業内容（コンテキスト圧縮前の内容を復元）
+
+#### 1. AI コメント機能 各種改善
+**コミット群:** `f551dc3` まで（push済み）
+
+- **Gemini 応答トークン不足 → エラー修正:** `maxOutputTokens` を 2048 → 4096 に増加 + 最大3回リトライ実装
+- **AI 改行ルール再調整:** 禁止寄り → 推奨寄り（2〜3文ごと、1項目あたり2〜3箇所の改行）
+- **天気概況に農作物への影響追加:** 日照不足・低温・高温・乾燥・長雨・強風・霜の影響に一言ふれる
+- **「天気の備え」プロンプト拡充:** 荒天だけでなく晴天続きの乾燥・熱ストレス、曇天続きの日照不足・湿気病リスクも対象
+
+#### 2. AI タブ 名称・順序変更 + ローディング中タブ表示
+- タブ順序・名称: 天気概況→**空ごよみ** / 一般外作業→**外しごと** / 防除・散布→**散布どき** / 悪天候への備え→**天気の備え**
+- ローディング中もタブバーを実表示（最初のタブアクティブ・他は opacity 0.5、コンテンツ部分のみスケルトン）
+
+### 決定事項
+- `maxOutputTokens` は 4096 に固定（余裕を持たせる方針）
+- タブ名は上記4種に確定
+
+### 未完了タスク
+- なし
+
+---
+
+## 2026-06-01 セッション（25回目）
+
+### 作業内容
+
+#### 1. 注意報の期間表示・自動非表示バグ修正
+**コミット:** `5300398`（push済み）
+
+**問題:**
+- 発表期間が表示されない（「注意報 濃霧」のみで時刻なし）
+- 期限のない注意報（濃霧等）がいつまでも表示・AI に渡され続ける
+
+**根本原因（実データ検証で特定）:**
+- 濃霧(コード14)等は `timeSeries` に時系列(levels)を持たず、`areaTypes` に `status:発表` のみ存在
+- 当該地域の `timeSeries` は「雷危険度」の複合オブジェクト形式（`levels[0]` がオブジェクト）→ `buildValidPeriodMap` がスキップ → `validPeriodMap` 空 → `startMs/endMs/validPeriod` 全て undefined
+- 結果、期限ベース除外もAI側の24hフィルタ（`startMs` 基準）も発動しなかった
+
+**修正:**
+- `fetchJmaWarnings` に「終了時刻なし注意報は**発表時刻から6時間**で除外」を追加
+- 期間表示: 終了時刻なし注意報は発表時刻を表示（例 `5/28 6:51〜`）
+- AI側の冗長な重複フィルタ（`aiCommentInput.ts`）を削除 → 単一ソース化
+- `tasks/lessons.md` に教訓記録
+
+#### 2. AI プロンプト改善
+**コミット:** `6d21d42`（push済み）
+
+**①改行が出なくなった問題の修正:**
+- 前回「同じ日の続きでは改行しない」と禁止寄りに振りすぎたためAIが改行をほぼ止めた
+- 「意味のまとまりごとに改行」「2〜3文ごとが目安」「長い塊にしない」と推奨寄りに転換
+- 一文の途中の改行禁止は維持
+
+**②天気概況に農作物への影響を追加:**
+- 日照不足・低温による生育の遅れ、高温・乾燥による水分不足、長雨による過湿・病気、強風・霜の物理ダメージ等に一言ふれる指示を追加
+- 「作物の種類は特定しない」制約は維持
+
+### 決定事項
+- 注意報フィルタの判定は `fetchJmaWarnings` の1箇所のみ（UI・AI・ガント単一ソース）
+- 期限情報のない注意報の非表示閾値: **発表時刻から6時間**
+
+### 未完了タスク
+- なし
+
+### 次回への引き継ぎ
+- 次の着手候補：①2バージョン管理の実装 ②Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-01 セッション（24回目）
+
+### 作業内容
+
+#### 1. AI改行ルール修正
+**コミット:** `ec39f63`（push済み）
+- AIコメントが文の途中で頻繁に改行され読みにくかった
+- プロンプトの改行ルールを「日付の変わり目・話題の大きな転換時のみ。一文の途中や同じ日の続きでは改行しない」に限定
+- 反映は Firestore キャッシュ（4時間TTL）切れ後の次回リクエストから
+
+#### 2. 降水量表示を切り上げに変更
+**コミット:** `066e34b`（push済み）
+- 雨アイコンが出ているのに時間別の降水量が `0.0mm` と表示される矛盾
+- 原因: `HourlyTable.tsx` の `toFixed(1)` が `0.03mm` 等を四捨五入で `0.0` にしていた（こちらの処理。Open-Meteo は生float）
+- 修正: `h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1)`（非ゼロは最低0.1mm表示）
+
+#### 3. 【重要バグ】夜間降水量の日付集計ズレ修正
+**コミット:** `7a87f67`（push済み）
+- 日別チャートの夜間降水量(4.9mm)が時間別の合計と一致しない
+- **真の原因:** `forecast.ts` で 0-3時を前日夜間に集計する際、`new Date(date+'T00:00:00')`（ローカル=JST解釈）→ `setDate(-1)` → `toISOString()`（UTC変換で-9h）の組み合わせにより **計2日ズレ**。6/3未明の雨が6/1夜間に誤合算されていた
+- **修正方針（方針B採用）:** 日付計算をUTC基準に統一。`src/lib/dateUtils.ts` を新規作成し `addDays()` を共有化。`forecast.ts` と `DailyForecast.tsx`（重複定義削除）の両方から import
+- 副次効果: 同じ集計ロジックを使う夜間の天気アイコン・降水確率のズレも同時に解消
+- `tasks/lessons.md` にTZズレ再発防止ルールを記録
+- 検証: `npx tsc --noEmit` パス、`6/3 0-3時 → 6/2夜間` に是正確認
+
+### 決定事項
+- **日付計算は必ずUTC基準（`dateUtils.addDays`）で行う**。ローカルDate生成+`toISOString`は禁止（lessons.md記録済み）
+
+### 未完了タスク
+- なし
+
+### 次回への引き継ぎ
+- 次の着手候補：①2バージョン管理の実装 ②Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-06-01 セッション（23回目）
 
 ### 作業内容
