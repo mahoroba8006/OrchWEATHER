@@ -25,6 +25,10 @@ const GROUP_INFO: Record<JmaWarningGroup, GroupMeta> = {
     level: 'special',
     desc: '短時間または継続した強雨により、土砂災害・農地冠水・河川増水の恐れ。圃場の排水状況確認と低地施設への浸水対策が必要。',
   },
+  '土砂災害': {
+    level: 'warning',
+    desc: '大雨や長雨により地盤が緩み、土砂崩れ・がけ崩れ・地すべりの恐れ。斜面に隣接した農地・施設は特に注意が必要。早めの退避と圃場への立ち入り中止を検討。',
+  },
   '洪水': {
     level: 'warning',
     desc: '上流域の降雨により河川が増水・氾濫する恐れ。現地が晴れていても発令されることがあり、河川沿いの農地・施設は注意が必要。',
@@ -88,7 +92,7 @@ const GROUP_INFO: Record<JmaWarningGroup, GroupMeta> = {
 };
 
 const GROUP_SECTIONS: { label: string; groups: JmaWarningGroup[] }[] = [
-  { label: '雨・洪水',  groups: ['大雨', '洪水', '融雪'] },
+  { label: '雨・洪水',  groups: ['大雨', '土砂災害', '洪水', '融雪'] },
   { label: '雪・風',    groups: ['大雪', '強風', '風雪', 'なだれ', '着氷', '着雪'] },
   { label: '気温・大気', groups: ['乾燥', '霜', '低温', '雷', '濃霧'] },
   { label: '沿岸',      groups: ['波浪', '高潮'] },

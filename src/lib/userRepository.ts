@@ -16,7 +16,7 @@ const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
 
 // SYNC: store.ts の ALL_JMA_GROUPS と同期すること
 const DEFAULT_JMA_GROUPS: JmaWarningGroup[] = [
-  '大雨', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
+  '大雨', '土砂災害', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
   '乾燥', '霜', '低温', '雷', '濃霧', 'なだれ', '融雪', '着氷', '着雪',
 ];
 
@@ -49,8 +49,11 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     ...(data?.accumDeltaThresholds ?? {}),
   };
   const defaultLocationId: string | null = data?.defaultLocationId ?? null;
-  const enabledJmaGroups: JmaWarningGroup[] =
-    (data?.enabledJmaGroups as JmaWarningGroup[] | undefined) ?? DEFAULT_JMA_GROUPS;
+  // 保存済みリストに新規デフォルトグループを自動追加（グループ追加時の前方互換）
+  const savedJmaGroups = data?.enabledJmaGroups as JmaWarningGroup[] | undefined;
+  const enabledJmaGroups: JmaWarningGroup[] = savedJmaGroups
+    ? [...savedJmaGroups, ...DEFAULT_JMA_GROUPS.filter(g => !savedJmaGroups.includes(g))]
+    : DEFAULT_JMA_GROUPS;
   const enabledAiSections: AiSection[] =
     (data?.enabledAiSections as AiSection[] | undefined) ?? DEFAULT_AI_SECTIONS;
   const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : '';

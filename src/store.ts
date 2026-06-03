@@ -58,7 +58,7 @@ export const DEFAULT_AI_SECTIONS: AiSection[] = [
 
 // ─── JMA 注意報・警報 表示グループ ───────────────────────────────────────────
 export type JmaWarningGroup =
-  | '大雨' | '洪水' | '大雪' | '強風' | '風雪' | '波浪' | '高潮'
+  | '大雨' | '土砂災害' | '洪水' | '大雪' | '強風' | '風雪' | '波浪' | '高潮'
   | '乾燥' | '霜' | '低温' | '雷' | '濃霧' | 'なだれ' | '融雪' | '着氷' | '着雪';
 
 /**
@@ -68,8 +68,9 @@ export type JmaWarningGroup =
  * '暴風雪' は '暴風' より先にチェックすること（前方一致の誤判定を防ぐ）。
  */
 export function warningNameToGroup(name: string): JmaWarningGroup | null {
-  if (name.startsWith('大雨'))   return '大雨';
-  if (name.startsWith('洪水'))   return '洪水';
+  if (name.startsWith('大雨'))     return '大雨';
+  if (name.startsWith('土砂災害')) return '土砂災害';
+  if (name.startsWith('洪水'))     return '洪水';
   if (name.startsWith('大雪'))   return '大雪';
   if (name.startsWith('暴風雪') || name.startsWith('風雪')) return '風雪';
   if (name.startsWith('暴風')  || name.startsWith('強風')) return '強風';
@@ -84,11 +85,11 @@ export function warningNameToGroup(name: string): JmaWarningGroup | null {
   if (name.startsWith('融雪'))   return '融雪';
   if (name.startsWith('着氷'))   return '着氷';
   if (name.startsWith('着雪'))   return '着雪';
-  return null; // 土砂災害など未分類 → 常に表示
+  return null; // 上記以外の未知の現象 → 常に表示（JMA 追加時の安全策）
 }
 
 export const ALL_JMA_GROUPS: JmaWarningGroup[] = [
-  '大雨', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
+  '大雨', '土砂災害', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
   '乾燥', '霜', '低温', '雷', '濃霧', 'なだれ', '融雪', '着氷', '着雪',
 ];
 

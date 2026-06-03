@@ -5,7 +5,7 @@
  *
  * API: https://www.jma.go.jp/bosai/warning/data/r8/{prefCode}.json
  * レスポンス構造:
- *   json["0"], json["1"], ... = 電文エントリ（警報種別ごとに分割）
+ *   JSON 配列（旧フォーマットは {"0":...,"1":...} 辞書だったが 2026-06 頃に配列に変更）
  *   各エントリ.warning.class20Items[].areaCode  ← 二次細分区域コード
  *   各エントリ.warning.class20Items[].kinds[].{code, status, properties}
  *     status: "発表" | "継続" | "解除" | "発表警報・注意報はなし"
