@@ -7,7 +7,7 @@ import { SettingsTab } from './components/settings/SettingsTab';
 import { useWeatherData, type CompareTarget } from './hooks/useWeather';
 import { useForecast } from './hooks/useForecast';
 import { DailyRawTable } from './components/DailyRawTable';
-import { LoginScreen } from './components/LoginScreen';
+import { LandingPage } from './components/LandingPage';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
 import { GEO_OPTIONS } from './lib/geo';
@@ -1362,7 +1362,7 @@ function App() {
   }
 
   if (!user) {
-    return <LoginScreen />;
+    return <LandingPage />;
   }
 
   return (
