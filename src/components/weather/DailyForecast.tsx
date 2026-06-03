@@ -201,7 +201,8 @@ function warningToBar(
   if (!warning.startMs || cols.length === 0) return null;
 
   const wStart = warning.startMs;
-  const wEnd   = warning.endMs ?? (wStart + 6 * 60 * 60 * 1000);
+  // 終了時刻不明（発令中）→ now+12h まで（→ アローは WarningBar 側で表示）
+  const wEnd   = warning.endMs ?? (Date.now() + 12 * 60 * 60 * 1000);
 
   let startColIdx = cols.findIndex(c => wStart >= c.startMs && wStart < c.endMs);
   if (startColIdx === -1) {

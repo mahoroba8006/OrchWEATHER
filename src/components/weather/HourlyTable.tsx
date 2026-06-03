@@ -243,9 +243,14 @@ function warningToHourlyBar(
 
   let endHIdx: number;
   if (!warning.endMs) {
-    endHIdx = hourly.length - 1;
+    // 終了時刻不明（発令中）→ now+12h まで、範囲外なら末尾右端にクリップ
+    const end12Str = toJSTHourStr(Date.now() + 12 * 60 * 60 * 1000);
+    const idx12 = hourly.findIndex(h => h.time >= end12Str);
     const left  = hourlyPos[startHIdx] * COL_W;
-    const right = (hourlyPos[endHIdx] + 1) * COL_W;
+    const right = idx12 === -1
+      ? (hourlyPos[hourly.length - 1] + 1) * COL_W  // テーブル末尾右端
+      : hourlyPos[idx12] * COL_W;                    // 12h後列の左端
+    if (right <= left) return null;
     return { left, width: right - left };
   }
 
