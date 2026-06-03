@@ -3,7 +3,7 @@ import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebas
 import {
   Leaf, CloudSun, Thermometer, Droplets, AlertTriangle,
   BarChart2, MapPin, FileDown, Shovel, ArrowRight,
-  Check, X, Sprout, Bell, SlidersHorizontal, Quote,
+  Check, X, Bell, SlidersHorizontal, Quote,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
@@ -74,19 +74,44 @@ const isIOS = () =>
 ───────────────────────────────────────── */
 const pains = [
   {
-    icon: <Thermometer size={26} strokeWidth={1.5} />,
-    title: '天気アプリを開いても、農業に使えない',
-    body: '気温と雨マークは見えても、施設園芸で重要な飽差、果樹栽培に欠かせない積算温度は確認できない。農業に必要なデータが、一般の天気アプリには揃っていない。',
+    label: '前倒しの判断に迷う',
+    quote: '「今年は暖かい気がする」けど、実際去年と比べてどれくらい前倒しで作業すべきか迷う。',
   },
   {
-    icon: <Sprout size={26} strokeWidth={1.5} />,
-    title: '散布のタイミングが、直感頼りになっている',
-    body: '農薬・液肥の散布は風・温度・湿度が揃った時間帯がベスト。でも毎日の気象データを確認しながら判断するのは、ほとんどの農家で手が回っていない。',
+    label: 'いつも頭の中で換算している',
+    quote: '天気予報を見ながら「うちの畑は予報より風が強いから…」と、いつも頭の中で換算している。',
   },
   {
-    icon: <BarChart2 size={26} strokeWidth={1.5} />,
-    title: '昨年との気象を、並べて見る手段がない',
-    body: '「昨年より積算温度が遅れているのか、早いのか」前年同期のデータと比べるには、気象庁サイトを掘る作業が必要だった。比較の手間が、判断の精度を落としていた。',
+    label: '情報収集と計算だけで疲弊',
+    quote: '天気アプリ、積算温度の計算サイト、農業ニュース…情報を集めと計算だけで疲れてしまう。',
+  },
+];
+
+const reasons = [
+  {
+    num: 1,
+    title: 'もう計算ツールはいらない。前年比較も積算温度も自動で見える化',
+    points: [
+      '基準温度や積算開始日を自由に設定可能。',
+      '前年の同じ日、あるいは別の圃場との気象データを並べて比較。',
+      '「〇日の差がある」が可視化され、作業スケジュールが立てやすくなる。',
+    ],
+  },
+  {
+    num: 2,
+    title: '農業のプロが欲しい「専門気象データ」を網羅',
+    points: [
+      '飽差、露点温度、気圧、CAPE、0℃層高度など、一般的なアプリにはないマニアックかつ重要な数値を一覧表示。',
+      'CSVダウンロードにも対応し、手元の作業記録（Excel等）との連携も簡単。',
+    ],
+  },
+  {
+    num: 3,
+    title: 'AIが「あなたの畑の専属アドバイザー」になる',
+    points: [
+      '発表された気象データを元に、AIが「防除・散布のタイミング」「今日の畑仕事の注意点」「天候リスクへの備え」をわかりやすく解説。',
+      'プロンプト機能で「自分好みの言い回し」や「自身の農園の特性」を踏まえた回答にカスタマイズ可能。',
+    ],
   },
 ];
 
@@ -359,9 +384,70 @@ export function LandingPage() {
                   borderRadius: 14,
                   padding: '1.5rem',
                 }}>
-                  <div style={{ color: C.primaryDark, marginBottom: '0.75rem' }}>{p.icon}</div>
-                  <p style={{ fontWeight: 700, marginBottom: '0.5rem', fontSize: '1rem' }}>{p.title}</p>
-                  <p style={{ color: C.textSub, fontSize: '0.9rem', lineHeight: 1.7, margin: 0 }}>{p.body}</p>
+                  <p style={{ fontSize: '0.72rem', fontWeight: 700, color: C.primary, margin: '0 0 0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.label}</p>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                    <Quote size={16} color={C.primaryDark} style={{ flexShrink: 0, marginTop: 3 }} />
+                    <p style={{ color: C.text, fontSize: '0.95rem', lineHeight: 1.75, margin: 0, fontStyle: 'italic' }}>{p.quote}</p>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── SOLUTION ─── */}
+      <section style={{ padding: 'clamp(3rem, 7vw, 5rem) 1.5rem' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto' }}>
+          <FadeIn>
+            <p style={{ textAlign: 'center', fontSize: 13, fontWeight: 700, color: C.primary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+              Solution
+            </p>
+            <h2 style={{ textAlign: 'center', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', fontWeight: 800, margin: '0 0 0.75rem', letterSpacing: '-0.02em' }}>
+              解決策・選ばれる3つの理由
+            </h2>
+            <p style={{ textAlign: 'center', color: C.textSub, fontSize: '0.95rem', margin: '0 auto 2.5rem', maxWidth: 520 }}>
+              Orch.Weather はその課題のすべてに、答えを持っています。
+            </p>
+          </FadeIn>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {reasons.map((r, i) => (
+              <FadeIn key={i} delay={i * 0.1}>
+                <div style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 16,
+                  padding: 'clamp(1.25rem, 3vw, 2rem)',
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  gap: '1.25rem',
+                  alignItems: 'flex-start',
+                }}>
+                  <div style={{
+                    width: 46, height: 46,
+                    background: C.primary,
+                    borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff',
+                    fontWeight: 900,
+                    fontSize: '1.15rem',
+                    flexShrink: 0,
+                  }}>
+                    {r.num}
+                  </div>
+                  <div>
+                    <p style={{ fontWeight: 800, fontSize: '1.02rem', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
+                      理由{r.num}：{r.title}
+                    </p>
+                    <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      {r.points.map((pt, j) => (
+                        <li key={j} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <Check size={15} color={C.primary} style={{ flexShrink: 0, marginTop: 4 }} />
+                          <span style={{ color: C.textSub, fontSize: '0.9rem', lineHeight: 1.75 }}>{pt}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </FadeIn>
             ))}
