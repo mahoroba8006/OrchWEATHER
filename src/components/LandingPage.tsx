@@ -3,7 +3,7 @@ import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebas
 import {
   Leaf, CloudSun, Thermometer, Droplets, AlertTriangle,
   BarChart2, MapPin, FileDown, Shovel, ArrowRight,
-  Check, X, Wind, Sprout, Bell, SlidersHorizontal, Quote,
+  Check, X, Sprout, Bell, SlidersHorizontal, Quote,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
