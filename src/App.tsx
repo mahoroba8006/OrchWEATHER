@@ -1183,17 +1183,20 @@ function App() {
             if (v0 < accumDiffConfig.threshold) return `(${deltaStr})`;
             if (hoverDoy == null) return `(${deltaStr})`;
 
-            // Δ日逆引き: targets[0] の確定データ系列を使用（予報日でも同様）
-            const series = accumDiffConfig.seriesByTarget?.get(t0id);
+            // Δ日逆引き: targets[1]（比較年）の系列で「targets[0] の現在値に達した日」を検索
+            // → targets[0] の series は予報末端で尽きるため「未到達」になりにくい
+            const series = accumDiffConfig.seriesByTarget?.get(refId);
             if (!series) return `(${deltaStr})`;
 
-            const crossDate = findDateByAccum(series, v0);
-            if (!crossDate) return `(${deltaStr} / 未到達)`;
+            const crossDate = findDateByAccum(series, p.value);
+            if (!crossDate) return `(${deltaStr})`;
 
             const crossDoy = mmddToDoy(crossDate);
             if (crossDoy == null) return `(${deltaStr})`;
 
-            const deltaDays = hoverDoy - crossDoy;
+            // crossDoy = 比較年が「targets[0] の現在値」に達した日
+            // crossDoy < hoverDoy → 比較年の方が早く達した → targets[0] は遅い
+            const deltaDays = crossDoy - hoverDoy;
             const daysStr =
               deltaDays === 0 ? '同日'
               : deltaDays > 0 ? `${deltaDays}日早い`
