@@ -241,28 +241,13 @@ function warningToHourlyBar(
   }
   if (startStr > hourly[hourly.length - 1].time) return null;
 
-  let endHIdx: number;
-  if (!warning.endMs) {
-    // 終了時刻不明（発令中）→ now+12h まで、範囲外なら末尾右端にクリップ
-    const end12Str = toJSTHourStr(Date.now() + 12 * 60 * 60 * 1000);
-    const idx12 = hourly.findIndex(h => h.time >= end12Str);
-    const left  = hourlyPos[startHIdx] * COL_W;
-    const right = idx12 === -1
-      ? (hourlyPos[hourly.length - 1] + 1) * COL_W  // テーブル末尾右端
-      : hourlyPos[idx12] * COL_W;                    // 12h後列の左端
-    if (right <= left) return null;
-    return { left, width: right - left };
-  }
-
-  const endStr = toJSTHourStr(warning.endMs);
-
-  endHIdx = hourly.length - 1;
-  for (let i = 0; i < hourly.length; i++) {
-    if (hourly[i].time >= endStr) { endHIdx = i; break; }
-  }
-
+  // r8 API は終了時刻を提供しない（発令中は status で判断）→ now+12h までバーを引く
+  const end12Str = toJSTHourStr(Date.now() + 12 * 60 * 60 * 1000);
+  const idx12 = hourly.findIndex(h => h.time >= end12Str);
   const left  = hourlyPos[startHIdx] * COL_W;
-  const right = hourlyPos[endHIdx] * COL_W;
+  const right = idx12 === -1
+    ? (hourlyPos[hourly.length - 1] + 1) * COL_W  // テーブル末尾右端にクリップ
+    : hourlyPos[idx12] * COL_W;
   if (right <= left) return null;
   return { left, width: right - left };
 }

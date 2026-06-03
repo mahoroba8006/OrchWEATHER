@@ -9,7 +9,6 @@ interface WarningBarProps {
 
 export function WarningBar({ warning, left, width }: WarningBarProps) {
   const color = GANTT_COLOR[warning.level] ?? GANTT_COLOR.advisory;
-  const indefinite = warning.endMs === undefined;
   const showText = width >= 32;
 
   return (
@@ -45,21 +44,19 @@ export function WarningBar({ warning, left, width }: WarningBarProps) {
           {warning.name}
         </span>
       )}
-      {indefinite && (
-        <span
-          style={{
-            fontSize: 10,
-            color: color.text,
-            paddingRight: 3,
-            flexShrink: 0,
-            lineHeight: 1,
-            fontWeight: 700,
-            opacity: 0.7,
-          }}
-        >
-          →
-        </span>
-      )}
+      <span
+        style={{
+          fontSize: 10,
+          color: color.text,
+          paddingRight: 3,
+          flexShrink: 0,
+          lineHeight: 1,
+          fontWeight: 700,
+          opacity: 0.7,
+        }}
+      >
+        →
+      </span>
     </div>
   );
 }

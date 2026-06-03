@@ -21,12 +21,12 @@ export function computeWarningLanes(warnings: JmaWarningItem[]): JmaWarningItem[
     .filter(w => w.startMs !== undefined)
     .sort((a, b) => (a.startMs ?? 0) - (b.startMs ?? 0));
 
-  // each lane tracks its current tail (Infinity for indefinite warnings)
+  // r8 API は終了時刻を持たないため、各警報はレーン末尾まで占有する
   const lanes: Array<{ items: JmaWarningItem[]; tail: number }> = [];
 
   for (const w of sorted) {
     const start = w.startMs!;
-    const tail  = w.endMs ?? Infinity;
+    const tail  = Infinity;
 
     let placed = false;
     for (const lane of lanes) {
