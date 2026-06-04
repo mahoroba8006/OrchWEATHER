@@ -49,9 +49,10 @@ export interface DailyForecastData {
 }
 
 export interface ForecastData {
-  hourly: HourlyForecast[];    // 72エントリ
-  daily: DailyForecastData[];  // 11エントリ
-  fetchedAt: number;           // Date.now()
+  hourly: HourlyForecast[];        // 72エントリ（今日〜3日後）
+  daily: DailyForecastData[];      // 今日〜10日後
+  pastDaily: DailyForecastData[];  // 過去7日分
+  fetchedAt: number;               // Date.now()
 }
 
 export async function fetchForecast(lat: number, lon: number): Promise<ForecastData> {
@@ -79,6 +80,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + '&models=best_match'
     + '&wind_speed_unit=ms'
     + '&past_hours=6'
+    + '&past_days=7'
     + '&forecast_days=11'
     + '&forecast_hours=72'
     + `&hourly=${hourlyParams}`
@@ -188,5 +190,11 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     nightPrecipSum:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSum : null,
   }));
 
-  return { hourly, daily, fetchedAt: Date.now() };
+  // 今日のJST日付でdailyを過去/未来に分割
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayJst = `${jstNow.getUTCFullYear()}-${String(jstNow.getUTCMonth() + 1).padStart(2, '0')}-${String(jstNow.getUTCDate()).padStart(2, '0')}`;
+  const pastDaily = daily.filter(d => d.date < todayJst);
+  const futureDaily = daily.filter(d => d.date >= todayJst);
+
+  return { hourly, daily: futureDaily, pastDaily, fetchedAt: Date.now() };
 }

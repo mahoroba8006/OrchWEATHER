@@ -49,11 +49,12 @@ export interface AiDailyEntry {
 /** 標準4タブ用の入力ペイロード（軽量） */
 export interface AiCommentInput {
   location: string;
-  now: string;               // 現在日時 "M/D H時" (JST)
+  now: string;                    // 現在日時 "M/D(曜日) H時" (JST)
   month: number;
   warnings: string[];
-  hourly: AiHourlyEntry[];   // 2時間おき 24エントリ（約2日分）
-  daily: AiDailyEntry[];     // 3〜7日目の日別
+  past_daily: AiDailyEntry[];     // 過去7日分の日別実績
+  hourly: AiHourlyEntry[];        // 2時間おき 24エントリ（今日〜2日後）
+  daily: AiDailyEntry[];          // 3日後〜7日後の日別予報
 }
 
 /** カスタマイズ用の入力ペイロード（詳細） */
@@ -62,8 +63,9 @@ export interface AiCustomInput {
   now: string;
   month: number;
   warnings: string[];
-  hourly: AiHourlyEntryRich[]; // 1時間おき 48エントリ（2日分）
-  daily: AiDailyEntry[];
+  past_daily: AiDailyEntry[];     // 過去7日分の日別実績
+  hourly: AiHourlyEntryRich[];    // 1時間おき 48エントリ（今日〜2日後）
+  daily: AiDailyEntry[];          // 3日後〜7日後の日別予報
 }
 
 const LEVEL_SUFFIX: Record<string, string> = {
@@ -96,11 +98,28 @@ function buildCommon(nowMs: number, warnings: JmaWarningItem[]) {
   return { warningNames, nowLabel, month };
 }
 
-/** 日別データを共通生成 */
+/** 過去7日の日別実績を生成 */
+function buildPastDaily(forecast: ForecastData): AiDailyEntry[] {
+  return forecast.pastDaily
+    .filter(d => !d.isPlaceholder)
+    .slice(-7)
+    .map(d => ({
+      date: fmtDate(d.date),
+      tmpMax: Math.round(d.tempMax),
+      tmpMin: Math.round(d.tempMin),
+      ppMax: d.precipProbMax,
+      precip: Math.round(d.precipSum),
+      radSum: Math.round(d.radiationSum * 10) / 10,
+      sun: Math.round(d.sunshineDuration * 10) / 10,
+      wsMax: Math.round(d.windSpeedMax * 10) / 10,
+    }));
+}
+
+/** 今後7日の日別予報を生成（hourly の2日後〜7日後） */
 function buildDaily(forecast: ForecastData): AiDailyEntry[] {
   return forecast.daily
     .filter(d => !d.isPlaceholder)
-    .slice(2, 7)
+    .slice(2, 9)
     .map(d => ({
       date: fmtDate(d.date),
       tmpMax: Math.round(d.tempMax),
@@ -156,6 +175,7 @@ export function buildAiCommentInput(
     now: nowLabel,
     month,
     warnings: warningNames,
+    past_daily: buildPastDaily(forecast),
     hourly,
     daily: buildDaily(forecast),
   };
@@ -202,6 +222,7 @@ export function buildAiCustomInput(
     now: nowLabel,
     month,
     warnings: warningNames,
+    past_daily: buildPastDaily(forecast),
     hourly,
     daily: buildDaily(forecast),
   };
