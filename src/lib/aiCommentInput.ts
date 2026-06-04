@@ -90,7 +90,8 @@ function fmtDate(d: string): string {
 function buildCommon(nowMs: number, warnings: JmaWarningItem[]) {
   const warningNames = warnings.map(w => `${w.name}${LEVEL_SUFFIX[w.level] ?? ''}`);
   const jstNow = new Date(nowMs + 9 * 60 * 60 * 1000);
-  const nowLabel = `${jstNow.getUTCMonth() + 1}/${jstNow.getUTCDate()} ${jstNow.getUTCHours()}時`;
+  const DOW = ['日', '月', '火', '水', '木', '金', '土'];
+  const nowLabel = `${jstNow.getUTCMonth() + 1}/${jstNow.getUTCDate()}(${DOW[jstNow.getUTCDay()]}) ${jstNow.getUTCHours()}時`;
   const month = jstNow.getUTCMonth() + 1;
   return { warningNames, nowLabel, month };
 }
