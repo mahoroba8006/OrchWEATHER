@@ -223,7 +223,7 @@ function warningToBar(
 
   const left  = cols[startColIdx].x;
   const right = cols[endColIdx].x + cols[endColIdx].width;
-  return { left, width: right - left };
+  return { left: `${left}px`, width: `${right - left}px` };
 }
 
 export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
