@@ -137,7 +137,9 @@ function App() {
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
-  const [displayRange, setDisplayRange] = useState(calcInitialDisplayRange);
+  const [displayRange, setDisplayRange] = useState(() =>
+    window.innerWidth < 768 ? calcInitialDisplayRange() : { startMM: 1, endMM: 12 }
+  );
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
   const [activeChart, setActiveChart] = useState<ChartId>('temp');
   const [hover, setHover] = useState<{ chartId: string; payload: any[]; label: string } | null>(null);
@@ -1074,7 +1076,7 @@ function App() {
       marginBottom: '0.5rem',
       borderRadius: '8px',
       padding: '0.6rem 0.75rem',
-      fontSize: '1.15rem',
+      fontSize: '0.92rem',
     };
 
     if (hover?.chartId !== chartId) {
@@ -1109,7 +1111,7 @@ function App() {
         background: 'rgba(244,167,185,0.07)',
         border: '1px solid rgba(244,167,185,0.2)',
       }}>
-        <div style={{ fontSize: '1.05rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 700 }}>
+        <div style={{ fontSize: '0.84rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 700 }}>
           {formatHoverLabel(hover.label)}
         </div>
         {(() => {
@@ -1245,38 +1247,40 @@ function App() {
                 const metric = isForecastItem ? getForecastMetric(p.dataKey, rawMetric) : rawMetric;
                 const diffNote = computeAccumDiff(p);
                 // 予報累積系（積算温度・日射量・日照時間）の日別値を取得
-                let forecastDailyNote: string | null = null;
+                let forecastDailyNote: { label: string; value: string } | null = null;
                 if (isForecastItem && forecastDailyMap?.targetId === committedTargets[0]?.id) {
                   const daily = forecastDailyMap.values.get(hover.label);
                   if (daily) {
                     if (p.dataKey.startsWith('forecast_accum_gdd_')) {
-                      forecastDailyNote = `日別 ${daily.gdd.toFixed(1)}℃`;
+                      forecastDailyNote = { label: '日別積算', value: `${daily.gdd.toFixed(1)}℃` };
                     } else if (p.dataKey.startsWith('forecast_accum_radiation_')) {
-                      forecastDailyNote = `日別 ${daily.radiation.toFixed(1)} MJ/m²`;
+                      forecastDailyNote = { label: '日別日射量', value: `${daily.radiation.toFixed(1)} MJ/m²` };
                     } else if (p.dataKey.startsWith('forecast_accum_sunshine_')) {
-                      forecastDailyNote = `日別 ${daily.sunshine.toFixed(1)}h`;
+                      forecastDailyNote = { label: '日別日照', value: `${daily.sunshine.toFixed(1)}h` };
                     }
                   }
                 }
                 return (
-                  <span key={i} style={{ color, whiteSpace: 'nowrap', fontSize: '1.15rem' }}>
-                    {metric} <strong>{formatHoverEntry(p)}</strong>
-                    {diffNote && (
-                      <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '1.05rem' }}>
-                        {diffNote}
-                      </span>
-                    )}
+                  <React.Fragment key={i}>
+                    <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
+                      {metric} <strong>{formatHoverEntry(p)}</strong>
+                      {diffNote && (
+                        <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '0.84rem' }}>
+                          {diffNote}
+                        </span>
+                      )}
+                      {isForecastItem && (
+                        <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '0.80rem', color: 'var(--text-secondary)' }}>
+                          ※予報値
+                        </span>
+                      )}
+                    </span>
                     {forecastDailyNote && (
-                      <span style={{ marginLeft: '0.4rem', opacity: 0.8, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>
-                        ({forecastDailyNote})
+                      <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
+                        {forecastDailyNote.label} <strong>{forecastDailyNote.value}</strong>
                       </span>
                     )}
-                    {isForecastItem && (
-                      <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '1.0rem', color: 'var(--text-secondary)' }}>
-                        ※予報値
-                      </span>
-                    )}
-                  </span>
+                  </React.Fragment>
                 );
               })}
             </div>
