@@ -230,7 +230,8 @@ function warningToHourlyBar(
   warning: JmaWarningItem,
   hourly: HourlyForecast[],
   hourlyPos: number[],
-): { left: number; width: number } | null {
+  totalCols: number,
+): { left: string; width: string } | null {
   if (!warning.startMs || hourly.length === 0) return null;
 
   const startStr = toJSTHourStr(warning.startMs);
@@ -242,15 +243,22 @@ function warningToHourlyBar(
   }
   if (startStr > hourly[hourly.length - 1].time) return null;
 
-  // r8 API は終了時刻を提供しない（発令中は status で判断）→ now+12h までバーを引く
+  // r8 API は終了時刻を提供しない。発表時刻（startMs）は常に過去のため
+  // 「現在時刻 + 12h」をバー右端にする。
   const end12Str = toJSTHourStr(Date.now() + 12 * 60 * 60 * 1000);
   const idx12 = hourly.findIndex(h => h.time >= end12Str);
-  const left  = hourlyPos[startHIdx] * COL_W;
-  const right = idx12 === -1
-    ? (hourlyPos[hourly.length - 1] + 1) * COL_W  // テーブル末尾右端にクリップ
-    : hourlyPos[idx12] * COL_W;
-  if (right <= left) return null;
-  return { left, width: right - left };
+  const leftCol  = hourlyPos[startHIdx];
+  const rightCol = idx12 === -1
+    ? hourlyPos[hourly.length - 1] + 1  // テーブル末尾右端にクリップ
+    : hourlyPos[idx12];
+  if (rightCol <= leftCol) return null;
+  // 列インデックスを td 全幅（colSpan=totalCols）に対する % に変換する。
+  // MiniChartRow（preserveAspectRatio="none" で 100% に伸縮）と同じ座標系に乗せ、
+  // 実際の列幅（COL_W ではなく天気アイコン由来の実幅）に依存しないようにする。
+  return {
+    left:  `${(leftCol / totalCols) * 100}%`,
+    width: `${((rightCol - leftCol) / totalCols) * 100}%`,
+  };
 }
 
 // ── Main component ────────────────────────────────────────
@@ -405,7 +413,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   <td style={{ ...STICKY, padding: 0, borderBottom: 'none' }} />
                   <td colSpan={tl.length} style={{ padding: 0, position: 'relative', height: 22 }}>
                     {lane.map(warning => {
-                      const bar = warningToHourlyBar(warning, hourly, hourlyPos);
+                      const bar = warningToHourlyBar(warning, hourly, hourlyPos, tl.length);
                       if (!bar) return null;
                       return (
                         <WarningBar

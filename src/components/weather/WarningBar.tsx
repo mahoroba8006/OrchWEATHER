@@ -3,13 +3,12 @@ import { GANTT_COLOR } from '../../lib/warningGantt';
 
 interface WarningBarProps {
   warning: JmaWarningItem;
-  left: number;   // px: バー左端の絶対位置（親要素基点）
-  width: number;  // px: バーの幅
+  left: string;   // CSS 値: バー左端の位置（親要素基点・% 指定）
+  width: string;  // CSS 値: バーの幅（% 指定）
 }
 
 export function WarningBar({ warning, left, width }: WarningBarProps) {
   const color = GANTT_COLOR[warning.level] ?? GANTT_COLOR.advisory;
-  const showText = width >= 32;
 
   return (
     <div
@@ -26,24 +25,22 @@ export function WarningBar({ warning, left, width }: WarningBarProps) {
         alignItems: 'center',
       }}
     >
-      {showText && (
-        <span
-          style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: color.text,
-            paddingLeft: 3,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            flex: 1,
-            minWidth: 0,
-            lineHeight: 1,
-          }}
-        >
-          {warning.name}
-        </span>
-      )}
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 700,
+          color: color.text,
+          paddingLeft: 3,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          flex: 1,
+          minWidth: 0,
+          lineHeight: 1,
+        }}
+      >
+        {warning.name}
+      </span>
       <span
         style={{
           fontSize: 10,
