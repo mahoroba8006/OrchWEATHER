@@ -30,6 +30,7 @@ export function Footer() {
     <footer style={FOOTER_STYLE}>
       <span style={LOGO_STYLE}>Orch.Weather</span>
       <a href="/privacy-policy" style={LINK_STYLE}>プライバシーポリシー</a>
+      <a href="/disclaimer" style={LINK_STYLE}>免責事項</a>
     </footer>
   );
 }
