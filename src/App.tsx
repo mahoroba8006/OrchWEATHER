@@ -1262,6 +1262,11 @@ function App() {
                 }
                 return (
                   <React.Fragment key={i}>
+                    {forecastDailyNote && (
+                      <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
+                        {forecastDailyNote.label} <strong>{forecastDailyNote.value}</strong>
+                      </span>
+                    )}
                     <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
                       {metric} <strong>{formatHoverEntry(p)}</strong>
                       {diffNote && (
@@ -1275,11 +1280,6 @@ function App() {
                         </span>
                       )}
                     </span>
-                    {forecastDailyNote && (
-                      <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
-                        {forecastDailyNote.label} <strong>{forecastDailyNote.value}</strong>
-                      </span>
-                    )}
                   </React.Fragment>
                 );
               })}
