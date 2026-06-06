@@ -2321,17 +2321,22 @@ function App() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.2rem',
-                  background: 'none',
+                  background: active
+                    ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+                    : 'linear-gradient(135deg, rgba(13,148,136,0.18) 0%, rgba(15,118,110,0.18) 100%)',
                   border: 'none',
+                  borderRadius: '0.6rem',
                   cursor: 'pointer',
-                  color: active ? '#0d9488' : 'rgba(13, 148, 136, 0.45)',
-                  fontWeight: active ? 700 : 400,
+                  color: active ? '#ffffff' : '#0d9488',
+                  fontWeight: active ? 700 : 500,
                   fontSize: '0.65rem',
-                  padding: '0.4rem 0',
-                  transition: 'color 0.2s ease',
+                  margin: '0.3rem 0.25rem',
+                  padding: '0.35rem 0',
+                  transition: 'all 0.2s ease',
+                  boxShadow: active ? '0 2px 8px rgba(13,148,136,0.30)' : 'none',
                 }}
               >
-                <Icon size={22} strokeWidth={active ? 2.2 : 1.6} />
+                <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
                 {label}
               </button>
             );
