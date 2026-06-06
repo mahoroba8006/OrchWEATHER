@@ -655,7 +655,7 @@ function App() {
   const forecastDailyMap = useMemo(() => {
     if (!forecastData || !committedTargets[0] || committedTargets[0].year !== currentYear) return null;
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
-    const map = new Map<string, { gdd: number; radiation: number; sunshine: number }>();
+    const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
     forecastData.daily.forEach(fDay => {
       const mmdd = fDay.date.slice(5);
       const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
@@ -664,6 +664,7 @@ function App() {
         gdd: diff > 0 ? diff : 0,
         radiation: fDay.radiationSum,
         sunshine: fDay.sunshineDuration,
+        precip: fDay.precipSum,
       });
     });
     return { targetId: committedTargets[0].id, values: map };
@@ -1264,6 +1265,8 @@ function App() {
                       forecastDailyNote = { label: '日別', value: `${daily.radiation.toFixed(1)} MJ/m²` };
                     } else if (p.dataKey.startsWith('forecast_accum_sunshine_')) {
                       forecastDailyNote = { label: '日別', value: `${daily.sunshine.toFixed(1)}h` };
+                    } else if (p.dataKey.startsWith('forecast_accum_precip_')) {
+                      forecastDailyNote = { label: '日別', value: `${daily.precip.toFixed(1)}mm` };
                     }
                   }
                 }
