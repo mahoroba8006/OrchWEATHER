@@ -132,7 +132,6 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     });
   });
 
-  const currentYear = new Date().getFullYear();
   const [prevDecMeans, nextJanMeans] = await Promise.all([
     fetchBoundaryMonthMeans(lat, lon, `${year - 1}-12-01`, `${year - 1}-12-31`, year - 1),
     year + 1 <= currentYear

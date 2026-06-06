@@ -227,7 +227,7 @@ async function fetchViaForecastEndpoint(
     ...expandDayAmPm(dayAmPm, t),
   }));
 
-  return { hourly, daily, fetchedAt: Date.now() };
+  return { hourly, daily, pastDaily: [], fetchedAt: Date.now() };
 }
 
 // ── API フェッチ（段階3） ─────────────────────────────────────────────────────
@@ -318,7 +318,7 @@ async function fetchViaArchiveApi(
     ...expandDayAmPm(dayAmPm, t),
   }));
 
-  return { hourly, daily, fetchedAt: Date.now() };
+  return { hourly, daily, pastDaily: [], fetchedAt: Date.now() };
 }
 
 // ── エクスポート ──────────────────────────────────────────────────────────────
@@ -381,6 +381,7 @@ export async function fetchHistoricalForecast(
   return {
     hourly:    apiData?.hourly ?? [],
     daily:     fullDaily,
+    pastDaily: [],
     fetchedAt: Date.now(),
   };
 }
