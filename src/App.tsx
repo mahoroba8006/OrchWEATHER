@@ -621,6 +621,52 @@ function App() {
     return { seriesByTarget };
   }, [weatherData, committedTargets, userSettings, forecastData, currentYear]);
 
+  // 日照時間チャート Δ日 逆引き用：累積日照時間の MM-DD 系列
+  const sunshineData = useMemo(() => {
+    const sunshineStart = userSettings?.accumStartDates?.sunshine ?? '01-01';
+    const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
+    committedTargets.forEach((target) => {
+      const data = weatherData[target.id];
+      if (!data) return;
+      const series: Array<{ mmdd: string; accum: number }> = [];
+      let running = 0;
+      data.daily.forEach(day => {
+        const mmdd = day.date.substring(5);
+        if (mmdd < sunshineStart) return;
+        running += day.sunshineDuration;
+        series.push({ mmdd, accum: running });
+      });
+      seriesByTarget.set(target.id, series);
+      if (committedTargets[0]?.id === target.id && forecastData && target.year === currentYear) {
+        forecastData.daily.forEach(fDay => {
+          const mmdd = fDay.date.slice(5);
+          if (mmdd < sunshineStart) return;
+          running += fDay.sunshineDuration;
+          series.push({ mmdd, accum: running });
+        });
+      }
+    });
+    return { seriesByTarget };
+  }, [weatherData, committedTargets, userSettings, forecastData, currentYear]);
+
+  // 予報ホバー日別値マップ（積算温度・日射量・日照時間の予報点タップ用）
+  const forecastDailyMap = useMemo(() => {
+    if (!forecastData || !committedTargets[0] || committedTargets[0].year !== currentYear) return null;
+    const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const map = new Map<string, { gdd: number; radiation: number; sunshine: number }>();
+    forecastData.daily.forEach(fDay => {
+      const mmdd = fDay.date.slice(5);
+      const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
+      const diff = tempMean - selectedBaseTemp;
+      map.set(mmdd, {
+        gdd: diff > 0 ? diff : 0,
+        radiation: fDay.radiationSum,
+        sunshine: fDay.sunshineDuration,
+      });
+    });
+    return { targetId: committedTargets[0].id, values: map };
+  }, [forecastData, committedTargets, userSettings, selectedBaseTempIndex, currentYear]);
+
   const filteredBaseChartData = useMemo(() => {
     const startMM = displayRange.startMM;
     const endMM   = displayRange.endMM;
@@ -1028,7 +1074,7 @@ function App() {
       marginBottom: '0.5rem',
       borderRadius: '8px',
       padding: '0.6rem 0.75rem',
-      fontSize: '0.78rem',
+      fontSize: '1.15rem',
     };
 
     if (hover?.chartId !== chartId) {
@@ -1063,7 +1109,7 @@ function App() {
         background: 'rgba(244,167,185,0.07)',
         border: '1px solid rgba(244,167,185,0.2)',
       }}>
-        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 700 }}>
+        <div style={{ fontSize: '1.05rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 700 }}>
           {formatHoverLabel(hover.label)}
         </div>
         {(() => {
@@ -1106,10 +1152,10 @@ function App() {
             }
             : chartId === 'sunshine' ? {
               refKeyPrefix: 'accumSunshine_',
-              seriesByTarget: null,
-              threshold: 0,
+              seriesByTarget: sunshineData.seriesByTarget,
+              threshold: 10,
               formatDelta: (d) => `${d >= 0 ? '+' : '−'}${Math.round(Math.abs(d) * 10) / 10}h`,
-              showDays: false,
+              showDays: true,
             }
             : null;
 
@@ -1198,16 +1244,35 @@ function App() {
                 const rawMetric = p.name.split(' ').slice(2).join(' ') || p.name;
                 const metric = isForecastItem ? getForecastMetric(p.dataKey, rawMetric) : rawMetric;
                 const diffNote = computeAccumDiff(p);
+                // 予報累積系（積算温度・日射量・日照時間）の日別値を取得
+                let forecastDailyNote: string | null = null;
+                if (isForecastItem && forecastDailyMap?.targetId === committedTargets[0]?.id) {
+                  const daily = forecastDailyMap.values.get(hover.label);
+                  if (daily) {
+                    if (p.dataKey.startsWith('forecast_accum_gdd_')) {
+                      forecastDailyNote = `日別 ${daily.gdd.toFixed(1)}℃`;
+                    } else if (p.dataKey.startsWith('forecast_accum_radiation_')) {
+                      forecastDailyNote = `日別 ${daily.radiation.toFixed(1)} MJ/m²`;
+                    } else if (p.dataKey.startsWith('forecast_accum_sunshine_')) {
+                      forecastDailyNote = `日別 ${daily.sunshine.toFixed(1)}h`;
+                    }
+                  }
+                }
                 return (
-                  <span key={i} style={{ color, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
+                  <span key={i} style={{ color, whiteSpace: 'nowrap', fontSize: '1.15rem' }}>
                     {metric} <strong>{formatHoverEntry(p)}</strong>
                     {diffNote && (
-                      <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '0.72rem' }}>
+                      <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '1.05rem' }}>
                         {diffNote}
                       </span>
                     )}
+                    {forecastDailyNote && (
+                      <span style={{ marginLeft: '0.4rem', opacity: 0.8, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>
+                        ({forecastDailyNote})
+                      </span>
+                    )}
                     {isForecastItem && (
-                      <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                      <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '1.0rem', color: 'var(--text-secondary)' }}>
                         ※予報値
                       </span>
                     )}
