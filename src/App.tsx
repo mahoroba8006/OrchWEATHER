@@ -320,6 +320,20 @@ function App() {
     forecastLoc?.lon ?? null,
   );
 
+  const forecastLoc2 = useMemo(() => {
+    const t = committedTargets[1];
+    if (!t || t.year !== currentYear) return null;
+    const loc = t.locationId === '__geo__'
+      ? geoLocation
+      : locations.find(l => l.id === t.locationId);
+    return loc ? { lat: loc.lat, lon: loc.lon } : null;
+  }, [committedTargets, locations, geoLocation, currentYear]);
+
+  const { data: forecastData2 } = useForecast(
+    forecastLoc2?.lat ?? null,
+    forecastLoc2?.lon ?? null,
+  );
+
   const addTarget = () => {
     if (targets.length >= 2) return;
     const lastTarget = targets[targets.length - 1];
@@ -502,9 +516,10 @@ function App() {
         }
       }
 
-      // ── 予報オーバーレイ（committedTargets[0] + 今年のみ） ──────────────────────────
-      if (index === 0 && forecastData && target.year === currentYear) {
-        forecastData.daily.forEach(fDay => {
+      // ── 予報オーバーレイ（今年のターゲットのみ） ──────────────────────────
+      const fData = index === 0 ? forecastData : forecastData2;
+      if (fData && target.year === currentYear) {
+        fData.daily.forEach(fDay => {
           const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
 
           if (!map.has(mmdd)) {
@@ -535,7 +550,7 @@ function App() {
     });
 
     return Array.from(map.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-  }, [weatherData, committedTargets, userSettings, forecastData, currentYear]);
+  }, [weatherData, committedTargets, userSettings, forecastData, forecastData2, currentYear]);
 
   const gddData = useMemo(() => {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
@@ -568,11 +583,13 @@ function App() {
       });
       seriesByTarget.set(target.id, series);
 
-      // ── 予報GDD累積（committedTargets[0] + 今年のみ） ────────────────────────────────
-      if (committedTargets[0]?.id === target.id && forecastData && target.year === currentYear) {
+      // ── 予報GDD累積（今年のターゲットのみ） ────────────────────────────────
+      const targetIdx = committedTargets.findIndex(t => t.id === target.id);
+      const fData = targetIdx === 0 ? forecastData : (targetIdx === 1 ? forecastData2 : null);
+      if (fData && target.year === currentYear) {
         let forecastGddRunning = runningAccumTemp; // 昨日時点の累積GDD
 
-        forecastData.daily.forEach(fDay => {
+        fData.daily.forEach(fDay => {
           const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
           const existing = overlay.get(mmdd) ?? {};
 
@@ -591,7 +608,7 @@ function App() {
     });
 
     return { overlay, seriesByTarget };
-  }, [weatherData, committedTargets, userSettings, selectedBaseTempIndex, forecastData, currentYear]);
+  }, [weatherData, committedTargets, userSettings, selectedBaseTempIndex, forecastData, forecastData2, currentYear]);
 
   // 日射量チャート Δ日 逆引き用：累積日射量の MM-DD 系列
   // 累積は baseChartData と同じ開始日ベースで自前計算
@@ -610,9 +627,11 @@ function App() {
         series.push({ mmdd, accum: running });
       });
       seriesByTarget.set(target.id, series);
-      // Δ日逆引き用に予報期間も series に追加（committedTargets[0]かつ今年のみ）
-      if (committedTargets[0]?.id === target.id && forecastData && target.year === currentYear) {
-        forecastData.daily.forEach(fDay => {
+      // Δ日逆引き用に予報期間も series に追加（今年のターゲットのみ）
+      const rTargetIdx = committedTargets.findIndex(t => t.id === target.id);
+      const rFData = rTargetIdx === 0 ? forecastData : (rTargetIdx === 1 ? forecastData2 : null);
+      if (rFData && target.year === currentYear) {
+        rFData.daily.forEach(fDay => {
           const mmdd = fDay.date.slice(5);
           if (mmdd < radiationStart) return;
           running += fDay.radiationSum;
@@ -621,7 +640,7 @@ function App() {
       }
     });
     return { seriesByTarget };
-  }, [weatherData, committedTargets, userSettings, forecastData, currentYear]);
+  }, [weatherData, committedTargets, userSettings, forecastData, forecastData2, currentYear]);
 
   // 日照時間チャート Δ日 逆引き用：累積日照時間の MM-DD 系列
   const sunshineData = useMemo(() => {
@@ -639,8 +658,10 @@ function App() {
         series.push({ mmdd, accum: running });
       });
       seriesByTarget.set(target.id, series);
-      if (committedTargets[0]?.id === target.id && forecastData && target.year === currentYear) {
-        forecastData.daily.forEach(fDay => {
+      const sTargetIdx = committedTargets.findIndex(t => t.id === target.id);
+      const sFData = sTargetIdx === 0 ? forecastData : (sTargetIdx === 1 ? forecastData2 : null);
+      if (sFData && target.year === currentYear) {
+        sFData.daily.forEach(fDay => {
           const mmdd = fDay.date.slice(5);
           if (mmdd < sunshineStart) return;
           running += fDay.sunshineDuration;
@@ -649,7 +670,7 @@ function App() {
       }
     });
     return { seriesByTarget };
-  }, [weatherData, committedTargets, userSettings, forecastData, currentYear]);
+  }, [weatherData, committedTargets, userSettings, forecastData, forecastData2, currentYear]);
 
   // 予報ホバー日別値マップ（積算温度・日射量・日照時間の予報点タップ用）
   const forecastDailyMap = useMemo(() => {
@@ -669,6 +690,24 @@ function App() {
     });
     return { targetId: committedTargets[0].id, values: map };
   }, [forecastData, committedTargets, userSettings, selectedBaseTempIndex, currentYear]);
+
+  const forecastDailyMap2 = useMemo(() => {
+    if (!forecastData2 || !committedTargets[1] || committedTargets[1].year !== currentYear) return null;
+    const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
+    forecastData2.daily.forEach(fDay => {
+      const mmdd = fDay.date.slice(5);
+      const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
+      const diff = tempMean - selectedBaseTemp;
+      map.set(mmdd, {
+        gdd: diff > 0 ? diff : 0,
+        radiation: fDay.radiationSum,
+        sunshine: fDay.sunshineDuration,
+        precip: fDay.precipSum,
+      });
+    });
+    return { targetId: committedTargets[1].id, values: map };
+  }, [forecastData2, committedTargets, userSettings, selectedBaseTempIndex, currentYear]);
 
   const filteredBaseChartData = useMemo(() => {
     const startMM = displayRange.startMM;
@@ -892,6 +931,8 @@ function App() {
   // 日次モード + 今年 + 予報取得済み の3条件が揃ったとき点線オーバーレイを表示
   const currentTargetHasForecast =
     !isMonthly && !!forecastData && committedTargets[0]?.year === currentYear;
+  const compareTargetHasForecast =
+    !isMonthly && !!forecastData2 && committedTargets[1]?.year === currentYear;
   const chartData = isMonthly ? filteredMonthlyChartData : filteredBaseChartData;
   const gddChartData = isMonthly ? filteredMonthlyChartData : filteredGddChartData;
   const xTickFormatterBase = isMonthly
@@ -1256,8 +1297,15 @@ function App() {
                 const diffNote = computeAccumDiff(p);
                 // 予報累積系（積算温度・日射量・日照時間）の日別値を取得
                 let forecastDailyNote: { label: string; value: string } | null = null;
-                if (isForecastItem && forecastDailyMap?.targetId === committedTargets[0]?.id) {
-                  const daily = forecastDailyMap.values.get(hover.label);
+                const t0Id = committedTargets[0]?.id;
+                const t1Id = committedTargets[1]?.id;
+                const activeDailyMap = (t0Id && p.dataKey.endsWith(`_${t0Id}`))
+                  ? forecastDailyMap
+                  : (t1Id && p.dataKey.endsWith(`_${t1Id}`))
+                  ? forecastDailyMap2
+                  : null;
+                if (isForecastItem && activeDailyMap) {
+                  const daily = activeDailyMap.values.get(hover.label);
                   if (daily) {
                     if (p.dataKey.startsWith('forecast_accum_gdd_')) {
                       forecastDailyNote = { label: '日別', value: `${daily.gdd.toFixed(1)}℃` };
@@ -1762,7 +1810,7 @@ function App() {
                             )}
                           </Line>
                           {/* 10日予報（破線縦バー） */}
-                          {currentTargetHasForecast && index === 0 && (
+                          {(index === 0 ? currentTargetHasForecast : compareTargetHasForecast) && (
                             <Bar dataKey={`forecast_tempRange_${target.id}`} name={`${getLocationName(target.locationId)} ${target.year}年 予報気温`} fill={color} shape={<ForecastRangeBar />} legendType="none" isAnimationActive={false} />
                           )}
                         </React.Fragment>
@@ -1867,6 +1915,23 @@ function App() {
                         />
                       );
                     })()}
+                    {compareTargetHasForecast && (() => {
+                      const t1 = committedTargets[1]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_precip_${t1.id}`}
+                          name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積降水`}
+                          stroke={getYearColor(1, 'var(--chart-precip)')}
+                          strokeWidth={2}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
                   </ComposedChart>
                 </ResponsiveContainer>
               ), true)}
@@ -1958,6 +2023,23 @@ function App() {
                         />
                       );
                     })()}
+                    {compareTargetHasForecast && (() => {
+                      const t1 = committedTargets[1]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_sunshine_${t1.id}`}
+                          name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積日照`}
+                          stroke={getYearColor(1, 'var(--chart-sunshine)')}
+                          strokeWidth={2}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
                   </ComposedChart>
                 </ResponsiveContainer>
               ), true)}
@@ -2038,6 +2120,23 @@ function App() {
                           name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積日射`}
                           stroke={getYearColor(0, 'var(--chart-sunshine)')}
                           strokeWidth={3}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
+                    {compareTargetHasForecast && (() => {
+                      const t1 = committedTargets[1]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_radiation_${t1.id}`}
+                          name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積日射`}
+                          stroke={getYearColor(1, 'var(--chart-sunshine)')}
+                          strokeWidth={2}
                           strokeDasharray="5 4"
                           dot={false}
                           connectNulls={false}
@@ -2154,6 +2253,23 @@ function App() {
                         />
                       );
                     })()}
+                    {compareTargetHasForecast && (() => {
+                      const t1 = committedTargets[1]!;
+                      return (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`forecast_accum_gdd_${t1.id}`}
+                          name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積積算`}
+                          stroke={getYearColor(1, 'var(--chart-sunshine)')}
+                          strokeWidth={2}
+                          strokeDasharray="5 4"
+                          dot={false}
+                          connectNulls={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })()}
                   </ComposedChart>
                 </ResponsiveContainer>
               ), true)}
@@ -2197,7 +2313,7 @@ function App() {
                             )}
                           </Line>
                           {/* 10日予報湿度（破線縦バー） */}
-                          {currentTargetHasForecast && index === 0 && (
+                          {(index === 0 ? currentTargetHasForecast : compareTargetHasForecast) && (
                             <Bar dataKey={`forecast_humidRange_${target.id}`} name={`${getLocationName(target.locationId)} ${target.year}年 予報湿度`} fill={color} shape={<ForecastRangeBar />} legendType="none" isAnimationActive={false} />
                           )}
                         </React.Fragment>
@@ -2246,7 +2362,7 @@ function App() {
                             )}
                           </Line>
                           {/* 10日予報飽差（破線縦バー） */}
-                          {currentTargetHasForecast && index === 0 && (
+                          {(index === 0 ? currentTargetHasForecast : compareTargetHasForecast) && (
                             <Bar dataKey={`forecast_vpdRange_${target.id}`} name={`${getLocationName(target.locationId)} ${target.year}年 予報飽差`} fill={color} shape={<ForecastRangeBar />} legendType="none" isAnimationActive={false} />
                           )}
                         </React.Fragment>
