@@ -1338,14 +1338,14 @@ function App() {
                     )}
                     <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
                       {metric} <strong>{formatHoverEntry(p)}</strong>
-                      {diffNote && (
-                        <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '0.84rem' }}>
-                          {diffNote}
-                        </span>
-                      )}
                       {isForecastItem && (
                         <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '0.80rem', color: 'var(--text-secondary)' }}>
                           ※予報値
+                        </span>
+                      )}
+                      {diffNote && (
+                        <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '0.84rem' }}>
+                          {diffNote}
                         </span>
                       )}
                     </span>
