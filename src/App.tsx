@@ -2324,7 +2324,7 @@ function App() {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: active ? '#0f766e' : 'var(--text-secondary)',
+                  color: active ? '#0d9488' : 'rgba(13, 148, 136, 0.45)',
                   fontWeight: active ? 700 : 400,
                   fontSize: '0.65rem',
                   padding: '0.4rem 0',
