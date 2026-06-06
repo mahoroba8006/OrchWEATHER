@@ -122,44 +122,14 @@ const RADIATION_DELTA_DAYS_MIN_V0 = 100;
  * start = 今日の月 −2 の月初日、end = 今日の月 +1 の月末日
  * 選択年のデータに当てはめてインデックスを返す（季節比較が目的）
  */
-function calcMobileDefaultViewport(
-  data: { dateStr: string }[],
-  today: Date,
-  selectedYear: number
-): { start: number; end: number } | null {
-  if (data.length === 0) return null;
-
-  const todayMonth = today.getMonth() + 1; // 1–12
-
-  // start: 2ヶ月前の月初
-  let startMonth = todayMonth - 2;
-  if (startMonth <= 0) startMonth += 12;
-
-  // end: 翌月の月末
-  let endMonth = todayMonth + 1;
-  if (endMonth > 12) endMonth -= 12;
-
-  const startStr = `${String(startMonth).padStart(2, '0')}-01`;
-  // new Date(year, month, 0).getDate() = その月の最終日
-  const lastDay = new Date(selectedYear, endMonth, 0).getDate();
-  const endStr = `${String(endMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-  // start index: startStr 以上の最初のエントリ
-  let startIdx = data.findIndex(d => d?.dateStr && d.dateStr >= startStr);
-  if (startIdx === -1) startIdx = 0;
-
-  // end index: endStr 以下の最後のエントリ
-  // 年またぎ（startMonth > endMonth）のとき endStr < startStr になるので data末尾へクランプ
-  let endIdx = data.length - 1;
-  if (endStr >= startStr) {
-    for (let i = data.length - 1; i >= 0; i--) {
-      const d = data[i];
-      if (d?.dateStr && d.dateStr <= endStr) { endIdx = i; break; }
-    }
-  }
-
-  if (startIdx >= endIdx) return null;
-  return { start: startIdx, end: endIdx + 1 };
+// 初期表示期間: 前々月〜翌月（年跨ぎはクランプ）
+// 例) 6/6 → {startMM:4, endMM:7}、12/31 → {startMM:10, endMM:12}、1/1 → {startMM:1, endMM:2}
+function calcInitialDisplayRange(): { startMM: number; endMM: number } {
+  const m = new Date().getMonth() + 1; // 1–12
+  return {
+    startMM: Math.max(1, m - 2),
+    endMM:   Math.min(12, m + 1),
+  };
 }
 
 function App() {
@@ -167,7 +137,7 @@ function App() {
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
-  const [displayRange, setDisplayRange] = useState({ startMM: 1, endMM: 12 });
+  const [displayRange, setDisplayRange] = useState(calcInitialDisplayRange);
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
   const [activeChart, setActiveChart] = useState<ChartId>('temp');
   const [hover, setHover] = useState<{ chartId: string; payload: any[]; label: string } | null>(null);
@@ -880,16 +850,15 @@ function App() {
     : (val: string) => val.split('-').join('/');
 
   // 日次データのレンジが変わるたびに viewport をリセット
-  // モバイル: 今日基準で「2ヶ月前の月初〜翌月の月末」に絞る（選択年の同季節を表示）
+  // モバイル: viewport なし（filteredBaseChartData 全体を表示）
   // デスクトップ: 末尾 365日（従来どおり）
   useEffect(() => {
     const total = filteredBaseChartData.length;
     if (total === 0) { setDailyViewport(null); return; }
 
     if (isMobile) {
-      const selectedYear = committedTargets[0]?.year ?? new Date().getFullYear();
-      const vp = calcMobileDefaultViewport(filteredBaseChartData, new Date(), selectedYear);
-      if (vp) { setDailyViewport(vp); return; }
+      setDailyViewport(null);
+      return;
     }
 
     const w = Math.min(DAILY_WINDOW, total);
@@ -935,7 +904,7 @@ function App() {
   const justDraggedRef = useRef(false);
 
   const handlePointerDown = (chartId: string) => (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isMonthly || !dailyViewport) return;
+    if (isMobile || isMonthly || !dailyViewport) return;
     panRef.current = {
       startX: e.clientX,
       startViewportStart: dailyViewport.start,
