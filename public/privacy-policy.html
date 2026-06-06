@@ -212,10 +212,11 @@
         <div class="content">
           <p>本アプリは以下の第三者サービスを利用しています。</p>
 
-          <h3>Google LLC（Firebase）</h3>
+          <h3>Google LLC（Firebase・Gemini）</h3>
           <ul>
             <li>Firebase Authentication による Google ログイン認証</li>
             <li>Cloud Firestore によるユーザー設定・AIコメントキャッシュの保存</li>
+            <li>Gemini API による気象コメントの AI 生成（送信されるのは気象数値データのみ。個人情報は送信されません）</li>
           </ul>
           <p><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google プライバシーポリシー →</a></p>
 
@@ -227,17 +228,10 @@
           <p>送信される情報は位置情報（緯度・経度）と日付範囲のみです。個人を特定できる情報は送信されません。</p>
           <p><a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Open-Meteo 利用規約 →</a></p>
 
-          <h3>Anthropic, PBC（Claude AI）</h3>
-          <ul>
-            <li>気象データに基づく AIコメントの生成</li>
-            <li>送信されるのは気象数値データのみで、個人情報は送信されません</li>
-          </ul>
-          <p><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener noreferrer">Anthropic プライバシーポリシー →</a></p>
-
           <h3>Cloudflare, Inc.</h3>
           <ul>
             <li>本アプリのホスティング（Cloudflare Pages）</li>
-            <li>Claude API へのリクエスト中継（Cloudflare Workers）</li>
+            <li>Gemini API へのリクエスト中継（Cloudflare Workers）</li>
           </ul>
           <p><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare プライバシーポリシー →</a></p>
         </div>
