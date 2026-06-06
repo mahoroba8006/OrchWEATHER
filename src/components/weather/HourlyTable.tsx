@@ -207,8 +207,8 @@ const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => strin
   { key: 'windDir',      label: '風向き',       fmt: h => degreesToCompass(h.windDirection) },
   { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString() },
   { key: 'humidity',     label: '湿度(%)',      fmt: h => String(h.humidity) },
-  { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1) },
   { key: 'vpd',          label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1) },
+  { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1) },
   { key: 'cape',         label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString() },
   { key: 'freezing',     label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString() },
 ];
