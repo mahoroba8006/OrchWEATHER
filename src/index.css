@@ -57,6 +57,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: contain;
 }
 
 /* ガラスマージズムパネル — 優しく背景に溶け込む半透明 */
