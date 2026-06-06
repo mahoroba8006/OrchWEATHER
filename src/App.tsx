@@ -1231,6 +1231,11 @@ function App() {
           });
 
           // forecast_ dataKey に対して実績表示と一致するメトリック名を返す
+          const metricShortLabel: Record<string, string> = {
+            '日別積算': '日別', '日別日射': '日別', '日別日照': '日別',
+            '累積積算': '累積', '累積日射': '累積', '累積日照': '累積',
+          };
+
           const getForecastMetric = (dataKey: string, rawMetric: string): string => {
             if (dataKey.startsWith('forecast_tempRange_'))  return '気温(最低-最高)';
             if (dataKey.startsWith('forecast_humidRange_')) return '湿度(最低-最高)';
@@ -1244,7 +1249,8 @@ function App() {
               {groupItems.map((p: any, i: number) => {
                 const isForecastItem = typeof p.dataKey === 'string' && p.dataKey.startsWith('forecast_');
                 const rawMetric = p.name.split(' ').slice(2).join(' ') || p.name;
-                const metric = isForecastItem ? getForecastMetric(p.dataKey, rawMetric) : rawMetric;
+                const resolvedMetric = isForecastItem ? getForecastMetric(p.dataKey, rawMetric) : rawMetric;
+                const metric = metricShortLabel[resolvedMetric] ?? resolvedMetric;
                 const diffNote = computeAccumDiff(p);
                 // 予報累積系（積算温度・日射量・日照時間）の日別値を取得
                 let forecastDailyNote: { label: string; value: string } | null = null;
@@ -1252,11 +1258,11 @@ function App() {
                   const daily = forecastDailyMap.values.get(hover.label);
                   if (daily) {
                     if (p.dataKey.startsWith('forecast_accum_gdd_')) {
-                      forecastDailyNote = { label: '日別積算', value: `${daily.gdd.toFixed(1)}℃` };
+                      forecastDailyNote = { label: '日別', value: `${daily.gdd.toFixed(1)}℃` };
                     } else if (p.dataKey.startsWith('forecast_accum_radiation_')) {
-                      forecastDailyNote = { label: '日別日射量', value: `${daily.radiation.toFixed(1)} MJ/m²` };
+                      forecastDailyNote = { label: '日別', value: `${daily.radiation.toFixed(1)} MJ/m²` };
                     } else if (p.dataKey.startsWith('forecast_accum_sunshine_')) {
-                      forecastDailyNote = { label: '日別日照', value: `${daily.sunshine.toFixed(1)}h` };
+                      forecastDailyNote = { label: '日別', value: `${daily.sunshine.toFixed(1)}h` };
                     }
                   }
                 }
