@@ -1392,60 +1392,95 @@ function App() {
           style={{ width: 24, height: 24, flexShrink: 0, pointerEvents: 'none', marginRight: '0.25rem' }}
         />
 
-        {/* メインタブ */}
-        <div className="premium-segmented-tab" style={{ background: 'rgba(167, 203, 192, 0.15)', flex: 1 }}>
-          {(['weather', 'history', 'analysis', 'settings'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setTopTab(tab)}
-              style={{
-                padding: '0.5rem 1.2rem',
-                background: topTab === tab ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)' : 'transparent',
-                color: topTab === tab ? '#ffffff' : 'var(--text-secondary)',
-                border: 'none',
-                fontWeight: topTab === tab ? 700 : 500,
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                borderRadius: 'calc(var(--radius-md) - 4px)',
-                boxShadow: topTab === tab ? '0 4px 12px rgba(13, 148, 136, 0.15)' : 'none',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-              }}
-            >
-              {tab === 'weather' ? '天気情報'
-                : tab === 'history' ? 'あの時の天気'
-                : tab === 'analysis' ? '比較分析'
-                : <><Settings size={13} /> 設定</>}
-            </button>
-          ))}
-        </div>
-
-        {/* Desktop のみ: アバター＋ログアウト */}
-        {!isMobile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, marginLeft: '0.25rem' }}>
+        {isMobile ? (
+          /* ── モバイルヘッダー: spacer + avatar + 設定ギア ── */
+          <>
+            <div style={{ flex: 1 }} />
             {user.photoURL && (
               <img
                 src={user.photoURL}
                 alt={user.displayName ?? ''}
                 width={28}
                 height={28}
-                style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)' }}
+                style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)', flexShrink: 0 }}
               />
             )}
             <button
-              className="secondary"
-              onClick={() => signOut(auth)}
-              title="ログアウト"
-              style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
+              onClick={() => setTopTab('settings')}
+              style={{
+                background: topTab === 'settings'
+                  ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)'
+                  : 'rgba(167, 203, 192, 0.2)',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.45rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: topTab === 'settings' ? '#ffffff' : 'var(--text-secondary)',
+                flexShrink: 0,
+              }}
+              title="設定"
             >
-              <LogOut size={13} /> ログアウト
+              <Settings size={20} />
             </button>
-          </div>
+          </>
+        ) : (
+          /* ── デスクトップヘッダー: 4タブ + avatar + logout（現状維持） ── */
+          <>
+            <div className="premium-segmented-tab" style={{ background: 'rgba(167, 203, 192, 0.15)', flex: 1 }}>
+              {(['weather', 'history', 'analysis', 'settings'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setTopTab(tab)}
+                  style={{
+                    padding: '0.5rem 1.2rem',
+                    background: topTab === tab ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)' : 'transparent',
+                    color: topTab === tab ? '#ffffff' : 'var(--text-secondary)',
+                    border: 'none',
+                    fontWeight: topTab === tab ? 700 : 500,
+                    fontSize: '0.88rem',
+                    cursor: 'pointer',
+                    borderRadius: 'calc(var(--radius-md) - 4px)',
+                    boxShadow: topTab === tab ? '0 4px 12px rgba(13, 148, 136, 0.15)' : 'none',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                  }}
+                >
+                  {tab === 'weather' ? '天気情報'
+                    : tab === 'history' ? 'あの時の天気'
+                    : tab === 'analysis' ? '比較分析'
+                    : <><Settings size={13} /> 設定</>}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, marginLeft: '0.25rem' }}>
+              {user.photoURL && (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName ?? ''}
+                  width={28}
+                  height={28}
+                  style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)' }}
+                />
+              )}
+              <button
+                className="secondary"
+                onClick={() => signOut(auth)}
+                title="ログアウト"
+                style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
+              >
+                <LogOut size={13} /> ログアウト
+              </button>
+            </div>
+          </>
         )}
       </div>
 
+      <div style={isMobile ? { paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' } : undefined}>
       {topTab === 'weather' && <WeatherTab />}
 
       {topTab === 'history' && <HistoricalWeatherTab />}
@@ -2201,7 +2236,60 @@ function App() {
     </div>
     )}
 
-    {topTab === 'settings' && <SettingsTab />}
+      {topTab === 'settings' && <SettingsTab />}
+      </div>
+
+      {/* ── モバイル ボトムナビゲーション ── */}
+      {isMobile && (
+        <nav style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 'calc(56px + env(safe-area-inset-bottom))',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          background: 'rgba(255, 255, 255, 0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid var(--card-border)',
+          display: 'flex',
+          alignItems: 'stretch',
+          zIndex: 50,
+        }}>
+          {([
+            { id: 'weather',  label: '天気情報',     Icon: Sun      },
+            { id: 'history',  label: 'あの時の天気', Icon: Clock    },
+            { id: 'analysis', label: '比較分析',      Icon: BarChart2 },
+          ] as const).map(({ id, label, Icon }) => {
+            const active = topTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setTopTab(id)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.2rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: active ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  fontWeight: active ? 700 : 400,
+                  fontSize: '0.65rem',
+                  padding: '0.4rem 0',
+                  transition: 'color 0.2s ease',
+                }}
+              >
+                <Icon size={22} strokeWidth={active ? 2.2 : 1.6} />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+      )}
   </>
   );
 }
