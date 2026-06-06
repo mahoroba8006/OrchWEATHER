@@ -2257,9 +2257,9 @@ function App() {
           zIndex: 50,
         }}>
           {([
-            { id: 'weather',  label: '天気情報',     Icon: Sun      },
-            { id: 'history',  label: 'あの時の天気', Icon: Clock    },
-            { id: 'analysis', label: '比較分析',      Icon: BarChart2 },
+            { id: 'weather',  label: 'いまの空',   Icon: Sun       },
+            { id: 'analysis', label: '空くらべ',   Icon: BarChart2 },
+            { id: 'history',  label: 'あの日の空', Icon: Clock     },
           ] as const).map(({ id, label, Icon }) => {
             const active = topTab === id;
             return (
