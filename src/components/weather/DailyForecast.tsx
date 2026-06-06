@@ -197,7 +197,7 @@ function buildDailyColumns(
 function warningToBar(
   warning: JmaWarningItem,
   cols: DailyColumn[],
-): { left: number; width: number } | null {
+): { left: string; width: string } | null {
   if (!warning.startMs || cols.length === 0) return null;
 
   const wStart = warning.startMs;
