@@ -1205,8 +1205,19 @@ function App() {
 
           const refId = accumDiffConfig && committedTargets.length > 1 ? committedTargets[1]?.id : null;
           const refKey = refId && accumDiffConfig ? `${accumDiffConfig.refKeyPrefix}${refId}` : null;
+          // regular キーで値が取れない場合（予報日付）は forecast キーにフォールバック
+          const refForecastPrefixMap: Record<string, string> = {
+            'accum_':           'forecast_accum_gdd_',
+            'accumRadiation_':  'forecast_accum_radiation_',
+            'accumPrecip_':     'forecast_accum_precip_',
+            'accumSunshine_':   'forecast_accum_sunshine_',
+          };
+          const refForecastKey = accumDiffConfig && refId
+            ? `${refForecastPrefixMap[accumDiffConfig.refKeyPrefix] ?? ''}${refId}`
+            : null;
           const v0 = refKey
-            ? hover.payload.find((p: any) => p.dataKey === refKey)?.value
+            ? (hover.payload.find((p: any) => p.dataKey === refKey)?.value
+               ?? (refForecastKey ? hover.payload.find((p: any) => p.dataKey === refForecastKey)?.value : undefined))
             : undefined;
           const hoverDoy = accumDiffConfig && !isMonthly ? mmddToDoy(hover.label) : null;
 
@@ -1523,37 +1534,64 @@ function App() {
             </button>
           </>
         ) : (
-          /* ── デスクトップヘッダー: 4タブ + avatar + logout（現状維持） ── */
+          /* ── デスクトップヘッダー: モバイル準拠ピルタブ + gear + avatar + logout ── */
           <>
-            <div className="premium-segmented-tab" style={{ background: 'rgba(167, 203, 192, 0.15)', flex: 1 }}>
-              {(['weather', 'history', 'analysis', 'settings'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setTopTab(tab)}
-                  style={{
-                    padding: '0.5rem 1.2rem',
-                    background: topTab === tab ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)' : 'transparent',
-                    color: topTab === tab ? '#ffffff' : 'var(--text-secondary)',
-                    border: 'none',
-                    fontWeight: topTab === tab ? 700 : 500,
-                    fontSize: '0.88rem',
-                    cursor: 'pointer',
-                    borderRadius: 'calc(var(--radius-md) - 4px)',
-                    boxShadow: topTab === tab ? '0 4px 12px rgba(13, 148, 136, 0.15)' : 'none',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                  }}
-                >
-                  {tab === 'weather' ? '天気情報'
-                    : tab === 'history' ? 'あの時の天気'
-                    : tab === 'analysis' ? '比較分析'
-                    : <><Settings size={13} /> 設定</>}
-                </button>
-              ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flex: 1 }}>
+              {([
+                { id: 'weather',  label: 'いまの空',   Icon: Sun       },
+                { id: 'analysis', label: '空くらべ',   Icon: BarChart2 },
+                { id: 'history',  label: 'あの日の空', Icon: Clock     },
+              ] as const).map(({ id, label, Icon }) => {
+                const active = topTab === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setTopTab(id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      background: active
+                        ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+                        : 'linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(15,118,110,0.15) 100%)',
+                      border: 'none',
+                      borderRadius: '0.6rem',
+                      cursor: 'pointer',
+                      color: active ? '#ffffff' : '#0d9488',
+                      fontWeight: active ? 700 : 500,
+                      fontSize: '0.84rem',
+                      padding: '0.45rem 1rem',
+                      transition: 'all 0.2s ease',
+                      boxShadow: active ? '0 2px 8px rgba(13,148,136,0.30)' : 'none',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, marginLeft: '0.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              <button
+                onClick={() => setTopTab('settings')}
+                style={{
+                  background: topTab === 'settings'
+                    ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+                    : 'linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(15,118,110,0.15) 100%)',
+                  border: 'none',
+                  borderRadius: '0.6rem',
+                  padding: '0.45rem 0.6rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: topTab === 'settings' ? '#ffffff' : '#0d9488',
+                }}
+                title="設定"
+              >
+                <Settings size={18} strokeWidth={topTab === 'settings' ? 2.2 : 1.8} />
+              </button>
               {user.photoURL && (
                 <img
                   src={user.photoURL}
