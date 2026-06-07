@@ -164,12 +164,12 @@ function TabBar({ tabs, activeTab, onSelect, disabled }: TabBarProps) {
             data-active={isActive}
             onClick={() => !disabled && onSelect(key)}
             style={{
-              minWidth: '4.5rem',
+              width: '6rem',
               flexShrink: 0,
               background: 'none',
               border: 'none',
               borderBottom: isActive ? '2px solid var(--accent-color)' : '2px solid transparent',
-              padding: '0.25rem 0.4rem 0.5rem',
+              padding: '0.25rem 0.75rem 0.5rem',
               fontSize: '0.72rem',
               fontWeight: isActive ? 700 : 500,
               color: isActive ? 'var(--accent-color)' : 'var(--text-secondary)',
