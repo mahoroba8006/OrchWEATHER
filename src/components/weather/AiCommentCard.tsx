@@ -30,7 +30,7 @@ const ALL_TABS: TabDef[] = [
   { key: 'sprayingAdvice',    Icon: Droplets,      label: '散布どき'   },
   { key: 'fertilizingAdvice', Icon: Sprout,        label: '施肥どき'   },
   { key: 'disasterPrep',      Icon: AlertTriangle, label: '天気の備え' },
-  { key: 'custom',            Icon: Pencil,        label: 'カスタマイズ' },
+  { key: 'custom',            Icon: Pencil,        label: 'じぶん好み' },
 ];
 
 const FOOTNOTE = (
@@ -91,7 +91,7 @@ export function AiCommentCard({
       if (!hasCustomPrompt) {
         return (
           <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.8, color: 'var(--text-secondary)' }}>
-            設定 → 気象コメント → カスタマイズプロンプトを入力・保存してください。
+            設定 → 気象コメント → じぶん好みのプロンプトを入力・保存してください。
           </p>
         );
       }
