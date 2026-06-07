@@ -359,6 +359,16 @@ button.secondary:hover {
   font-weight: 500;
 }
 
+/* AI コメントタブバー — 横スクロール対応 */
+.ai-tab-bar {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ai-tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
 /* プレミアムセグメンテッドコントロール (Pill Tab) */
 .premium-segmented-tab {
   display: inline-flex;

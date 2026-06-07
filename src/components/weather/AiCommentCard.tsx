@@ -4,7 +4,7 @@
 // enabledSections に基づいて表示タブを動的に構成する。
 // カスタマイズタブはプロンプト未設定時にガイドメッセージを表示。
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CloudSun, AlertTriangle, Droplets, Shovel, Sprout, Pencil } from 'lucide-react';
 import type { AiCommentData } from '../../api/aiComment';
 import type { AiSection } from '../../store';
@@ -141,20 +141,35 @@ interface TabBarProps {
 }
 
 function TabBar({ tabs, activeTab, onSelect, disabled }: TabBarProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const activeBtn = container.querySelector('[data-active="true"]') as HTMLElement | null;
+    activeBtn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }, [activeTab]);
+
   return (
-    <div style={{ display: 'flex', gap: '0', marginBottom: '0.8rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+    <div
+      ref={scrollRef}
+      className="ai-tab-bar"
+      style={{ display: 'flex', gap: '0', marginBottom: '0.8rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}
+    >
       {tabs.map(({ key, Icon, label }) => {
         const isActive = activeTab === key;
         return (
           <button
             key={key}
+            data-active={isActive}
             onClick={() => !disabled && onSelect(key)}
             style={{
-              flex: 1,
+              minWidth: '4.5rem',
+              flexShrink: 0,
               background: 'none',
               border: 'none',
               borderBottom: isActive ? '2px solid var(--accent-color)' : '2px solid transparent',
-              padding: '0.25rem 0.1rem 0.5rem',
+              padding: '0.25rem 0.4rem 0.5rem',
               fontSize: '0.72rem',
               fontWeight: isActive ? 700 : 500,
               color: isActive ? 'var(--accent-color)' : 'var(--text-secondary)',
