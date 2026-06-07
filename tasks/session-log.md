@@ -1,4 +1,76 @@
 
+## 2026-06-06 セッション（42回目）
+
+### 作業内容
+
+#### 1. DailyForecast.tsx ビルドエラー修正（2回目）
+**コミット:** `4a9d25f`（push済み）
+
+- **エラー:** `warningToBar` の戻り値型注釈が `{ left: number; width: number }` のまま残っており、前回セッションの return 文 string 化と矛盾
+- **修正:** 型注釈を `{ left: string; width: string }` に変更（1行のみ）
+- **教訓:** 共有コンポーネントの型変更時は return 文と型注釈の両方を同時に変更すること
+
+#### 2. ホバーツールチップの表示順修正
+**コミット:** `a7dee49`（push済み）
+
+- **修正前:** `{metric} {value} （差分/○日遅い） ※予報値`
+- **修正後:** `{metric} {value} ※予報値 （差分/○日遅い）`
+- `App.tsx` の `isForecastItem` span と `diffNote` span を入れ替えるだけ（全グラフ共通）
+
+#### 3. 有料化戦略の検討（実装なし・方針決定）
+→ 別メモリファイル `project_monetization.md` に詳細保存
+
+### 決定事項
+- ホバー表示順: ※予報値はΔ値の前（metric→value→※予報値→差分）
+- 有料化: 最初から課金。14日間無料トライアルで体験させる方式を採用予定
+- 現時点では有料化着手前にUI不整合ゼロ・AIコメント品質検証が必要
+
+### 未完了・次回候補
+- ガントバー修正の実機確認（デプロイ後に now+12h まで正しく伸びるか検証）
+- 有料化実装（Stripe導入・機能フラグ制御・フリートライアルロジック）
+- LP スクリーンショット追加（低優先度・持ち越し）
+- Firestore TTL ポリシー設定（aiComments コレクション・低優先度・持ち越し）
+
+---
+
+## 2026-06-06 セッション（41回目）
+
+### 作業内容
+
+#### 1. 時間別ガントバー「12hより短く切れる」根本原因調査・修正
+**コミット:** `17ec58c`（push済み）
+
+- **調査経緯:** 2つの仮説（SunEntryインデックスズレ / TZズレ）を精査
+  - Hypothesis 1（SunEntry）: 誤り。コードは `hourly.findIndex` の時刻ベース検索 + `hourlyPos` マッピングで正確に処理しており、SunEntryはバーを短くしない
+  - Hypothesis 2（TZズレ）: 誤り。`toJSTHourStr` は UTC ms → JST 文字列変換として正確
+  - `startMs > Date.now()` 仮説: 誤り。`startMs = Date.parse(reportDatetime)` は常に過去
+- **真の根本原因:** `COL_W = 32px` が実際の列幅（~46px）と不一致
+  - WeatherIcon `size={43}` + padding = 実列幅 ~46px に対し、バー計算は 32px/列 を仮定
+  - MiniChartRow は `preserveAspectRatio="none"` で td 全幅に伸縮する別座標系
+  - ガントバーだけが伸縮しない固定 32px 空間にあり、12時間が約8時間分に圧縮
+- **修正:** 割合（%）ベースの座標計算に変更
+  - `warningToHourlyBar(totalCols)`: 戻り値を px数値 → `"X%"` 文字列（`leftCol / totalCols * 100`）
+  - MiniChartRow と同じ座標系に統一（設計思想の統一）
+  - `WarningBar`: prop型 `number` → `string`、`width >= 32` 判定を撤廃し CSS (flex) に委譲
+  - 死にコード `Math.max(Date.now(), warning.startMs)` を `Date.now()` に簡素化
+
+#### 2. PCヘッダー redesign・予報×予報Δ表示（前回セッションの未コミット分）
+**コミット:** `54aa3f6`（push済み）
+
+- PCヘッダーをモバイルボトムナビ準拠のグラデーションピルボタン×3に変更
+- 予報日付での比較分析Δ値表示（refForecastPrefixMap フォールバック）
+
+### 決定事項
+- ガントバーはパーセント座標系に統一（MiniChartRowと同じ設計）
+- `showText = width >= 32` 判定は廃止（CSS flex + ellipsis に委譲）
+
+### 未完了・次回候補
+- ガントバー修正の実機確認（デプロイ後に now+12h まで正しく伸びるか検証）
+- LP スクリーンショット追加（低優先度・持ち越し）
+- Firestore TTL ポリシー設定（aiComments コレクション・低優先度・持ち越し）
+
+---
+
 ## 2026-06-06 セッション（40回目）
 
 ### 作業内容

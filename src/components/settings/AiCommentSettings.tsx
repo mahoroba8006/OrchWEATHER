@@ -13,7 +13,7 @@ const SECTION_INFO: Record<AiSection, SectionMeta> = {
   weatherOverview:   { label: '空ごよみ',   desc: '今日・明日の天気概況と数日先の傾向、作物の生育への影響を解説します。' },
   generalWorkAdvice: { label: '畑しごと',   desc: '草取り・収穫・定植など外作業全般のタイミングや注意点を提案します。' },
   sprayingAdvice:    { label: '散布どき',   desc: '農薬・液肥の散布に適した風・雨の条件と最適時間帯を提案します。' },
-  fertilizingAdvice: { label: '施肥どき',   desc: '固形肥料・液肥の施用タイミングを雨・土の状態から最適化して提案します。' },
+  fertilizingAdvice: { label: '施肥どき',   desc: '粒状・粉場の肥料の施用タイミングを雨・土の状態から最適化して提案します。' },
   disasterPrep:      { label: '天気の備え', desc: '荒天・乾燥・低温など気候リスクと作物・施設への備えを提案します。' },
   custom:            { label: 'カスタマイズ', desc: '自分でプロンプトを入力して、天気データに基づく任意の回答を取得できます。' },
 };
