@@ -54,8 +54,11 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   const enabledJmaGroups: JmaWarningGroup[] = savedJmaGroups
     ? [...savedJmaGroups, ...DEFAULT_JMA_GROUPS.filter(g => !savedJmaGroups.includes(g))]
     : DEFAULT_JMA_GROUPS;
-  const enabledAiSections: AiSection[] =
-    (data?.enabledAiSections as AiSection[] | undefined) ?? DEFAULT_AI_SECTIONS;
+  // 保存済みリストに新規デフォルトセクションを自動追加（セクション追加時の前方互換）
+  const savedAiSections = data?.enabledAiSections as AiSection[] | undefined;
+  const enabledAiSections: AiSection[] = savedAiSections
+    ? [...savedAiSections, ...DEFAULT_AI_SECTIONS.filter(s => !savedAiSections.includes(s))]
+    : DEFAULT_AI_SECTIONS;
   const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : '';
   return {
     baseTempSettings, accumStartDates, accumDeltaThresholds,

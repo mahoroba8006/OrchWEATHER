@@ -41,19 +41,20 @@ export interface AccumDeltaThresholds {
 
 // ─── AI コメント 表示セクション ──────────────────────────────────────────────
 export type AiSection =
-  | 'weatherOverview'   // 空ごよみ
-  | 'generalWorkAdvice' // 畑しごと
-  | 'sprayingAdvice'    // 散布どき
-  | 'disasterPrep'      // 天気の備え
-  | 'custom';           // カスタマイズ（ユーザー入力プロンプト）
+  | 'weatherOverview'    // 空ごよみ
+  | 'generalWorkAdvice'  // 畑しごと
+  | 'sprayingAdvice'     // 散布どき
+  | 'fertilizingAdvice'  // 施肥どき
+  | 'disasterPrep'       // 天気の備え
+  | 'custom';            // カスタマイズ（ユーザー入力プロンプト）
 
 export const ALL_AI_SECTIONS: AiSection[] = [
-  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'disasterPrep', 'custom',
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'disasterPrep', 'custom',
 ];
 
 // カスタマイズはデフォルト無効（明示的にオプトインする）
 export const DEFAULT_AI_SECTIONS: AiSection[] = [
-  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'disasterPrep',
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'disasterPrep',
 ];
 
 // ─── JMA 注意報・警報 表示グループ ───────────────────────────────────────────

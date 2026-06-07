@@ -7,10 +7,11 @@
 import type { AiCommentInput, AiCustomInput } from '../lib/aiCommentInput';
 
 export interface AiCommentData {
-  weatherOverview:   string; // 天気概況
-  disasterPrep:      string; // 悪天候への備え
-  sprayingAdvice:    string; // 防除・散布
-  generalWorkAdvice: string; // 一般外作業
+  weatherOverview:    string; // 天気概況
+  disasterPrep:       string; // 悪天候への備え
+  sprayingAdvice:     string; // 防除・散布
+  fertilizingAdvice:  string; // 施肥どき
+  generalWorkAdvice:  string; // 畑しごと
 }
 
 export async function fetchAiCustomComment(
@@ -58,6 +59,7 @@ export async function fetchAiComment(input: AiCommentInput): Promise<AiCommentDa
     weatherOverview:   typeof data.weatherOverview   === 'string' ? data.weatherOverview   : '',
     disasterPrep:      typeof data.disasterPrep      === 'string' ? data.disasterPrep      : '',
     sprayingAdvice:    typeof data.sprayingAdvice    === 'string' ? data.sprayingAdvice    : '',
+    fertilizingAdvice: typeof data.fertilizingAdvice === 'string' ? data.fertilizingAdvice : '',
     generalWorkAdvice: typeof data.generalWorkAdvice === 'string' ? data.generalWorkAdvice : '',
   };
 }
