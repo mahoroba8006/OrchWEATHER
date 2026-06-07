@@ -368,21 +368,20 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                   ? `今日 ${mm}/${dd}(${DAY_NAMES[dow]})`
                   : `${mm}/${dd}(${DAY_NAMES[dow]})`;
                 if (split) {
-                  // 分割日: 日付を午前列のみに左寄せ表示。午後・夜間列は空セル
                   const tl = dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode);
                   return (
-                    <Fragment key={day.date}>
-                      <td style={{ ...amCell(day), textAlign: 'left', paddingTop: '0.75rem', paddingLeft: '0.35rem' }}>
-                        <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
-                          {label}
-                        </div>
-                        {tl && (
-                          <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
-                        )}
-                      </td>
-                      <td style={{ ...pmCell(day), paddingTop: '0.75rem' }} />
-                      <td style={{ ...nightCell(day, i), paddingTop: '0.75rem' }} />
-                    </Fragment>
+                    <td
+                      key={day.date}
+                      colSpan={3}
+                      style={{ ...spanCell(day, i), textAlign: 'left', paddingTop: '0.75rem', paddingLeft: '0.5rem' }}
+                    >
+                      <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
+                        {label}
+                      </div>
+                      {tl && (
+                        <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
+                      )}
+                    </td>
                   );
                 }
                 return (
