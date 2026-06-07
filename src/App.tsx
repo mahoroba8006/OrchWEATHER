@@ -1103,12 +1103,11 @@ function App() {
     else if (entry.name.includes('日照')) unit = 'h';
     else if (entry.name.includes('飽差')) unit = 'g/m³';
     if (Array.isArray(entry.value) && entry.value.length === 2) {
-      const isVpd = entry.name.includes('飽差');
-      const fmt = (v: number) => isVpd ? v.toFixed(1) : v.toFixed(2);
-      return `${fmt(entry.value[0])}～${fmt(entry.value[1])}${unit}`;
+      return `${entry.value[0].toFixed(1)}～${entry.value[1].toFixed(1)}${unit}`;
     }
     if (typeof entry.value !== 'number') return '--';
-    const isIntegerLike = entry.name.includes('降水') || entry.name.includes('日照') || entry.name.includes('日射') || entry.name.includes('積算');
+    const isIntegerLike = entry.name.includes('日照') || entry.name.includes('日射') || entry.name.includes('積算');
+    if (entry.name.includes('降水')) return `${entry.value.toFixed(1)}${unit}`;
     return `${isIntegerLike ? Math.round(entry.value) : entry.value.toFixed(1)}${unit}`;
   };
 
@@ -1319,11 +1318,11 @@ function App() {
                   const daily = activeDailyMap.values.get(hover.label);
                   if (daily) {
                     if (p.dataKey.startsWith('forecast_accum_gdd_')) {
-                      forecastDailyNote = { label: '日別', value: `${daily.gdd.toFixed(1)}℃` };
+                      forecastDailyNote = { label: '日別', value: `${Math.round(daily.gdd)}℃` };
                     } else if (p.dataKey.startsWith('forecast_accum_radiation_')) {
-                      forecastDailyNote = { label: '日別', value: `${daily.radiation.toFixed(1)} MJ/m²` };
+                      forecastDailyNote = { label: '日別', value: `${Math.round(daily.radiation)} MJ/m²` };
                     } else if (p.dataKey.startsWith('forecast_accum_sunshine_')) {
-                      forecastDailyNote = { label: '日別', value: `${daily.sunshine.toFixed(1)}h` };
+                      forecastDailyNote = { label: '日別', value: `${Math.round(daily.sunshine)}h` };
                     } else if (p.dataKey.startsWith('forecast_accum_precip_')) {
                       forecastDailyNote = { label: '日別', value: `${daily.precip.toFixed(1)}mm` };
                     }
