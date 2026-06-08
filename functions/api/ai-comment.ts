@@ -75,7 +75,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     generationConfig: {
       temperature: 0.3,
       topP: 0.8,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 8192,
       thinkingConfig: { thinkingBudget: 1024 },
       responseMimeType: 'application/json',
       responseSchema: {
