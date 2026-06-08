@@ -107,6 +107,19 @@ export function HistoricalWeatherTab() {
   // isPlaceholder でない日のみ時間別表示に使用
   const nonPlaceholderDaily = data ? data.daily.filter(d => !d.isPlaceholder) : [];
 
+  // 過去APIの段階によって欠落する項目は、その日に実データがある時だけ表示する。
+  // availability 未指定（=全項目あり）の場合は何も隠さない。
+  const hiddenRowKeys = (() => {
+    const av = data?.availability;
+    if (!av) return undefined;
+    const hidden = new Set<string>();
+    if (!av.precipProb)    hidden.add('precipProb');
+    if (!av.freezingLevel) hidden.add('freezing');
+    if (!av.uvIndex)       hidden.add('uv');
+    if (!av.cape)          hidden.add('cape');
+    return hidden;
+  })();
+
   const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
     const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
     setScrollTarget(`${date}T${hour}:00`);
@@ -218,6 +231,7 @@ export function HistoricalWeatherTab() {
                 scrollRef={hourlyScrollRef}
                 scrollTarget={scrollTarget}
                 disablePastOpacity
+                hiddenRowKeys={hiddenRowKeys}
               />
             </section>
           )}

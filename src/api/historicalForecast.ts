@@ -13,7 +13,7 @@
 //          → archive API + ecmwf_ifs（CAPEのみ）
 //            CAPE ✅（約8ヶ月分） / 0℃層高度 ❌（9999固定） / 降水確率 ❌ / UV指数 ❌
 //
-import type { ForecastData, DailyForecastData, HourlyForecast } from './forecast';
+import type { ForecastData, DailyForecastData, HourlyForecast, FieldAvailability } from './forecast';
 
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,11 @@ function jstTodayAndYesterday(): { today: string; yesterday: string } {
   yd.setUTCDate(yd.getUTCDate() - 1);
   const yesterday = yd.toISOString().slice(0, 10);
   return { today, yesterday };
+}
+
+/** API レスポンスにそのフィールドが実在し、有効値（非null）を含むか判定する */
+function hasValues(arr: unknown): boolean {
+  return Array.isArray(arr) && arr.some(v => v != null);
 }
 
 /** YYYY-MM-DD に n 日加算した文字列を返す */
@@ -227,7 +232,14 @@ async function fetchViaForecastEndpoint(
     ...expandDayAmPm(dayAmPm, t),
   }));
 
-  return { hourly, daily, pastDaily: [], fetchedAt: Date.now() };
+  const availability: FieldAvailability = {
+    precipProb:    hasValues(raw.hourly.precipitation_probability),
+    freezingLevel: hasValues(raw.hourly.freezinglevel_height),
+    uvIndex:       hasValues(raw.hourly.uv_index),
+    cape:          hasValues(raw.hourly.cape),
+  };
+
+  return { hourly, daily, pastDaily: [], fetchedAt: Date.now(), availability };
 }
 
 // ── API フェッチ（段階3） ─────────────────────────────────────────────────────
@@ -318,7 +330,16 @@ async function fetchViaArchiveApi(
     ...expandDayAmPm(dayAmPm, t),
   }));
 
-  return { hourly, daily, pastDaily: [], fetchedAt: Date.now() };
+  // archive API は降水確率・0℃層高度・UV指数を要求していない（レスポンスに不在）。
+  // CAPE は ecmwf_ifs で取得しており、値があれば available とする。
+  const availability: FieldAvailability = {
+    precipProb:    hasValues(raw.hourly.precipitation_probability),
+    freezingLevel: hasValues(raw.hourly.freezinglevel_height),
+    uvIndex:       hasValues(raw.hourly.uv_index),
+    cape:          hasValues(raw.hourly.cape),
+  };
+
+  return { hourly, daily, pastDaily: [], fetchedAt: Date.now(), availability };
 }
 
 // ── エクスポート ──────────────────────────────────────────────────────────────
@@ -383,5 +404,6 @@ export async function fetchHistoricalForecast(
     daily:     fullDaily,
     pastDaily: [],
     fetchedAt: Date.now(),
+    availability: apiData?.availability,
   };
 }

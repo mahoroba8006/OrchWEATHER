@@ -48,11 +48,22 @@ export interface DailyForecastData {
   isPlaceholder?:   boolean;       // true: 取得データなし（未来日など）—表示用
 }
 
+// 時間別の一部フィールドはデータソース（過去API段階）によって欠落する。
+// 値（0 など）からの推測は誤検知するため、APIレスポンスにフィールドが
+// 実在したかを取得層で判定して持ち回る。undefined は「全項目あり」とみなす。
+export interface FieldAvailability {
+  precipProb: boolean;     // 降水確率
+  freezingLevel: boolean;  // 0℃層高度
+  uvIndex: boolean;        // 紫外線指数
+  cape: boolean;           // CAPE
+}
+
 export interface ForecastData {
   hourly: HourlyForecast[];        // 72エントリ（今日〜3日後）
   daily: DailyForecastData[];      // 今日〜10日後
   pastDaily: DailyForecastData[];  // 過去7日分
   fetchedAt: number;               // Date.now()
+  availability?: FieldAvailability; // 過去API用。未指定は全項目利用可（通常予報）
 }
 
 export async function fetchForecast(lat: number, lon: number): Promise<ForecastData> {

@@ -13,6 +13,9 @@ interface Props {
   scrollTarget?: string; // "YYYY-MM-DDTHH:00" — scroll this column to left edge
   disablePastOpacity?: boolean; // true: 過去時刻のグレーアウトを無効化（履歴タブ用）
   jmaWarnings?: JmaWarningItem[];
+  // 非表示にするデータ行のキー集合（過去APIで欠落する項目用）。
+  // DATA_ROWS の key および UV行の 'uv' を指定可。未指定は全行表示。
+  hiddenRowKeys?: ReadonlySet<string>;
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -202,7 +205,9 @@ const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => strin
   { key: 'temperature',  label: '気温(℃)',     fmt: h => h.temperature.toFixed(1) },
   { key: 'precipProb',   label: '降水確率(%)',  fmt: h => String(h.precipProb) },
   { key: 'precip',       label: '降水量(mm)',   fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1) },
+  { key: 'snowfall',     label: '降雪量(cm)',   fmt: h => h.snowfall === 0 ? '0.0' : (Math.ceil(h.snowfall * 10) / 10).toFixed(1) },
   { key: 'windSpeed',    label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1) },
+  { key: 'windGusts',    label: '瞬間風速(m/s)', fmt: h => h.windGusts.toFixed(1) },
   { key: 'windDir',      label: '風向き',       fmt: h => degreesToCompass(h.windDirection) },
   { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString() },
   { key: 'humidity',     label: '湿度(%)',      fmt: h => String(h.humidity) },
@@ -261,12 +266,15 @@ function warningToHourlyBar(
 }
 
 // ── Main component ────────────────────────────────────────
-export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, jmaWarnings }: Props) {
+export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, jmaWarnings, hiddenRowKeys }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
 
   // 履歴タブはすべての時刻が「過去」になるため、グレーアウトを無効化する
   const effectiveCutoff = disablePastOpacity ? new Date(0) : cutoff;
+
+  // 降雪量行は、表示期間内に降雪(>0)があるときだけ出す（無雪期の 0.0 連続を抑制）
+  const hasSnow = hourly.some(h => h.snowfall > 0);
 
   // Build timeline: hourly entries interleaved with sun events inside the range
   const firstTime = hourly.length > 0 ? hourly[0].time : '';
@@ -427,9 +435,14 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 </tr>
               ));
             })()}
-            <UVRow tl={tl} isNighttime={isNighttime} cutoff={effectiveCutoff} />
+            {!hiddenRowKeys?.has('uv') && (
+              <UVRow tl={tl} isNighttime={isNighttime} cutoff={effectiveCutoff} />
+            )}
             {/* データ行 */}
-            {DATA_ROWS.map(row => (
+            {DATA_ROWS
+              .filter(row => row.key !== 'snowfall' || hasSnow)
+              .filter(row => !hiddenRowKeys?.has(row.key))
+              .map(row => (
               <tr key={row.key} style={{ borderBottom: '1px solid #f0f2f8' }}>
                 <td style={STICKY}>{row.label}</td>
                 {tl.map((entry, i) => {
