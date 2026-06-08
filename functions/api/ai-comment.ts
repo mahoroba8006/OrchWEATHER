@@ -73,9 +73,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
     contents: [{ parts: [{ text: JSON.stringify(payload) }] }],
     generationConfig: {
-      temperature: 0.4,
+      temperature: 0.3,
+      topP: 0.8,
       maxOutputTokens: 4096,
-      thinkingConfig: { thinkingBudget: 0 },
+      thinkingConfig: { thinkingBudget: 1024 },
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'object',
@@ -103,9 +104,10 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       throw new Error(`gemini_http:${geminiRes.status}:${detail}`);
     }
     const json = await geminiRes.json() as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      candidates?: Array<{ content?: { parts?: Array<{ thought?: boolean; text?: string }> } }>;
     };
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+    const parts = json.candidates?.[0]?.content?.parts ?? [];
+    const text = parts.find(p => !p.thought)?.text;
     if (!text) throw new Error('gemini_empty');
     return JSON.parse(text); // トークン超過で途切れた場合は SyntaxError を投げる
   };
