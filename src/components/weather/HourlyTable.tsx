@@ -17,17 +17,16 @@ interface Props {
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 
-// ミニグラフバー用：降水強度の感覚ラベル
+// ミニグラフバー用：降水強度の感覚ラベル（気象庁「雨の強さ」区分に準拠）
 function precipToLabel(mm: number): string {
-  if (mm < 0.5)  return 'ぽつぽつ';
-  if (mm < 1.0)  return 'しとしと';
-  if (mm < 5.0)  return 'さーっ';
-  if (mm < 10.0) return 'ザーザー';
-  if (mm < 20.0) return '土砂降り';
-  if (mm < 30.0) return 'ばしゃばしゃ';
-  if (mm < 50.0) return 'バチバチ';
-  if (mm < 80.0) return '滝のよう';
-  return '猛烈';
+  if (mm < 1.0)  return 'ぽつぽつ'; // 小雨
+  if (mm < 3.0)  return 'しとしと'; // 弱い雨
+  if (mm < 10.0) return '本降り';   // 並の雨
+  if (mm < 20.0) return 'ザーザー'; // やや強い雨
+  if (mm < 30.0) return '土砂降り'; // 強い雨
+  if (mm < 50.0) return '激しい雨'; // 激しい雨
+  if (mm < 80.0) return '滝のよう'; // 非常に激しい雨
+  return '猛烈';                    // 猛烈な雨
 }
 
 // 飽差 (g/m³): e_s(T)[hPa] = 6.1078 × 10^(7.5T/(T+237.3))、飽和水蒸気量 = 216.67 × e_s / (T+273.15)
