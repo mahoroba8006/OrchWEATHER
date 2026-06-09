@@ -26,6 +26,8 @@ export interface JmaWarningItem {
   level: WarningLevel;
   /** 発表時刻を "M/D H:MM〜" 形式で表示 */
   validPeriod?: string;
+  /** 発令ステータス: "発表" | "継続" | "更新" */
+  status?: string;
   /** 発表時刻の UTC ms */
   startMs?: number;
   /** 有効期間終了時刻の UTC ms（r8 では未使用・将来の API 拡張用に保持） */
@@ -158,6 +160,7 @@ export async function fetchJmaWarnings(
           name,
           level,
           validPeriod,
+          status,
           startMs: isNaN(startMs ?? NaN) ? undefined : startMs,
           endMs: undefined,  // r8 は終了時刻を提供しない
         });

@@ -23,6 +23,13 @@ const LEVEL_STYLE: Record<WarningLevel, { color: string; bg: string; border: str
 function WarningRow({ item }: { item: JmaWarningItem }) {
   const style = LEVEL_STYLE[item.level];
 
+  // 発表: バッジ「発表」＋発表時刻を表示 / 継続・更新: バッジ「継続中」のみ（時刻なし）
+  const isIssued = item.status === '発表';
+  const badgeText = item.status ? (isIssued ? '発表' : '継続中') : null;
+  const timeText = isIssued && item.validPeriod
+    ? item.validPeriod.replace(/〜\s*$/, '')
+    : null;
+
   return (
     <div style={{
       display: 'flex',
@@ -49,9 +56,25 @@ function WarningRow({ item }: { item: JmaWarningItem }) {
       <span style={{ fontWeight: 700, fontSize: '0.82rem', color: style.color, whiteSpace: 'nowrap' }}>
         {item.name}
       </span>
-      {item.validPeriod && (
+      {badgeText && (
+        <span style={{
+          flexShrink: 0,
+          fontSize: '0.66rem',
+          fontWeight: 600,
+          color: style.color,
+          border: `1px solid ${style.border}`,
+          borderRadius: 4,
+          padding: '0.05rem 0.35rem',
+          lineHeight: 1.5,
+          whiteSpace: 'nowrap',
+          opacity: 0.85,
+        }}>
+          {badgeText}
+        </span>
+      )}
+      {timeText && (
         <span style={{ fontSize: '0.75rem', color: style.color, opacity: 0.7, whiteSpace: 'nowrap' }}>
-          {item.validPeriod}
+          {timeText}
         </span>
       )}
     </div>
@@ -76,7 +99,7 @@ export function JmaWarningSummary({ result, loading }: Props) {
     ? (() => {
         const d = new Date(result.reportDatetime);
         const jst = new Date(d.getTime() + 9 * 60 * 60000);
-        return `${jst.getUTCMonth() + 1}/${jst.getUTCDate()} ${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')} 発表`;
+        return `${jst.getUTCMonth() + 1}/${jst.getUTCDate()} ${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')} 時点`;
       })()
     : null;
 
