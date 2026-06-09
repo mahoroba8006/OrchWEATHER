@@ -9,47 +9,45 @@ function codeToIconFile(code: number, isNight: boolean): string {
 
   // 0: 快晴 / 1: おおむね晴れ / 2: 一部曇り / 3: 曇り
   if (code === 0)                 return `clear-${d}`;
-  if (code === 1)                 return `partly-cloudy-${d}`;
-  if (code === 2)                 return `overcast-${d}`;
+  if (code === 1)                 return `mostly-clear-${d}`;
+  if (code === 2)                 return `partly-cloudy-${d}`;
   if (code === 3)                 return 'overcast';
 
   // 45/48: 霧・着氷霧
   if (code === 45 || code === 48) return `fog-${d}`;
 
   // 51: 霧雨（弱） / 53-55: 霧雨（並〜強）
-  if (code === 51)                return `partly-cloudy-${d}-drizzle`;
-  if (code === 53 || code === 55) return `overcast-${d}-drizzle`;
+  if (code === 51 || code === 53 || code === 55) return 'drizzle';
 
   // 56: 着氷性の霧雨（弱） / 57: 着氷性の霧雨（強）
-  if (code === 56)                return `overcast-${d}-sleet`;
-  if (code === 57)                return 'overcast-sleet';
+  if (code === 56 || code === 57) return 'sleet';
 
   // 61: 雨（弱） / 63: 雨（並） / 65: 雨（強）
-  if (code === 61)                return `partly-cloudy-${d}-rain`;
-  if (code === 63)                return `overcast-${d}-rain`;
-  if (code === 65)                return 'overcast-rain';
+  if (code === 61)                return 'rain';
+  if (code === 63)                return 'overcast-rain';
+  if (code === 65)                return 'extreme-rain';
 
   // 66: 着氷性の雨（弱） / 67: 着氷性の雨（強）
-  if (code === 66)                return `overcast-${d}-sleet`;
-  if (code === 67)                return 'overcast-sleet';
+  if (code === 66)                return 'sleet';
+  if (code === 67)                return 'extreme-sleet';
 
   // 71: 雪（弱） / 73: 雪（並） / 75: 雪（強） / 77: 雪粒
-  if (code === 71)                return `partly-cloudy-${d}-snow`;
-  if (code === 73)                return `overcast-${d}-snow`;
-  if (code === 75 || code === 77) return 'overcast-snow';
+  if (code === 71)                return 'snow';
+  if (code === 73)                return 'overcast-snow';
+  if (code === 75 || code === 77) return 'extreme-snow';
 
   // 80: にわか雨（弱） / 81: にわか雨（並） / 82: にわか雨（激）
-  if (code === 80)                return `partly-cloudy-${d}-rain`;
-  if (code === 81)                return `overcast-${d}-rain`;
-  if (code === 82)                return `extreme-${d}-rain`;
+  if (code === 80)                return `mostly-clear-${d}-drizzle`;
+  if (code === 81)                return `partly-cloudy-${d}-drizzle`;
+  if (code === 82)                return `partly-cloudy-${d}-drizzle`;
 
   // 85: にわか雪（弱） / 86: にわか雪（強）
-  if (code === 85)                return `partly-cloudy-${d}-snow`;
+  if (code === 85)                return `mostly-clear-${d}-snow`;
   if (code === 86)                return `overcast-${d}-snow`;
 
   // 95: 雷雨 / 96: 雷雨＋弱いひょう / 99: 雷雨＋強いひょう
-  if (code === 95)                return `thunderstorms-${d}`;
-  if (code === 96 || code === 99) return `extreme-${d}-hail`;
+  if (code === 95)                return `thunderstorms-${d}-extreme-rain`;
+  if (code === 96 || code === 99) return 'extreme-thunderstorms-extreme-hail';
 
   return 'not-available';
 }
