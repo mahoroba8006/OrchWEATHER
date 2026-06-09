@@ -352,7 +352,11 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
   return (
     <div>
       <div ref={scrollRef ?? undefined} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap', tableLayout: 'fixed' }}>
+        {/* width を明示しないと table-layout:fixed が colgroup 幅を厳密適用せず、
+            列がセル内容に合わせて COL_W より広くなる。すると固定ピクセルで描く
+            ミニグラフSVG(W=列数×COL_W)が実列幅と食い違い、右へ行くほどバーがずれる。
+            テーブル幅 = ラベル列 + 列数×COL_W に固定して各列を実寸 COL_W に揃える。 */}
+        <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap', tableLayout: 'fixed', width: LABEL_W + tl.length * COL_W }}>
           <colgroup>
             <col style={{ width: LABEL_W }} />
             {tl.map((_, i) => <col key={i} style={{ width: COL_W }} />)}
