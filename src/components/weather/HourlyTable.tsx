@@ -41,8 +41,12 @@ function calcVPD(tempC: number, humidPct: number): number {
   return a_max * (1 - humidPct / 100);
 }
 
-// 各時間の列幅（元の値は 40。お試しで20%狭くして 32 に設定中）
-export const COL_W = 32;
+// 各時間の固定列幅。table-layout:fixed + colgroup で全列をこの幅に統一する（太陽列も同じ）。
+// 風向き「北北西」(0.7rem ≈ 34px) が収まる最小幅に合わせたコンパクト値。
+// 全列が等幅になることで、ミニグラフの座標系（viewBox=列数×COL_W）が実レイアウトと一致する。
+export const COL_W = 38;
+// 左端ラベル列の固定幅（「瞬間風速(m/s)」等が収まる幅）
+const LABEL_W = 96;
 
 const STICKY: CSSProperties = {
   position: 'sticky',
@@ -53,7 +57,7 @@ const STICKY: CSSProperties = {
   color: 'var(--text-secondary)',
   borderRight: '1px solid var(--card-border-sub)',
   zIndex: 1,
-  minWidth: 90,
+  minWidth: LABEL_W,
   fontSize: '0.75rem',
   verticalAlign: 'middle',
 };
@@ -106,8 +110,9 @@ function MiniChartRow({ tl, hourlyPos }: { tl: TLEntry[]; hourlyPos: number[] })
     <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
       <td style={STICKY}>気温/降水</td>
       <td colSpan={tl.length} style={{ padding: 0, position: 'relative' }}>
-        {/* SVG: バー・気温ライン（preserveAspectRatio="none" で横幅100%に伸縮） */}
-        <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+        {/* SVG: バー・気温ライン。列が固定幅(COL_W)になったので td 幅 = 列数×COL_W = W と一致し、
+            横伸縮（preserveAspectRatio="none"）は不要。実ピクセル座標でそのまま描画する。 */}
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
           {gridTemps.map(v => (
             <g key={v}>
               <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} stroke="#e5e7eb" strokeWidth={1} />
@@ -183,8 +188,8 @@ function UVRow({ tl, isNighttime, cutoff }: {
           <td key={`uv-${h.time}`} style={{ padding: '0.1rem 0', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: isPast ? 0.35 : undefined }}>
             <img
               src={`/icons/weather/${uvToIconFile(h.uvIndex)}.svg`}
-              width={38}
-              height={38}
+              width={36}
+              height={36}
               alt={`UV ${Math.round(h.uvIndex)}`}
               style={{ display: 'inline-block' }}
             />
@@ -259,8 +264,7 @@ function warningToHourlyBar(
     : hourlyPos[idx12];
   if (rightCol <= leftCol) return null;
   // 列インデックスを td 全幅（colSpan=totalCols）に対する % に変換する。
-  // MiniChartRow（preserveAspectRatio="none" で 100% に伸縮）と同じ座標系に乗せ、
-  // 実際の列幅（COL_W ではなく天気アイコン由来の実幅）に依存しないようにする。
+  // 列は固定幅（COL_W）で等幅なので、% 位置 = 実際の列位置と一致する。
   return {
     left:  `${(leftCol / totalCols) * 100}%`,
     width: `${((rightCol - leftCol) / totalCols) * 100}%`,
@@ -302,7 +306,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
   useEffect(() => {
     if (!scrollRef?.current || tl.length === 0) return;
     if (disablePastOpacity) return;
-    const STICKY_W = 90;
+    const STICKY_W = LABEL_W;
     let targetIdx = 0;
     for (let i = 0; i < tl.length; i++) {
       if (new Date(tlTime(tl[i])) <= cutoff) targetIdx = i;
@@ -319,7 +323,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
     const container = scrollRef.current;
     const cell = container.querySelector(`[data-time="${scrollTarget}"]`) as HTMLElement | null;
     if (!cell) return;
-    const STICKY_W = 90; // matches minWidth in STICKY style
+    const STICKY_W = LABEL_W; // matches the sticky label column width
     container.scrollLeft += cell.getBoundingClientRect().left - container.getBoundingClientRect().left - STICKY_W;
   }, [scrollTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -348,7 +352,11 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
   return (
     <div>
       <div ref={scrollRef ?? undefined} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+        <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: LABEL_W }} />
+            {tl.map((_, i) => <col key={i} style={{ width: COL_W }} />)}
+          </colgroup>
           <tbody>
             {/* 日付 */}
             <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
@@ -364,7 +372,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   return `${mm}/${dd}(${dow})`;
                 })();
                 return (
-                  <td key={`d-${i}`} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#5b6478', fontWeight: label ? 600 : undefined, fontSize: '0.7rem', ...(!sameDay && i > 0 ? { borderLeft: '2px solid #ebeef5' } : {}) }}>
+                  <td key={`d-${i}`} style={{ padding: '0.3rem 0.2rem', textAlign: 'left', minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#5b6478', fontWeight: label ? 600 : undefined, fontSize: '0.7rem', overflow: 'visible', ...(!sameDay && i > 0 ? { borderLeft: '2px solid #ebeef5' } : {}) }}>
                     {label}
                   </td>
                 );
@@ -408,7 +416,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 }
                 return (
                   <td key={`w-${i}`} style={{ padding: '0.2rem 0.1rem', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: faded ? 0.4 : 1 }}>
-                    <WeatherIcon code={entry.data.weatherCode} isNight={isNighttime(entry.data.time)} size={43} animated={false} />
+                    <WeatherIcon code={entry.data.weatherCode} isNight={isNighttime(entry.data.time)} size={36} animated={false} />
                   </td>
                 );
               })}
@@ -451,7 +459,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W }} />;
                   const h = entry.data;
                   return (
-                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#4b5563' }}>
+                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#4b5563', ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
                       {row.fmt(h)}
                     </td>
                   );
