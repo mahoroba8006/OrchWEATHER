@@ -44,7 +44,7 @@ function calcVPD(tempC: number, humidPct: number): number {
 // 各時間の固定列幅。table-layout:fixed + colgroup で全列をこの幅に統一する（太陽列も同じ）。
 // 風向き「北北西」(0.7rem ≈ 34px) が収まる最小幅に合わせたコンパクト値。
 // 全列が等幅になることで、ミニグラフの座標系（viewBox=列数×COL_W）が実レイアウトと一致する。
-export const COL_W = 38;
+export const COL_W = 42;
 // 左端ラベル列の固定幅（「瞬間風速(m/s)」等が収まる幅）
 const LABEL_W = 96;
 
