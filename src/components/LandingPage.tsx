@@ -3,7 +3,7 @@ import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebas
 import {
   Leaf, CloudSun, Thermometer, Droplets, AlertTriangle,
   BarChart2, MapPin, FileDown, Shovel, Sprout, ArrowRight,
-  Check, X, Bell, SlidersHorizontal, Quote,
+  Check, X, SlidersHorizontal, Quote,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
@@ -83,7 +83,7 @@ const pains = [
   },
   {
     label: '自分の農場に合わせた判断が欲しい',
-    quote: 'うちは標高が高いから予報より早め、でもその「ズレ」を毎回頭で換算している。自分の基準でアラートが出せたらいいのに。',
+    quote: 'うちは標高が高いから予想気温から3℃は低くなる。でもその「ズレ」を毎回頭で換算している。自分の基準でアラートが出せたらいいのに。',
   },
 ];
 
@@ -136,13 +136,6 @@ const features = [
     bg: C.amberBg,
     title: 'AI が農作業アドバイスを生成',
     desc: '「散布どき」「施肥どき」「畑しごと」「天気の備え」を72時間の気象データから毎朝自動生成。防除・散布と施肥それぞれの適期を分けて提案し、悪天候前の準備アドバイスも届けます。',
-  },
-  {
-    icon: <AlertTriangle size={22} />,
-    color: '#dc2626',
-    bg: '#fee2e2',
-    title: '気象庁の注意報・警報を見逃さない',
-    desc: '気象庁発表の17種類の注意報・警報をリアルタイムで表示。大雨・土砂災害・霜・乾燥など必要な種別だけをフィルタリングし、ガントチャートで発令状況を確認できます。',
   },
   {
     icon: <BarChart2 size={22} />,
@@ -520,11 +513,11 @@ export function LandingPage() {
                   <CloudSun size={14} /> AI農作業アドバイス
                 </div>
                 <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, lineHeight: 1.3, margin: '0 0 1rem', letterSpacing: '-0.02em' }}>
-                  「今日、散布できるか。施肥のタイミングは。」<br />
-                  <span style={{ color: C.primary }}>AIが毎朝判断する。</span>
+                  「明日、散布できるか。施肥のタイミングは。」<br />
+                  <span style={{ color: C.primary }}>AIが気象データから提案する。</span>
                 </h2>
                 <p style={{ color: C.textSub, lineHeight: 1.8, fontSize: '0.9rem', margin: '0 0 1.5rem' }}>
-                  72時間分の気象データ（風速・温度・湿度・降水確率）をもとに、AIが「散布どき」「施肥どき」「畑しごと」「天気の備え」を自動生成。農薬散布の適期から、施肥・肥料まきのタイミング、外作業の注意点まで、具体的な時間帯を提案します。
+                  気象データをもとに、AIが農薬散布の適期から、施肥・肥料まきのタイミング、外作業の注意点まで、具体的な時間帯・注意事項を提案します。
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                   {aiSections.map((s, i) => (
@@ -594,8 +587,8 @@ export function LandingPage() {
                 {/* 例文 吹き出し */}
                 {[
                   '「うちは標高が高くて霜が怖いから、最低気温5℃以下で大袈裟にアラートを出してほしい」',
-                  '「専門用語は抜きにして、今日明日やるべき作業の選択肢だけをシンプルに箇条書きしてほしい」',
-                  '「毎朝、馴染みのある方言でモチベーションの上がる一言を添えてほしい」',
+                  '「降水量、風速、時間帯、など自分の持っている基準に一致する作業のタイミングを提案してほしい」',
+                  '「親しみやすい言葉で、作業のモチベーションの上がる一言を添えてほしい」',
                 ].map((ex, i) => (
                   <div key={i} style={{
                     display: 'flex', gap: '0.75rem',
@@ -660,38 +653,30 @@ export function LandingPage() {
               <div>
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                  background: '#fee2e2', color: '#dc2626',
+                  background: C.primaryBg, color: C.primaryDark,
                   fontSize: 13, fontWeight: 700, padding: '4px 12px', borderRadius: 999,
                   marginBottom: '1rem',
                 }}>
-                  <Bell size={14} /> 気象庁 注意報・警報
+                  <Leaf size={14} /> 現場目線の機能
                 </div>
-                <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, lineHeight: 1.3, margin: '0 0 1rem', letterSpacing: '-0.02em' }}>
-                  霜注意報も、乾燥注意報も、<br />
-                  <span style={{ color: '#dc2626' }}>見落とさない。</span>
+                <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, lineHeight: 1.3, margin: '0 0 1.2rem', letterSpacing: '-0.02em' }}>
+                  農業の現場だから<br />
+                  <span style={{ color: C.primary }}>わかる機能。</span>
                 </h2>
-                <p style={{ color: C.textSub, lineHeight: 1.8, fontSize: '0.9rem', margin: '0 0 1rem' }}>
-                  気象庁発表の17種類の注意報・警報をリアルタイムで取得し、天気表示に重ねてガントチャートで表示。大雨・土砂災害から霜・乾燥まで、農業に関わる警報を必要なものだけ選んで表示できます。
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {['大雨', '土砂災害', '洪水', '大雪', '強風', '霜', '乾燥', '雷', '低温', 'なだれ'].map(tag => (
-                    <span key={tag} style={{
-                      background: '#fff1f2',
-                      border: '1px solid #fecdd3',
-                      color: '#9f1239',
-                      fontSize: 12, fontWeight: 600,
-                      padding: '3px 10px', borderRadius: 999,
-                    }}>
-                      {tag}
-                    </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                  {[
+                    { emoji: '🌧', title: '降水量は「言葉」で伝える', desc: '「カッパ！」「本降り」など、雨具の準備要否がひと目でわかる表現に変換。細かい降水量の刻みで作業判断をサポートします。' },
+                    { emoji: '☀', title: '紫外線指数を時間ごとに表示', desc: '夏場の農作業に欠かせない、時間帯ごとの紫外線指数をリアルタイムで表示。日焼け・熱中症対策の参考に。' },
+                    { emoji: '💨', title: '瞬間風速で突風を見逃さない', desc: '平均風速だけでなく、瞬間風速も表示。散布タイミングや支柱・ハウスの養生判断に役立ちます。' },
+                  ].map(item => (
+                    <div key={item.title} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '1.3rem', lineHeight: 1, marginTop: '0.1rem' }}>{item.emoji}</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.2rem' }}>{item.title}</div>
+                        <div style={{ color: C.textSub, fontSize: '0.82rem', lineHeight: 1.7 }}>{item.desc}</div>
+                      </div>
+                    </div>
                   ))}
-                  <span style={{
-                    background: '#f5f5f5', border: '1px solid #e5e7eb',
-                    color: '#6b7280', fontSize: 12, fontWeight: 600,
-                    padding: '3px 10px', borderRadius: 999,
-                  }}>
-                    他7種
-                  </span>
                 </div>
               </div>
             </FadeIn>
