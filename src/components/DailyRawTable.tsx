@@ -8,6 +8,18 @@ interface DailyRawTableProps {
   weatherData: Record<string, WeatherData>;
   getYearColor: (index: number, baseColor: string) => string;
   getLocationName: (id: string) => string;
+  accumStartDates: { precip: string; sunshine: string; radiation: string; gdd: string };
+  baseTempSettings: [number, number];
+}
+
+interface AccumRow {
+  accumPrecip:    number | null;
+  accumRadiation: number | null;
+  accumSunshine:  number | null;
+  dailyGdd1:  number | null;
+  accumGdd1:  number | null;
+  dailyGdd2:  number | null;
+  accumGdd2:  number | null;
 }
 
 function calcVPD(tempC: number, humidPct: number): number {
@@ -42,7 +54,7 @@ const METRICS: { label: string; key: keyof DayRow; fixed: number }[] = [
   { label: '最低飽差(g/m³)', key: 'vpdMin',          fixed: 2 },
 ];
 
-export function DailyRawTable({ targets, weatherData, getYearColor, getLocationName }: DailyRawTableProps) {
+export function DailyRawTable({ targets, weatherData, getYearColor, getLocationName, accumStartDates, baseTempSettings }: DailyRawTableProps) {
   // すべてのターゲットの MM-DD を収集してソート
   const allDates = React.useMemo(() => {
     const dateSet = new Set<string>();
@@ -79,6 +91,41 @@ export function DailyRawTable({ targets, weatherData, getYearColor, getLocationN
     });
   }, [targets, weatherData]);
 
+  // ターゲットごとの累積値マップ（CSV専用）
+  const accumMaps = React.useMemo(() => {
+    const [b1, b2] = baseTempSettings;
+    return targets.map(t => {
+      const map = new Map<string, AccumRow>();
+      const wd = weatherData[t.id];
+      if (!wd) return map;
+      let runPrecip = 0, runRadiation = 0, runSunshine = 0;
+      let runGdd1 = 0, runGdd2 = 0;
+      wd.daily.forEach(d => {
+        const mmdd = d.date.substring(5);
+        const inPrecip    = mmdd >= accumStartDates.precip;
+        const inRadiation = mmdd >= accumStartDates.radiation;
+        const inSunshine  = mmdd >= accumStartDates.sunshine;
+        const inGdd       = mmdd >= accumStartDates.gdd;
+        if (inPrecip)    runPrecip    += d.precipSum;
+        if (inRadiation) runRadiation += d.radiation;
+        if (inSunshine)  runSunshine  += d.sunshineDuration;
+        const daily1 = Math.max(0, d.tempMean - b1);
+        const daily2 = Math.max(0, d.tempMean - b2);
+        if (inGdd) { runGdd1 += daily1; runGdd2 += daily2; }
+        map.set(mmdd, {
+          accumPrecip:    inPrecip    ? runPrecip    : null,
+          accumRadiation: inRadiation ? runRadiation : null,
+          accumSunshine:  inSunshine  ? runSunshine  : null,
+          dailyGdd1: inGdd ? daily1   : null,
+          accumGdd1: inGdd ? runGdd1  : null,
+          dailyGdd2: inGdd ? daily2   : null,
+          accumGdd2: inGdd ? runGdd2  : null,
+        });
+      });
+      return map;
+    });
+  }, [targets, weatherData, accumStartDates, baseTempSettings]);
+
   const isTwoTargets = targets.length >= 2;
 
   // ターゲットごとのラベル（地点名+年）
@@ -100,17 +147,40 @@ export function DailyRawTable({ targets, weatherData, getYearColor, getLocationN
     if (!firstTarget) return;
 
     const fileName = `weather_${getLocationName(firstTarget.locationId)}_${firstTarget.year}.csv`;
+    const [b1, b2] = baseTempSettings;
+
+    const ACCUM_COLS: { label: string; key: keyof AccumRow; fixed: number }[] = [
+      { label: `累計降水量(mm)`,                    key: 'accumPrecip',    fixed: 1 },
+      { label: `累計日射量(MJ/m²)`,                 key: 'accumRadiation', fixed: 2 },
+      { label: `累計日照時間(h)`,                    key: 'accumSunshine',  fixed: 1 },
+      { label: `有効積算温度_日別(基準${b1}℃)`,      key: 'dailyGdd1',      fixed: 1 },
+      { label: `累計積算温度(基準${b1}℃)`,           key: 'accumGdd1',      fixed: 1 },
+      { label: `有効積算温度_日別(基準${b2}℃)`,      key: 'dailyGdd2',      fixed: 1 },
+      { label: `累計積算温度(基準${b2}℃)`,           key: 'accumGdd2',      fixed: 1 },
+    ];
+
+    function formatAccum(row: AccumRow | undefined, col: { key: keyof AccumRow; fixed: number }): string {
+      if (!row) return '-';
+      const v = row[col.key];
+      if (v === null || v === undefined) return '-';
+      return (v as number).toFixed(col.fixed);
+    }
 
     // ヘッダー行
     let header: string;
     if (!isTwoTargets) {
-      header = '日付,' + METRICS.map(m => m.label).join(',');
+      const labels = [
+        ...METRICS.map(m => m.label),
+        ...ACCUM_COLS.map(c => c.label),
+      ];
+      header = '日付,' + labels.join(',');
     } else {
       const cols: string[] = ['日付'];
       METRICS.forEach(m => {
-        targetLabels.forEach(label => {
-          cols.push(`${m.label}_${label}`);
-        });
+        targetLabels.forEach(label => cols.push(`${m.label}_${label}`));
+      });
+      ACCUM_COLS.forEach(c => {
+        targetLabels.forEach(label => cols.push(`${c.label}_${label}`));
       });
       header = cols.join(',');
     }
@@ -120,15 +190,15 @@ export function DailyRawTable({ targets, weatherData, getYearColor, getLocationN
       const cells: string[] = [formatDate(mmdd)];
       if (!isTwoTargets) {
         const row = rowMaps[0]?.get(mmdd);
-        METRICS.forEach(m => {
-          cells.push(formatValue(row, m));
-        });
+        METRICS.forEach(m => cells.push(formatValue(row, m)));
+        const arow = accumMaps[0]?.get(mmdd);
+        ACCUM_COLS.forEach(c => cells.push(formatAccum(arow, c)));
       } else {
         METRICS.forEach(m => {
-          rowMaps.forEach(map => {
-            const row = map.get(mmdd);
-            cells.push(formatValue(row, m));
-          });
+          rowMaps.forEach(map => cells.push(formatValue(map.get(mmdd), m)));
+        });
+        ACCUM_COLS.forEach(c => {
+          accumMaps.forEach(map => cells.push(formatAccum(map.get(mmdd), c)));
         });
       }
       rows.push(cells.join(','));

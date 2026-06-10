@@ -2427,6 +2427,8 @@ function App() {
               weatherData={weatherData}
               getYearColor={getYearColor}
               getLocationName={getLocationName}
+              accumStartDates={userSettings?.accumStartDates ?? { precip: '01-01', sunshine: '01-01', radiation: '01-01', gdd: '01-01' }}
+              baseTempSettings={userSettings?.baseTempSettings ?? [10, 3.5]}
             />
           </section>
         )}
