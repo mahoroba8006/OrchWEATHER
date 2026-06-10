@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, Loader2, BarChart2 } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, Loader2, BarChart2, HelpCircle } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -14,6 +14,7 @@ import { GEO_OPTIONS } from './lib/geo';
 import { WeatherTab } from './components/weather/WeatherTab';
 import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
 import { Footer } from './components/Footer';
+import { HelpPage } from './components/HelpPage';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -134,7 +135,8 @@ function calcInitialDisplayRange(): { startMM: number; endMM: number } {
 
 function App() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus } = useAppStore();
-  const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings'>('weather');
+  const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings' | 'help'>('weather');
+  const prevTopTab = useRef<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [displayRange, setDisplayRange] = useState(() =>
@@ -1502,6 +1504,29 @@ function App() {
           /* ── モバイルヘッダー: spacer + avatar + 設定ギア ── */
           <>
             <div style={{ flex: 1 }} />
+            <button
+              onClick={() => {
+                if (topTab !== 'help') prevTopTab.current = topTab;
+                setTopTab('help');
+              }}
+              style={{
+                background: topTab === 'help'
+                  ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)'
+                  : 'rgba(167, 203, 192, 0.2)',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.45rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: topTab === 'help' ? '#ffffff' : 'var(--text-secondary)',
+                flexShrink: 0,
+              }}
+              title="アプリの使い方"
+            >
+              <HelpCircle size={20} />
+            </button>
             {user.photoURL && (
               <img
                 src={user.photoURL}
@@ -1572,6 +1597,31 @@ function App() {
               })}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              <button
+                onClick={() => {
+                  if (topTab !== 'help') prevTopTab.current = topTab;
+                  setTopTab('help');
+                }}
+                style={{
+                  background: topTab === 'help'
+                    ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+                    : 'linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(15,118,110,0.15) 100%)',
+                  border: 'none',
+                  borderRadius: '0.6rem',
+                  padding: '0.45rem 0.6rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  color: topTab === 'help' ? '#ffffff' : '#0d9488',
+                  fontSize: '0.84rem',
+                  fontWeight: topTab === 'help' ? 700 : 500,
+                }}
+                title="アプリの使い方"
+              >
+                <HelpCircle size={18} strokeWidth={topTab === 'help' ? 2.2 : 1.8} />
+                使い方
+              </button>
               <button
                 onClick={() => setTopTab('settings')}
                 style={{
@@ -2440,6 +2490,7 @@ function App() {
     )}
 
       {topTab === 'settings' && <SettingsTab />}
+      {topTab === 'help' && <HelpPage onBack={() => setTopTab(prevTopTab.current)} />}
       </div>
 
       {/* ── モバイル ボトムナビゲーション ── */}
