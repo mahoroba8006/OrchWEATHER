@@ -46,3 +46,58 @@
 
 ### 検証結果
 - (実装後に追記)
+
+---
+
+# [優先度: 中] dotfilesリポジトリによるPC環境バックアップ整備
+
+## 背景・ブレインストーミング
+
+PCの電源異常を契機に、ローカル環境全体のバックアップ戦略を整理した。
+プロジェクトコードはGitHub（OrchWEATHER）に全コミット済みのため安全。
+抜け落ちているのは「Gitに入れられないシークレット」と「Claudeの個人設定」の2系統。
+
+### バックアップが必要なファイル（5種類）
+
+| # | ファイル | 場所 | 理由 |
+|---|---|---|---|
+| 1 | `.env` | `c:\dev\気象アプリ\.env` | FirebaseキーなどGitIgnore対象 |
+| 2 | `.dev.vars` | 同上 | Cloudflare Pages Functions用環境変数 |
+| 3 | `CLAUDE.md`（グローバル） | `C:\Users\kazma\.claude\CLAUDE.md` | 思考OS・行動原則プロンプト。再現不可 |
+| 4 | `keybindings.json` | `C:\Users\kazma\.claude\keybindings.json` | キーバインド設定 |
+| 5 | `memory\`フォルダ | `C:\Users\kazma\.claude\projects\c--dev------\memory\` | Claudeのプロジェクト文脈蓄積 |
+
+### 方針
+- GitHubに**プライベートリポジトリ「dotfiles」**を作成し一元管理
+- Google Driveは`.git`フォルダ破損リスクがあるため`c:\dev\`を同期対象から外す
+- VS CodeはSettings Syncでバックアップ（GitHubアカウント連携）
+- 新PC復旧は`git clone dotfiles` → コピー配置 → `git clone OrchWEATHER` → `npm install`で完結
+
+## 実装ステップ
+
+- [ ] 1. GitHubで`dotfiles`プライベートリポジトリを作成
+- [ ] 2. 以下の構成でファイルをコピーしコミット＆プッシュ
+  ```
+  dotfiles/
+  ├── claude/
+  │   ├── CLAUDE.md
+  │   ├── keybindings.json
+  │   └── memory/ （全ファイル）
+  └── secrets/
+      ├── orchweather.env  ← .envのリネームコピー
+      └── orchweather.dev.vars
+  ```
+- [ ] 3. Google Drive for Desktopの設定から`c:\dev\`を同期対象外に変更
+- [ ] 4. VS CodeのSettings Syncを有効化（File → Turn on Settings Sync）
+- [ ] 5. dotfiles READMEに新PC復旧手順を記載
+
+## 新PC復旧手順（メモ）
+```powershell
+git clone https://github.com/mahoroba8006/dotfiles.git
+Copy-Item dotfiles\claude\CLAUDE.md C:\Users\[name]\.claude\CLAUDE.md
+Copy-Item dotfiles\claude\memory\ C:\Users\[name]\.claude\projects\...\memory\ -Recurse
+Copy-Item dotfiles\secrets\orchweather.env C:\dev\気象アプリ\.env
+
+git clone https://github.com/mahoroba8006/OrchWEATHER.git
+cd OrchWEATHER && npm install
+```
