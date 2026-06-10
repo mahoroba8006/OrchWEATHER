@@ -133,15 +133,15 @@ export function HelpPage({ onBack }: Props) {
             </thead>
             <tbody>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>現在地から取得</td>
+                <td style={{ fontWeight: 600 }}>現在地から取得</td>
                 <td>ブラウザの位置情報を使って自動取得します。初回は許可ダイアログが表示されます。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>マップから選択</td>
+                <td style={{ fontWeight: 600 }}>マップから選択</td>
                 <td>地図上をタップ／クリックして任意の地点を登録します。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>手動入力</td>
+                <td style={{ fontWeight: 600 }}>手動入力</td>
                 <td>地点名・緯度・経度を直接入力して登録します。</td>
               </tr>
             </tbody>
@@ -171,27 +171,27 @@ export function HelpPage({ onBack }: Props) {
             </thead>
             <tbody>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>空ごよみ</td>
+                <td style={{ fontWeight: 600 }}>空ごよみ</td>
                 <td>今日・明日の天気概況と数日先の傾向、作物への影響を解説します。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>畑しごと</td>
+                <td style={{ fontWeight: 600 }}>畑しごと</td>
                 <td>草取り・収穫・定植など外作業のタイミングと注意点を提案します。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>散布どき</td>
+                <td style={{ fontWeight: 600 }}>散布どき</td>
                 <td>農薬・液肥の散布に適した条件と最適な時間帯を提案します。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>施肥どき</td>
+                <td style={{ fontWeight: 600 }}>施肥どき</td>
                 <td>粒状・粉状肥料の施用タイミングを雨・土の状態から最適化して提案します。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>天気の備え</td>
+                <td style={{ fontWeight: 600 }}>天気の備え</td>
                 <td>荒天・乾燥・低温など気候リスクと作物・施設への備えを提案します。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>じぶん好み</td>
+                <td style={{ fontWeight: 600 }}>じぶん好み</td>
                 <td>自分でプロンプトを入力して、天気データに基づく任意の回答を取得できます。</td>
               </tr>
             </tbody>
@@ -287,11 +287,11 @@ export function HelpPage({ onBack }: Props) {
             </thead>
             <tbody>
               <tr>
-                <td style={{ whiteSpace: 'nowrap' }}>積算温度の基準温度</td>
+                <td>積算温度の基準温度</td>
                 <td>有効積算温度を計算するための基準温度を2種類まで設定できます。</td>
               </tr>
               <tr>
-                <td style={{ whiteSpace: 'nowrap' }}>累計の集計開始日</td>
+                <td>累計の集計開始日</td>
                 <td>降水量・日照・日射・積算温度それぞれの累計カウントを開始する日（MM-DD）を設定できます。</td>
               </tr>
             </tbody>
