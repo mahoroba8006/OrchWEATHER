@@ -99,15 +99,24 @@ export function AiCommentCard({
 
   if (isStandardLoading) {
     return (
-      <section className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
-        <TabBar tabs={visibleTabs} activeTab={visibleTabs[0].key} onSelect={() => {}} disabled />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          {[90, 75, 80].map((w, i) => (
-            <div key={i} style={{ height: 12, borderRadius: 6, background: 'rgba(13,148,136,0.10)', width: `${w}%` }} />
+      <section className="glass-panel" style={{ padding: '1.2rem 1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          {ALL_TABS.map(({ key, Icon }, i) => (
+            <span
+              key={key}
+              style={{
+                display: 'inline-flex',
+                color: 'var(--accent-color)',
+                animation: 'iconWaveBounce 1.2s ease-in-out infinite',
+                animationDelay: `${i * 0.2}s`,
+              }}
+            >
+              <Icon size={28} />
+            </span>
           ))}
         </div>
-        <div style={{ fontSize: '0.72rem', color: '#b8c0cf', marginTop: '0.5rem' }}>
-          今日のポイントを分析中…
+        <div style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--accent-color)' }}>
+          お天気を分析中<span className="dot-pulse">…</span>
         </div>
       </section>
     );
