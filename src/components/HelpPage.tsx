@@ -1,10 +1,11 @@
+import type { CSSProperties } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
 interface Props {
   onBack: () => void;
 }
 
-const BACK_BTN_STYLE: React.CSSProperties = {
+const BACK_BTN_STYLE: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '0.3rem',
@@ -18,14 +19,14 @@ const BACK_BTN_STYLE: React.CSSProperties = {
   marginBottom: '0.75rem',
 };
 
-const H1_STYLE: React.CSSProperties = {
+const H1_STYLE: CSSProperties = {
   fontSize: '1.25rem',
   fontWeight: 800,
   color: 'var(--text-primary)',
   marginBottom: '1rem',
 };
 
-const H2_STYLE: React.CSSProperties = {
+const H2_STYLE: CSSProperties = {
   fontSize: '1rem',
   fontWeight: 700,
   color: 'var(--text-primary)',
@@ -35,7 +36,7 @@ const H2_STYLE: React.CSSProperties = {
   borderBottom: '1px solid var(--card-border)',
 };
 
-const H3_STYLE: React.CSSProperties = {
+const H3_STYLE: CSSProperties = {
   fontSize: '0.9rem',
   fontWeight: 700,
   color: 'var(--accent-color)',
@@ -43,14 +44,14 @@ const H3_STYLE: React.CSSProperties = {
   marginBottom: '0.4rem',
 };
 
-const P_STYLE: React.CSSProperties = {
+const P_STYLE: CSSProperties = {
   fontSize: '0.875rem',
   color: 'var(--text-secondary)',
   lineHeight: 1.7,
   marginBottom: '0.5rem',
 };
 
-const WARNING_BOX: React.CSSProperties = {
+const WARNING_BOX: CSSProperties = {
   background: 'rgba(239, 68, 68, 0.08)',
   border: '1px solid rgba(239, 68, 68, 0.3)',
   borderRadius: 'var(--radius-md)',
@@ -61,7 +62,7 @@ const WARNING_BOX: React.CSSProperties = {
   marginTop: '0.75rem',
 };
 
-const NOTE_BOX: React.CSSProperties = {
+const NOTE_BOX: CSSProperties = {
   background: 'rgba(245, 158, 11, 0.08)',
   border: '1px solid rgba(245, 158, 11, 0.3)',
   borderRadius: 'var(--radius-md)',
@@ -72,7 +73,7 @@ const NOTE_BOX: React.CSSProperties = {
   marginTop: '0.75rem',
 };
 
-const TOC_STYLE: React.CSSProperties = {
+const TOC_STYLE: CSSProperties = {
   background: 'rgba(13, 148, 136, 0.06)',
   border: '1px solid rgba(13, 148, 136, 0.2)',
   borderRadius: 'var(--radius-md)',
@@ -80,13 +81,21 @@ const TOC_STYLE: React.CSSProperties = {
   marginBottom: '0.5rem',
 };
 
-const TOC_ITEM_STYLE: React.CSSProperties = {
+const TOC_ITEM_STYLE: CSSProperties = {
   display: 'block',
   fontSize: '0.875rem',
   color: 'var(--accent-color)',
   textDecoration: 'none',
   padding: '0.2rem 0',
   fontWeight: 500,
+};
+
+const TOC_LABEL_STYLE: CSSProperties = {
+  fontSize: '0.75rem',
+  fontWeight: 700,
+  color: 'var(--text-secondary)',
+  marginBottom: '0.4rem',
+  letterSpacing: '0.05em',
 };
 
 export function HelpPage({ onBack }: Props) {
@@ -102,7 +111,7 @@ export function HelpPage({ onBack }: Props) {
 
         {/* 目次 */}
         <div style={TOC_STYLE}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>目次</div>
+          <div style={TOC_LABEL_STYLE}>目次</div>
           <a href="#location" style={TOC_ITEM_STYLE}>1. 地点登録の方法</a>
           <a href="#weather" style={TOC_ITEM_STYLE}>2. いまの空</a>
           <a href="#compare" style={TOC_ITEM_STYLE}>3. 空くらべ</a>
