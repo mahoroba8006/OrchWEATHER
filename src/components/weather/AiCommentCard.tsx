@@ -53,6 +53,10 @@ export function AiCommentCard({
     visibleTabs[0]?.key ?? 'weatherOverview'
   );
 
+  const slideDirection = useRef<'left' | 'right' | null>(null);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+
   // enabledSections が変わり activeTab が非表示になった場合はリセット
   useEffect(() => {
     if (!enabledSections.includes(activeTab)) {
@@ -65,6 +69,33 @@ export function AiCommentCard({
 
   const isStandardLoading = loading && !comment;
   const isCustomActive = activeTab === 'custom';
+
+  const handleTabSelect = (key: AiSection) => {
+    const currentIdx = visibleTabs.findIndex(t => t.key === activeTab);
+    const nextIdx    = visibleTabs.findIndex(t => t.key === key);
+    slideDirection.current = nextIdx > currentIdx ? 'right' : 'left';
+    setActiveTab(key);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (isStandardLoading) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
+    const currentIdx = visibleTabs.findIndex(t => t.key === activeTab);
+    if (dx < 0 && currentIdx < visibleTabs.length - 1) {
+      slideDirection.current = 'right';
+      setActiveTab(visibleTabs[currentIdx + 1].key);
+    } else if (dx > 0 && currentIdx > 0) {
+      slideDirection.current = 'left';
+      setActiveTab(visibleTabs[currentIdx - 1].key);
+    }
+  };
 
   if (isStandardLoading) {
     return (
@@ -122,11 +153,21 @@ export function AiCommentCard({
 
   const content = getContent();
 
+  const slideClass =
+    slideDirection.current === 'right' ? 'slide-in-right' :
+    slideDirection.current === 'left'  ? 'slide-in-left'  : '';
+
   return (
     <section className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
-      <TabBar tabs={visibleTabs} activeTab={activeTab} onSelect={setActiveTab} disabled={false} />
-      <div style={{ minHeight: '4.5rem' }}>
-        {content}
+      <TabBar tabs={visibleTabs} activeTab={activeTab} onSelect={handleTabSelect} disabled={false} />
+      <div
+        style={{ minHeight: '4.5rem', overflow: 'hidden' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div key={activeTab} className={slideClass}>
+          {content}
+        </div>
       </div>
       {FOOTNOTE}
     </section>
