@@ -2519,7 +2519,7 @@ function App() {
             return (
               <button
                 key={id}
-                onClick={() => setTopTab(id)}
+                onClick={() => { prevTopTab.current = id; setTopTab(id); }}
                 style={{
                   flex: 1,
                   display: 'flex',
