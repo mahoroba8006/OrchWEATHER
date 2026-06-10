@@ -369,6 +369,19 @@ button.secondary:hover {
   display: none;
 }
 
+@keyframes iconWaveBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30%           { transform: translateY(-10px); }
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+.dot-pulse {
+  display: inline-block;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
 @keyframes slideInFromRight {
   from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
