@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import {
   Leaf, CloudSun, Thermometer, Droplets, AlertTriangle,
-  BarChart2, MapPin, FileDown, Shovel, ArrowRight,
+  BarChart2, MapPin, FileDown, Shovel, Sprout, ArrowRight,
   Check, X, Bell, SlidersHorizontal, Quote,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
@@ -109,7 +109,7 @@ const reasons = [
     num: 3,
     title: 'AIが「あなたの畑の専属アドバイザー」になる',
     points: [
-      '発表された気象データを元に、AIが「防除・散布のタイミング」「今日の畑仕事の注意点」「天候リスクへの備え」をわかりやすく解説。',
+      '発表された気象データを元に、AIが「防除・散布のタイミング」「施肥の適期」「今日の畑仕事の注意点」「天候リスクへの備え」をわかりやすく解説。',
       'プロンプト機能で「自分好みの言い回し」や「自身の農園の特性」を踏まえた回答にカスタマイズ可能。',
     ],
   },
@@ -135,7 +135,7 @@ const features = [
     color: C.amber,
     bg: C.amberBg,
     title: 'AI が農作業アドバイスを生成',
-    desc: '「散布どき」「畑しごと」「天気の備え」を72時間の気象データから毎朝自動生成。散布に適した穏やかな時間帯の提案や、悪天候前の準備アドバイスを届けます。',
+    desc: '「散布どき」「施肥どき」「畑しごと」「天気の備え」を72時間の気象データから毎朝自動生成。防除・散布と施肥それぞれの適期を分けて提案し、悪天候前の準備アドバイスも届けます。',
   },
   {
     icon: <AlertTriangle size={22} />,
@@ -161,9 +161,10 @@ const features = [
 ];
 
 const aiSections = [
-  { icon: <CloudSun size={18} />, label: '空ごよみ', desc: '天気の概況と注目ポイント' },
-  { icon: <Shovel size={18} />, label: '畑しごと', desc: '外作業・土仕事のアドバイス' },
-  { icon: <Droplets size={18} />, label: '散布どき', desc: '農薬・液肥の散布適期と時間帯' },
+  { icon: <CloudSun size={18} />,     label: '空ごよみ',   desc: '天気の概況と注目ポイント' },
+  { icon: <Shovel size={18} />,       label: '畑しごと',   desc: '外作業・土仕事のアドバイス' },
+  { icon: <Droplets size={18} />,     label: '散布どき',   desc: '農薬・液肥の散布適期と時間帯' },
+  { icon: <Sprout size={18} />,       label: '施肥どき',   desc: '施肥・肥料まきの適期と注意点' },
   { icon: <AlertTriangle size={18} />, label: '天気の備え', desc: '悪天候への対処と注意点' },
 ];
 
@@ -519,11 +520,11 @@ export function LandingPage() {
                   <CloudSun size={14} /> AI農作業アドバイス
                 </div>
                 <h2 style={{ fontSize: 'clamp(1.4rem, 3vw, 1.9rem)', fontWeight: 800, lineHeight: 1.3, margin: '0 0 1rem', letterSpacing: '-0.02em' }}>
-                  「今日、散布できるか」<br />
+                  「今日、散布できるか。施肥のタイミングは。」<br />
                   <span style={{ color: C.primary }}>AIが毎朝判断する。</span>
                 </h2>
                 <p style={{ color: C.textSub, lineHeight: 1.8, fontSize: '0.9rem', margin: '0 0 1.5rem' }}>
-                  72時間分の気象データ（風速・温度・湿度・降水確率）をもとに、AIが「散布どき」「畑しごと」「天気の備え」を自動生成。農薬・液肥の散布適期から、肥料まき・外作業のタイミングまで、具体的な時間帯を提案します。
+                  72時間分の気象データ（風速・温度・湿度・降水確率）をもとに、AIが「散布どき」「施肥どき」「畑しごと」「天気の備え」を自動生成。農薬散布の適期から、施肥・肥料まきのタイミング、外作業の注意点まで、具体的な時間帯を提案します。
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
                   {aiSections.map((s, i) => (
@@ -817,7 +818,7 @@ export function LandingPage() {
               <p style={{ fontSize: '2.5rem', fontWeight: 900, color: C.primaryDark, margin: '0 0 0.25rem' }}>¥0</p>
               <p style={{ color: C.textSub, fontSize: '0.9rem', margin: '0 0 1.5rem' }}>クレジットカード不要・登録は30秒</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem', textAlign: 'left' }}>
-                {['飽差・積算温度・日射量の自動計算', 'AI農作業アドバイス（4セクション）', '気象庁注意報・警報のリアルタイム表示', '前年との気象比較チャート', '複数地点の登録と管理', 'CSVエクスポート'].map(item => (
+                {['飽差・積算温度・日射量の自動計算', 'AI農作業アドバイス（5セクション）', '気象庁注意報・警報のリアルタイム表示', '前年との気象比較チャート', '複数地点の登録と管理', 'CSVエクスポート'].map(item => (
                   <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.35rem 0', fontSize: '0.9rem' }}>
                     <Check size={16} color={C.primaryDark} />
                     {item}
