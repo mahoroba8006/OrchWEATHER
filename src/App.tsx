@@ -2515,7 +2515,7 @@ function App() {
             { id: 'analysis', label: '空くらべ',   Icon: BarChart2 },
             { id: 'history',  label: 'あの日の空', Icon: Clock     },
           ] as const).map(({ id, label, Icon }) => {
-            const active = topTab === id;
+            const active = topTab === 'help' ? prevTopTab.current === id : topTab === id;
             return (
               <button
                 key={id}
