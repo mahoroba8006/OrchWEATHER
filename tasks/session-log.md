@@ -1,4 +1,39 @@
 
+## 2026-06-11 セッション（57回目）
+
+### 作業内容
+
+#### 1. AIプロンプト見直し × 3回
+**コミット:** `c6c915a` / `3a03e2b` / `a78132a`（push済み）
+
+- ai-comment: 少量降雨でも積極提案に強化・予見期間を「5日先程度」→「今日〜明後日を中心にその先も」に統一
+- ai-comment: temperature 0.5 → 0.6 に再調整
+- ai-custom: ロールに「気象予想の専門家」追加・空行禁止制約を削除
+- generalWorkAdvice の句点重複（。。）を修正
+
+#### 2. カスタムドメイン Google 認証設定
+- `weather.orch-app.com` でGoogleログイン不可だった問題を解決
+- Firebase Console → Authorized domains に追加
+- Google Cloud Console → OAuth クライアント: JavaScript origins / redirect URI に追加
+- ログイン動作確認 OK
+
+#### 3. HelpPage テーブルモバイル折り返し修正
+**コミット:** `d7d62d2`（push済み）
+
+- `index.css` に `.glass-table.text-wrap td { white-space: normal; word-break: break-word }` を追加
+- HelpPage 全6テーブルに `text-wrap` クラスを付与
+
+### 決定事項
+- カスタムドメイン追加時は Firebase + GCP OAuth の両方にドメインを追加する（メモリに記録済み）
+
+### 未完了・次回候補
+- AIコメント品質の実機確認（各プロンプト修正後・キャッシュTTL 4h切れ後）
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- LP スクリーンショット追加
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-06-11 セッション（56回目）
 
 ### 作業内容
