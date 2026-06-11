@@ -77,7 +77,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
     contents: [{ parts: [{ text: JSON.stringify(payload) }] }],
     generationConfig: {
-      temperature: 0.5,
+      temperature: 0.6,
       topP: 0.8,
       maxOutputTokens: 8192,
       thinkingConfig: { thinkingBudget: 1024 },
