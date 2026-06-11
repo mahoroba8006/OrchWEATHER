@@ -124,7 +124,7 @@ export function HelpPage({ onBack }: Props) {
           <p style={P_STYLE}>
             設定画面の「地点管理」から地点を登録します。以下の3つの方法が使えます。
           </p>
-          <table className="glass-table" style={{ fontSize: '0.85rem', width: '100%' }}>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%' }}>
             <thead>
               <tr>
                 <th>方法</th>
@@ -162,7 +162,7 @@ export function HelpPage({ onBack }: Props) {
           <p style={P_STYLE}>
             AIコメントは農作業の観点から気象データを解説します。設定タブで表示するタブを有効／無効に切り替えられます。
           </p>
-          <table className="glass-table" style={{ fontSize: '0.85rem', width: '100%' }}>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%' }}>
             <thead>
               <tr>
                 <th>タブ名</th>
@@ -203,7 +203,7 @@ export function HelpPage({ onBack }: Props) {
           </p>
 
           <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>時間別（1時間ごと × 48エントリ／今後2日分）</p>
-          <table className="glass-table" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
             <thead>
               <tr>
                 <th>項目</th>
@@ -226,7 +226,7 @@ export function HelpPage({ onBack }: Props) {
           </table>
 
           <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>日別予報（3〜7日後 / 5日分）および過去7日の日別実績</p>
-          <table className="glass-table" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
             <thead>
               <tr>
                 <th>項目</th>
@@ -244,7 +244,7 @@ export function HelpPage({ onBack }: Props) {
           </table>
 
           <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>その他</p>
-          <table className="glass-table" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
             <thead>
               <tr>
                 <th>項目</th>
@@ -278,7 +278,7 @@ export function HelpPage({ onBack }: Props) {
           </p>
 
           <h3 style={H3_STYLE}>分析設定</h3>
-          <table className="glass-table" style={{ fontSize: '0.85rem', width: '100%' }}>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%' }}>
             <thead>
               <tr>
                 <th>設定項目</th>

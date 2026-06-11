@@ -359,6 +359,11 @@ button.secondary:hover {
   font-weight: 500;
 }
 
+.glass-table.text-wrap td {
+  white-space: normal;
+  word-break: break-word;
+}
+
 /* AI コメントタブバー — 横スクロール対応 */
 .ai-tab-bar {
   overflow-x: auto;
