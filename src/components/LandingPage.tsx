@@ -319,8 +319,8 @@ export function LandingPage() {
             letterSpacing: '-0.03em',
             margin: '0 0 1.25rem',
           }}>
-            農業に必要な気象データが、<br />
-            <span style={{ color: C.primary }}>ひとつに。</span>
+            今日できるか、すぐわかる。<br />
+            <span style={{ color: C.primary }}>去年と比べて、数字で見える。</span>
           </h1>
         </FadeIn>
         <FadeIn delay={0.1}>
@@ -331,7 +331,7 @@ export function LandingPage() {
             maxWidth: 580,
             margin: '0 auto 2rem',
           }}>
-            飽差・積算温度・AIアドバイス。一般の天気アプリでは手が届かなかった農業専用の気象指標を、一画面に集約します。
+            「散布できるか」「施肥はいつか」——毎日の判断をデータが代わりに出す。前年との違いも積算温度も、ひとつのツールで数字として確認できます。
           </p>
         </FadeIn>
         <FadeIn delay={0.15}>
@@ -404,10 +404,10 @@ export function LandingPage() {
               Solution
             </p>
             <h2 style={{ textAlign: 'center', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)', fontWeight: 800, margin: '0 0 0.75rem', letterSpacing: '-0.02em' }}>
-              解決策・選ばれる3つの理由
+              判断に迷わず、いきあたりばったりを卒業する。
             </h2>
             <p style={{ textAlign: 'center', color: C.textSub, fontSize: '0.95rem', margin: '0 auto 2.5rem', maxWidth: 520 }}>
-              Orch.Weather はその課題のすべてに、答えを持っています。
+              毎日の判断にかかる時間を削り、前年との比較を数字で確認できる。現場から生まれた3つの機能が、農業の「勘頼み」をデータに変えます。
             </p>
           </FadeIn>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
