@@ -139,7 +139,10 @@ function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string) {
     nightPrecipProb:  map.get(t)?.nightProb ?? null,
     amPrecipSum:      map.has(t) ? map.get(t)!.amPrecipSum    : null,
     pmPrecipSum:      map.has(t) ? map.get(t)!.pmPrecipSum    : null,
-    nightPrecipSum:   map.has(t) ? map.get(t)!.nightPrecipSum : null,
+    nightPrecipSum:        map.has(t) ? map.get(t)!.nightPrecipSum : null,
+    nightWeatherCodeShort: null,
+    nightPrecipProbShort:  null,
+    nightPrecipSumShort:   null,
   };
 }
 

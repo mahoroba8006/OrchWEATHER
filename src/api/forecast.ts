@@ -45,6 +45,10 @@ export interface DailyForecastData {
   amPrecipSum:      number | null; // mm sum 04:00-11:59（時間別データがある日のみ）
   pmPrecipSum:      number | null; // mm sum 12:00-19:59（時間別データがある日のみ）
   nightPrecipSum:   number | null; // mm sum 20:00-翌3:59（時間別データがある日のみ）
+  // 最終分割日（3日目）用: 翌0:00-3:59 を含まない 20:00-23:59 のみの集計
+  nightWeatherCodeShort: number | null; // WMO max 20:00-23:59
+  nightPrecipProbShort:  number | null; // % max 20:00-23:59
+  nightPrecipSumShort:   number | null; // mm sum 20:00-23:59（時間別データがある日のみ）
   isPlaceholder?:   boolean;       // true: 取得データなし（未来日など）—表示用
 }
 
@@ -130,6 +134,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     amCode: number | null; pmCode: number | null; nightCode: number | null;
     amProb: number | null; pmProb: number | null; nightProb: number | null;
     amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
+    nightCodeShort: number | null; nightProbShort: number | null; nightPrecipSumShort: number;
   }>();
   for (const h of hourly) {
     const date = h.time.slice(0, 10);
@@ -157,6 +162,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
         amCode: null, pmCode: null, nightCode: null,
         amProb: null, pmProb: null, nightProb: null,
         amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
+        nightCodeShort: null, nightProbShort: null, nightPrecipSumShort: 0,
       });
     }
     const d = dayAmPm.get(targetDate)!;
@@ -172,6 +178,12 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
       d.nightCode       = d.nightCode === null ? h.weatherCode : Math.max(d.nightCode, h.weatherCode);
       d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
       d.nightPrecipSum += h.precipitation;
+      // Short（20:00-23:59 のみ）: 翌0-3時分（hr<4 で前日に振り替えたもの）は含めない
+      if (hr >= 20) {
+        d.nightCodeShort       = d.nightCodeShort === null ? h.weatherCode : Math.max(d.nightCodeShort, h.weatherCode);
+        d.nightProbShort       = d.nightProbShort === null ? h.precipProb  : Math.max(d.nightProbShort,  h.precipProb);
+        d.nightPrecipSumShort += h.precipitation;
+      }
     }
   }
 
@@ -198,7 +210,10 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     nightPrecipProb:  dayAmPm.get(t)?.nightProb ?? null,
     amPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.amPrecipSum    : null,
     pmPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.pmPrecipSum    : null,
-    nightPrecipSum:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSum : null,
+    nightPrecipSum:        dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSum      : null,
+    nightWeatherCodeShort: dayAmPm.get(t)?.nightCodeShort ?? null,
+    nightPrecipProbShort:  dayAmPm.get(t)?.nightProbShort ?? null,
+    nightPrecipSumShort:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSumShort : null,
   }));
 
   // 今日のJST日付でdailyを過去/未来に分割

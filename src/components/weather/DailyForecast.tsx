@@ -96,7 +96,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
           const cxN = cxNight(i);
           const amBh    = ph(day.amPrecipSum);
           const pmBh    = ph(day.pmPrecipSum ?? 0);
-          const nightBh = ph(day.nightPrecipSum ?? 0);
+          const nightBh = ph((i === SPLIT_DAYS - 1 ? day.nightPrecipSumShort : day.nightPrecipSum) ?? 0);
           return (
             <g key={i}>
               {amBh > 0 && (
@@ -119,7 +119,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
                 <>
                   <rect x={cxN - barW / 2} y={H - padB - nightBh} width={barW} height={nightBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
                   <text x={cxN} y={H - padB - nightBh - 2} fontSize={10} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
-                    {(day.nightPrecipSum ?? 0).toFixed(1)}
+                    {((i === SPLIT_DAYS - 1 ? day.nightPrecipSumShort : day.nightPrecipSum) ?? 0).toFixed(1)}
                   </text>
                 </>
               )}
@@ -419,7 +419,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                           <div style={dashCell}>—</div>
                         </td>
                         <td style={nightCell(day, i)}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>(20-翌4)</div></div>
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>{i === SPLIT_DAYS - 1 ? '(20-0)' : '(20-翌4)'}</div></div>
                           <div style={dashCell}>—</div>
                         </td>
                       </Fragment>
@@ -449,9 +449,12 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'night')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>(20-翌4)</div></div>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>{i === SPLIT_DAYS - 1 ? '(20-0)' : '(20-翌4)'}</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
-                          {day.nightWeatherCode !== null ? <WeatherIcon code={day.nightWeatherCode} size={84} isNight /> : '—'}
+                          {(() => {
+                            const code = i === SPLIT_DAYS - 1 ? day.nightWeatherCodeShort : day.nightWeatherCode;
+                            return code !== null ? <WeatherIcon code={code} size={84} isNight /> : '—';
+                          })()}
                         </div>
                       </td>
                     </Fragment>
@@ -502,13 +505,18 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         </div>
                       </td>
                       <td style={nightCell(day, i)}>
-                        <div style={{
-                          fontSize: '0.72rem',
-                          color: day.nightPrecipProb !== null ? probColor(day.nightPrecipProb) : 'var(--text-tertiary)',
-                          fontWeight: day.nightPrecipProb !== null && day.nightPrecipProb >= 70 ? 700 : undefined,
-                        }}>
-                          {day.nightPrecipProb !== null ? `${day.nightPrecipProb}%` : '—'}
-                        </div>
+                        {(() => {
+                          const prob = i === SPLIT_DAYS - 1 ? day.nightPrecipProbShort : day.nightPrecipProb;
+                          return (
+                            <div style={{
+                              fontSize: '0.72rem',
+                              color: prob !== null ? probColor(prob) : 'var(--text-tertiary)',
+                              fontWeight: prob !== null && prob >= 70 ? 700 : undefined,
+                            }}>
+                              {prob !== null ? `${prob}%` : '—'}
+                            </div>
+                          );
+                        })()}
                       </td>
                     </Fragment>
                   );
