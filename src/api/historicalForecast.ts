@@ -65,6 +65,7 @@ function createPlaceholderDay(date: string): DailyForecastData {
     amWeatherCode:    null, pmWeatherCode:    null, nightWeatherCode: null,
     amPrecipProb:     null, pmPrecipProb:     null, nightPrecipProb:  null,
     amPrecipSum:      null, pmPrecipSum:      null, nightPrecipSum:   null,
+    nightWeatherCodeShort: null, nightPrecipProbShort: null, nightPrecipSumShort: null,
   };
 }
 

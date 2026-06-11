@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import {
-  Leaf, CloudSun, Thermometer, Droplets, AlertTriangle,
+  Leaf, CloudSun, Droplets, AlertTriangle,
   BarChart2, MapPin, FileDown, Shovel, Sprout, ArrowRight,
   Check, X, SlidersHorizontal, Quote, Clock, Umbrella, Zap,
 } from 'lucide-react';
