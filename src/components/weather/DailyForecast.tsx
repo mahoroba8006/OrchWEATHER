@@ -1,6 +1,6 @@
 import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
-import { WeatherIcon, codeToLabel, dayTransitionLabel } from './WeatherIcon';
+import { WeatherIcon, codeToLabel } from './WeatherIcon';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import { computeWarningLanes } from '../../lib/warningGantt';
 import { WarningBar } from './WarningBar';
@@ -405,7 +405,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                   ? `今日 ${mm}/${dd}(${DAY_NAMES[dow]})`
                   : `${mm}/${dd}(${DAY_NAMES[dow]})`;
                 if (split) {
-                  const tl = dayTransitionLabel(day.amWeatherCode, day.pmWeatherCode);
                   return (
                     <td
                       key={day.date}
@@ -415,9 +414,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                       <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
                         {label}
                       </div>
-                      {tl && (
-                        <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
-                      )}
                     </td>
                   );
                 }
@@ -439,7 +435,40 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                 );
               })}
             </tr>
-            {/* 天気アイコン（時間帯ラベルをセル内に内包） */}
+            {/* 時間帯ラベル */}
+            <tr>
+              {daily.map((day, i) => {
+                if (i < SPLIT_DAYS) {
+                  const tStyle: CSSProperties = { fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 };
+                  return (
+                    <Fragment key={day.date}>
+                      <td style={amCell(day)}><div style={tStyle}><div>午前</div><div>(4-12)</div></div></td>
+                      <td style={pmCell(day)}><div style={tStyle}><div>午後</div><div>(12-20)</div></div></td>
+                      <td style={nightCell(day, i)}><div style={tStyle}><div>夜間</div><div>{i === SPLIT_DAYS - 1 ? '(20-0)' : '(20-翌4)'}</div></div></td>
+                    </Fragment>
+                  );
+                }
+                return <td key={day.date} style={singleCell(day, i)} />;
+              })}
+            </tr>
+            {/* 時間帯別天気 */}
+            <tr>
+              {daily.map((day, i) => {
+                if (i < SPLIT_DAYS) {
+                  const wStyle: CSSProperties = { fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 };
+                  const nightCode = i === SPLIT_DAYS - 1 ? day.nightWeatherCodeShort : day.nightWeatherCode;
+                  return (
+                    <Fragment key={day.date}>
+                      <td style={amCell(day)}><div style={wStyle}>{day.amWeatherCode !== null ? (codeToLabel(day.amWeatherCode) ?? '—') : '—'}</div></td>
+                      <td style={pmCell(day)}><div style={wStyle}>{day.pmWeatherCode !== null ? (codeToLabel(day.pmWeatherCode) ?? '—') : '—'}</div></td>
+                      <td style={nightCell(day, i)}><div style={wStyle}>{nightCode !== null ? (codeToLabel(nightCode) ?? '—') : '—'}</div></td>
+                    </Fragment>
+                  );
+                }
+                return <td key={day.date} style={singleCell(day, i)} />;
+              })}
+            </tr>
+            {/* 天気アイコン */}
             <tr>
               {daily.map((day, i) => {
                 if (i < SPLIT_DAYS) {
@@ -447,18 +476,9 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                   if (day.isPlaceholder) {
                     return (
                       <Fragment key={day.date}>
-                        <td style={amCell(day)}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午前</div><div>(4-12)</div></div>
-                          <div style={dashCell}>—</div>
-                        </td>
-                        <td style={pmCell(day)}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午後</div><div>(12-20)</div></div>
-                          <div style={dashCell}>—</div>
-                        </td>
-                        <td style={nightCell(day, i)}>
-                          <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>{i === SPLIT_DAYS - 1 ? '(20-0)' : '(20-翌4)'}</div></div>
-                          <div style={dashCell}>—</div>
-                        </td>
+                        <td style={amCell(day)}><div style={dashCell}>—</div></td>
+                        <td style={pmCell(day)}><div style={dashCell}>—</div></td>
+                        <td style={nightCell(day, i)}><div style={dashCell}>—</div></td>
                       </Fragment>
                     );
                   }
@@ -468,7 +488,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'am')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午前</div><div>(4-12)</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.amWeatherCode !== null ? <WeatherIcon code={day.amWeatherCode} size={84} /> : '—'}
                         </div>
@@ -477,7 +496,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'pm')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>午後</div><div>(12-20)</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {day.pmWeatherCode !== null ? <WeatherIcon code={day.pmWeatherCode} size={84} /> : '—'}
                         </div>
@@ -486,7 +504,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
                         onClick={() => onHalfDayClick?.(day.date, 'night')}
                       >
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 }}><div>夜間</div><div>{i === SPLIT_DAYS - 1 ? '(20-0)' : '(20-翌4)'}</div></div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 84 }}>
                           {(() => {
                             const code = i === SPLIT_DAYS - 1 ? day.nightWeatherCodeShort : day.nightWeatherCode;
