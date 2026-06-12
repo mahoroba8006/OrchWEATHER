@@ -237,6 +237,58 @@ function Hero({ loading, error, onLogin }: { loading: boolean; error: string | n
   );
 }
 
+function PainSection() {
+  return (
+    <section className="lp-section" style={{ paddingBottom: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
+      <div className="lp-container">
+        <FadeIn>
+          <h2 className="lp-h2">農家の気象データ活用、こんな悩みはありませんか</h2>
+        </FadeIn>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '1.1rem',
+          marginTop: '1.8rem',
+        }}>
+          {pains.map((p, i) => (
+            <FadeIn key={p.label} delay={i * 0.1}>
+              <div className="lp-glass" style={{ padding: '1.4rem 1.3rem', height: '100%', boxSizing: 'border-box' }}>
+                <Quote size={18} color="var(--accent-color)" style={{ marginBottom: '0.6rem' }} />
+                <p style={{ fontWeight: 700, margin: '0 0 0.55rem', fontSize: '0.98rem' }}>{p.label}</p>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.85 }}>{p.quote}</p>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MakerNote() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container-narrow">
+        <FadeIn>
+          <div className="lp-glass" style={{
+            padding: 'clamp(1.6rem, 4vw, 2.4rem)',
+            textAlign: 'center',
+            borderTop: '3px solid var(--accent-color)',
+          }}>
+            <Sprout size={26} color="var(--accent-color)" style={{ marginBottom: '0.8rem' }} />
+            <h2 className="lp-h2" style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.6rem)' }}>
+              作ったのは、同じ悩みを持つ農家です。
+            </h2>
+            <p className="lp-lead" style={{ textAlign: 'left' }}>
+              Orch.Weatherは、毎朝の天気判断に時間を取られていた一人の農家が、自分の畑のために作ったアプリです。机の上ではなく、現場で使いながら磨いてきました。カッパが要るかまでわかる時間別表示も、雨の合間を見つけるAIの提案も、「現場で欲しかったもの」だけを載せています。
+            </p>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
 function LpFooter() {
   return (
     <footer className="lp-footer">
@@ -316,7 +368,8 @@ export function LandingPage() {
     <div className="lp-root">
       <Nav loading={loading} onLogin={handleLogin} />
       <Hero loading={loading} error={error} onLogin={handleLogin} />
-      {/* INSERT: PainSection / MakerNote (Task 3) */}
+      <PainSection />
+      <MakerNote />
       {/* INSERT: FeaturesSection (Task 4) */}
       {/* INSERT: ComparisonSection / StepsSection / FinalCta (Task 5) */}
       <LpFooter />
@@ -324,4 +377,4 @@ export function LandingPage() {
   );
 }
 
-void pains; void features; void compRows; void steps; void Quote; void BarChart2; void CloudSun; void SlidersHorizontal; // Task 5 完了時に削除
+void features; void compRows; void steps; void BarChart2; void CloudSun; void SlidersHorizontal; // Task 5 完了時に削除
