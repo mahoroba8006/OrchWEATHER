@@ -337,6 +337,115 @@ function FeaturesSection() {
   );
 }
 
+function MarkCell({ mark, ours = false }: { mark: CompMark; ours?: boolean }) {
+  const color = mark.m === '✓' ? 'var(--accent-color)' : mark.m === '△' ? '#d97706' : '#b3bcc9';
+  return (
+    <td className={ours ? 'lp-comp-ours' : undefined}>
+      <span style={{ color, fontWeight: 800, fontSize: '1rem' }}>{mark.m}</span>
+      {mark.note && <span className="lp-comp-note">{mark.note}</span>}
+    </td>
+  );
+}
+
+function ComparisonSection() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container-narrow">
+        <FadeIn>
+          <h2 className="lp-h2">一般の天気アプリとの違い</h2>
+        </FadeIn>
+        <FadeIn delay={0.1}>
+          <div className="lp-glass" style={{ overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="lp-comp">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th style={{ color: 'var(--accent-color)' }}>Orch.Weather</th>
+                    <th>一般天気アプリ</th>
+                    <th>気象庁HP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {compRows.map(r => (
+                    <tr key={r.label}>
+                      <td>{r.label}</td>
+                      <MarkCell mark={r.ours} ours />
+                      <MarkCell mark={r.general} />
+                      <MarkCell mark={r.jma} />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+function StepsSection() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container">
+        <FadeIn>
+          <h2 className="lp-h2">3ステップで、今日から使える。</h2>
+        </FadeIn>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '1.1rem',
+          marginTop: '1.8rem',
+        }}>
+          {steps.map((s, i) => (
+            <FadeIn key={s.num} delay={i * 0.1}>
+              <div className="lp-glass" style={{ padding: '1.5rem 1.3rem', height: '100%', boxSizing: 'border-box', textAlign: 'center' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+                  color: '#fff', fontWeight: 800, fontSize: '1.05rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 0.9rem',
+                }}>
+                  {s.num}
+                </div>
+                <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.98rem' }}>{s.title}</p>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>{s.body}</p>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FinalCta({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
+  return (
+    <section className="lp-section lp-final">
+      <div className="lp-container-narrow">
+        <FadeIn>
+          <h2 className="lp-h2" style={{ color: '#fff' }}>明日の朝から、判断が変わる。</h2>
+          <p style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.9, margin: '0 0 1.6rem', fontSize: '0.95rem' }}>
+            いまは完全無料。Googleアカウントがあれば30秒で始められます。
+          </p>
+          <button
+            className="lp-cta"
+            onClick={onLogin}
+            disabled={loading}
+            style={{ background: '#fff', color: 'var(--accent-color)', boxShadow: '0 10px 26px rgba(0,0,0,0.18)' }}
+          >
+            <GoogleIcon />
+            {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
+            <ArrowRight size={17} />
+          </button>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
 function LpFooter() {
   return (
     <footer className="lp-footer">
@@ -419,10 +528,10 @@ export function LandingPage() {
       <PainSection />
       <MakerNote />
       <FeaturesSection />
-      {/* INSERT: ComparisonSection / StepsSection / FinalCta (Task 5) */}
+      <ComparisonSection />
+      <StepsSection />
+      <FinalCta loading={loading} onLogin={handleLogin} />
       <LpFooter />
     </div>
   );
 }
-
-void compRows; void steps; // Task 5 完了時に削除
