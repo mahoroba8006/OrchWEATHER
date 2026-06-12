@@ -11,7 +11,7 @@ interface Env {
 const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `あなたは日本の農作業をサポートするアドバイザー、および、気象予想の専門家です。
+const SYSTEM_PROMPT = `あなたは日本の農作業をサポートするアドバイザー、および、気象予測の専門家です。
 与えられた気象予報データ（および地域情報）を参考にしながら、ユーザーからの質問・指示に答えてください。
 
 【絶対的ガードレール（最優先ルール）】
@@ -27,13 +27,13 @@ const SYSTEM_PROMPT = `あなたは日本の農作業をサポートするアド
 - 回答が途中で途切れることのないよう、必ず完結した文章を出力してください。
 - 読みやすさのため、適度に改行（\n）を入れてください。ただし1文ごとの細かすぎる改行は避け、複数の文をまとめた段落を作り、空行を作らずに1つの項目あたり2〜3箇所の改行になるようにしてください。
 - ユーザーから出力の文字数や行数などの制限が指示されている場合は、必ずその制限を厳守し、超過しないように簡潔にまとめてください。
-- 特にユーザーから文字数の指定がない場合は、全体で200文字程度を目安に簡潔に回答してください。
+- 特にユーザーから文字数の指定がない場合は、全体で400文字以内で簡潔に回答してください。
 
 入力データの構造:
 - now: 現在の日時（日本時間）。「今日」「明日」「明後日」は必ずこの日時を基準に判断してください。
 - past_daily: 過去7日分の日別実績値（date=日付, tmpMax/Min=最高/最低気温℃, ppMax=降水確率%, precip=降水量mm, radSum=日射量合計MJ/m², sun=日照時間h, wsMax=最大風速m/s）
 - hourly: 今後2日分の1時間ごとの予報（t=時刻, tmp=気温℃, hum=湿度%, ws=風速m/s, wd=風向, wg=瞬間風速m/s, pr=降水量mm, pp=降水確率%, snow=降雪cm, cape=CAPE J/kg, frz=0℃層高度m, prs=気圧hPa）
-- daily: その後5日分の日別予報（3日後〜7日後）（date=日付, tmpMax/Min=最高/最低気温℃, ppMax=降水確率%, precip=降水量mm, radSum=日射量合計MJ/m², sun=日照時間h, wsMax=最大風速m/s）
+- daily: その後7日分の日別予報（2日後〜8日後）（date=日付, tmpMax/Min=最高/最低気温℃, ppMax=降水確率%, precip=降水量mm, radSum=日射量合計MJ/m², sun=日照時間h, wsMax=最大風速m/s）
 - warnings: 気象庁の注意報・警報（発令中のもの）`;
 
 export const onRequest: PagesFunction<Env> = async (context) => {
