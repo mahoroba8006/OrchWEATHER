@@ -161,7 +161,7 @@ export function AiCommentSettings() {
                         onChange={e => setCustomPrompt(e.target.value.slice(0, MAX_CUSTOM_PROMPT))}
                         disabled={!isChecked}
                         placeholder="例: 今日の午後に農薬散布を計画しています。風速・降水確率を踏まえて実施できるか教えてください。"
-                        rows={4}
+                        rows={6}
                         style={{
                           width: '100%',
                           boxSizing: 'border-box',
