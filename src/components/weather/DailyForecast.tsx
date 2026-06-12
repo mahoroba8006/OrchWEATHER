@@ -37,11 +37,22 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   const padB = 6;
   const innerH = H - padT - padB;
 
-  const tempMaxes: (number | null)[] = daily.map(d => d.isPlaceholder ? null : d.tempMax);
-  const tempMins:  (number | null)[] = daily.map(d => d.isPlaceholder ? null : d.tempMin);
   const precips   = daily.map(d => d.precipSum);
 
-  const validTemps = [...tempMaxes, ...tempMins].filter((t): t is number => t !== null);
+  // 分割日は時間帯別気温、非分割日は日別気温でスケール計算
+  const validTemps: number[] = [];
+  daily.forEach((d, i) => {
+    if (d.isPlaceholder) return;
+    if (i < SPLIT_DAYS) {
+      const isLast = i === SPLIT_DAYS - 1;
+      [d.amTempMax, d.amTempMin, d.pmTempMax, d.pmTempMin,
+        isLast ? d.nightTempMaxShort : d.nightTempMax,
+        isLast ? d.nightTempMinShort : d.nightTempMin,
+      ].forEach(t => { if (t !== null) validTemps.push(t); });
+    } else {
+      validTemps.push(d.tempMax, d.tempMin);
+    }
+  });
   const tMin = validTemps.length > 0 ? Math.min(...validTemps) : 0;
   const tMax = validTemps.length > 0 ? Math.max(...validTemps) : 1;
   const tRange = tMax - tMin || 1;
@@ -58,14 +69,40 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   // バー幅：非分割日（CARD_W）と同じ固定幅で統一
   const barW = Math.round(CARD_W * 0.35);
 
-  const makePath = (temps: (number | null)[]) => {
+  // 分割日は時間帯別気温の[x,y]点列、非分割日は日中央の1点
+  const buildTempPts = (isMax: boolean): [number, number][] => {
     const pts: [number, number][] = [];
-    temps.forEach((t, i) => { if (t !== null) pts.push([cx(i), ty(t)]); });
+    daily.forEach((day, i) => {
+      if (day.isPlaceholder) return;
+      const isLastSplit = i === SPLIT_DAYS - 1;
+      if (i < SPLIT_DAYS) {
+        const at = isMax ? day.amTempMax  : day.amTempMin;
+        const pt = isMax ? day.pmTempMax  : day.pmTempMin;
+        const nt = isMax
+          ? (isLastSplit ? day.nightTempMaxShort : day.nightTempMax)
+          : (isLastSplit ? day.nightTempMinShort : day.nightTempMin);
+        if (at !== null) pts.push([cxAm(i),    ty(at)]);
+        if (pt !== null) pts.push([cxPm(i),    ty(pt)]);
+        if (nt !== null) pts.push([cxNight(i), ty(nt)]);
+      } else {
+        pts.push([cx(i), ty(isMax ? day.tempMax : day.tempMin)]);
+      }
+    });
+    return pts;
+  };
+
+  const makePath = (pts: [number, number][]): string => {
     if (pts.length === 0) return '';
-    let d = `M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1];
-      const [x1, y1] = pts[i];
+    // 先頭は左端、末尾は右端にアンカー
+    const anchored: [number, number][] = pts.map(([x, y], idx) => {
+      if (idx === 0) return [dayX[0], y];
+      if (idx === pts.length - 1) return [W, y];
+      return [x, y];
+    });
+    let d = `M ${anchored[0][0].toFixed(1)} ${anchored[0][1].toFixed(1)}`;
+    for (let i = 1; i < anchored.length; i++) {
+      const [x0, y0] = anchored[i - 1];
+      const [x1, y1] = anchored[i];
       const cpx = ((x0 + x1) / 2).toFixed(1);
       d += ` C ${cpx} ${y0.toFixed(1)} ${cpx} ${y1.toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
     }
@@ -139,8 +176,8 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
           </g>
         );
       })}
-      <path d={makePath(tempMins)} fill="none" style={{ stroke: 'var(--accent-blue)' }} strokeWidth={2} strokeLinecap="round" />
-      <path d={makePath(tempMaxes)} fill="none" style={{ stroke: 'var(--chart-temp)' }} strokeWidth={2} strokeLinecap="round" />
+      <path d={makePath(buildTempPts(false))} fill="none" style={{ stroke: 'var(--accent-blue)' }} strokeWidth={2} strokeLinecap="round" />
+      <path d={makePath(buildTempPts(true))} fill="none" style={{ stroke: 'var(--chart-temp)' }} strokeWidth={2} strokeLinecap="round" />
     </svg>
   );
 }

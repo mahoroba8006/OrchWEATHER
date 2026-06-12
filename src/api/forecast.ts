@@ -49,6 +49,14 @@ export interface DailyForecastData {
   nightWeatherCodeShort: number | null; // WMO max 20:00-23:59
   nightPrecipProbShort:  number | null; // % max 20:00-23:59
   nightPrecipSumShort:   number | null; // mm sum 20:00-23:59（時間別データがある日のみ）
+  amTempMax:         number | null; // ℃ max 04:00-11:00
+  amTempMin:         number | null; // ℃ min 04:00-11:00
+  pmTempMax:         number | null; // ℃ max 12:00-19:00
+  pmTempMin:         number | null; // ℃ min 12:00-19:00
+  nightTempMax:      number | null; // ℃ max 20:00-翌3:00
+  nightTempMin:      number | null; // ℃ min 20:00-翌3:00
+  nightTempMaxShort: number | null; // ℃ max 20:00-23:00
+  nightTempMinShort: number | null; // ℃ min 20:00-23:00
   isPlaceholder?:   boolean;       // true: 取得データなし（未来日など）—表示用
 }
 
@@ -135,6 +143,10 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     amProb: number | null; pmProb: number | null; nightProb: number | null;
     amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
     nightCodeShort: number | null; nightProbShort: number | null; nightPrecipSumShort: number;
+    amTempMax: number | null; amTempMin: number | null;
+    pmTempMax: number | null; pmTempMin: number | null;
+    nightTempMax: number | null; nightTempMin: number | null;
+    nightTempMaxShort: number | null; nightTempMinShort: number | null;
   }>();
   for (const h of hourly) {
     const date = h.time.slice(0, 10);
@@ -163,6 +175,10 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
         amProb: null, pmProb: null, nightProb: null,
         amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
         nightCodeShort: null, nightProbShort: null, nightPrecipSumShort: 0,
+        amTempMax: null, amTempMin: null,
+        pmTempMax: null, pmTempMin: null,
+        nightTempMax: null, nightTempMin: null,
+        nightTempMaxShort: null, nightTempMinShort: null,
       });
     }
     const d = dayAmPm.get(targetDate)!;
@@ -170,19 +186,27 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
       d.amCode       = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
       d.amPrecipSum += h.precipitation;
+      d.amTempMax    = d.amTempMax === null ? h.temperature : Math.max(d.amTempMax, h.temperature);
+      d.amTempMin    = d.amTempMin === null ? h.temperature : Math.min(d.amTempMin, h.temperature);
     } else if (period === 'pm') {
       d.pmCode       = d.pmCode === null ? h.weatherCode : Math.max(d.pmCode, h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
+      d.pmTempMax    = d.pmTempMax === null ? h.temperature : Math.max(d.pmTempMax, h.temperature);
+      d.pmTempMin    = d.pmTempMin === null ? h.temperature : Math.min(d.pmTempMin, h.temperature);
     } else {
       d.nightCode       = d.nightCode === null ? h.weatherCode : Math.max(d.nightCode, h.weatherCode);
       d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
       d.nightPrecipSum += h.precipitation;
+      d.nightTempMax    = d.nightTempMax === null ? h.temperature : Math.max(d.nightTempMax, h.temperature);
+      d.nightTempMin    = d.nightTempMin === null ? h.temperature : Math.min(d.nightTempMin, h.temperature);
       // Short（20:00-23:59 のみ）: 翌0-3時分（hr<4 で前日に振り替えたもの）は含めない
       if (hr >= 20) {
         d.nightCodeShort       = d.nightCodeShort === null ? h.weatherCode : Math.max(d.nightCodeShort, h.weatherCode);
         d.nightProbShort       = d.nightProbShort === null ? h.precipProb  : Math.max(d.nightProbShort,  h.precipProb);
         d.nightPrecipSumShort += h.precipitation;
+        d.nightTempMaxShort    = d.nightTempMaxShort === null ? h.temperature : Math.max(d.nightTempMaxShort, h.temperature);
+        d.nightTempMinShort    = d.nightTempMinShort === null ? h.temperature : Math.min(d.nightTempMinShort, h.temperature);
       }
     }
   }
@@ -214,6 +238,14 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     nightWeatherCodeShort: dayAmPm.get(t)?.nightCodeShort ?? null,
     nightPrecipProbShort:  dayAmPm.get(t)?.nightProbShort ?? null,
     nightPrecipSumShort:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSumShort : null,
+    amTempMax:         dayAmPm.get(t)?.amTempMax         ?? null,
+    amTempMin:         dayAmPm.get(t)?.amTempMin         ?? null,
+    pmTempMax:         dayAmPm.get(t)?.pmTempMax         ?? null,
+    pmTempMin:         dayAmPm.get(t)?.pmTempMin         ?? null,
+    nightTempMax:      dayAmPm.get(t)?.nightTempMax      ?? null,
+    nightTempMin:      dayAmPm.get(t)?.nightTempMin      ?? null,
+    nightTempMaxShort: dayAmPm.get(t)?.nightTempMaxShort ?? null,
+    nightTempMinShort: dayAmPm.get(t)?.nightTempMinShort ?? null,
   }));
 
   // 今日のJST日付でdailyを過去/未来に分割
