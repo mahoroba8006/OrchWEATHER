@@ -289,6 +289,54 @@ function MakerNote() {
   );
 }
 
+function FeaturesSection() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container">
+        <FadeIn>
+          <h2 className="lp-h2">画面を見れば、今日やることが決まる。</h2>
+        </FadeIn>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'clamp(2.5rem, 7vw, 4.5rem)',
+          marginTop: '2.2rem',
+        }}>
+          {features.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <FadeIn key={f.title}>
+                <div className={i % 2 === 1 ? 'lp-zigzag lp-zigzag--reverse' : 'lp-zigzag'}>
+                  <div>
+                    <p style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                      color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+                      margin: '0 0 0.7rem',
+                    }}>
+                      <Icon size={16} /> {f.eyebrow}
+                    </p>
+                    <h3 style={{
+                      fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+                      lineHeight: 1.5, margin: '0 0 0.8rem',
+                    }}>
+                      {f.title}
+                    </h3>
+                    <p className="lp-lead" style={{ fontSize: '0.92rem' }}>{f.body}</p>
+                  </div>
+                  <div>
+                    {/* width/height は Task 7 で実画像の寸法に更新する */}
+                    <img className="lp-shot" src={f.img} alt={f.alt} width={800} height={600} loading="lazy" />
+                  </div>
+                </div>
+              </FadeIn>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function LpFooter() {
   return (
     <footer className="lp-footer">
@@ -370,11 +418,11 @@ export function LandingPage() {
       <Hero loading={loading} error={error} onLogin={handleLogin} />
       <PainSection />
       <MakerNote />
-      {/* INSERT: FeaturesSection (Task 4) */}
+      <FeaturesSection />
       {/* INSERT: ComparisonSection / StepsSection / FinalCta (Task 5) */}
       <LpFooter />
     </div>
   );
 }
 
-void features; void compRows; void steps; void BarChart2; void CloudSun; void SlidersHorizontal; // Task 5 完了時に削除
+void compRows; void steps; // Task 5 完了時に削除
