@@ -5,10 +5,12 @@ import { auth } from '../lib/firebase';
 
 const provider = new GoogleAuthProvider();
 
-// iOS Safari (PWA含む) はポップアップを正しく扱えないためリダイレクト認証を使う
-const isIOS = () =>
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// iOS PWA モード（ホーム画面から起動）のみリダイレクト認証を使う
+// 通常の iOS Safari ブラウザは signInWithPopup が使える
+const isIOSStandalone = () =>
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+  (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
 export function LoginScreen() {
   const [loading, setLoading] = useState(false);
@@ -18,13 +20,21 @@ export function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      if (isIOS()) {
-        // iOS Safari ではリダイレクト認証。この後ページが遷移するので以降は実行されない
+      if (isIOSStandalone()) {
         await signInWithRedirect(auth, provider);
       } else {
         await signInWithPopup(auth, provider);
       }
-    } catch {
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code;
+      if (code === 'auth/popup-blocked') {
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch {
+          // fall through
+        }
+      }
       setError('ログインに失敗しました。もう一度お試しください。');
       setLoading(false);
     }

@@ -63,11 +63,15 @@ function FadeIn({ children, delay = 0, style }: {
 }
 
 /* ─────────────────────────────────────────
-   iOS 判定
+   iOS PWA モード判定
+   通常の iOS Safari ブラウザは signInWithPopup が使えるが、
+   ホーム画面から起動した PWA モードではポップアップが OS レベルで
+   ブロックされるため signInWithRedirect を使う必要がある。
 ───────────────────────────────────────── */
-const isIOS = () =>
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isIOSStandalone = () =>
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+  (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
 /* ─────────────────────────────────────────
    データ定義
@@ -215,12 +219,26 @@ export function LandingPage() {
     setLoading(true);
     setError(null);
     try {
-      if (isIOS()) {
+      if (isIOSStandalone()) {
+        // iOS PWA モード: ポップアップが OS レベルでブロックされるためリダイレクト方式
         await signInWithRedirect(auth, new GoogleAuthProvider());
       } else {
+        // 通常ブラウザ（iOS Safari 含む）: ポップアップ方式
+        // iOS Safari で signInWithRedirect を使うと ITP により認証ステートが
+        // リダイレクト後に失われ LP に戻ってしまうバグがあるため popup を使用
         await signInWithPopup(auth, new GoogleAuthProvider());
       }
-    } catch {
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code;
+      if (code === 'auth/popup-blocked') {
+        // ポップアップがブロックされた場合はリダイレクト方式にフォールバック
+        try {
+          await signInWithRedirect(auth, new GoogleAuthProvider());
+          return;
+        } catch {
+          // fall through to error display
+        }
+      }
       setError('ログインに失敗しました。もう一度お試しください。');
       setLoading(false);
     }
