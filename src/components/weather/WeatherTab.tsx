@@ -111,7 +111,7 @@ export function WeatherTab() {
       textAlign: 'center' as const,
       color: '#8a93a6',
     };
-    if (geoStatus === 'loading') {
+    if (geoStatus === 'loading' || geoStatus === 'idle') {
       return (
         <div style={emptyStyle}>
           <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '0.75rem' }} />
@@ -119,18 +119,10 @@ export function WeatherTab() {
         </div>
       );
     }
-    if (geoStatus === 'error') {
-      return (
-        <div style={emptyStyle}>
-          <p style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>位置情報が取得できませんでした</p>
-          <p style={{ fontSize: '0.85rem' }}>設定タブから地点を登録するか、上のボタンで現在地を取得してください</p>
-        </div>
-      );
-    }
     return (
       <div style={emptyStyle}>
-        <p style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>地点を登録すると予報が表示されます</p>
-        <p style={{ fontSize: '0.85rem' }}>「設定」タブから地点を追加してください</p>
+        <p style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>位置情報が取得できませんでした</p>
+        <p style={{ fontSize: '0.85rem' }}>設定タブから地点を登録するか、上のボタンで現在地を取得してください</p>
       </div>
     );
   }
