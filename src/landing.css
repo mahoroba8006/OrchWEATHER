@@ -1,0 +1,160 @@
+/* ─────────────────────────────────────────
+   LP専用スタイル（LandingPage.tsx からのみ使用）
+   Safari対応の -webkit- prefix はこのファイルで一元管理する
+───────────────────────────────────────── */
+
+.lp-root {
+  min-height: 100vh;
+  min-height: 100svh; /* iOS Safari アドレスバー対策（対応ブラウザで上書き） */
+  background: var(--bg-gradient);
+  color: var(--text-primary);
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+.lp-nav {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.lp-nav-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+}
+
+.lp-section { padding: clamp(3rem, 8vw, 5.5rem) 1.25rem; }
+.lp-container { max-width: 1000px; margin: 0 auto; }
+.lp-container-narrow { max-width: 760px; margin: 0 auto; }
+
+.lp-h2 {
+  font-size: clamp(1.45rem, 4vw, 2.1rem);
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.9rem;
+  text-align: center;
+}
+
+.lp-lead {
+  color: var(--text-secondary);
+  font-size: clamp(0.95rem, 2.5vw, 1.05rem);
+  line-height: 1.95;
+  margin: 0;
+}
+
+.lp-glass {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+/* CTA（アプリのアクティブタブと同じグラデーション言語） */
+.lp-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-family: inherit;
+  border: none;
+  border-radius: 999px;
+  padding: 0.8rem 1.7rem;
+  font-size: 0.98rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(13, 148, 136, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.lp-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(13, 148, 136, 0.35); }
+.lp-cta:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+.lp-cta--small { padding: 0.5rem 1.1rem; font-size: 0.85rem; }
+
+/* HERO のスマホフレーム（CSS描画・画像はフレームなしの素のスクショ） */
+.lp-phone {
+  width: min(300px, 78vw);
+  margin: 0 auto;
+  border-radius: 40px;
+  border: 9px solid #11403a;
+  background: #11403a;
+  box-shadow: var(--shadow-lg), 0 28px 64px rgba(13, 148, 136, 0.2);
+  overflow: hidden;
+}
+.lp-phone img { display: block; width: 100%; height: auto; }
+
+/* 機能ショーケース（ジグザグ） */
+.lp-zigzag {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+}
+.lp-zigzag--reverse { flex-direction: row-reverse; }
+.lp-zigzag > div { flex: 1 1 340px; min-width: 0; }
+
+.lp-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-lg);
+  background: var(--card-bg-solid);
+}
+
+/* 比較表（モバイルは横スクロール） */
+.lp-comp {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.84rem;
+}
+.lp-comp th, .lp-comp td {
+  padding: 0.7rem 0.6rem;
+  text-align: center;
+  border-bottom: 1px solid var(--card-border-sub);
+  vertical-align: middle;
+}
+.lp-comp th { font-weight: 700; }
+.lp-comp tr:last-child td { border-bottom: none; }
+.lp-comp td:first-child, .lp-comp th:first-child { text-align: left; font-weight: 600; }
+.lp-comp-ours { background: rgba(13, 148, 136, 0.07); font-weight: 600; }
+.lp-comp-note {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  margin-top: 0.2rem;
+  line-height: 1.5;
+}
+
+/* FINAL CTA 帯 */
+.lp-final {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  text-align: center;
+}
+
+/* フッター */
+.lp-footer {
+  background: #07221c;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 2.5rem 1.5rem 2rem;
+  font-size: 0.82rem;
+}
+.lp-footer a { color: rgba(255, 255, 255, 0.55); }
