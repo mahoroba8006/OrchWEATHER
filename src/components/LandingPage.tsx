@@ -79,6 +79,7 @@ const features = [
     title: '「明日、散布できるか」に、答えが出る。',
     body: 'AIが気象データから作業できる時間帯と残るリスクをわかりやすく提案。あなたの判断をサポート。材料はすべてここに。',
     img: '/lp/feature-ai.webp',
+    w: 780, h: 744,
     alt: 'AI農作業アドバイスの画面',
   },
   {
@@ -87,6 +88,7 @@ const features = [
     title: '「今年は早い？遅い？」が、数字でわかる。',
     body: '積算温度・降水量・日射量などを自動計算しグラフィカルに表示。比較したい年、登録地点を選択でき「去年より何日進んでいるか」「あの場所とどれくらい違うか」まで一目。',
     img: '/lp/feature-kurabe.webp',
+    w: 780, h: 1222,
     alt: '前年比較チャートの画面',
   },
   {
@@ -95,6 +97,7 @@ const features = [
     title: 'カッパが要るか、まで書いてある。',
     body: '降水量は「ぽつぽつ」「カッパ？」「カッパ！」。紫外線の強さも一目で。露点・飽差・0℃層高度など、作物に影響する専門データも時間別に確認でき、今日の作業の準備も万全。',
     img: '/lp/feature-hourly.webp',
+    w: 780, h: 1248,
     alt: '時間別予報テーブルの画面',
   },
   {
@@ -103,6 +106,7 @@ const features = [
     title: 'あなたの畑に合わせて、AIに聞ける。',
     body: '「標高が高いから2℃低めで考えて」「風に弱い作物がある」——自分の言葉で条件を登録すれば、AIがそれを踏まえて答えます。',
     img: '/lp/feature-custom.webp',
+    w: 780, h: 1576,
     alt: 'じぶん好みプロンプト設定の画面',
   },
 ];
@@ -325,7 +329,7 @@ function FeaturesSection() {
                   </div>
                   <div>
                     {/* width/height は Task 7 で実画像の寸法に更新する */}
-                    <img className="lp-shot" src={f.img} alt={f.alt} width={800} height={600} loading="lazy" />
+                    <img className="lp-shot" src={f.img} alt={f.alt} width={f.w} height={f.h} loading="lazy" />
                   </div>
                 </div>
               </FadeIn>
