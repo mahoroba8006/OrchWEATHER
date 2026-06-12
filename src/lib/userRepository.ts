@@ -22,8 +22,13 @@ const DEFAULT_JMA_GROUPS: JmaWarningGroup[] = [
 
 // SYNC: store.ts の DEFAULT_AI_SECTIONS と同期すること
 const DEFAULT_AI_SECTIONS: AiSection[] = [
-  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'disasterPrep',
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'disasterPrep',
 ];
+
+// じぶん好み（カスタマイズ）プロンプトの初期値。
+// フィールド未設定のユーザーにのみ適用（明示的に空保存した場合は空のまま）
+const DEFAULT_AI_CUSTOM_PROMPT =
+  '気象データをもとに、この先1週間の畑仕事の見通しを整理して教えてください。親しみやすい言葉で、モチベーションの上がる一言を添えてください。';
 
 // ユーザードキュメントを「存在しなければ作る」だけにする。
 // 毎回 createdAt を上書きしていた旧実装は、並行する getDoc に
@@ -59,7 +64,7 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   const enabledAiSections: AiSection[] = savedAiSections
     ? [...savedAiSections, ...DEFAULT_AI_SECTIONS.filter(s => !savedAiSections.includes(s))]
     : DEFAULT_AI_SECTIONS;
-  const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : '';
+  const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : DEFAULT_AI_CUSTOM_PROMPT;
   return {
     baseTempSettings, accumStartDates, accumDeltaThresholds,
     defaultLocationId, enabledJmaGroups, enabledAiSections, aiCustomPrompt,
