@@ -425,17 +425,11 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                 return (
                   <td
                     key={day.date}
-                    style={{ ...singleCell(day, i), paddingTop: '0.75rem' }}
+                    style={{ ...singleCell(day, i), paddingTop: '0.75rem', verticalAlign: 'top' }}
                   >
                     <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500 }}>
                       {label}
                     </div>
-                    {(() => {
-                      const tl = codeToLabel(day.weatherCode);
-                      return tl ? (
-                        <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', marginTop: '0.15rem', fontWeight: 500 }}>{tl}</div>
-                      ) : null;
-                    })()}
                   </td>
                 );
               })}
@@ -454,7 +448,13 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                     </Fragment>
                   );
                 }
-                return <td key={day.date} style={singleCell(day, i)} />;
+                return (
+                  <td key={day.date} style={singleCell(day, i)}>
+                    <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                      {day.isPlaceholder ? '—' : (codeToLabel(day.weatherCode) ?? '—')}
+                    </div>
+                  </td>
+                );
               })}
             </tr>
             {/* 天気アイコン */}
