@@ -12,9 +12,9 @@ type SettingsSubTab = 'location' | 'weather' | 'ai' | 'analysis';
 
 const SUB_TAB_LABELS: Record<SettingsSubTab, string> = {
   location: '地点設定',
-  weather: '気象情報',
-  ai: '気象コメント',
-  analysis: '比較分析',
+  weather: '注意報等',
+  ai: 'AIコメント',
+  analysis: '空くらべ',
 };
 
 const SUB_TABS: SettingsSubTab[] = ['location', 'weather', 'ai', 'analysis'];
