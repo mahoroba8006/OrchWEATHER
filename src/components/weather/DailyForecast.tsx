@@ -450,7 +450,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ fontSize: '0.806rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
                       {day.isPlaceholder ? '—' : (codeToLabel(day.weatherCode) ?? '—')}
                     </div>
                   </td>
