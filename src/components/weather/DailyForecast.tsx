@@ -414,7 +414,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                       <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
                         {label}
                       </div>
-                      <div style={{ display: 'flex', marginTop: '0.35rem' }}>
+                      <div style={{ display: 'flex', marginTop: '0.35rem', marginLeft: '-0.5rem', marginRight: '-0.25rem' }}>
                         <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>午前</div>
                         <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, borderLeft: '1px solid var(--card-border-sub)' }}>午後</div>
                         <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, borderLeft: '1px solid var(--card-border-sub)' }}>夜間</div>
@@ -566,8 +566,12 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                 }
                 return (
                   <td key={day.date} style={singleCell(day, i)}>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
-                      {day.isPlaceholder ? '—' : `降水 ${day.precipProbMax}%`}
+                    <div style={{
+                      fontSize: '0.72rem',
+                      color: day.isPlaceholder ? 'var(--text-tertiary)' : probColor(day.precipProbMax),
+                      fontWeight: !day.isPlaceholder && day.precipProbMax >= 70 ? 700 : undefined,
+                    }}>
+                      {day.isPlaceholder ? '—' : `${day.precipProbMax}%`}
                     </div>
                   </td>
                 );

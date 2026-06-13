@@ -102,7 +102,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + '&timezone=Asia%2FTokyo'
     + '&models=best_match'
     + '&wind_speed_unit=ms'
-    + '&past_hours=6'
+    + '&past_hours=20'
     + '&past_days=7'
     + '&forecast_days=11'
     + '&forecast_hours=72'
