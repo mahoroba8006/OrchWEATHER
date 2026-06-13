@@ -1,4 +1,188 @@
 
+## 2026-06-13 セッション（61回目）
+
+### 作業内容
+
+#### 1. ai-custom.ts コミット済み変更の確認・push
+**コミット:** `7d143c6`（push済み）
+
+- 「気象予想」→「気象予測」に統一
+- デフォルト出力指示：200文字程度 → 400文字以内
+- daily 期間説明：5日分(3日後〜7日後) → 7日分(2日後〜8日後)
+
+#### 2. 初回ログイン GPS ローディング UX 修正
+**コミット:** `cf8bea6`（push済み）
+
+- WeatherTab.tsx：`geoStatus === 'idle'` を `'loading'` と同様にスピナー表示
+- 「地点を登録してください」メッセージを削除
+- error 時のみ設定タブへの誘導を表示
+
+#### 3. iOS Safari ログインループ修正
+**コミット:** `4bb30ae`（push済み）
+
+- iOS PWAモード（`standalone===true`）判定を `isIOSStandalone()` に変更
+- 通常の iOS Safari ブラウザは `signInWithPopup` を使用（ITP回避）
+- iOS PWA（ホーム画面起動）は引き続き `signInWithRedirect`
+- LandingPage.tsx / LoginScreen.tsx 両方に適用
+
+#### 4. LP 全面リデザイン
+**コミット:** `e192826`, `f8a1fea`, `07de053`, `9361808`, `5cace4d`, `9b11ba1`（push済み）
+
+- 構成：13→9セクション（Nav / Hero / Pain / MakerNote / Features / Comparison / Steps / FinalCta / Footer）
+- アプリ本体の teal カラーに統一
+- `src/landing.css` 新規作成（LP専用スタイル）
+- Safari 対応：`-webkit-backdrop-filter`, `100svh`, `-webkit-sticky`
+- `public/lp/` に実スクリーンショット5枚追加（WebP 780px幅）
+- 仕様書：`docs/superpowers/specs/2026-06-12-lp-redesign-design.md`
+
+#### 5. AIカスタムプロンプト初期値設定
+**コミット:** `6290117`（push済み）
+
+- `userRepository.ts` に `DEFAULT_AI_CUSTOM_PROMPT` 定数を追加
+- フィールド未設定ユーザー（新規ユーザー）にデフォルトプロンプトを表示
+- ついでに `DEFAULT_AI_SECTIONS` の `fertilizingAdvice` 欠落バグを修正（store.ts との同期ズレ）
+
+#### 6. AIプロンプト入力欄の高さ拡張
+**コミット:** `5a39c34`（push済み）
+
+- `AiCommentSettings.tsx`：textarea `rows={4}` → `rows={6}`
+
+#### 7. 日別予報ミニグラフ：分割日を時間帯別気温でプロット
+**コミット:** `fdd11d8`（push済み）
+
+- `forecast.ts`：`DailyForecastData` に `amTempMax/Min`, `pmTempMax/Min`, `nightTempMax/Min`, `nightTempMaxShort/MinShort` を追加
+- `dayAmPm` ループで時間帯別気温の max/min を集計
+- `DailyForecast.tsx`：分割日（i<3）は AM/PM/Night の3点、非分割日は日中央の1点でプロット
+- 3日目夜間は `nightTempMaxShort/MinShort`（20-0 のみ）を使用
+- ミニグラフ先頭・末尾を左端・右端にアンカー（グラフが端から端まで描画されるよう修正）
+
+#### 8. 日別予報 分割日の表示順変更 + ビルドエラー修正
+**コミット:** `0e40278`（push済み）
+
+- **表示順変更（ユーザー要望）：**
+  - 旧：日付 → 天気概況 → 時間帯ラベル＋アイコン（同セル）
+  - 新：日付 → 時間帯ラベル行 → 時間帯別天気テキスト行 → アイコン行
+  - 天気概況（dayTransitionLabel）を削除
+- **ビルドエラー修正（Cloudflare Pages）：**
+  - `historicalForecast.ts` の `createPlaceholderDay` / `expandDayAmPm` に 8フィールドを null で追加
+
+### 決定事項
+- LP スクリーンショットはユーザー自身が撮影してプロジェクトに提供する方式
+- LP 料金設定：当面「無料」のまま（有料化は別途）
+- iOS Safari は popup / iOS PWA は redirect の分岐で ITP 問題を解消
+- デフォルト AIプロンプト：「気象データをもとに、この先1週間の畑仕事の見通しを整理して教えてください。親しみやすい言葉で、モチベーションの上がる一言を添えてください。」
+
+### 未完了・次回候補
+- iOS Safari 実機確認（NAV blur・HERO クリップなし・比較表横スクロール・画像5枚・ログイン動作）
+- LP スクリーンショット追加（5枚はあるが、ユーザーが撮影した差し替え用があれば更新）
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-12 セッション（60回目）
+
+### 作業内容
+
+#### 1. ビルドエラー修正 + AIプロンプトレビュー
+**コミット:** `3eca813`（push済み）
+
+- **LandingPage.tsx:** `Thermometer` 未使用 import を削除（TS6133 ビルドエラー解消）
+- **historicalForecast.ts:** `createPlaceholderDay` に `nightWeatherCodeShort` / `nightPrecipProbShort` / `nightPrecipSumShort` を追加（TS2739 型エラー解消）
+- **ai-comment.ts:** `responseSchema.minLength` を 100/130 → 300 に統一（プロンプトの「最低300文字以上」と整合）
+- **ai-comment.ts:** `daily` 説明を「5日分（3日後〜7日後）」→「7日分（2日後〜8日後）」に修正（slice(2,9) 実装と整合）
+
+#### 2. AIコメント 出力文字数を250〜350文字に変更
+**コミット:** `909c45c`（push済み）
+
+- 共通制約・全フィールド説明の文字数指示を「250文字以上350文字以内」に統一
+- `responseSchema.minLength` を 300 → 250 に変更
+
+#### 3. AIプロンプト ユーザー調整（sprayingAdvice）
+**コミット:** `3af5828` / `a297050`（push済み）
+
+- 軽減策の記述順を調整（別日・別時間帯提案を耐雨性確認より前に移動）
+- 残るリスクに「雨上がり直後の濡れによる効果減少」を追記
+
+### 決定事項
+- ビルドエラー `0314cab` 以降（`Thermometer` 未使用 import）は修正済み
+- AIコメント出力目標文字数：250〜350文字（全フィールド統一）
+
+### 未完了・次回候補
+- AIコメント品質の実機確認（キャッシュTTL 4h切れ後）
+- 日別予報 夜間スロット実機確認（3日目夜間が(20-0)になっているか）
+- LP スクリーンショット追加
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-11 セッション（59回目）
+
+### 作業内容
+
+#### 1. 時間別予報 天気アイコン静止化
+**コミット:** `430bed1`（push済み）
+
+- 原因：`/icons/weather-static/` に `<animateTransform>` タグ付きのアニメーション版SVGが混入していた
+- 対象7ファイル：mostly-clear-day/night、mostly-clear-day/night-drizzle、mostly-clear-day/night-snow、extreme-thunderstorms-extreme-hail
+- 対応：SVGから `<animateTransform>` タグを直接除去して静止化
+- 日別予報（`/icons/weather/`）は変更なし・引き続きアニメーション表示
+
+### 決定事項
+- 注意報サマリーの表示位置（最上段）は現状のままでOK
+- AM/PM/夜間の3分割スロットアイコンはアニメーションのままでOK（変更なし）
+
+### 未完了・次回候補
+- AIコメント品質の実機確認（キャッシュTTL 4h切れ後）
+- 日別予報 夜間スロット実機確認（3日目夜間が(20-0)になっているか）
+- LP スクリーンショット追加
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-11 セッション（58回目）
+
+### 作業内容
+
+#### 1. LP 全面改訂
+**コミット:** 複数（`5a96b28` / `0314cab` / `7d47a99`）（push済み）
+
+- Pain セクション：3つの文章を農家の一人称スタイルに刷新（「何日進んでいるか」追加、表題「今日か明日か、頭の中で計算」新設、標高3℃ズレ引用）
+- Solution 理由1：積算対象を積算温度→降水量・日射量・日照時間も含む内容に拡充、前年比較を前面に
+- Solution 理由2：CSVの bullet を削除し「紫外線・カッパ要否」現場目線の内容に差し替え
+- Features セクションを6カードに刷新（AI/積算比較統合/失敗原因追跡/CSV/深読みデータ/カッパ・UV）
+- 「あの日の気象を振り返る」→「あの失敗の原因を、気象データで追う」に結果軸で変更（指摘2反映）
+- Hero H1：「農業に必要な気象データが、ひとつに。」→「今日できるか、すぐわかる。去年と比べて、数字で見える。」
+- Hero サブテキスト：機能列挙→判断時間・前年比較の価値訴求に変更
+- Solution H2：「解決策・選ばれる3つの理由」→「判断に迷わず、いきあたりばったりを卒業する。」
+- Solution サブ：「勘頼みをデータに変える」に変更
+
+#### 2. 日別予報 夜間スロット重複修正
+**コミット:** `afad353`（push済み）
+
+- 問題：3日目の夜間（20-翌4）と4日目以降の日別サマリー（0:00〜）が0:00-4:00で重複
+- 解決：最終分割日（SPLIT_DAYS-1）の夜間のみ20-0に変更（翌0-3:59を除外）
+- `DailyForecastData` に `nightWeatherCodeShort` / `nightPrecipProbShort` / `nightPrecipSumShort` を追加
+- `forecast.ts`：hr>=20 のときのみ Short フィールドに積算
+- `historicalForecast.ts`：新フィールドを null で追加（型整合）
+- `DailyForecast.tsx`：最終分割日の夜間列は Short フィールドを使用、ラベルを「(20-0)」に変更
+
+### 決定事項
+- LP ペルソナ：「毎日天気予報を確認して判断に時間をかける農業従事者」「前年比較がわからずいきあたりばったり」
+- Features は 6カード構成で確定
+- 夜間スロットの区切り：1〜2日目は (20-翌4)、3日目のみ (20-0) で重複解消
+
+### 未完了・次回候補
+- AIコメント品質の実機確認（各プロンプト修正後・キャッシュTTL 4h切れ後）
+- LP スクリーンショット追加
+- 日別予報の夜間スロット変更の実機確認
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-06-11 セッション（57回目）
 
 ### 作業内容
