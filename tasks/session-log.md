@@ -1,4 +1,59 @@
 
+## 2026-06-13 セッション（62回目）
+
+### 作業内容
+
+#### 1. HelpPage「戻る」ヘッダーのスクロール固定
+**コミット:** `128bef9`（HelpPage.tsx は本コミットに同梱）
+
+- `BACK_HEADER_STYLE`（`position: sticky; top: 0; background: var(--bg-color)`）を追加
+- ボタンを sticky ラッパー div で包み、スクロール中も上端に固定
+- `app-container` の `paddingTop` を sticky ヘッダー側に移動
+
+#### 2. AI 時間別データを72時間分に拡張・UV指数・飽差を追加
+**コミット:** `128bef9`（push済み）
+
+- 標準4タブ: `.slice(0, 24)` → `.slice(0, 36)`（2時間おき × 36 = 72時間分）
+- じぶん好みタブ: `.slice(0, 48)` → `.slice(0, 72)`（1時間おき × 72 = 72時間分）
+- `AiHourlyEntry` / `AiHourlyEntryRich` に `uv: number`・`vpd: number` を追加
+- `calcVpd()` ヘルパー追加（`6.112 × exp(17.67T/(T+243.5))` → 飽和絶対湿度 → VPD g/m³）
+- `HelpPage.tsx`：データ一覧の項目・エントリ数・ハルシネーション警告文を更新
+
+#### 3. ai-comment.ts プロンプト調整
+**コミット:** `a962e59`（push済み）
+
+- `thinkingBudget`: 1024 → 2048
+- `weatherOverview`「今日・明日の天気に加え、3日目以降の長期的な天候の傾向にも」→「バランスよく解説する」
+- `sprayingAdvice` / `fertilizingAdvice` / `generalWorkAdvice`「今日〜明後日中心＋先の天候変化」→「3日目以降の長期的な見通しも、バランスよく提案する」
+
+#### 4. 設定タブ名変更
+**コミット:** `deb0e60`（push済み）
+
+- 気象情報 → 注意報等
+- 気象コメント → AIコメント
+- 比較分析 → 空くらべ
+
+#### 5. 時間別テーブル ラベル列幅縮小（案A）
+**コミット:** `8ba8dd1`（push済み）
+
+- `LABEL_W`: 96 → 76px
+- `DATA_ROWS` の `label` から単位括弧を除去、`unit?: string` フィールドに分離
+- ラベルセルを「項目名 / 単位（0.6rem・`var(--text-tertiary)`）」の2行レイアウトに変更
+- ユニット無し行（`風向き` 等）はそのまま1行表示
+
+### 決定事項
+- AI に渡す時間別データは72時間分に統一（API取得量と整合）
+- 設定タブ名は画面名と統一（注意報等 / AIコメント / 空くらべ）
+- HourlyTable ラベル列は単位2行分離で76pxに収める（案A採用）
+
+### 未完了・次回候補
+- iOS Safari 実機確認（NAV blur・HERO クリップなし・比較表横スクロール・画像5枚・ログイン動作）
+- LP スクリーンショット差し替え（ユーザーが PC の DevTools でキャプチャ中）
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-06-13 セッション（61回目）
 
 ### 作業内容
