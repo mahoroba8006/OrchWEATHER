@@ -535,7 +535,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                           color: day.amPrecipProb !== null ? probColor(day.amPrecipProb) : 'var(--text-tertiary)',
                           fontWeight: day.amPrecipProb !== null && day.amPrecipProb >= 70 ? 700 : undefined,
                         }}>
-                          {day.amPrecipProb !== null ? `${day.amPrecipProb}%` : '—'}
+                          {day.amPrecipProb !== null ? `💧${day.amPrecipProb}%` : '—'}
                         </div>
                       </td>
                       <td style={pmCell(day)}>
@@ -544,7 +544,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                           color: day.pmPrecipProb !== null ? probColor(day.pmPrecipProb) : 'var(--text-tertiary)',
                           fontWeight: day.pmPrecipProb !== null && day.pmPrecipProb >= 70 ? 700 : undefined,
                         }}>
-                          {day.pmPrecipProb !== null ? `${day.pmPrecipProb}%` : '—'}
+                          {day.pmPrecipProb !== null ? `💧${day.pmPrecipProb}%` : '—'}
                         </div>
                       </td>
                       <td style={nightCell(day, i)}>
@@ -556,7 +556,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                               color: prob !== null ? probColor(prob) : 'var(--text-tertiary)',
                               fontWeight: prob !== null && prob >= 70 ? 700 : undefined,
                             }}>
-                              {prob !== null ? `${prob}%` : '—'}
+                              {prob !== null ? `💧${prob}%` : '—'}
                             </div>
                           );
                         })()}
@@ -571,7 +571,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                       color: day.isPlaceholder ? 'var(--text-tertiary)' : probColor(day.precipProbMax),
                       fontWeight: !day.isPlaceholder && day.precipProbMax >= 70 ? 700 : undefined,
                     }}>
-                      {day.isPlaceholder ? '—' : `${day.precipProbMax}%`}
+                      {day.isPlaceholder ? '—' : `💧${day.precipProbMax}%`}
                     </div>
                   </td>
                 );
@@ -592,6 +592,19 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                         <span style={{ color: '#38bdf8', fontWeight: 700 }}>{Math.round(day.tempMin)}</span>
                       </div>
                     )}
+                  </td>
+                );
+              })}
+            </tr>
+            {/* 日照時間 */}
+            <tr>
+              {daily.map((day, i) => {
+                const split = i < SPLIT_DAYS;
+                return (
+                  <td key={day.date} colSpan={split ? 3 : 1} style={split ? spanCell(day, i) : singleCell(day, i)}>
+                    <div style={{ fontSize: '0.72rem', color: '#f59e0b' }}>
+                      {day.isPlaceholder ? '—' : `☀️ ${day.sunshineDuration.toFixed(1)}h`}
+                    </div>
                   </td>
                 );
               })}
