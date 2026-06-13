@@ -16,7 +16,15 @@ const BACK_BTN_STYLE: CSSProperties = {
   fontSize: '0.88rem',
   fontWeight: 600,
   padding: '0.5rem 0',
-  marginBottom: '0.75rem',
+};
+
+const BACK_HEADER_STYLE: CSSProperties = {
+  position: 'sticky',
+  top: 0,
+  zIndex: 10,
+  background: 'var(--bg-color)',
+  paddingTop: '1rem',
+  paddingBottom: '0.25rem',
 };
 
 const H1_STYLE: CSSProperties = {
@@ -100,11 +108,13 @@ const TOC_LABEL_STYLE: CSSProperties = {
 
 export function HelpPage({ onBack }: Props) {
   return (
-    <div className="app-container" style={{ paddingTop: '1rem', paddingBottom: '2rem' }}>
-      <button style={BACK_BTN_STYLE} onClick={onBack}>
-        <ChevronLeft size={16} strokeWidth={2.5} />
-        戻る
-      </button>
+    <div className="app-container" style={{ paddingTop: 0, paddingBottom: '2rem' }}>
+      <div style={BACK_HEADER_STYLE}>
+        <button style={BACK_BTN_STYLE} onClick={onBack}>
+          <ChevronLeft size={16} strokeWidth={2.5} />
+          戻る
+        </button>
+      </div>
 
       <div className="glass-panel" style={{ padding: '1.5rem' }}>
         <h1 style={H1_STYLE}>アプリの使い方</h1>
@@ -202,7 +212,7 @@ export function HelpPage({ onBack }: Props) {
             じぶん好みタブでは以下のデータをAIに送信しています。プロンプトを書くときの参考にしてください。
           </p>
 
-          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>時間別（1時間ごと × 48エントリ／今後2日分）</p>
+          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>時間別（1時間ごと × 72エントリ／今後72時間分）</p>
           <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
             <thead>
               <tr>
@@ -219,6 +229,8 @@ export function HelpPage({ onBack }: Props) {
               <tr><td>降水量</td><td>mm</td></tr>
               <tr><td>降水確率</td><td>%</td></tr>
               <tr><td>降雪量</td><td>cm</td></tr>
+              <tr><td>紫外線指数</td><td>UV index</td></tr>
+              <tr><td>飽差</td><td>g/m³（気温・湿度から計算）</td></tr>
               <tr><td>CAPE</td><td>J/kg（対流不安定の指標）</td></tr>
               <tr><td>0℃層高度</td><td>m（雪・雨の境界の目安）</td></tr>
               <tr><td>海面気圧</td><td>hPa</td></tr>
@@ -261,7 +273,7 @@ export function HelpPage({ onBack }: Props) {
           <div style={WARNING_BOX}>
             <strong>⚠️ ハルシネーション（AI の誤情報）に注意</strong><br />
             上記一覧にないデータをプロンプトで指定すると、AIが実際には存在しない数値を作り出して回答する場合があります。<br />
-            例：「今日の露点温度は？」「UV指数は？」「飽差は？」などは渡していないため、AIが数値を捏造するリスクがあります。プロンプトは上記一覧にあるデータを根拠にした内容にしてください。
+            例：「今日の露点温度は？」「蒸発散量は？」などは渡していないため、AIが数値を捏造するリスクがあります。プロンプトは上記一覧にあるデータを根拠にした内容にしてください。
           </div>
         </section>
 

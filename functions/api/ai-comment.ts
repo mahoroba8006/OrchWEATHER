@@ -80,7 +80,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       temperature: 0.6,
       topP: 0.8,
       maxOutputTokens: 8192,
-      thinkingConfig: { thinkingBudget: 1024 },
+      thinkingConfig: { thinkingBudget: 2048 },
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'object',

@@ -2,11 +2,18 @@
 //
 // AI コメント用の入力ペイロードを組み立て、キャッシュキー用の安定ハッシュを計算する。
 //
-// AiCommentInput    … 標準4タブ用（軽量）: 2時間おき24エントリ、cape/frz/prs なし
-// AiCustomInput     … カスタマイズ用（詳細）: 1時間おき48エントリ、cape/frz/prs あり
+// AiCommentInput    … 標準4タブ用（軽量）: 2時間おき36エントリ（72時間分）、cape/frz/prs なし
+// AiCustomInput     … カスタマイズ用（詳細）: 1時間おき72エントリ（72時間分）、cape/frz/prs あり
 
 import type { ForecastData } from '../api/forecast';
 import type { JmaWarningItem } from '../api/jmaWarning';
+
+/** 飽差 (g/m³) を気温・湿度から計算 */
+function calcVpd(tmp: number, hum: number): number {
+  const es = 6.112 * Math.exp(17.67 * tmp / (tmp + 243.5)); // 飽和水蒸気圧 hPa
+  const as = 217 * es / (tmp + 273.15);                      // 飽和絶対湿度 g/m³
+  return Math.round(as * (1 - hum / 100) * 10) / 10;
+}
 
 /** 角度(°)を16方位文字列に変換 */
 function windDirLabel(deg: number): string {
@@ -26,6 +33,8 @@ export interface AiHourlyEntry {
   pr: number;       // 降水量 mm
   pp: number;       // 降水確率 %
   snow: number;     // 降雪量 cm
+  uv: number;       // 紫外線指数
+  vpd: number;      // 飽差 g/m³
 }
 
 /** カスタマイズ用の時間別エントリ（詳細: cape/frz/prs を追加） */
@@ -53,7 +62,7 @@ export interface AiCommentInput {
   month: number;
   warnings: string[];
   past_daily: AiDailyEntry[];     // 過去7日分の日別実績
-  hourly: AiHourlyEntry[];        // 2時間おき 24エントリ（今日〜2日後）
+  hourly: AiHourlyEntry[];        // 2時間おき 36エントリ（72時間分）
   daily: AiDailyEntry[];          // 3日後〜7日後の日別予報
 }
 
@@ -64,7 +73,7 @@ export interface AiCustomInput {
   month: number;
   warnings: string[];
   past_daily: AiDailyEntry[];     // 過去7日分の日別実績
-  hourly: AiHourlyEntryRich[];    // 1時間おき 48エントリ（今日〜2日後）
+  hourly: AiHourlyEntryRich[];    // 1時間おき 72エントリ（72時間分）
   daily: AiDailyEntry[];          // 3日後〜7日後の日別予報
 }
 
@@ -144,7 +153,7 @@ function djb2(str: string): string {
 // ─── 標準4タブ用 ─────────────────────────────────────────────────────────────
 
 /**
- * 標準4タブ用（軽量版）。2時間おき・24エントリ。cape/frz/prs なし。
+ * 標準4タブ用（軽量版）。2時間おき・36エントリ（72時間分）。cape/frz/prs なし。
  */
 export function buildAiCommentInput(
   locationName: string,
@@ -157,7 +166,7 @@ export function buildAiCommentInput(
   const hourly: AiHourlyEntry[] = forecast.hourly
     .filter(h => Date.parse(`${h.time}:00+09:00`) >= nowMs)
     .filter((_, i) => i % 2 === 0)
-    .slice(0, 24)
+    .slice(0, 36)
     .map(h => ({
       t:    fmtTime(h.time),
       tmp:  Math.round(h.temperature * 10) / 10,
@@ -168,6 +177,8 @@ export function buildAiCommentInput(
       pr:   h.precipitation,
       pp:   h.precipProb,
       snow: h.snowfall,
+      uv:   Math.round(h.uvIndex * 10) / 10,
+      vpd:  calcVpd(h.temperature, h.humidity),
     }));
 
   return {
@@ -189,7 +200,7 @@ export function hashAiCommentInput(input: AiCommentInput): string {
 // ─── カスタマイズ用 ────────────────────────────────────────────────────────────
 
 /**
- * カスタマイズ用（詳細版）。1時間おき・48エントリ。cape/frz/prs あり。
+ * カスタマイズ用（詳細版）。1時間おき・72エントリ（72時間分）。cape/frz/prs あり。
  */
 export function buildAiCustomInput(
   locationName: string,
@@ -201,7 +212,7 @@ export function buildAiCustomInput(
 
   const hourly: AiHourlyEntryRich[] = forecast.hourly
     .filter(h => Date.parse(`${h.time}:00+09:00`) >= nowMs)
-    .slice(0, 48)
+    .slice(0, 72)
     .map(h => ({
       t:    fmtTime(h.time),
       tmp:  Math.round(h.temperature * 10) / 10,
@@ -212,6 +223,8 @@ export function buildAiCustomInput(
       pr:   h.precipitation,
       pp:   h.precipProb,
       snow: h.snowfall,
+      uv:   Math.round(h.uvIndex * 10) / 10,
+      vpd:  calcVpd(h.temperature, h.humidity),
       cape: Math.round(h.cape),
       frz:  Math.round(h.freezingLevel),
       prs:  Math.round(h.pressure * 10) / 10,
