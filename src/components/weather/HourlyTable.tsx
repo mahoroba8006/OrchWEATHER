@@ -45,8 +45,8 @@ function calcVPD(tempC: number, humidPct: number): number {
 // 風向き「北北西」(0.7rem ≈ 34px) が収まる最小幅に合わせたコンパクト値。
 // 全列が等幅になることで、ミニグラフの座標系（viewBox=列数×COL_W）が実レイアウトと一致する。
 export const COL_W = 42;
-// 左端ラベル列の固定幅（「瞬間風速(m/s)」等が収まる幅）
-const LABEL_W = 96;
+// 左端ラベル列の固定幅（単位を2行目に分離したことで「瞬間風速」4文字が最長 → 76px）
+const LABEL_W = 76;
 
 const STICKY: CSSProperties = {
   position: 'sticky',
@@ -208,20 +208,20 @@ function degreesToCompass(deg: number): string {
 }
 
 // ── Data rows (excluding date / time / weather handled inline) ──
-const DATA_ROWS: { key: string; label: string; fmt: (h: HourlyForecast) => string }[] = [
-  { key: 'temperature',  label: '気温(℃)',     fmt: h => h.temperature.toFixed(1) },
-  { key: 'precipProb',   label: '降水確率(%)',  fmt: h => String(h.precipProb) },
-  { key: 'precip',       label: '降水量(mm)',   fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1) },
-  { key: 'snowfall',     label: '降雪量(cm)',   fmt: h => h.snowfall === 0 ? '0.0' : (Math.ceil(h.snowfall * 10) / 10).toFixed(1) },
-  { key: 'windSpeed',    label: '風速(m/s)',    fmt: h => h.windSpeed.toFixed(1) },
-  { key: 'windGusts',    label: '瞬間風速(m/s)', fmt: h => h.windGusts.toFixed(1) },
-  { key: 'windDir',      label: '風向き',       fmt: h => degreesToCompass(h.windDirection) },
-  { key: 'pressure',     label: '気圧(hPa)',    fmt: h => Math.round(h.pressure).toString() },
-  { key: 'humidity',     label: '湿度(%)',      fmt: h => String(h.humidity) },
-  { key: 'vpd',          label: '飽差(g/m³)',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1) },
-  { key: 'dewPoint',     label: '露点(℃)',     fmt: h => h.dewPoint.toFixed(1) },
-  { key: 'cape',         label: 'CAPE(J/kg)',  fmt: h => Math.round(h.cape).toString() },
-  { key: 'freezing',     label: '0℃層高度(m)', fmt: h => Math.round(h.freezingLevel).toString() },
+const DATA_ROWS: { key: string; label: string; unit?: string; fmt: (h: HourlyForecast) => string }[] = [
+  { key: 'temperature',  label: '気温',     unit: '℃',     fmt: h => h.temperature.toFixed(1) },
+  { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb) },
+  { key: 'precip',       label: '降水量',    unit: 'mm',    fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1) },
+  { key: 'snowfall',     label: '降雪量',    unit: 'cm',    fmt: h => h.snowfall === 0 ? '0.0' : (Math.ceil(h.snowfall * 10) / 10).toFixed(1) },
+  { key: 'windSpeed',    label: '風速',      unit: 'm/s',   fmt: h => h.windSpeed.toFixed(1) },
+  { key: 'windGusts',    label: '瞬間風速',  unit: 'm/s',   fmt: h => h.windGusts.toFixed(1) },
+  { key: 'windDir',      label: '風向き',                   fmt: h => degreesToCompass(h.windDirection) },
+  { key: 'pressure',     label: '気圧',      unit: 'hPa',   fmt: h => Math.round(h.pressure).toString() },
+  { key: 'humidity',     label: '湿度',      unit: '%',     fmt: h => String(h.humidity) },
+  { key: 'vpd',          label: '飽差',      unit: 'g/m³',  fmt: h => calcVPD(h.temperature, h.humidity).toFixed(1) },
+  { key: 'dewPoint',     label: '露点',      unit: '℃',     fmt: h => h.dewPoint.toFixed(1) },
+  { key: 'cape',         label: 'CAPE',      unit: 'J/kg',  fmt: h => Math.round(h.cape).toString() },
+  { key: 'freezing',     label: '0℃層高度',  unit: 'm',     fmt: h => Math.round(h.freezingLevel).toString() },
 ];
 
 // ── Gantt helpers ─────────────────────────────────────────
@@ -458,7 +458,10 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               .filter(row => !hiddenRowKeys?.has(row.key))
               .map(row => (
               <tr key={row.key} style={{ borderBottom: '1px solid #f0f2f8' }}>
-                <td style={STICKY}>{row.label}</td>
+                <td style={STICKY}>
+                  <div>{row.label}</div>
+                  {row.unit && <div style={{ fontSize: '0.6rem', fontWeight: 400, lineHeight: 1, marginTop: 1, color: 'var(--text-tertiary)' }}>{row.unit}</div>}
+                </td>
                 {tl.map((entry, i) => {
                   if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W }} />;
                   const h = entry.data;
