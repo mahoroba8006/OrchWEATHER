@@ -409,10 +409,15 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                     <td
                       key={day.date}
                       colSpan={3}
-                      style={{ ...spanCell(day, i), textAlign: 'left', paddingTop: '0.75rem', paddingLeft: '0.5rem' }}
+                      style={{ ...spanCell(day, i), textAlign: 'left', paddingTop: '0.75rem', paddingLeft: '0.5rem', verticalAlign: 'top' }}
                     >
                       <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500, whiteSpace: 'nowrap' }}>
                         {label}
+                      </div>
+                      <div style={{ display: 'flex', marginTop: '0.35rem' }}>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>午前</div>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, borderLeft: '1px solid var(--card-border-sub)' }}>午後</div>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, borderLeft: '1px solid var(--card-border-sub)' }}>夜間</div>
                       </div>
                     </td>
                   );
@@ -433,22 +438,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                     })()}
                   </td>
                 );
-              })}
-            </tr>
-            {/* 時間帯ラベル */}
-            <tr>
-              {daily.map((day, i) => {
-                if (i < SPLIT_DAYS) {
-                  const tStyle: CSSProperties = { fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, lineHeight: 1.4 };
-                  return (
-                    <Fragment key={day.date}>
-                      <td style={amCell(day)}><div style={tStyle}><div>午前</div><div>(4-12)</div></div></td>
-                      <td style={pmCell(day)}><div style={tStyle}><div>午後</div><div>(12-20)</div></div></td>
-                      <td style={nightCell(day, i)}><div style={tStyle}><div>夜間</div><div>{i === SPLIT_DAYS - 1 ? '(20-0)' : '(20-翌4)'}</div></div></td>
-                    </Fragment>
-                  );
-                }
-                return <td key={day.date} style={singleCell(day, i)} />;
               })}
             </tr>
             {/* 時間帯別天気 */}
