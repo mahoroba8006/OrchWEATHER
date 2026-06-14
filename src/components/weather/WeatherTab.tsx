@@ -10,6 +10,7 @@ import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
 import { useAiComment } from '../../hooks/useAiComment';
 import { useAiCustomComment } from '../../hooks/useAiCustomComment';
+import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
@@ -99,7 +100,7 @@ export function WeatherTab() {
     customEnabled ? location?.name : null,
     customEnabled ? data : null,
     customEnabled ? filteredJmaWarning?.items : undefined,
-    customEnabled ? aiCustomPrompt : '',
+    customEnabled ? (aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT) : '',
   );
 
   // 地点未登録かつ geo も未取得
