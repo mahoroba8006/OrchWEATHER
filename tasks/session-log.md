@@ -1,4 +1,138 @@
 
+## 2026-06-15 セッション（68回目）
+
+### 作業内容
+
+#### 1. じぶん好みプロンプト入力欄にplaceholder表示を追加
+**コミット:** `dbcb7d5`（push済み）
+
+- `DEFAULT_AI_CUSTOM_PROMPT` を `userRepository.ts` から export
+- `AiCommentSettings.tsx` の textarea の placeholder を `DEFAULT_AI_CUSTOM_PROMPT` に変更
+- 空欄時にデフォルト文が薄い字で表示されるようになった
+
+#### 2. 空保存時にデフォルトプロンプトをフォールバックとして使用
+**コミット:** `4a3840c` / `bb69bde`（push済み）
+
+- **問題①:** `useAiCustomComment` で `customPrompt.trim().length > 0` が false になりAI呼び出しがスキップされていた
+- **問題②:** `AiCommentCard` の `hasCustomPrompt` が false のまま「設定してください」メッセージを表示し続けていた
+- **修正:** `WeatherTab.tsx` で `aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT` にフォールバック（呼び出し側・hasCustomPrompt両方）
+- ブラウザキャッシュが残っていたためハードリフレッシュ後に動作確認済み
+
+#### 3. LP スクリーンショット3枚差し替え
+**コミット:** `2bcb01b`（push済み）
+
+- DevTools モバイルシミュレーションで撮影・切り抜き → sharp で WebP 変換
+- `feature-kurabe.webp`（1178×1922）/ `feature-hourly.webp`（1165×1959）/ `feature-custom.webp`（1167×1830）
+- `LandingPage.tsx` の width/height を実寸に更新
+
+### 決定事項
+- LP 残り2枚（hero-imanosora / feature-ai）は未差し替え
+
+### 未完了・次回候補
+- LP hero・feature-ai スクリーンショット差し替え
+- iOS Safari 実機確認（NAV blur・HERO クリップなし・比較表横スクロール・画像5枚・ログイン動作）
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-14 セッション（67回目）
+
+### 作業内容
+
+#### 1. AIコメント・カスタム システムプロンプトのキャラクター定義を強化
+**コミット:** `67c7c4f`（ai-comment.ts）/ `3bcfed3`（ai-custom.ts）（push済み）
+
+- SYSTEM_PROMPT冒頭の自己紹介を拡張
+- 「農作業に豊富な知識をもち現場の実情を深く理解している」＋「プロのライター」の二面性を付与
+- ai-custom.ts にはさらに「気象予報士の資格も保有」を追加
+- ユーザーが直接IDE上で編集・保存した変更をそのままコミット
+
+#### 2. ai-comment.ts 追加修正
+**コミット:** `710ee21`（push済み）
+
+- 「豊富な文章力で」を追加（ai-custom.tsと表現を統一）
+- `thinkingBudget: 1500 → 1024`（コスト最適化）
+
+### 決定事項
+- なし
+
+### 未完了・次回候補
+- iOS Safari 実機確認（NAV blur・HERO クリップなし・比較表横スクロール・画像5枚・ログイン動作）
+- LP スクリーンショット差し替え
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-14 セッション（66回目）
+
+### 作業内容
+
+#### 1. AIコメント プロンプト改行指示を具体化
+**コミット:** `94eba19`（push済み）
+
+- weatherOverview / disasterPrep / sprayingAdvice / generalWorkAdvice の4フィールドの改行指示を「今日、明日など文脈の区切りで `\n`」に変更
+
+#### 2. 日別予報 日付バナータグ・時間帯ピルタグを追加
+**コミット:** `1aea354`（push済み）
+
+- 分割日（0〜2日目）の日付をバナータグ化（今日=ブルー、他=ティール）
+- 午前/午後/夜間ラベルをピルタグ化（全部同色）
+
+#### 3. バナータグ・ピルタグを拡充
+**コミット:** `77e6fc9`（push済み）
+
+- 非分割日（4日目以降）にも横長バナータグを適用
+- 今日の分割日の午前/午後/夜間ピルをブルー系に変更
+- HourlyTable（時間別テーブル）の日付行にバナータグを適用
+
+#### 4. HourlyTable 日付バナータグを colSpan で1日全幅に拡張
+**コミット:** `ef99454`（push済み）
+
+- 同一日の全時間列を colSpan で結合し、0時〜23時まで横長タグが伸びるように変更
+- 今日=ブルー / 未来=ティール / 過去=グレー で配色統一
+
+### 決定事項
+- 天気アイコン×日照時間の乖離（Open-Meteo の上流データ問題）は現時点では対応不要と確定
+- AIコメントローディングアニメーションは前セッションで実装済み（確認済み）
+- 午前/午後/夜間タグは全部同色（A案）で統一
+
+### 未完了・次回候補
+- iOS Safari 実機確認（NAV blur・HERO クリップなし・比較表横スクロール・画像5枚・ログイン動作）
+- LP スクリーンショット差し替え
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-14 セッション（65回目）
+
+### 作業内容
+
+#### 1. 非分割日（4日目以降）の天気アイコンを最頻WMOコードに変更
+**コミット:** `067f20a`（push済み）
+
+- **問題:** Open-Meteo の `daily.weather_code` は「その日の最悪コード」を代表値とするため、深夜の一時雨が1日全体を雨アイコンにしてしまっていた
+- **解決策:** `dayAmPm` マップに `amCodes: number[]` / `pmCodes: number[]` を追加し、昼間時間帯（4〜19時）の hourly `weather_code` を蓄積
+- **`modeCode()` 関数を追加:** 最頻値を採用、同頻度なら悪い（大きい）コードを採用
+- **`daily.weatherCode` の差し替え:** `modeCode([...amCodes, ...pmCodes])` を優先、hourly データがない場合のみ `daily.weather_code` にフォールバック
+- 分割日（0〜2日目）は am/pm/night を個別表示するため変更なし
+- 変更ファイル: `src/api/forecast.ts` のみ
+
+### 決定事項
+- 非分割日の天気アイコンは昼間（4〜19時）の最頻WMOコードで表示する
+- 法的問題なし（同一APIデータを別集計窓で表示するだけ）
+- 同頻度の場合は悪い方のコードを採用（過小評価しない）
+
+### 未完了・次回候補
+- iOS Safari 実機確認（NAV blur・HERO クリップなし・比較表横スクロール・画像5枚・ログイン動作）
+- LP スクリーンショット差し替え
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-06-14 セッション（64回目）
 
 ### 作業内容
