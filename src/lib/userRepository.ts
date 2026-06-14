@@ -27,7 +27,7 @@ const DEFAULT_AI_SECTIONS: AiSection[] = [
 
 // じぶん好み（カスタマイズ）プロンプトの初期値。
 // フィールド未設定のユーザーにのみ適用（明示的に空保存した場合は空のまま）
-const DEFAULT_AI_CUSTOM_PROMPT =
+export const DEFAULT_AI_CUSTOM_PROMPT =
   '気象データをもとに、この先1週間の畑仕事の見通しを整理して教えてください。親しみやすい言葉で、モチベーションの上がる一言を添えてください。';
 
 // ユーザードキュメントを「存在しなければ作る」だけにする。

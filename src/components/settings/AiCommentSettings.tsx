@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { Save } from 'lucide-react';
 import { useAppStore, DEFAULT_AI_SECTIONS, type AiSection } from '../../store';
+import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
 
 type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
 
@@ -160,7 +161,7 @@ export function AiCommentSettings() {
                         value={customPrompt}
                         onChange={e => setCustomPrompt(e.target.value.slice(0, MAX_CUSTOM_PROMPT))}
                         disabled={!isChecked}
-                        placeholder="例: 今日の午後に農薬散布を計画しています。風速・降水確率を踏まえて実施できるか教えてください。"
+                        placeholder={DEFAULT_AI_CUSTOM_PROMPT}
                         rows={6}
                         style={{
                           width: '100%',
