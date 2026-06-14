@@ -366,36 +366,39 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
             {/* 日付 */}
             <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
               <td style={STICKY}>日付</td>
-              {tl.map((entry, i) => {
-                const t = tlTime(entry);
-                const date = t.slice(0, 10);
-                const sameDay = i > 0 && tlTime(tl[i - 1]).slice(0, 10) === date;
-                const isToday = date === todayStr;
-                const label = sameDay ? '' : (() => {
+              {(() => {
+                const cells: React.ReactElement[] = [];
+                let i = 0;
+                while (i < tl.length) {
+                  const entry = tl[i];
+                  const date = tlTime(entry).slice(0, 10);
+                  let span = 1;
+                  while (i + span < tl.length && tlTime(tl[i + span]).slice(0, 10) === date) span++;
+                  const isToday = date === todayStr;
+                  const isPastDate = date < todayStr;
                   const mm = parseInt(date.slice(5, 7), 10);
                   const dd = parseInt(date.slice(8, 10), 10);
                   const dow = DAY_NAMES[new Date(`${date}T00:00:00`).getDay()];
-                  return `${mm}/${dd}(${dow})`;
-                })();
-                return (
-                  <td key={`d-${i}`} style={{ padding: '0.2rem 0.1rem', minWidth: COL_W, overflow: 'visible', ...(!sameDay && i > 0 ? { borderLeft: '2px solid #ebeef5' } : {}) }}>
-                    {label ? (
-                      <span style={{
-                        display: 'inline-block',
-                        background: isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
+                  const label = `${mm}/${dd}(${dow})`;
+                  cells.push(
+                    <td key={`d-${i}`} colSpan={span} style={{ padding: '0.2rem 0.15rem', ...(i > 0 ? { borderLeft: '2px solid #ebeef5' } : {}) }}>
+                      <div style={{
+                        background: isPastDate ? 'rgba(180, 185, 200, 0.12)' : isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
                         borderRadius: '6px',
                         padding: '0.12rem 0.3rem',
                         fontSize: '0.68rem',
-                        color: isPast(entry) ? '#c0c4cf' : isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
+                        color: isPastDate ? '#c0c4cf' : isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
                         fontWeight: 600,
-                        whiteSpace: 'nowrap',
+                        textAlign: 'center',
                       }}>
                         {label}
-                      </span>
-                    ) : null}
-                  </td>
-                );
-              })}
+                      </div>
+                    </td>
+                  );
+                  i += span;
+                }
+                return cells;
+              })()}
             </tr>
             {/* 時刻 */}
             <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
