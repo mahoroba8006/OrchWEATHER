@@ -429,11 +429,11 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                           <div key={p} style={{
                             flex: 1,
                             textAlign: 'center',
-                            background: 'rgba(13, 148, 136, 0.11)',
+                            background: isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
                             borderRadius: '999px',
                             padding: '0.1rem 0',
                             fontSize: '0.6rem',
-                            color: 'var(--accent-color)',
+                            color: isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
                             fontWeight: 600,
                           }}>
                             {p}
@@ -446,9 +446,18 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                 return (
                   <td
                     key={day.date}
-                    style={{ ...singleCell(day, i), paddingTop: '0.75rem', verticalAlign: 'top' }}
+                    style={{ ...singleCell(day, i), padding: '0.4rem 0.3rem 0.25rem', verticalAlign: 'top' }}
                   >
-                    <div style={{ fontSize: '0.975rem', color: isToday ? 'var(--accent-blue)' : 'var(--text-secondary)', fontWeight: isToday ? 700 : 500 }}>
+                    <div style={{
+                      background: isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
+                      borderRadius: '6px',
+                      padding: '0.18rem 0.4rem',
+                      textAlign: 'center',
+                      fontSize: '0.875rem',
+                      color: isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
+                      fontWeight: isToday ? 700 : 600,
+                      whiteSpace: 'nowrap',
+                    }}>
                       {label}
                     </div>
                   </td>

@@ -328,6 +328,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
   }, [scrollTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPast = (e: TLEntry) => new Date(tlTime(e)) < effectiveCutoff;
+  const todayStr = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   // 夜間判定: daily の sunrise/sunset を時刻順に並べ、直前のイベントが sunset なら夜
   const allSunEvents = daily
@@ -369,6 +370,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 const t = tlTime(entry);
                 const date = t.slice(0, 10);
                 const sameDay = i > 0 && tlTime(tl[i - 1]).slice(0, 10) === date;
+                const isToday = date === todayStr;
                 const label = sameDay ? '' : (() => {
                   const mm = parseInt(date.slice(5, 7), 10);
                   const dd = parseInt(date.slice(8, 10), 10);
@@ -376,8 +378,21 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   return `${mm}/${dd}(${dow})`;
                 })();
                 return (
-                  <td key={`d-${i}`} style={{ padding: '0.3rem 0.2rem', textAlign: 'left', minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#5b6478', fontWeight: label ? 600 : undefined, fontSize: '0.7rem', overflow: 'visible', ...(!sameDay && i > 0 ? { borderLeft: '2px solid #ebeef5' } : {}) }}>
-                    {label}
+                  <td key={`d-${i}`} style={{ padding: '0.2rem 0.1rem', minWidth: COL_W, overflow: 'visible', ...(!sameDay && i > 0 ? { borderLeft: '2px solid #ebeef5' } : {}) }}>
+                    {label ? (
+                      <span style={{
+                        display: 'inline-block',
+                        background: isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
+                        borderRadius: '6px',
+                        padding: '0.12rem 0.3rem',
+                        fontSize: '0.68rem',
+                        color: isPast(entry) ? '#c0c4cf' : isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {label}
+                      </span>
+                    ) : null}
                   </td>
                 );
               })}
