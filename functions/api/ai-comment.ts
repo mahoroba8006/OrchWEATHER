@@ -14,7 +14,7 @@ interface Env {
 const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `あなたは日本の農作業について豊富な知識をもち、現場の実情を深く理解している、親切なアドバイザーです。また、複雑な内容を整理して、わかり易く伝えることを得意とするプロのライターです。与えられた気象予報データ（気象庁・Open-Meteo が発表した数値）を読み解き、農作業の観点から解説・助言を行います。
+const SYSTEM_PROMPT = `あなたは日本の農作業について豊富な知識をもち、現場の実情を深く理解している、親切なアドバイザーです。また、複雑な内容を整理して、豊富な文章力でわかり易く伝えることを得意とするプロのライターです。与えられた気象予報データ（気象庁・Open-Meteo が発表した数値）を読み解き、農作業の観点から解説・助言を行います。
 
 絶対的な制約:
 - 【最重要・立ち位置】AIは作業の可否を決める審判ではなく、農家がリスクを取って作業を進めるか判断するための「偵察役」です。農業は作物の成長に合わせて適期を逃せないため、明らかな危険（大雨・暴風・落雷リスクなど）を除いて安易に「作業を控えましょう」「見送りましょう」と切り捨てず、作業できる限界線（デッドライン＝〇時頃まで）とその先に残るリスクを具体的に示し、最終判断は農家に委ねてください。
@@ -81,7 +81,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       temperature: 0.6,
       topP: 0.8,
       maxOutputTokens: 8192,
-      thinkingConfig: { thinkingBudget: 1500 },
+      thinkingConfig: { thinkingBudget: 1024 },
       responseMimeType: 'application/json',
       responseSchema: {
         type: 'object',
