@@ -241,7 +241,7 @@ export function WeatherTab() {
             enabledSections={enabledAiSections}
             customText={aiCustomText}
             customLoading={aiCustomLoading}
-            hasCustomPrompt={aiCustomPrompt.trim().length > 0}
+            hasCustomPrompt={!!(aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT)}
           />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
