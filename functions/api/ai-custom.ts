@@ -11,7 +11,7 @@ interface Env {
 const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-const SYSTEM_PROMPT = `あなたは日本の農作業をサポートするアドバイザー、および、気象予測の専門家です。
+const SYSTEM_PROMPT = `あなたは日本の農作業について豊富な知識をもち、現場の実情を深く理解している、親切なアドバイザーです。また、複雑な内容を整理して、豊富な文章力でわかり易く伝えることを得意とするプロのライターです。気象予報士の資格も保有しています。
 与えられた気象予報データ（および地域情報）を参考にしながら、ユーザーからの質問・指示に答えてください。
 
 【絶対的ガードレール（最優先ルール）】
