@@ -136,6 +136,20 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     uvIndex:       raw.hourly.uv_index?.[i]                   ?? 0,
   }));
 
+  // 昼間(4-19時)の weather_code 最頻値を求める。同頻度なら大きい（悪い）コードを採用
+  function modeCode(codes: number[]): number | null {
+    if (codes.length === 0) return null;
+    const freq = new Map<number, number>();
+    for (const c of codes) freq.set(c, (freq.get(c) ?? 0) + 1);
+    let maxFreq = 0, result = 0;
+    for (const [code, count] of freq) {
+      if (count > maxFreq || (count === maxFreq && code > result)) {
+        maxFreq = count; result = code;
+      }
+    }
+    return result;
+  }
+
   // 午前(4-11時)・午後(12-19時)・夜間(20-翌3時)別に最大 weatherCode / precipProb を hourly から集計
   // 夜間は 0-3 時を前日の夜間として扱う
   const dayAmPm = new Map<string, {
@@ -147,6 +161,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     pmTempMax: number | null; pmTempMin: number | null;
     nightTempMax: number | null; nightTempMin: number | null;
     nightTempMaxShort: number | null; nightTempMinShort: number | null;
+    amCodes: number[]; pmCodes: number[];
   }>();
   for (const h of hourly) {
     const date = h.time.slice(0, 10);
@@ -179,16 +194,19 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
         pmTempMax: null, pmTempMin: null,
         nightTempMax: null, nightTempMin: null,
         nightTempMaxShort: null, nightTempMinShort: null,
+        amCodes: [], pmCodes: [],
       });
     }
     const d = dayAmPm.get(targetDate)!;
     if (period === 'am') {
+      d.amCodes.push(h.weatherCode);
       d.amCode       = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
       d.amPrecipSum += h.precipitation;
       d.amTempMax    = d.amTempMax === null ? h.temperature : Math.max(d.amTempMax, h.temperature);
       d.amTempMin    = d.amTempMin === null ? h.temperature : Math.min(d.amTempMin, h.temperature);
     } else if (period === 'pm') {
+      d.pmCodes.push(h.weatherCode);
       d.pmCode       = d.pmCode === null ? h.weatherCode : Math.max(d.pmCode, h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
@@ -213,7 +231,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
 
   const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => ({
     date:          t,
-    weatherCode:   raw.daily.weather_code?.[i]                   ?? 0,
+    weatherCode:   modeCode([...(dayAmPm.get(t)?.amCodes ?? []), ...(dayAmPm.get(t)?.pmCodes ?? [])]) ?? raw.daily.weather_code?.[i] ?? 0,
     tempMax:       raw.daily.temperature_2m_max?.[i]             ?? 0,
     tempMin:       raw.daily.temperature_2m_min?.[i]             ?? 0,
     precipProbMax: raw.daily.precipitation_probability_max?.[i]  ?? 0,
