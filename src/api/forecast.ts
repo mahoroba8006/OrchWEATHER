@@ -45,18 +45,12 @@ export interface DailyForecastData {
   amPrecipSum:      number | null; // mm sum 04:00-11:59（時間別データがある日のみ）
   pmPrecipSum:      number | null; // mm sum 12:00-19:59（時間別データがある日のみ）
   nightPrecipSum:   number | null; // mm sum 20:00-翌3:59（時間別データがある日のみ）
-  // 最終分割日（3日目）用: 翌0:00-3:59 を含まない 20:00-23:59 のみの集計
-  nightWeatherCodeShort: number | null; // WMO max 20:00-23:59
-  nightPrecipProbShort:  number | null; // % max 20:00-23:59
-  nightPrecipSumShort:   number | null; // mm sum 20:00-23:59（時間別データがある日のみ）
   amTempMax:         number | null; // ℃ max 04:00-11:00
   amTempMin:         number | null; // ℃ min 04:00-11:00
   pmTempMax:         number | null; // ℃ max 12:00-19:00
   pmTempMin:         number | null; // ℃ min 12:00-19:00
   nightTempMax:      number | null; // ℃ max 20:00-翌3:00
   nightTempMin:      number | null; // ℃ min 20:00-翌3:00
-  nightTempMaxShort: number | null; // ℃ max 20:00-23:00
-  nightTempMinShort: number | null; // ℃ min 20:00-23:00
   isPlaceholder?:   boolean;       // true: 取得データなし（未来日など）—表示用
 }
 
@@ -71,7 +65,7 @@ export interface FieldAvailability {
 }
 
 export interface ForecastData {
-  hourly: HourlyForecast[];        // 72エントリ（今日〜3日後）
+  hourly: HourlyForecast[];        // 今日〜3日後（HourlyTable 用 72h）
   daily: DailyForecastData[];      // 今日〜10日後
   pastDaily: DailyForecastData[];  // 過去7日分
   fetchedAt: number;               // Date.now()
@@ -105,7 +99,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + '&past_hours=20'
     + '&past_days=7'
     + '&forecast_days=11'
-    + '&forecast_hours=72'
+    + '&forecast_hours=264'
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
@@ -136,7 +130,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     uvIndex:       raw.hourly.uv_index?.[i]                   ?? 0,
   }));
 
-  // 昼間(4-19時)の weather_code 最頻値を求める。同頻度なら大きい（悪い）コードを採用
+  // 最頻値を返す。同頻度の場合は大きい（悪い）コードを採用
   function modeCode(codes: number[]): number | null {
     if (codes.length === 0) return null;
     const freq = new Map<number, number>();
@@ -150,18 +144,15 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     return result;
   }
 
-  // 午前(4-11時)・午後(12-19時)・夜間(20-翌3時)別に最大 weatherCode / precipProb を hourly から集計
+  // 午前(4-11時)・午後(12-19時)・夜間(20-翌3時)別に weatherCode / precipProb を hourly から集計
   // 夜間は 0-3 時を前日の夜間として扱う
   const dayAmPm = new Map<string, {
-    amCode: number | null; pmCode: number | null; nightCode: number | null;
+    amCodes: number[]; pmCodes: number[]; nightCodes: number[];
     amProb: number | null; pmProb: number | null; nightProb: number | null;
     amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
-    nightCodeShort: number | null; nightProbShort: number | null; nightPrecipSumShort: number;
     amTempMax: number | null; amTempMin: number | null;
     pmTempMax: number | null; pmTempMin: number | null;
     nightTempMax: number | null; nightTempMin: number | null;
-    nightTempMaxShort: number | null; nightTempMinShort: number | null;
-    amCodes: number[]; pmCodes: number[];
   }>();
   for (const h of hourly) {
     const date = h.time.slice(0, 10);
@@ -186,52 +177,39 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
 
     if (!dayAmPm.has(targetDate)) {
       dayAmPm.set(targetDate, {
-        amCode: null, pmCode: null, nightCode: null,
+        amCodes: [], pmCodes: [], nightCodes: [],
         amProb: null, pmProb: null, nightProb: null,
         amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
-        nightCodeShort: null, nightProbShort: null, nightPrecipSumShort: 0,
         amTempMax: null, amTempMin: null,
         pmTempMax: null, pmTempMin: null,
         nightTempMax: null, nightTempMin: null,
-        nightTempMaxShort: null, nightTempMinShort: null,
-        amCodes: [], pmCodes: [],
       });
     }
     const d = dayAmPm.get(targetDate)!;
     if (period === 'am') {
       d.amCodes.push(h.weatherCode);
-      d.amCode       = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
       d.amPrecipSum += h.precipitation;
       d.amTempMax    = d.amTempMax === null ? h.temperature : Math.max(d.amTempMax, h.temperature);
       d.amTempMin    = d.amTempMin === null ? h.temperature : Math.min(d.amTempMin, h.temperature);
     } else if (period === 'pm') {
       d.pmCodes.push(h.weatherCode);
-      d.pmCode       = d.pmCode === null ? h.weatherCode : Math.max(d.pmCode, h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
       d.pmTempMax    = d.pmTempMax === null ? h.temperature : Math.max(d.pmTempMax, h.temperature);
       d.pmTempMin    = d.pmTempMin === null ? h.temperature : Math.min(d.pmTempMin, h.temperature);
     } else {
-      d.nightCode       = d.nightCode === null ? h.weatherCode : Math.max(d.nightCode, h.weatherCode);
+      d.nightCodes.push(h.weatherCode);
       d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
       d.nightPrecipSum += h.precipitation;
       d.nightTempMax    = d.nightTempMax === null ? h.temperature : Math.max(d.nightTempMax, h.temperature);
       d.nightTempMin    = d.nightTempMin === null ? h.temperature : Math.min(d.nightTempMin, h.temperature);
-      // Short（20:00-23:59 のみ）: 翌0-3時分（hr<4 で前日に振り替えたもの）は含めない
-      if (hr >= 20) {
-        d.nightCodeShort       = d.nightCodeShort === null ? h.weatherCode : Math.max(d.nightCodeShort, h.weatherCode);
-        d.nightProbShort       = d.nightProbShort === null ? h.precipProb  : Math.max(d.nightProbShort,  h.precipProb);
-        d.nightPrecipSumShort += h.precipitation;
-        d.nightTempMaxShort    = d.nightTempMaxShort === null ? h.temperature : Math.max(d.nightTempMaxShort, h.temperature);
-        d.nightTempMinShort    = d.nightTempMinShort === null ? h.temperature : Math.min(d.nightTempMinShort, h.temperature);
-      }
     }
   }
 
   const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => ({
     date:          t,
-    weatherCode:   modeCode([...(dayAmPm.get(t)?.amCodes ?? []), ...(dayAmPm.get(t)?.pmCodes ?? [])]) ?? raw.daily.weather_code?.[i] ?? 0,
+    weatherCode:   raw.daily.weather_code?.[i] ?? 0,
     tempMax:       raw.daily.temperature_2m_max?.[i]             ?? 0,
     tempMin:       raw.daily.temperature_2m_min?.[i]             ?? 0,
     precipProbMax: raw.daily.precipitation_probability_max?.[i]  ?? 0,
@@ -244,26 +222,21 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     snowfallSum:   raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:  raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    amWeatherCode:    dayAmPm.get(t)?.amCode    ?? null,
-    pmWeatherCode:    dayAmPm.get(t)?.pmCode    ?? null,
-    nightWeatherCode: dayAmPm.get(t)?.nightCode ?? null,
+    amWeatherCode:    modeCode(dayAmPm.get(t)?.amCodes    ?? []),
+    pmWeatherCode:    modeCode(dayAmPm.get(t)?.pmCodes    ?? []),
+    nightWeatherCode: modeCode(dayAmPm.get(t)?.nightCodes ?? []),
     amPrecipProb:     dayAmPm.get(t)?.amProb    ?? null,
     pmPrecipProb:     dayAmPm.get(t)?.pmProb    ?? null,
     nightPrecipProb:  dayAmPm.get(t)?.nightProb ?? null,
     amPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.amPrecipSum    : null,
     pmPrecipSum:      dayAmPm.has(t) ? dayAmPm.get(t)!.pmPrecipSum    : null,
-    nightPrecipSum:        dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSum      : null,
-    nightWeatherCodeShort: dayAmPm.get(t)?.nightCodeShort ?? null,
-    nightPrecipProbShort:  dayAmPm.get(t)?.nightProbShort ?? null,
-    nightPrecipSumShort:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSumShort : null,
-    amTempMax:         dayAmPm.get(t)?.amTempMax         ?? null,
+    nightPrecipSum:   dayAmPm.has(t) ? dayAmPm.get(t)!.nightPrecipSum : null,
+    amTempMax:        dayAmPm.get(t)?.amTempMax          ?? null,
     amTempMin:         dayAmPm.get(t)?.amTempMin         ?? null,
     pmTempMax:         dayAmPm.get(t)?.pmTempMax         ?? null,
     pmTempMin:         dayAmPm.get(t)?.pmTempMin         ?? null,
     nightTempMax:      dayAmPm.get(t)?.nightTempMax      ?? null,
     nightTempMin:      dayAmPm.get(t)?.nightTempMin      ?? null,
-    nightTempMaxShort: dayAmPm.get(t)?.nightTempMaxShort ?? null,
-    nightTempMinShort: dayAmPm.get(t)?.nightTempMinShort ?? null,
   }));
 
   // 今日のJST日付でdailyを過去/未来に分割
@@ -272,5 +245,6 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   const pastDaily = daily.filter(d => d.date < todayJst);
   const futureDaily = daily.filter(d => d.date >= todayJst);
 
-  return { hourly, daily: futureDaily, pastDaily, fetchedAt: Date.now() };
+  // HourlyTable 用は past_hours(20) + 72h のみ返す（dayAmPm は全264h で構築済み）
+  return { hourly: hourly.slice(0, 20 + 72), daily: futureDaily, pastDaily, fetchedAt: Date.now() };
 }

@@ -65,11 +65,9 @@ function createPlaceholderDay(date: string): DailyForecastData {
     amWeatherCode:    null, pmWeatherCode:    null, nightWeatherCode: null,
     amPrecipProb:     null, pmPrecipProb:     null, nightPrecipProb:  null,
     amPrecipSum:      null, pmPrecipSum:      null, nightPrecipSum:   null,
-    nightWeatherCodeShort: null, nightPrecipProbShort: null, nightPrecipSumShort: null,
     amTempMax: null, amTempMin: null,
     pmTempMax: null, pmTempMin: null,
     nightTempMax: null, nightTempMin: null,
-    nightTempMaxShort: null, nightTempMinShort: null,
   };
 }
 
@@ -145,13 +143,9 @@ function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string) {
     amPrecipSum:      map.has(t) ? map.get(t)!.amPrecipSum    : null,
     pmPrecipSum:      map.has(t) ? map.get(t)!.pmPrecipSum    : null,
     nightPrecipSum:        map.has(t) ? map.get(t)!.nightPrecipSum : null,
-    nightWeatherCodeShort: null,
-    nightPrecipProbShort:  null,
-    nightPrecipSumShort:   null,
     amTempMax: null, amTempMin: null,
     pmTempMax: null, pmTempMin: null,
     nightTempMax: null, nightTempMin: null,
-    nightTempMaxShort: null, nightTempMinShort: null,
   };
 }
 
