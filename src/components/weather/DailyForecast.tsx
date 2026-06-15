@@ -145,13 +145,13 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
                 {max !== null && (
                   <>
                     <circle cx={cx} cy={ty(max)} r={2.5} fill={TEMP_MAX_COLOR} />
-                    <text x={cx} y={ty(max) - 4} fontSize={8} fill={TEMP_MAX_COLOR} textAnchor="middle" dominantBaseline="auto">{Math.round(max)}℃</text>
+                    <text x={cx} y={ty(max) - 4} fontSize={11} fill={TEMP_MAX_COLOR} textAnchor="middle" dominantBaseline="auto">{Math.round(max)}℃</text>
                   </>
                 )}
                 {min !== null && (
                   <>
                     <circle cx={cx} cy={ty(min)} r={2.5} fill={TEMP_MIN_COLOR} />
-                    <text x={cx} y={ty(min) + 4} fontSize={8} fill={TEMP_MIN_COLOR} textAnchor="middle" dominantBaseline="hanging">{Math.round(min)}℃</text>
+                    <text x={cx} y={ty(min) + 4} fontSize={11} fill={TEMP_MIN_COLOR} textAnchor="middle" dominantBaseline="hanging">{Math.round(min)}℃</text>
                   </>
                 )}
               </g>
@@ -165,16 +165,16 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
         if (day.amPrecipSum !== null) {
           return (
             <g key={`pl-${i}`}>
-              {day.amPrecipSum > 0 && <text x={cxAm(i)} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{day.amPrecipSum.toFixed(1)}mm</text>}
-              {(day.pmPrecipSum ?? 0) > 0 && <text x={cxPm(i)} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.pmPrecipSum ?? 0).toFixed(1)}mm</text>}
-              {(day.nightPrecipSum ?? 0) > 0 && <text x={cxNight(i)} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.nightPrecipSum ?? 0).toFixed(1)}mm</text>}
+              {day.amPrecipSum > 0 && <text x={cxAm(i)} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{day.amPrecipSum.toFixed(1)}mm</text>}
+              {(day.pmPrecipSum ?? 0) > 0 && <text x={cxPm(i)} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.pmPrecipSum ?? 0).toFixed(1)}mm</text>}
+              {(day.nightPrecipSum ?? 0) > 0 && <text x={cxNight(i)} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.nightPrecipSum ?? 0).toFixed(1)}mm</text>}
             </g>
           );
         }
         const p = day.precipSum;
         if (p === 0) return null;
         const cx = dayX[i] + dayWidths[i] / 2;
-        return <text key={`pl-${i}`} x={cx} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{p.toFixed(1)}mm</text>;
+        return <text key={`pl-${i}`} x={cx} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{p.toFixed(1)}mm</text>;
       })}
     </svg>
   );
