@@ -367,6 +367,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                       background: isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
                       borderRadius: '6px',
                       padding: '0.18rem 0.4rem',
+                      position: 'relative',
                       textAlign: 'center',
                       fontSize: '0.875rem',
                       color: isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
@@ -375,6 +376,13 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                       marginBottom: '0.3rem',
                     }}>
                       {label}
+                      {!day.isPlaceholder && (
+                        <span style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', fontWeight: 600 }}>
+                          <span style={{ color: '#fb7185' }}>{Math.round(day.tempMax)}</span>
+                          <span style={{ opacity: 0.5, margin: '0 0.08rem' }}>/</span>
+                          <span style={{ color: '#7dd3fc' }}>{Math.round(day.tempMin)}</span>
+                        </span>
+                      )}
                     </div>
                     <div style={{ display: 'flex', gap: '0.15rem' }}>
                       {['午前', '午後', '夜間'].map(p => (
@@ -507,22 +515,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                   </Fragment>
                 );
               })}
-            </tr>
-            {/* 最高・最低気温 */}
-            <tr>
-              {daily.map((day, i) => (
-                <td key={day.date} colSpan={3} style={spanCell(day, i)}>
-                  {day.isPlaceholder ? (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>—</div>
-                  ) : (
-                    <div style={{ fontSize: '0.85rem', lineHeight: 1.2 }}>
-                      <span style={{ color: '#fb7185', fontWeight: 700 }}>{Math.round(day.tempMax)}</span>
-                      <span style={{ color: 'var(--text-tertiary)', margin: '0 0.2rem', fontSize: '0.8rem' }}>/</span>
-                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>{Math.round(day.tempMin)}</span>
-                    </div>
-                  )}
-                </td>
-              ))}
             </tr>
             {/* ミニチャート */}
             <tr>

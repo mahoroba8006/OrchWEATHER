@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type ReactNode, type CSSProperties } from 
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import {
   Leaf, ArrowRight, Quote, Sparkles, BarChart2, CloudSun, SlidersHorizontal, Sprout,
+  Clock, Sun, CloudRain,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import '../landing.css';
@@ -94,8 +95,8 @@ const features = [
   {
     icon: CloudSun,
     eyebrow: '時間ごとの空',
-    title: 'カッパが要るか、まで書いてある。',
-    body: '降水量は「ぽつぽつ」「カッパ？」「カッパ！」。紫外線の強さも一目で。露点・飽差・0℃層高度など、作物に影響する専門データも時間別に確認でき、今日の作業の準備も万全。',
+    title: '露点・飽差・0℃層高度まで、時間別に。',
+    body: '気温と降水確率だけでは農作業の判断はできません。露点温度、飽差、0℃層高度（雹リスク）、大気安定度（落雷リスク）——農業に効く専門データを時間別に一覧表示。「あの日の空」機能では過去任意の日付も同じ画面で確認でき、失敗した作業の原因追跡にも役立ちます。',
     img: '/lp/feature-hourly.webp',
     w: 1165, h: 1959,
     alt: '時間別予報テーブルの画面',
@@ -351,6 +352,86 @@ function MarkCell({ mark, ours = false }: { mark: CompMark; ours?: boolean }) {
   );
 }
 
+function FieldFeaturesSection() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container">
+        <FadeIn>
+          <h2 className="lp-h2">農家の時間軸で、天気を読む。</h2>
+          <p className="lp-lead" style={{ marginTop: '0.5rem' }}>
+            ふつうの天気アプリは「消費者向け」に作られています。Orch.Weatherは、現場で使いながら磨いてきた3つのこだわりが違います。
+          </p>
+        </FadeIn>
+
+        <FadeIn delay={0.1}>
+          <div className="lp-zigzag" style={{ marginTop: '2.2rem' }}>
+            <div>
+              <p style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+                margin: '0 0 0.7rem',
+              }}>
+                <Clock size={16} /> 作業の実態に合わせた3時間帯
+              </p>
+              <h3 style={{ fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800, lineHeight: 1.5, margin: '0 0 0.8rem' }}>
+                「午前中に防除したい」——<br />その時間帯だけを、確認できる。
+              </h3>
+              <p className="lp-lead" style={{ fontSize: '0.92rem', marginBottom: '1.6rem' }}>
+                ふつうの天気予報は「今日」「明日」という一日単位。でも農作業は時間勝負です。防除は午前中が勝負、施肥は雨の前後が狙い目——Orch.Weatherは<strong>午前（4〜12時）・午後（12〜20時）・夜間（20〜翌4時）</strong>に分けて、それぞれの気温・降水量・風速を一画面に表示します。「何時から動けるか」を判断する時間を、ゼロにします。
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem' }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                    background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.3))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Sun size={17} color="#d97706" />
+                  </div>
+                  <div>
+                    <p style={{ fontWeight: 700, margin: '0 0 0.25rem', fontSize: '0.93rem' }}>紫外線指数（UV）を時間別に表示</p>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>
+                      屋外で何時間も動く農家にとって、紫外線は見えにくいリスク。帽子だけでいいか、腕まで覆うべきか——UV指数が時間別に確認できるので、日焼け対策を前日から計画できます。
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem' }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                    background: 'linear-gradient(135deg, rgba(14,165,233,0.15), rgba(14,165,233,0.3))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <CloudRain size={17} color="#0284c7" />
+                  </div>
+                  <div>
+                    <p style={{ fontWeight: 700, margin: '0 0 0.25rem', fontSize: '0.93rem' }}>「小雨」をさらに細かく——カッパ判断ラベル</p>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>
+                      一般の天気アプリが「小雨」でひとくくりにする3mm以下の雨を、Orch.Weatherはさらに3段階に分けます。0.5mm未満は<strong>ぽつぽつ</strong>（カッパ不要）、0.5〜1.5mmは<strong>カッパ？</strong>（迷う帯）、1.5〜3mmは<strong>カッパ！</strong>（着て動ける）。この一段階の細かさが、作業を続けるか切り上げるかの判断を変えます。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <img
+                className="lp-shot"
+                src="/lp/feature-daily.webp"
+                alt="午前・午後・夜間の時間帯別天気予報画面"
+                width={780}
+                height={1400}
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
 function ComparisonSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 0 }}>
@@ -532,6 +613,7 @@ export function LandingPage() {
       <PainSection />
       <MakerNote />
       <FeaturesSection />
+      <FieldFeaturesSection />
       <ComparisonSection />
       <StepsSection />
       <FinalCta loading={loading} onLogin={handleLogin} />
