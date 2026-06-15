@@ -51,6 +51,9 @@ export interface DailyForecastData {
   pmTempMin:         number | null; // ℃ min 12:00-19:00
   nightTempMax:      number | null; // ℃ max 20:00-翌3:00
   nightTempMin:      number | null; // ℃ min 20:00-翌3:00
+  amWindMax:         number | null; // m/s max 04:00-11:00
+  pmWindMax:         number | null; // m/s max 12:00-19:00
+  nightWindMax:      number | null; // m/s max 20:00-翌3:00
   isPlaceholder?:   boolean;       // true: 取得データなし（未来日など）—表示用
 }
 
@@ -153,6 +156,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     amTempMax: number | null; amTempMin: number | null;
     pmTempMax: number | null; pmTempMin: number | null;
     nightTempMax: number | null; nightTempMin: number | null;
+    amWindMax: number | null; pmWindMax: number | null; nightWindMax: number | null;
   }>();
   for (const h of hourly) {
     const date = h.time.slice(0, 10);
@@ -183,6 +187,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
         amTempMax: null, amTempMin: null,
         pmTempMax: null, pmTempMin: null,
         nightTempMax: null, nightTempMin: null,
+        amWindMax: null, pmWindMax: null, nightWindMax: null,
       });
     }
     const d = dayAmPm.get(targetDate)!;
@@ -192,18 +197,21 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
       d.amPrecipSum += h.precipitation;
       d.amTempMax    = d.amTempMax === null ? h.temperature : Math.max(d.amTempMax, h.temperature);
       d.amTempMin    = d.amTempMin === null ? h.temperature : Math.min(d.amTempMin, h.temperature);
+      d.amWindMax    = d.amWindMax === null ? h.windSpeed   : Math.max(d.amWindMax, h.windSpeed);
     } else if (period === 'pm') {
       d.pmCodes.push(h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
       d.pmTempMax    = d.pmTempMax === null ? h.temperature : Math.max(d.pmTempMax, h.temperature);
       d.pmTempMin    = d.pmTempMin === null ? h.temperature : Math.min(d.pmTempMin, h.temperature);
+      d.pmWindMax    = d.pmWindMax === null ? h.windSpeed   : Math.max(d.pmWindMax, h.windSpeed);
     } else {
       d.nightCodes.push(h.weatherCode);
       d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
       d.nightPrecipSum += h.precipitation;
       d.nightTempMax    = d.nightTempMax === null ? h.temperature : Math.max(d.nightTempMax, h.temperature);
       d.nightTempMin    = d.nightTempMin === null ? h.temperature : Math.min(d.nightTempMin, h.temperature);
+      d.nightWindMax    = d.nightWindMax === null ? h.windSpeed   : Math.max(d.nightWindMax, h.windSpeed);
     }
   }
 
@@ -237,6 +245,9 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     pmTempMin:         dayAmPm.get(t)?.pmTempMin         ?? null,
     nightTempMax:      dayAmPm.get(t)?.nightTempMax      ?? null,
     nightTempMin:      dayAmPm.get(t)?.nightTempMin      ?? null,
+    amWindMax:         dayAmPm.get(t)?.amWindMax          ?? null,
+    pmWindMax:         dayAmPm.get(t)?.pmWindMax          ?? null,
+    nightWindMax:      dayAmPm.get(t)?.nightWindMax       ?? null,
   }));
 
   // 今日のJST日付でdailyを過去/未来に分割

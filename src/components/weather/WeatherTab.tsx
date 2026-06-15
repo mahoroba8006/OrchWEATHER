@@ -248,6 +248,10 @@ export function WeatherTab() {
             <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} jmaWarnings={filteredJmaWarning?.items} />
           </section>
 
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textAlign: 'right', margin: '0.1rem 0.5rem' }}>
+            午前：4〜12時　　午後：12〜20時　　夜間：20〜翌4時
+          </p>
+
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={filteredJmaWarning?.items} />
           </section>

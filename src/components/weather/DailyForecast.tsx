@@ -14,7 +14,7 @@ interface Props {
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 const PERIOD_W = 50;  // px per AM / PM / Night cell
-const CHART_H  = 60;
+const CHART_H  = 80;
 
 function probColor(p: number): string {
   if (p >= 70) return 'var(--accent-blue)';
@@ -28,11 +28,14 @@ interface DailyMiniChartProps {
   dayWidths: number[];
 }
 
+const TEMP_MAX_COLOR = '#fb7185'; // rose-400
+const TEMP_MIN_COLOR = '#7dd3fc'; // sky-300
+
 function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   const W = dayWidths.reduce((a, b) => a + b, 0);
   const H = CHART_H;
-  const padT = 6;
-  const padB = 6;
+  const padT = 14;
+  const padB = 20;
   const innerH = H - padT - padB;
 
   const precips = daily.map(d => d.precipSum);
@@ -52,7 +55,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
   const cxPm    = (i: number) => dayX[i] + dayWidths[i] * (3 / 6);
   const cxNight = (i: number) => dayX[i] + dayWidths[i] * (5 / 6);
   const ty   = (t: number) => padT + (1 - (t - tMin) / tRange) * innerH;
-  const ph  = (p: number) => p === 0 ? 0 : Math.max(1, (p / pMax) * innerH * 0.45);
+  const ph  = (p: number) => p === 0 ? 0 : Math.max(1, (p / pMax) * innerH);
   const barW = Math.round(PERIOD_W * 0.6);
 
   const buildTempPts = (isMax: boolean): [number, number][] => {
@@ -100,6 +103,7 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
           <text x={3} y={ty(v) - 2} fontSize={8} style={{ fill: 'var(--text-tertiary)' }}>{v}</text>
         </g>
       ))}
+      {/* 降水バー */}
       {daily.map((day, i) => {
         if (day.isPlaceholder) return null;
         if (day.amPrecipSum !== null) {
@@ -111,49 +115,67 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
           const nightBh = ph(day.nightPrecipSum ?? 0);
           return (
             <g key={i}>
-              {amBh > 0 && (
-                <>
-                  <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-                  <text x={cxA} y={H - padB - amBh - 2} fontSize={10} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
-                    {day.amPrecipSum.toFixed(1)}
-                  </text>
-                </>
-              )}
-              {pmBh > 0 && (
-                <>
-                  <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-                  <text x={cxP} y={H - padB - pmBh - 2} fontSize={10} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
-                    {(day.pmPrecipSum ?? 0).toFixed(1)}
-                  </text>
-                </>
-              )}
-              {nightBh > 0 && (
-                <>
-                  <rect x={cxN - barW / 2} y={H - padB - nightBh} width={barW} height={nightBh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-                  <text x={cxN} y={H - padB - nightBh - 2} fontSize={10} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
-                    {(day.nightPrecipSum ?? 0).toFixed(1)}
-                  </text>
-                </>
-              )}
+              {amBh > 0 && <rect x={cxA - barW / 2} y={H - padB - amBh} width={barW} height={amBh} style={{ fill: 'var(--accent-blue)' }} opacity={0.6} rx={2} ry={2} />}
+              {pmBh > 0 && <rect x={cxP - barW / 2} y={H - padB - pmBh} width={barW} height={pmBh} style={{ fill: 'var(--accent-blue)' }} opacity={0.6} rx={2} ry={2} />}
+              {nightBh > 0 && <rect x={cxN - barW / 2} y={H - padB - nightBh} width={barW} height={nightBh} style={{ fill: 'var(--accent-blue)' }} opacity={0.6} rx={2} ry={2} />}
             </g>
           );
         }
-        // 時間別データなし: 日合計1本バー（日中央）
         const cx = dayX[i] + dayWidths[i] / 2;
         const p  = day.precipSum;
         const bh = ph(p);
         if (bh === 0) return null;
+        return <rect key={i} x={cx - barW / 2} y={H - padB - bh} width={barW} height={bh} style={{ fill: 'var(--accent-blue)' }} opacity={0.6} rx={2} ry={2} />;
+      })}
+      {/* 気温ライン */}
+      <path d={makePath(buildTempPts(false))} fill="none" stroke={TEMP_MIN_COLOR} strokeWidth={2} strokeLinecap="round" />
+      <path d={makePath(buildTempPts(true))} fill="none" stroke={TEMP_MAX_COLOR} strokeWidth={2} strokeLinecap="round" />
+      {/* 気温ドット + ラベル */}
+      {daily.map((day, i) => {
+        if (day.isPlaceholder) return null;
+        const periods = [
+          { cx: cxAm(i),    max: day.amTempMax,    min: day.amTempMin    },
+          { cx: cxPm(i),    max: day.pmTempMax,    min: day.pmTempMin    },
+          { cx: cxNight(i), max: day.nightTempMax, min: day.nightTempMin },
+        ];
         return (
-          <g key={i}>
-            <rect x={cx - barW / 2} y={H - padB - bh} width={barW} height={bh} style={{ fill: 'var(--chart-precip)' }} opacity={0.6} rx={2} ry={2} />
-            <text x={cx} y={H - padB - bh - 2} fontSize={12} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">
-              {p.toFixed(1)}
-            </text>
+          <g key={`dot-${i}`}>
+            {periods.map(({ cx, max, min }, pi) => (
+              <g key={pi}>
+                {max !== null && (
+                  <>
+                    <circle cx={cx} cy={ty(max)} r={2.5} fill={TEMP_MAX_COLOR} />
+                    <text x={cx} y={ty(max) - 4} fontSize={8} fill={TEMP_MAX_COLOR} textAnchor="middle" dominantBaseline="auto">{Math.round(max)}℃</text>
+                  </>
+                )}
+                {min !== null && (
+                  <>
+                    <circle cx={cx} cy={ty(min)} r={2.5} fill={TEMP_MIN_COLOR} />
+                    <text x={cx} y={ty(min) + 4} fontSize={8} fill={TEMP_MIN_COLOR} textAnchor="middle" dominantBaseline="hanging">{Math.round(min)}℃</text>
+                  </>
+                )}
+              </g>
+            ))}
           </g>
         );
       })}
-      <path d={makePath(buildTempPts(false))} fill="none" style={{ stroke: 'var(--accent-blue)' }} strokeWidth={2} strokeLinecap="round" />
-      <path d={makePath(buildTempPts(true))} fill="none" style={{ stroke: 'var(--chart-temp)' }} strokeWidth={2} strokeLinecap="round" />
+      {/* 降水ラベル（底部固定） */}
+      {daily.map((day, i) => {
+        if (day.isPlaceholder) return null;
+        if (day.amPrecipSum !== null) {
+          return (
+            <g key={`pl-${i}`}>
+              {day.amPrecipSum > 0 && <text x={cxAm(i)} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{day.amPrecipSum.toFixed(1)}mm</text>}
+              {(day.pmPrecipSum ?? 0) > 0 && <text x={cxPm(i)} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.pmPrecipSum ?? 0).toFixed(1)}mm</text>}
+              {(day.nightPrecipSum ?? 0) > 0 && <text x={cxNight(i)} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.nightPrecipSum ?? 0).toFixed(1)}mm</text>}
+            </g>
+          );
+        }
+        const p = day.precipSum;
+        if (p === 0) return null;
+        const cx = dayX[i] + dayWidths[i] / 2;
+        return <text key={`pl-${i}`} x={cx} y={H - 2} fontSize={8} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{p.toFixed(1)}mm</text>;
+      })}
     </svg>
   );
 }
@@ -283,7 +305,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
     minWidth: PERIOD_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.3rem 0.1rem',
+    padding: '0.15rem 0.1rem',
     verticalAlign: 'middle',
     borderRight: innerBorder,
     ...extra,
@@ -294,7 +316,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
     minWidth: PERIOD_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.3rem 0.1rem',
+    padding: '0.15rem 0.1rem',
     verticalAlign: 'middle',
     borderRight: innerBorder,
     ...extra,
@@ -305,7 +327,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
     minWidth: PERIOD_W,
     background: cellBg(day),
     textAlign: 'center',
-    padding: '0.3rem 0.1rem',
+    padding: '0.15rem 0.1rem',
     verticalAlign: 'middle',
     borderRight: dayBorder(i),
     ...extra,
@@ -448,7 +470,7 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                     color: prob !== null ? probColor(prob) : 'var(--text-tertiary)',
                     fontWeight: prob !== null && prob >= 70 ? 700 : undefined,
                   }}>
-                    {prob !== null ? `💧${prob}%` : '—'}
+                    {prob !== null ? <><img src="https://cdn.meteocons.com/3.0.0-next.10/svg-static/flat/raindrop.svg" alt="" style={{ width: '1.8em', height: '1.8em', verticalAlign: 'middle', marginRight: '0.1em' }} />{prob}%</> : '—'}
                   </div>
                 );
                 return (
@@ -456,6 +478,32 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                     <td style={amCell(day)}>{renderProb(day.amPrecipProb)}</td>
                     <td style={pmCell(day)}>{renderProb(day.pmPrecipProb)}</td>
                     <td style={nightCell(day, i)}>{renderProb(day.nightPrecipProb)}</td>
+                  </Fragment>
+                );
+              })}
+            </tr>
+            {/* 時間帯別最大風速 */}
+            <tr>
+              {daily.map((day, i) => {
+                const fmt = (v: number | null) => (
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                    {v === null ? '—' : <><img src="https://cdn.meteocons.com/3.0.0-next.10/svg-static/fill/wind-dust.svg" alt="" style={{ width: '1.8em', height: '1.8em', verticalAlign: 'middle', marginRight: '0.1em' }} />{v.toFixed(1)}m/s</>}
+                  </div>
+                );
+                if (day.isPlaceholder) {
+                  return (
+                    <Fragment key={day.date}>
+                      <td style={amCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                      <td style={pmCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                      <td style={nightCell(day, i)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                    </Fragment>
+                  );
+                }
+                return (
+                  <Fragment key={day.date}>
+                    <td style={amCell(day)}>{fmt(day.amWindMax)}</td>
+                    <td style={pmCell(day)}>{fmt(day.pmWindMax)}</td>
+                    <td style={nightCell(day, i)}>{fmt(day.nightWindMax)}</td>
                   </Fragment>
                 );
               })}
@@ -473,16 +521,6 @@ export function DailyForecast({ daily, onHalfDayClick, jmaWarnings }: Props) {
                       <span style={{ color: '#38bdf8', fontWeight: 700 }}>{Math.round(day.tempMin)}</span>
                     </div>
                   )}
-                </td>
-              ))}
-            </tr>
-            {/* 日照時間 */}
-            <tr>
-              {daily.map((day, i) => (
-                <td key={day.date} colSpan={3} style={spanCell(day, i)}>
-                  <div style={{ fontSize: '0.72rem', color: '#f59e0b' }}>
-                    {day.isPlaceholder ? '—' : `☀️ ${day.sunshineDuration.toFixed(1)}h`}
-                  </div>
                 </td>
               ))}
             </tr>
