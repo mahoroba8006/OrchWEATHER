@@ -230,7 +230,7 @@ export function DailyRawTable({ targets, weatherData, getYearColor, getLocationN
         CSVダウンロード
       </button>
       <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-        グラフに表示されているすべての項目（気温・降水・日射・日照・湿度・飽差・累積値など {allDates.length}日分）を一括で取得できます
+        グラフに表示されているすべての項目（気温・降水・日射・日照・湿度・飽差・累積値など）を一括で取得できます
       </p>
     </div>
   );
