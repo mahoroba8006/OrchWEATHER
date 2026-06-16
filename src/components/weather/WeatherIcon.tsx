@@ -47,7 +47,7 @@ function codeToIconFile(code: number, isNight: boolean): string {
   if (code === 86)                return `partly-cloudy-${d}-snow`;
 
   // 95: 雷雨 / 96: 雷雨＋弱いひょう / 99: 雷雨＋強いひょう
-  if (code === 95)                return 'thunderstorms-overcast';
+  if (code === 95)                return 'thunderstorms-extreme-rain';
   if (code === 96)                return 'thunderstorms-extreme-sleet';
   if (code === 99)                return 'extreme-thunderstorms-extreme-sleet';
 
