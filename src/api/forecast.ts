@@ -70,7 +70,7 @@ export interface FieldAvailability {
 
 export interface ForecastData {
   hourly: HourlyForecast[];        // 今日〜3日後（HourlyTable 用 72h）
-  daily: DailyForecastData[];      // 今日〜10日後
+  daily: DailyForecastData[];      // 今日〜15日後（最大16日）
   pastDaily: DailyForecastData[];  // 過去7日分
   fetchedAt: number;               // Date.now()
   availability?: FieldAvailability; // 過去API用。未指定は全項目利用可（通常予報）
@@ -102,8 +102,8 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + '&wind_speed_unit=ms'
     + '&past_hours=20'
     + '&past_days=7'
-    + '&forecast_days=11'
-    + '&forecast_hours=264'
+    + '&forecast_days=16'
+    + '&forecast_hours=384'
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
@@ -257,6 +257,6 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   const pastDaily = daily.filter(d => d.date < todayJst);
   const futureDaily = daily.filter(d => d.date >= todayJst);
 
-  // HourlyTable 用は past_hours(20) + 72h のみ返す（dayAmPm は全264h で構築済み）
+  // HourlyTable 用は past_hours(20) + 72h のみ返す（dayAmPm は全384h で構築済み）
   return { hourly: hourly.slice(0, 20 + 72), daily: futureDaily, pastDaily, fetchedAt: Date.now() };
 }

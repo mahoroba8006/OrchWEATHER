@@ -1,4 +1,198 @@
 
+## 2026-06-16 セッション（74回目）
+
+### 作業内容
+
+#### 1. 雷雨系アイコン修正（WMO 95/96/99）
+**コミット:** `8e3a2a3`（push済み）
+
+- **原因:** 前回（72回目）で 95/96/99 を存在しないファイル名にマッピングしており、`not-available.svg` が表示されていた
+- **対応:** ユーザー提供の cdn.meteocons.com/3.0.0-next.10 から3ファイルをダウンロード
+  - `thunderstorms-extreme-rain.svg`（95: 雷雨）
+  - `thunderstorms-extreme-sleet.svg`（96: 雷雨＋弱ひょう）
+  - `extreme-thunderstorms-extreme-sleet.svg`（99: 雷雨＋強ひょう）
+- animated（`public/icons/weather/`）・static（`public/icons/weather-static/`）両フォルダに配置
+- `WeatherIcon.tsx`: code 95 を `thunderstorms-overcast`→`thunderstorms-extreme-rain` に修正
+
+### 決定事項
+- Meteocons アイコンが jsdelivr CDN に存在しない場合は `cdn.meteocons.com/3.0.0-next.10/svg/fill/` を参照する
+- 雷雨系は昼夜共通ファイル（`${d}` サフィックスなし）
+
+### 未完了・次回候補
+- `/lp/feature-daily.webp` スクリーンショット撮影 → `public/lp/` に配置
+- LP 残り2枚: `hero-imanosora.webp` / `feature-ai.webp` 差し替え
+- iOS Safari 実機確認
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-16 セッション（73回目）
+
+### 作業内容
+
+#### 1. タブ名「いまの空」→「空もよう」に変更
+**コミット:** `72bc2e1`（push済み）
+
+- `src/App.tsx`（PC・モバイル各1箇所）
+- `src/components/HelpPage.tsx`（目次・コメント・見出しの3箇所）
+- `src/components/LandingPage.tsx`（alt属性）
+
+#### 2. AIコメントカードの表示位置を変更（WeatherTab.tsx）
+**コミット:** `72bc2e1`（同上）
+
+- 移動前: 注意報サマリー直下（日別予報・時間別予報より上）
+- 移動後: 時間別予報（HourlyTable）の下
+
+### 決定事項
+- タブ名は「空もよう」に統一（HelpPage の見出しも含む）
+- AIコメントは天気データをすべて見た後に読む位置へ
+
+### 未完了・次回候補
+- `/lp/feature-daily.webp` スクリーンショット撮影 → `public/lp/` に配置
+- LP 残り2枚: `hero-imanosora.webp` / `feature-ai.webp` 差し替え
+- iOS Safari 実機確認
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-16 セッション（72回目）
+
+### 作業内容
+
+#### 1. WMO深刻度マップ実装（src/lib/wmoSeverity.ts 新規作成）
+**コミット:** `2b0d958`（push済み）
+
+- `WMO_SEVERITY`（26段階）+ `wmoSeverity(code)` + `worstCode(a,b)` を新規ファイルに集約
+- WMOコードは現象ブロック別に整理されており数値の大小と深刻度は一致しない問題を解消
+  - 例: code 65（大雨）> code 80（にわか雨弱）だが WMO数値は 65 < 80
+- **forecast.ts:** `modeCode()` のタイブレークを `code > result`（数値比較）→ `wmoSeverity(code) > wmoSeverity(result)` に変更
+- **historicalForecast.ts:** `buildDayAmPmMap()` の am/pm/night 3箇所で `Math.max(d.xxxCode, h.weatherCode)` → `worstCode()` に変更
+
+#### 2. 天気アイコン修正（WeatherIcon.tsx）
+
+| コード | 変更前 | 変更後 |
+|--------|--------|--------|
+| 77（雪粒） | `extreme-snow` | `overcast-snow` |
+| 82（激しいにわか雨） | `partly-cloudy-{d}-drizzle` | `partly-cloudy-{d}-rain` |
+| 86（にわか雪） | `overcast-{d}-snow` | `partly-cloudy-{d}-snow` |
+| 95（雷雨） | `thunderstorms-{d}-extreme-rain` | `thunderstorms-overcast` |
+| 96（雷雨ひょう） | `extreme-thunderstorms-extreme-hail` | `thunderstorms-extreme-sleet` |
+| 99（激しい雷雨ひょう） | `extreme-thunderstorms-extreme-hail` | `extreme-thunderstorms-extreme-sleet` |
+
+### 決定事項
+- WMO深刻度は専用ファイル `src/lib/wmoSeverity.ts` で一元管理（forecast.ts / historicalForecast.ts 両方から import）
+- 77（雪粒）は `extreme-snow` でなく `overcast-snow`（大雪より軽いことを反映）
+- 95（雷雨）は昼夜共通 `thunderstorms-overcast`、96/99（ひょう）は `*-extreme-sleet` 系に統一
+
+### 未完了・次回候補
+- `/lp/feature-daily.webp` スクリーンショット撮影 → `public/lp/` に配置
+- LP 残り2枚: `hero-imanosora.webp` / `feature-ai.webp` 差し替え
+- iOS Safari 実機確認
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-16 セッション（71回目）
+
+### 作業内容
+
+#### 1. 削除確認ダイアログをカスタムモーダルに変更（LocationSettings.tsx）
+**コミット:** `f3d9c53`（push済み）
+
+- `window.confirm()` を廃止し、インラインモーダルに差し替え
+- ブラウザが自動で付与する「weather.orch-app.comの内容」というヘッダーを排除
+- 表示テキスト：タイトル「登録地点の削除」／本文「本当に削除しますか？」
+- 背景クリックまたはキャンセルボタンで閉じる、削除ボタンで実行
+
+#### 2. React error #310（hooks順序違反）の修正
+**コミット:** `f3d9c53`（同上）
+
+- **根本原因:** `WeatherTab.tsx` と `HistoricalWeatherTab.tsx` の両方で、`useCallback(scrollToHour)` が条件付き早期 `return` の**後ろ**に定義されていた
+- **症状:** 初回ログイン時・地点未登録状態で「いまの空」を開くと、geoLocation 取得前後でフック数が変わり（10→11）React が error #310 を投げてアプリ全体がクラッシュ
+- **修正:** `useCallback` を `if (locations.length === 0 && !geoLocation)` ブロックの**前**（全フック呼び出しの後）に移動
+
+### 決定事項
+- 削除確認ダイアログはカスタムモーダル方式（window.confirm は使わない）
+- hooks はすべて条件分岐や早期 return より前に配置する（今後の実装でも同様）
+
+### 未完了・次回候補
+- `/lp/feature-daily.webp` スクリーンショット撮影 → `public/lp/` に配置
+- LP 残り2枚: `hero-imanosora.webp` / `feature-ai.webp` 差し替え
+- iOS Safari 実機確認
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
+## 2026-06-15 セッション（70回目）
+
+### 作業内容
+
+#### 1. 日別予報ミニグラフ大幅改善
+**コミット:** 複数（push済み）
+
+- **日照時間行を削除**（DailyForecast.tsx）
+- **気温ドット+ラベル追加:** AM/PM/夜間各時間帯の最高・最低気温にドット(r=2.5)とラベルを追加。最高気温ラベルはドット上方、最低気温ラベルはドット下方
+- **単位追加:** 気温ラベルに℃、降水ラベルにmmを付与
+- **降水ラベルをバー底部固定:** y={H-2}・dominantBaseline="auto"で常にSVG底部に固定、気温ラインとの干渉を回避
+- **グラフ高さ調整:** CHART_H=80、padT=14、padB=20、innerH=46でラベルゾーンを確保
+- **降水バー色を統一:** var(--accent-blue)（opacity=0.6）
+- **降水バー高さ拡張:** 係数廃止、最大高さ=innerH（グラフ全体まで伸びる）
+- **気温ラインの色:** TEMP_MAX_COLOR='#fb7185'（rose-400）、TEMP_MIN_COLOR='#7dd3fc'（sky-300）
+
+#### 2. 時間帯別最大風速行の追加
+**コミット:** push済み（caf2e23 Cloudflareビルドエラー修正含む）
+
+- `DailyForecastData` に `amWindMax / pmWindMax / nightWindMax: number|null` を追加（forecast.ts / historicalForecast.ts）
+- `DailyForecast.tsx`：降水確率行の下に時間帯別最大風速行を追加
+- `historicalForecast.ts`：DayAmPmEntry型・createPlaceholderDay・buildDayAmPmMap・expandDayAmPmの4箇所修正（Cloudflareビルドエラー対応）
+
+#### 3. Meteocons SVGアイコンに変更
+- 降水確率アイコン: `https://cdn.meteocons.com/3.0.0-next.10/svg-static/flat/raindrop.svg`
+- 風速アイコン: `https://cdn.meteocons.com/3.0.0-next.10/svg-static/fill/wind-dust.svg`
+- サイズ: `width='1.8em' height='1.8em'`
+
+#### 4. セルパディング縮小・時間帯説明テキスト追加
+- amCell/pmCell/nightCell の padding: 0.3rem → 0.15rem
+- WeatherTab.tsx：DailyForecastとHourlyTableの間に時間帯説明テキストを右寄せで追加（「午前：4〜12時　午後：12〜20時　夜間：20〜翌4時」）
+
+#### 5. LPに現場機能セクション追加（LandingPage.tsx）
+- `FieldFeaturesSection` を追加（FeaturesSection後・ComparisonSection前）
+- タイトル「農家の時間軸で、天気を読む。」
+- zigzagレイアウト、Clock/Sun/CloudRainアイコン使用
+- 3機能：時間帯別（AM/PM/夜間）/ UV指数 / カッパ判断ラベル
+- 画像: `/lp/feature-daily.webp`（未撮影・プレースホルダー）
+
+#### 6. 最高・最低気温行を削除し日付バナーに統合
+**コミット:** `1e522a2`（push済み）
+
+- 最高気温・最低気温の独立行を削除
+- 日付バナーを `position: relative` + `textAlign: center` でセンタリング
+- 気温を `position: absolute; right: 0.4rem` で右端配置（最高=#fb7185、最低=#7dd3fc、0.72rem）
+
+#### 7. ミニグラフ気温・降水ラベルのフォントサイズ拡大
+**コミット:** `07b75b7`（push済み）
+
+- 気温ラベル・降水ラベルを fontSize=8 → 11 に変更（8→10→12→11と調整して確定）
+
+### 決定事項
+- ミニグラフの気温・降水ラベルは fontSize=11 で確定
+- 降水ラベルはSVG底部固定（気温グラフとの干渉回避）
+- 最高・最低気温は日付バナー右端に統合（専用行廃止）、日付はセンタリング
+- 時間帯説明テキストは右寄せ（日別予報と時間別テーブルの間）
+
+### 未完了・次回候補
+- `/lp/feature-daily.webp` スクリーンショット撮影→ `public/lp/` に配置
+- LP 残り2枚: `hero-imanosora.webp` / `feature-ai.webp` 差し替え
+- iOS Safari 実機確認（NAV blur / HERO クリップなし / 比較表横スクロール / 画像 / ログイン動作）
+- 有料化実装（Stripe・機能フラグ・14日トライアル）
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-06-15 セッション（69回目）
 
 ### 作業内容
