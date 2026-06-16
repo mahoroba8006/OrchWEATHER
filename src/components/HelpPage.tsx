@@ -123,7 +123,7 @@ export function HelpPage({ onBack }: Props) {
         <div style={TOC_STYLE}>
           <div style={TOC_LABEL_STYLE}>目次</div>
           <a href="#location" style={TOC_ITEM_STYLE}>1. 地点登録の方法</a>
-          <a href="#weather" style={TOC_ITEM_STYLE}>2. いまの空</a>
+          <a href="#weather" style={TOC_ITEM_STYLE}>2. 空もよう</a>
           <a href="#compare" style={TOC_ITEM_STYLE}>3. 空くらべ</a>
           <a href="#history" style={TOC_ITEM_STYLE}>4. あの日の空</a>
         </div>
@@ -161,9 +161,9 @@ export function HelpPage({ onBack }: Props) {
           </p>
         </section>
 
-        {/* ── 2. いまの空 ── */}
+        {/* ── 2. 空もよう ── */}
         <section id="weather">
-          <h2 style={H2_STYLE}>2. いまの空</h2>
+          <h2 style={H2_STYLE}>2. 空もよう</h2>
           <p style={P_STYLE}>
             登録した地点の現在の天気予報を表示します。時間別予報（2時間刻み）・日別予報・AIコメントの3つのセクションで構成されています。
           </p>

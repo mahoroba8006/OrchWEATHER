@@ -234,7 +234,7 @@ function Hero({ loading, error, onLogin }: { loading: boolean; error: string | n
         <FadeIn delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
           <div className="lp-phone">
             {/* width/height は Task 7 で実画像の寸法に更新する */}
-            <img src="/lp/hero-imanosora.webp" alt="いまの空 — 時間ごとの空模様とAI提案の画面" width={780} height={1688} />
+            <img src="/lp/hero-imanosora.webp" alt="空もよう — 時間ごとの空模様とAI提案の画面" width={780} height={1688} />
           </div>
         </FadeIn>
       </div>
