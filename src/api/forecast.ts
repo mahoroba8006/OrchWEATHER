@@ -1,6 +1,7 @@
 // src/api/forecast.ts
 
 import { addDays } from '../lib/dateUtils';
+import { wmoSeverity } from '../lib/wmoSeverity';
 
 export interface HourlyForecast {
   time: string;          // "2026-05-21T15:00"
@@ -140,7 +141,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     for (const c of codes) freq.set(c, (freq.get(c) ?? 0) + 1);
     let maxFreq = 0, result = 0;
     for (const [code, count] of freq) {
-      if (count > maxFreq || (count === maxFreq && code > result)) {
+      if (count > maxFreq || (count === maxFreq && wmoSeverity(code) > wmoSeverity(result))) {
         maxFreq = count; result = code;
       }
     }

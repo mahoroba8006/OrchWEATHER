@@ -34,20 +34,22 @@ function codeToIconFile(code: number, isNight: boolean): string {
   // 71: 雪（弱） / 73: 雪（並） / 75: 雪（強） / 77: 雪粒
   if (code === 71)                return 'snow';
   if (code === 73)                return 'overcast-snow';
-  if (code === 75 || code === 77) return 'extreme-snow';
+  if (code === 75)                 return 'extreme-snow';
+  if (code === 77)                 return 'overcast-snow';
 
   // 80: にわか雨（弱） / 81: にわか雨（並） / 82: にわか雨（激）
   if (code === 80)                return `mostly-clear-${d}-drizzle`;
   if (code === 81)                return `partly-cloudy-${d}-drizzle`;
-  if (code === 82)                return `partly-cloudy-${d}-drizzle`;
+  if (code === 82)                return `partly-cloudy-${d}-rain`;
 
   // 85: にわか雪（弱） / 86: にわか雪（強）
   if (code === 85)                return `mostly-clear-${d}-snow`;
-  if (code === 86)                return `overcast-${d}-snow`;
+  if (code === 86)                return `partly-cloudy-${d}-snow`;
 
   // 95: 雷雨 / 96: 雷雨＋弱いひょう / 99: 雷雨＋強いひょう
-  if (code === 95)                return `thunderstorms-${d}-extreme-rain`;
-  if (code === 96 || code === 99) return 'extreme-thunderstorms-extreme-hail';
+  if (code === 95)                return 'thunderstorms-overcast';
+  if (code === 96)                return 'thunderstorms-extreme-sleet';
+  if (code === 99)                return 'extreme-thunderstorms-extreme-sleet';
 
   return 'not-available';
 }

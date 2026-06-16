@@ -15,6 +15,8 @@
 //
 import type { ForecastData, DailyForecastData, HourlyForecast, FieldAvailability } from './forecast';
 
+import { worstCode } from '../lib/wmoSeverity';
+
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 
 /** forecast API が過去を遡れる日数（open-meteo の仕様上 ~14日） */
@@ -117,17 +119,17 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
     }
     const d = map.get(targetDate)!;
     if (period === 'am') {
-      d.amCode       = d.amCode === null ? h.weatherCode : Math.max(d.amCode, h.weatherCode);
+      d.amCode       = d.amCode === null ? h.weatherCode : worstCode(d.amCode, h.weatherCode);
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
       d.amPrecipSum += h.precipitation;
       d.amWindMax    = d.amWindMax === null ? h.windSpeed  : Math.max(d.amWindMax, h.windSpeed);
     } else if (period === 'pm') {
-      d.pmCode       = d.pmCode === null ? h.weatherCode : Math.max(d.pmCode, h.weatherCode);
+      d.pmCode       = d.pmCode === null ? h.weatherCode : worstCode(d.pmCode, h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
       d.pmWindMax    = d.pmWindMax === null ? h.windSpeed  : Math.max(d.pmWindMax, h.windSpeed);
     } else {
-      d.nightCode       = d.nightCode === null ? h.weatherCode : Math.max(d.nightCode, h.weatherCode);
+      d.nightCode       = d.nightCode === null ? h.weatherCode : worstCode(d.nightCode, h.weatherCode);
       d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
       d.nightPrecipSum += h.precipitation;
       d.nightWindMax    = d.nightWindMax === null ? h.windSpeed  : Math.max(d.nightWindMax, h.windSpeed);
