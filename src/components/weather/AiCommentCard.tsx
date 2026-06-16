@@ -197,7 +197,18 @@ function TabBar({ tabs, activeTab, onSelect, disabled }: TabBarProps) {
     const container = scrollRef.current;
     if (!container) return;
     const activeBtn = container.querySelector('[data-active="true"]') as HTMLElement | null;
-    activeBtn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    if (!activeBtn) return;
+    // scrollIntoView はページ縦スクロールを引き起こすため使わず、
+    // タブバーコンテナの scrollLeft のみ操作する
+    const btnLeft = activeBtn.offsetLeft;
+    const btnRight = btnLeft + activeBtn.offsetWidth;
+    const scrollLeft = container.scrollLeft;
+    const containerWidth = container.offsetWidth;
+    if (btnRight > scrollLeft + containerWidth) {
+      container.scrollLeft = btnRight - containerWidth;
+    } else if (btnLeft < scrollLeft) {
+      container.scrollLeft = btnLeft;
+    }
   }, [activeTab]);
 
   return (
