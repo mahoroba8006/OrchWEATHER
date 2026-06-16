@@ -1,20 +1,32 @@
 import { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
-import { Leaf } from 'lucide-react';
+import { Leaf, Copy, Check } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
 const provider = new GoogleAuthProvider();
 
-// iOS PWA モード（ホーム画面から起動）のみリダイレクト認証を使う
-// 通常の iOS Safari ブラウザは signInWithPopup が使える
 const isIOSStandalone = () =>
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
   (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
+const isLineBrowser = () => /Line\//i.test(navigator.userAgent);
+const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
 export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard API 非対応の場合は無視
+    }
+  };
 
   const handleLogin = async () => {
     setLoading(true);
@@ -39,6 +51,103 @@ export function LoginScreen() {
       setLoading(false);
     }
   };
+
+  if (isLineBrowser()) {
+    const ios = isIOS();
+    const steps = ios
+      ? [
+          '画面右下の「…」をタップ',
+          '「他のアプリで開く」→「Safari」を選択',
+          'Safariで開いたら、再度ログインしてください',
+        ]
+      : [
+          '画面右上の「…」をタップ',
+          '「外部ブラウザで開く」を選択',
+          'ブラウザで開いたら、再度ログインしてください',
+        ];
+
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        gap: '1.5rem',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Leaf size={32} color="var(--accent-color)" />
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>Orch.Weather</h1>
+        </div>
+
+        <div style={{
+          background: 'rgba(251, 191, 36, 0.12)',
+          border: '1px solid rgba(251, 191, 36, 0.4)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.25rem 1.5rem',
+          maxWidth: '340px',
+          width: '100%',
+        }}>
+          <p style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '0.95rem', color: '#92400e' }}>
+            ⚠ LINEブラウザではログインできません
+          </p>
+          <p style={{ margin: '0', fontSize: '0.82rem', color: '#78350f', lineHeight: 1.6 }}>
+            GoogleログインはLINEの内部ブラウザに対応していません。
+            {ios ? 'Safari' : '外部ブラウザ'}で開き直してください。
+          </p>
+        </div>
+
+        <div style={{
+          background: 'rgba(13,148,136,0.07)',
+          border: '1px solid rgba(13,148,136,0.2)',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.25rem 1.5rem',
+          maxWidth: '340px',
+          width: '100%',
+        }}>
+          <p style={{ margin: '0 0 0.85rem 0', fontWeight: 700, fontSize: '0.88rem', color: 'var(--accent-color)' }}>
+            {ios ? 'Safariで開く手順' : '外部ブラウザで開く手順'}
+          </p>
+          <ol style={{ margin: 0, paddingLeft: '1.4rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {steps.map((step, i) => (
+              <li key={i} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                {step}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div style={{ maxWidth: '340px', width: '100%' }}>
+          <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>
+            または、URLをコピーしてブラウザに貼り付け
+          </p>
+          <button
+            onClick={handleCopyUrl}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              padding: '0.65rem 1rem',
+              fontSize: '0.88rem',
+              fontWeight: 600,
+              background: copied ? 'rgba(13,148,136,0.12)' : 'rgba(255,255,255,0.7)',
+              color: copied ? 'var(--accent-color)' : 'var(--text-secondary)',
+              border: '1px solid rgba(13,148,136,0.25)',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            {copied ? <Check size={15} /> : <Copy size={15} />}
+            {copied ? 'コピーしました！' : 'URLをコピー'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
