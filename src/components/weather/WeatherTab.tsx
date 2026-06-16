@@ -103,6 +103,11 @@ export function WeatherTab() {
     customEnabled ? (aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT) : '',
   );
 
+  const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
+    const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
+    setScrollTarget(`${date}T${hour}:00`);
+  }, []);
+
   // 地点未登録かつ geo も未取得
   if (locations.length === 0 && !geoLocation) {
     const emptyStyle = {
@@ -139,11 +144,6 @@ export function WeatherTab() {
   // ここで追加フィルターをかけると端数時間が除外され、
   // nightPrecipSum など日別集計値と表示値がずれるため、そのまま渡す。
   const filteredHourly = data ? data.hourly : [];
-
-  const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
-    const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
-    setScrollTarget(`${date}T${hour}:00`);
-  }, []);
 
   return (
     <div className="app-container">

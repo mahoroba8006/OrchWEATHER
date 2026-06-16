@@ -71,6 +71,11 @@ export function HistoricalWeatherTab() {
     startDate,
   );
 
+  const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
+    const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
+    setScrollTarget(`${date}T${hour}:00`);
+  }, []);
+
   // 地点未登録かつ geo も未取得
   if (locations.length === 0 && !geoLocation) {
     const emptyStyle = {
@@ -119,11 +124,6 @@ export function HistoricalWeatherTab() {
     if (!av.cape)          hidden.add('cape');
     return hidden;
   })();
-
-  const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
-    const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
-    setScrollTarget(`${date}T${hour}:00`);
-  }, []);
 
   return (
     <div className="app-container">

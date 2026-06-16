@@ -51,6 +51,7 @@ export function LocationSettings() {
   const [saveError, setSaveError] = useState('');
   const [showMapModal, setShowMapModal] = useState(false);
   const [showHeaderMapModal, setShowHeaderMapModal] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleEdit = (loc: LocationInfo) => {
     setEditingId(loc.id);
@@ -166,9 +167,14 @@ export function LocationSettings() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('本当に削除しますか？')) {
-      deleteLocation(id);
-      if (editingId === id) setEditingId(null);
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = () => {
+    if (confirmDeleteId) {
+      deleteLocation(confirmDeleteId);
+      if (editingId === confirmDeleteId) setEditingId(null);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -462,6 +468,40 @@ export function LocationSettings() {
           onConfirm={handleHeaderMapConfirm}
           onClose={() => setShowHeaderMapModal(false)}
         />
+      )}
+
+      {/* 削除確認ダイアログ */}
+      {confirmDeleteId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="glass-card"
+            style={{ padding: '1.5rem', minWidth: '260px', maxWidth: '340px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ margin: '0 0 0.4rem 0', fontWeight: 700, fontSize: '1rem' }}>登録地点の削除</p>
+            <p style={{ margin: '0 0 1.2rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>本当に削除しますか？</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button className="secondary" onClick={() => setConfirmDeleteId(null)}>キャンセル</button>
+              <button
+                onClick={handleConfirmDelete}
+                style={{ ...pinkButtonStyle, padding: '0.4rem 1rem' }}
+              >
+                削除
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
