@@ -178,6 +178,87 @@ export function LocationSettings() {
     }
   };
 
+  // 編集フォームの中身（既存地点の編集・新規追加で共用）
+  const renderEditForm = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="form-group">
+        <label>地点名</label>
+        <input
+          type="text"
+          value={formData.name || ''}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
+      </div>
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div className="form-group" style={{ flex: 1, minWidth: 0 }}>
+          <label>緯度 (Latitude)</label>
+          <input
+            type="number"
+            step="0.000001"
+            value={formData.lat ?? ''}
+            onChange={(e) => setFormData({ ...formData, lat: parseFloat(e.target.value) })}
+            style={{ width: '100%', boxSizing: 'border-box' }}
+          />
+        </div>
+        <div className="form-group" style={{ flex: 1, minWidth: 0 }}>
+          <label>経度 (Longitude)</label>
+          <input
+            type="number"
+            step="0.000001"
+            value={formData.lon ?? ''}
+            onChange={(e) => setFormData({ ...formData, lon: parseFloat(e.target.value) })}
+            style={{ width: '100%', boxSizing: 'border-box' }}
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => setShowMapModal(true)}
+        style={{
+          alignSelf: 'flex-start',
+          padding: '0.25rem 0.6rem',
+          fontSize: '0.75rem',
+          background: 'none',
+          color: 'var(--accent-color)',
+          border: '1px solid rgba(13,148,136,0.3)',
+          borderRadius: 'var(--radius-md, 6px)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.3rem',
+          opacity: 0.85,
+        }}
+      >
+        <MapPin size={13} />
+        地図で修正
+      </button>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+        {saveStatus === 'saving' && (
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>保存中…</span>
+        )}
+        {saveStatus === 'error' && (
+          <span style={{ fontSize: '0.78rem', color: '#c62828', alignSelf: 'center' }}>⚠ {saveError}</span>
+        )}
+        <button className="secondary" onClick={() => setEditingId(null)}>
+          キャンセル
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saveStatus === 'saving'}
+          style={{
+            ...pinkButtonStyle,
+            padding: '0.5rem 1rem',
+            opacity: saveStatus === 'saving' ? 0.6 : 1,
+            cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <Save size={16} />
+          {saveStatus === 'saving' ? '保存中…' : '保存'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* ヘッダー */}
@@ -199,18 +280,12 @@ export function LocationSettings() {
             style={{
               ...greenButtonStyle,
               opacity: !GEO_SUPPORTED ? 0.5 : 1,
-              cursor:
-                !GEO_SUPPORTED || geoStatus === 'loading'
-                  ? 'not-allowed'
-                  : 'pointer',
+              cursor: !GEO_SUPPORTED || geoStatus === 'loading' ? 'not-allowed' : 'pointer',
             }}
           >
             {geoStatus === 'loading' ? (
               <>
-                <Loader2
-                  size={16}
-                  style={{ animation: 'spin 1s linear infinite' }}
-                />
+                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                 取得中…
               </>
             ) : (
@@ -255,204 +330,101 @@ export function LocationSettings() {
       )}
 
       {/* 地点リスト */}
-      {locations.map((loc) => (
-        <div
-          key={loc.id}
-          className="glass-card"
-          style={{
-            padding: '1rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
-              {loc.name}
-            </div>
+      {locations.map((loc) => {
+        const isEditing = editingId === loc.id;
+
+        if (isEditing) {
+          // 編集モード：カード自体が編集フォームに変化
+          return (
             <div
-              style={{
-                fontSize: '0.85rem',
-                color: 'var(--text-secondary)',
-                marginTop: '0.3rem',
-              }}
+              key={loc.id}
+              className="glass-panel"
+              style={{ padding: '1.5rem', border: '1px solid var(--accent-light)' }}
             >
-              緯度: {loc.lat} / 経度: {loc.lon}
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                📍 {loc.name} を編集中
+              </p>
+              {renderEditForm()}
             </div>
-            <div style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: loc.jmaAreaCode ? '#7cb8a8' : '#b8c0cf' }}>
-              {loc.jmaAreaCode
-                ? `🏛 気象庁エリア: ${getAreaName(loc.jmaAreaCode) ?? loc.jmaAreaCode}`
-                : '🏛 気象庁エリア: 未連携（地点を再保存してください）'}
+          );
+        }
+
+        // 通常表示
+        return (
+          <div
+            key={loc.id}
+            className="glass-card"
+            style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          >
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{loc.name}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
+                緯度: {loc.lat} / 経度: {loc.lon}
+              </div>
+              <div style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: loc.jmaAreaCode ? '#7cb8a8' : '#b8c0cf' }}>
+                {loc.jmaAreaCode
+                  ? `🏛 気象庁エリア: ${getAreaName(loc.jmaAreaCode) ?? loc.jmaAreaCode}`
+                  : '🏛 気象庁エリア: 未連携（地点を再保存してください）'}
+              </div>
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {defaultLocationId === loc.id ? (
-              <>
-                <span style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  color: 'var(--accent-color)',
-                  background: 'rgba(13,148,136,0.12)',
-                  border: '1px solid rgba(13,148,136,0.3)',
-                  borderRadius: '999px',
-                  padding: '0.2rem 0.6rem',
-                  whiteSpace: 'nowrap',
-                }}>
-                  ★ デフォルト
-                </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {defaultLocationId === loc.id ? (
+                <>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--accent-color)',
+                    background: 'rgba(13,148,136,0.12)',
+                    border: '1px solid rgba(13,148,136,0.3)',
+                    borderRadius: '999px',
+                    padding: '0.2rem 0.6rem',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    ★ デフォルト
+                  </span>
+                  <button
+                    className="secondary"
+                    onClick={() => updateDefaultLocationId(null)}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    解除
+                  </button>
+                </>
+              ) : (
                 <button
                   className="secondary"
-                  onClick={() => updateDefaultLocationId(null)}
+                  onClick={() => updateDefaultLocationId(loc.id)}
                   style={{ fontSize: '0.75rem' }}
                 >
-                  解除
+                  デフォルトに設定
                 </button>
-              </>
-            ) : (
+              )}
+              <button className="secondary" onClick={() => handleEdit(loc)}>
+                編集
+              </button>
               <button
                 className="secondary"
-                onClick={() => updateDefaultLocationId(loc.id)}
-                style={{ fontSize: '0.75rem' }}
+                onClick={() => handleDelete(loc.id)}
+                style={{ color: 'var(--chart-temp)' }}
               >
-                デフォルトに設定
+                <Trash2 size={16} />
               </button>
-            )}
-            <button className="secondary" onClick={() => handleEdit(loc)}>
-              編集
-            </button>
-            <button
-              className="secondary"
-              onClick={() => handleDelete(loc.id)}
-              style={{ color: 'var(--chart-temp)' }}
-            >
-              <Trash2 size={16} />
-            </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
-      {/* インライン編集フォーム */}
-      {editingId && (
+      {/* 新規追加フォーム（editingId === 'new' のときのみ・既存カードとは無関係） */}
+      {editingId === 'new' && (
         <div
           className="glass-panel"
-          style={{
-            padding: '1.5rem',
-            marginTop: '0.5rem',
-            border: '1px solid var(--accent-light)',
-          }}
+          style={{ padding: '1.5rem', border: '1px solid var(--accent-light)' }}
         >
-          <h3 style={{ margin: '0 0 1rem 0' }}>
-            {editingId === 'new' ? '新規地点の追加' : '地点の編集'}
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="form-group">
-              <label>地点名</label>
-              <input
-                type="text"
-                value={formData.name || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <div
-                className="form-group"
-                style={{ flex: 1, minWidth: 0 }}
-              >
-                <label>緯度 (Latitude)</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  value={formData.lat ?? ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      lat: parseFloat(e.target.value),
-                    })
-                  }
-                  style={{ width: '100%', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div
-                className="form-group"
-                style={{ flex: 1, minWidth: 0 }}
-              >
-                <label>経度 (Longitude)</label>
-                <input
-                  type="number"
-                  step="0.000001"
-                  value={formData.lon ?? ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      lon: parseFloat(e.target.value),
-                    })
-                  }
-                  style={{ width: '100%', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-            {/* 地図で座標を修正 */}
-            <button
-              type="button"
-              onClick={() => setShowMapModal(true)}
-              style={{
-                alignSelf: 'flex-start',
-                padding: '0.25rem 0.6rem',
-                fontSize: '0.75rem',
-                background: 'none',
-                color: 'var(--accent-color)',
-                border: '1px solid rgba(13,148,136,0.3)',
-                borderRadius: 'var(--radius-md, 6px)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                opacity: 0.85,
-              }}
-            >
-              <MapPin size={13} />
-              地図で修正
-            </button>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginTop: '0.5rem',
-              }}
-            >
-              {saveStatus === 'saving' && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>保存中…</span>
-              )}
-              {saveStatus === 'error' && (
-                <span style={{ fontSize: '0.78rem', color: '#c62828', alignSelf: 'center' }}>⚠ {saveError}</span>
-              )}
-              <button
-                className="secondary"
-                onClick={() => setEditingId(null)}
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saveStatus === 'saving'}
-                style={{
-                  ...pinkButtonStyle,
-                  padding: '0.5rem 1rem',
-                  opacity: saveStatus === 'saving' ? 0.6 : 1,
-                  cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
-                }}
-              >
-                <Save size={16} />
-                {saveStatus === 'saving' ? '保存中…' : '保存'}
-              </button>
-            </div>
-          </div>
+          <h3 style={{ margin: '0 0 1rem 0' }}>新規地点の追加</h3>
+          {renderEditForm()}
         </div>
       )}
+
       {showMapModal && editingId && (
         <LocationMapModal
           initialLat={typeof formData.lat === 'number' && !Number.isNaN(formData.lat) ? formData.lat : 35.0}
