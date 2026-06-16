@@ -220,95 +220,18 @@ export function DailyRawTable({ targets, weatherData, getYearColor, getLocationN
   if (allDates.length === 0) return null;
 
   return (
-    <div>
-      {/* タイトル行 + CSVボタン */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-          日別データ ({allDates.length}日)
-        </span>
-        <button
-          className="secondary"
-          onClick={handleDownload}
-          style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 10px', fontSize: '0.8rem' }}
-        >
-          <Download size={14} />
-          CSV ダウンロード
-        </button>
-      </div>
-
-      {/* テーブル */}
-      <div className="table-container" style={{ maxHeight: '420px', overflowY: 'auto' }}>
-        <table className="glass-table" style={{ fontSize: '0.8rem' }}>
-          <thead>
-            {!isTwoTargets ? (
-              <tr>
-                <th style={{ position: 'sticky', top: 0, zIndex: 1 }}>日付</th>
-                {METRICS.map(m => (
-                  <th key={m.key} style={{ position: 'sticky', top: 0, zIndex: 1 }}>{m.label}</th>
-                ))}
-              </tr>
-            ) : (
-              <>
-                <tr>
-                  <th rowSpan={2} style={{ position: 'sticky', top: 0, zIndex: 1 }}>日付</th>
-                  {METRICS.map(m => (
-                    <th key={m.key} colSpan={targets.length} style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                      {m.label}
-                    </th>
-                  ))}
-                </tr>
-                <tr>
-                  {METRICS.map(m =>
-                    targets.map((t, i) => (
-                      <th
-                        key={`${m.key}-${t.id}`}
-                        style={{
-                          position: 'sticky',
-                          top: '32px',
-                          zIndex: 1,
-                          color: getYearColor(i, 'var(--text-primary)'),
-                          fontSize: '0.75rem',
-                        }}
-                      >
-                        {getLocationName(t.locationId)}<br />{t.year}年
-                      </th>
-                    ))
-                  )}
-                </tr>
-              </>
-            )}
-          </thead>
-          <tbody>
-            {allDates.map(mmdd => (
-              <tr key={mmdd}>
-                <td style={{ fontWeight: 500, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  {formatDate(mmdd)}
-                </td>
-                {!isTwoTargets
-                  ? METRICS.map(m => {
-                      const row = rowMaps[0]?.get(mmdd);
-                      return (
-                        <td key={m.key} className="text-right" style={{ whiteSpace: 'nowrap' }}>
-                          {formatValue(row, m)}
-                        </td>
-                      );
-                    })
-                  : METRICS.map(m =>
-                      rowMaps.map((map, i) => {
-                        const row = map.get(mmdd);
-                        return (
-                          <td key={`${m.key}-${i}`} className="text-right" style={{ whiteSpace: 'nowrap' }}>
-                            {formatValue(row, m)}
-                          </td>
-                        );
-                      })
-                    )
-                }
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <button
+        className="secondary"
+        onClick={handleDownload}
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.82rem', alignSelf: 'flex-start' }}
+      >
+        <Download size={14} />
+        CSVダウンロード
+      </button>
+      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+        グラフに表示されているすべての項目（気温・降水・日射・日照・湿度・飽差・累積値など {allDates.length}日分）を一括で取得できます
+      </p>
     </div>
   );
 }
