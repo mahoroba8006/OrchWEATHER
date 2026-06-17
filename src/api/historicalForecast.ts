@@ -15,7 +15,7 @@
 //
 import type { ForecastData, DailyForecastData, HourlyForecast, FieldAvailability } from './forecast';
 
-import { worstCode } from '../lib/wmoSeverity';
+import { selectCode, type WeatherCodeMode } from '../lib/wmoSeverity';
 
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ function createPlaceholderDay(date: string): DailyForecastData {
 // ── AM/PM/夜間集計 ────────────────────────────────────────────────────────────
 
 type DayAmPmEntry = {
-  amCode: number | null; pmCode: number | null; nightCode: number | null;
+  amCodes: number[]; pmCodes: number[]; nightCodes: number[];
   amProb: number | null; pmProb: number | null; nightProb: number | null;
   amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
   amWindMax: number | null; pmWindMax: number | null; nightWindMax: number | null;
@@ -111,7 +111,7 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
 
     if (!map.has(targetDate)) {
       map.set(targetDate, {
-        amCode: null, pmCode: null, nightCode: null,
+        amCodes: [], pmCodes: [], nightCodes: [],
         amProb: null, pmProb: null, nightProb: null,
         amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
         amWindMax: null, pmWindMax: null, nightWindMax: null,
@@ -119,17 +119,17 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
     }
     const d = map.get(targetDate)!;
     if (period === 'am') {
-      d.amCode       = d.amCode === null ? h.weatherCode : worstCode(d.amCode, h.weatherCode);
+      d.amCodes.push(h.weatherCode);
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
       d.amPrecipSum += h.precipitation;
       d.amWindMax    = d.amWindMax === null ? h.windSpeed  : Math.max(d.amWindMax, h.windSpeed);
     } else if (period === 'pm') {
-      d.pmCode       = d.pmCode === null ? h.weatherCode : worstCode(d.pmCode, h.weatherCode);
+      d.pmCodes.push(h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
       d.pmWindMax    = d.pmWindMax === null ? h.windSpeed  : Math.max(d.pmWindMax, h.windSpeed);
     } else {
-      d.nightCode       = d.nightCode === null ? h.weatherCode : worstCode(d.nightCode, h.weatherCode);
+      d.nightCodes.push(h.weatherCode);
       d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
       d.nightPrecipSum += h.precipitation;
       d.nightWindMax    = d.nightWindMax === null ? h.windSpeed  : Math.max(d.nightWindMax, h.windSpeed);
@@ -140,17 +140,17 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
 }
 
 /** AM/PM/夜間集計マップから daily エントリのフィールドを展開する */
-function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string) {
+function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string, mode: WeatherCodeMode) {
   return {
-    amWeatherCode:    map.get(t)?.amCode    ?? null,
-    pmWeatherCode:    map.get(t)?.pmCode    ?? null,
-    nightWeatherCode: map.get(t)?.nightCode ?? null,
+    amWeatherCode:    selectCode(map.get(t)?.amCodes    ?? [], mode),
+    pmWeatherCode:    selectCode(map.get(t)?.pmCodes    ?? [], mode),
+    nightWeatherCode: selectCode(map.get(t)?.nightCodes ?? [], mode),
     amPrecipProb:     map.get(t)?.amProb    ?? null,
     pmPrecipProb:     map.get(t)?.pmProb    ?? null,
     nightPrecipProb:  map.get(t)?.nightProb ?? null,
     amPrecipSum:      map.has(t) ? map.get(t)!.amPrecipSum    : null,
     pmPrecipSum:      map.has(t) ? map.get(t)!.pmPrecipSum    : null,
-    nightPrecipSum:        map.has(t) ? map.get(t)!.nightPrecipSum : null,
+    nightPrecipSum:   map.has(t) ? map.get(t)!.nightPrecipSum : null,
     amTempMax: null, amTempMin: null,
     pmTempMax: null, pmTempMin: null,
     nightTempMax: null, nightTempMin: null,
@@ -175,6 +175,7 @@ async function fetchViaForecastEndpoint(
   lon: number,
   startDate: string,
   endDate: string,
+  mode: WeatherCodeMode,
 ): Promise<ForecastData> {
   const hourlyParams = [
     'temperature_2m', 'precipitation', 'precipitation_probability',
@@ -246,7 +247,7 @@ async function fetchViaForecastEndpoint(
     snowfallSum:      raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:     raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    ...expandDayAmPm(dayAmPm, t),
+    ...expandDayAmPm(dayAmPm, t, mode),
   }));
 
   const availability: FieldAvailability = {
@@ -270,6 +271,7 @@ async function fetchViaArchiveApi(
   lon: number,
   startDate: string,
   endDate: string,
+  mode: WeatherCodeMode,
 ): Promise<ForecastData> {
   // ecmwf_ifs: アーカイブAPIでCAPEを提供できる唯一のモデル（ERA5はCAPEなし）
   // freezinglevel_height は全モデルで取得不可（null → 9999 でフォールバック）
@@ -344,7 +346,7 @@ async function fetchViaArchiveApi(
     snowfallSum:      raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:     raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    ...expandDayAmPm(dayAmPm, t),
+    ...expandDayAmPm(dayAmPm, t, mode),
   }));
 
   // archive API は降水確率・0℃層高度・UV指数を要求していない（レスポンスに不在）。
@@ -378,6 +380,7 @@ export async function fetchHistoricalForecast(
   lat: number,
   lon: number,
   startDate: string,
+  mode: WeatherCodeMode = 'severity',
 ): Promise<ForecastData> {
   const { today, yesterday } = jstTodayAndYesterday();
 
@@ -394,17 +397,17 @@ export async function fetchHistoricalForecast(
       // 段階1: 直近14日 → forecast API（完全データ）
       apiData = await fetchViaForecastEndpoint(
         'https://api.open-meteo.com/v1/forecast',
-        lat, lon, startDate, apiEndDate,
+        lat, lon, startDate, apiEndDate, mode,
       );
     } else if (startDate >= HISTORICAL_FORECAST_START) {
       // 段階2: 2022-01-01 以降 → historical-forecast API（完全データ）
       apiData = await fetchViaForecastEndpoint(
         'https://historical-forecast-api.open-meteo.com/v1/forecast',
-        lat, lon, startDate, apiEndDate,
+        lat, lon, startDate, apiEndDate, mode,
       );
     } else {
       // 段階3: 2022年より前 → archive API + ecmwf_ifs（CAPE取得可）
-      apiData = await fetchViaArchiveApi(lat, lon, startDate, apiEndDate);
+      apiData = await fetchViaArchiveApi(lat, lon, startDate, apiEndDate, mode);
     }
   }
 
