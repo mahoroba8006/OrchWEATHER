@@ -62,6 +62,7 @@ export function AnalysisSettings() {
     updateBaseTempSettings,
     updateAccumStartDates,
     updateAccumDeltaThresholds,
+    updateWeatherCodeMode,
   } = useAppStore();
 
   const [baseTempForm, setBaseTempForm] = useState<[number, number]>(
@@ -143,6 +144,38 @@ export function AnalysisSettings() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* 天気コードの集計方法 */}
+      <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>天気コードの集計方法</h3>
+        <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => updateWeatherCodeMode('severity')}
+            className="secondary"
+            style={{
+              padding: '0.5rem 1rem',
+              background: userSettings?.weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
+              color: userSettings?.weatherCodeMode === 'severity' ? '#7a2840' : undefined,
+            }}
+          >
+            最深刻度（推奨）
+          </button>
+          <button
+            onClick={() => updateWeatherCodeMode('frequency')}
+            className="secondary"
+            style={{
+              padding: '0.5rem 1rem',
+              background: userSettings?.weatherCodeMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
+              color: userSettings?.weatherCodeMode === 'frequency' ? '#7a2840' : undefined,
+            }}
+          >
+            最頻値
+          </button>
+        </div>
+        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          各時間帯で最も深刻な天気コードを代表値とするか、最も多く観測された天気コードを代表値とするかを選択します。
+        </p>
+      </div>
+
       {/* 有効積算温度の設定 */}
       <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <h3 style={{ margin: 0, fontSize: '1.1rem' }}>有効積算温度の設定</h3>
