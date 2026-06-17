@@ -1,11 +1,12 @@
 // src/hooks/useForecast.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchForecast, type ForecastData } from '../api/forecast';
+import type { WeatherCodeMode } from '../lib/wmoSeverity';
 
 const CACHE_TTL = 30 * 60 * 1000; // 30分
 const forecastCache = new Map<string, { data: ForecastData; fetchedAt: number }>();
 
-export function useForecast(lat: number | null, lon: number | null) {
+export function useForecast(lat: number | null, lon: number | null, mode: WeatherCodeMode = 'severity') {
   const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
@@ -20,7 +21,7 @@ export function useForecast(lat: number | null, lon: number | null) {
       setData(null);
       return;
     }
-    const key = `${lat},${lon}`;
+    const key = `${lat},${lon},${mode}`;
     activeKey.current = key;
 
     if (!force) {
@@ -38,7 +39,7 @@ export function useForecast(lat: number | null, lon: number | null) {
     setError(null);
 
     try {
-      const result = await fetchForecast(lat, lon);
+      const result = await fetchForecast(lat, lon, mode);
       if (activeKey.current !== key) return; // stale
       forecastCache.set(key, { data: result, fetchedAt: result.fetchedAt });
       setData(result);
@@ -55,7 +56,7 @@ export function useForecast(lat: number | null, lon: number | null) {
         setLoadingStatus('');
       }
     }
-  }, [lat, lon]);
+  }, [lat, lon, mode]);
 
   // lat/lon 変更時は既存データをクリアして再フェッチ
   useEffect(() => {
