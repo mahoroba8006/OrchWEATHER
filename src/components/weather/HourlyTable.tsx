@@ -146,11 +146,17 @@ function MiniChartRow({ tl, hourlyPos }: { tl: TLEntry[]; hourlyPos: number[] })
                   color: '#60a5fa',
                   textAlign: 'center',
                   lineHeight: 1,
-                  whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis',
                 }}>
-                  {precipToLabel(entry.data.precipitation)}
+                  <span style={{
+                    display: 'inline-block',
+                    border: '1px solid #60a5fa',
+                    borderRadius: '3px',
+                    padding: '0 2px',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {precipToLabel(entry.data.precipitation)}
+                  </span>
                 </div>
               </div>
             );
