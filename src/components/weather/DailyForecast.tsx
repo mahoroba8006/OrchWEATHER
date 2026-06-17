@@ -159,23 +159,35 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
           </g>
         );
       })}
-      {/* 降水ラベル（底部固定） */}
-      {daily.map((day, i) => {
-        if (day.isPlaceholder) return null;
-        if (day.amPrecipSum !== null) {
+      {/* 降水ラベル（底部固定・タグ風） */}
+      {(() => {
+        const fs = 11, pH = 1, pX = 3, baseY = H - 2;
+        const tag = (x: number, label: string, key: string) => {
+          const rw = label.length * 6.5 + pX * 2;
           return (
-            <g key={`pl-${i}`}>
-              {day.amPrecipSum > 0 && <text x={cxAm(i)} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{day.amPrecipSum.toFixed(1)}mm</text>}
-              {(day.pmPrecipSum ?? 0) > 0 && <text x={cxPm(i)} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.pmPrecipSum ?? 0).toFixed(1)}mm</text>}
-              {(day.nightPrecipSum ?? 0) > 0 && <text x={cxNight(i)} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{(day.nightPrecipSum ?? 0).toFixed(1)}mm</text>}
+            <g key={key}>
+              <rect x={x - rw / 2} y={baseY - fs - pH} width={rw} height={fs + pH * 2} rx={3} fill="none" stroke="var(--accent-blue)" strokeWidth={0.8} />
+              <text x={x} y={baseY} fontSize={fs} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{label}</text>
             </g>
           );
-        }
-        const p = day.precipSum;
-        if (p === 0) return null;
-        const cx = dayX[i] + dayWidths[i] / 2;
-        return <text key={`pl-${i}`} x={cx} y={H - 2} fontSize={11} style={{ fill: 'var(--accent-blue)' }} textAnchor="middle" dominantBaseline="auto">{p.toFixed(1)}mm</text>;
-      })}
+        };
+        return daily.map((day, i) => {
+          if (day.isPlaceholder) return null;
+          if (day.amPrecipSum !== null) {
+            return (
+              <g key={`pl-${i}`}>
+                {day.amPrecipSum > 0 && tag(cxAm(i), `${day.amPrecipSum.toFixed(1)}mm`, 'am')}
+                {(day.pmPrecipSum ?? 0) > 0 && tag(cxPm(i), `${(day.pmPrecipSum ?? 0).toFixed(1)}mm`, 'pm')}
+                {(day.nightPrecipSum ?? 0) > 0 && tag(cxNight(i), `${(day.nightPrecipSum ?? 0).toFixed(1)}mm`, 'night')}
+              </g>
+            );
+          }
+          const p = day.precipSum;
+          if (p === 0) return null;
+          const cx = dayX[i] + dayWidths[i] / 2;
+          return tag(cx, `${p.toFixed(1)}mm`, `pl-${i}`);
+        });
+      })()}
     </svg>
   );
 }
