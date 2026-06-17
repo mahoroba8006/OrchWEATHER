@@ -64,6 +64,7 @@ export function WeatherTab() {
   const { data, loading, loadingStatus, error, lastUpdated, refresh } = useForecast(
     location?.lat ?? null,
     location?.lon ?? null,
+    userSettings?.weatherCodeMode ?? 'severity',
   );
 
   // 気象庁注意報・警報（jmaAreaCode が設定済みの登録地点のみ有効）

@@ -117,10 +117,17 @@ export function JmaWarningSettings() {
     userSettings?.enabledJmaGroups ?? ALL_JMA_GROUPS
   );
   const [status, setStatus] = useState<SaveStatus>({ kind: 'idle' });
+  const [pendingMode, setPendingMode] = useState<'severity' | 'frequency'>(
+    userSettings?.weatherCodeMode ?? 'severity'
+  );
+  const [modeStatus, setModeStatus] = useState<SaveStatus>({ kind: 'idle' });
 
   useEffect(() => {
     if (userSettings?.enabledJmaGroups) {
       setEnabled(userSettings.enabledJmaGroups);
+    }
+    if (userSettings?.weatherCodeMode) {
+      setPendingMode(userSettings.weatherCodeMode);
     }
   }, [userSettings]);
 
@@ -169,28 +176,28 @@ export function JmaWarningSettings() {
       className="glass-panel"
       style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
-      {/* 時間帯の天気アイコンの選び方 */}
+      {/* 時間帯の天気アイコンの表示設定 */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--card-border)' }}>
-        <h3 style={{ margin: 0, fontSize: '1rem' }}>時間帯の天気アイコンの選び方</h3>
+        <h3 style={{ margin: 0, fontSize: '1rem' }}>時間帯の天気アイコンの表示設定</h3>
         <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
           <button
-            onClick={() => updateWeatherCodeMode('severity')}
+            onClick={() => setPendingMode('severity')}
             className="secondary"
             style={{
               padding: '0.5rem 1rem',
-              background: userSettings?.weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
-              color: userSettings?.weatherCodeMode === 'severity' ? '#7a2840' : undefined,
+              background: pendingMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
+              color: pendingMode === 'severity' ? '#7a2840' : undefined,
             }}
           >
             悪い天気を優先
           </button>
           <button
-            onClick={() => updateWeatherCodeMode('frequency')}
+            onClick={() => setPendingMode('frequency')}
             className="secondary"
             style={{
               padding: '0.5rem 1rem',
-              background: userSettings?.weatherCodeMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
-              color: userSettings?.weatherCodeMode === 'frequency' ? '#7a2840' : undefined,
+              background: pendingMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
+              color: pendingMode === 'frequency' ? '#7a2840' : undefined,
             }}
           >
             多い天気を優先
@@ -203,6 +210,36 @@ export function JmaWarningSettings() {
           <li>「悪い天気を優先」　時間帯内で最も荒れた天気を表示（守り重視）</li>
           <li>「多い天気を優先」　時間帯内で最も多い天気を表示（実態重視）</li>
         </ul>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
+          {modeStatus.kind !== 'idle' && (
+            <span style={{
+              fontSize: '0.78rem',
+              color: modeStatus.kind === 'error' ? '#c62828' : modeStatus.kind === 'saved' ? '#2e7d32' : 'var(--text-secondary)',
+            }}>
+              {modeStatus.kind === 'saving' ? '保存中…' : modeStatus.msg}
+            </span>
+          )}
+          <button
+            onClick={async () => {
+              setModeStatus({ kind: 'saving' });
+              try {
+                await updateWeatherCodeMode(pendingMode);
+                setModeStatus({ kind: 'saved', msg: '保存しました' });
+                setTimeout(() => setModeStatus({ kind: 'idle' }), 2500);
+              } catch (err: unknown) {
+                setModeStatus({ kind: 'error', msg: `保存失敗: ${err instanceof Error ? err.message : String(err)}` });
+              }
+            }}
+            disabled={modeStatus.kind === 'saving'}
+            style={{
+              ...SAVE_BTN,
+              cursor: modeStatus.kind === 'saving' ? 'not-allowed' : 'pointer',
+              opacity: modeStatus.kind === 'saving' ? 0.6 : 1,
+            }}
+          >
+            <Save size={14} /> 保存
+          </button>
+        </div>
       </div>
 
       <div>
