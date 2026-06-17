@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { User } from 'firebase/auth';
+import type { WeatherCodeMode } from './lib/wmoSeverity';
 import {
   fetchLocations,
   addLocationToFirestore,
@@ -15,6 +16,7 @@ import {
   updateEnabledJmaGroups as updateEnabledJmaGroupsRemote,
   updateEnabledAiSections as updateEnabledAiSectionsRemote,
   updateAiCustomPrompt as updateAiCustomPromptRemote,
+  updateWeatherCodeMode as updateWeatherCodeModeRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -102,6 +104,7 @@ export interface UserSettings {
   enabledJmaGroups:     JmaWarningGroup[];
   enabledAiSections:    AiSection[];
   aiCustomPrompt:       string;
+  weatherCodeMode:      WeatherCodeMode;
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -138,6 +141,7 @@ interface AppState {
   updateEnabledJmaGroups: (groups: JmaWarningGroup[]) => Promise<void>;
   updateEnabledAiSections: (sections: AiSection[]) => Promise<void>;
   updateAiCustomPrompt: (prompt: string) => Promise<void>;
+  updateWeatherCodeMode: (mode: WeatherCodeMode) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -241,6 +245,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, aiCustomPrompt: prompt }
+        : null,
+    }));
+  },
+
+  updateWeatherCodeMode: async (mode) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateWeatherCodeModeRemote(uid, mode);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, weatherCodeMode: mode }
         : null,
     }));
   },
