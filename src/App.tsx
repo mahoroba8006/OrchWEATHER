@@ -320,6 +320,7 @@ function App() {
   const { data: forecastData } = useForecast(
     forecastLoc?.lat ?? null,
     forecastLoc?.lon ?? null,
+    userSettings?.weatherCodeMode ?? 'severity',
   );
 
   const forecastLoc2 = useMemo(() => {
@@ -334,6 +335,7 @@ function App() {
   const { data: forecastData2 } = useForecast(
     forecastLoc2?.lat ?? null,
     forecastLoc2?.lon ?? null,
+    userSettings?.weatherCodeMode ?? 'severity',
   );
 
   const addTarget = () => {

@@ -69,6 +69,7 @@ export function HistoricalWeatherTab() {
     location?.lat ?? null,
     location?.lon ?? null,
     startDate,
+    userSettings?.weatherCodeMode ?? 'severity',
   );
 
   const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
