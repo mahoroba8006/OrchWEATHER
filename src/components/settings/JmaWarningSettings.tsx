@@ -112,7 +112,7 @@ const SAVE_BTN: CSSProperties = {
 };
 
 export function JmaWarningSettings() {
-  const { userSettings, updateEnabledJmaGroups } = useAppStore();
+  const { userSettings, updateEnabledJmaGroups, updateWeatherCodeMode } = useAppStore();
   const [enabled, setEnabled] = useState<JmaWarningGroup[]>(
     userSettings?.enabledJmaGroups ?? ALL_JMA_GROUPS
   );
@@ -169,6 +169,42 @@ export function JmaWarningSettings() {
       className="glass-panel"
       style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
     >
+      {/* 時間帯の天気アイコンの選び方 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--card-border)' }}>
+        <h3 style={{ margin: 0, fontSize: '1rem' }}>時間帯の天気アイコンの選び方</h3>
+        <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => updateWeatherCodeMode('severity')}
+            className="secondary"
+            style={{
+              padding: '0.5rem 1rem',
+              background: userSettings?.weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
+              color: userSettings?.weatherCodeMode === 'severity' ? '#7a2840' : undefined,
+            }}
+          >
+            悪い天気を優先（推奨）
+          </button>
+          <button
+            onClick={() => updateWeatherCodeMode('frequency')}
+            className="secondary"
+            style={{
+              padding: '0.5rem 1rem',
+              background: userSettings?.weatherCodeMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
+              color: userSettings?.weatherCodeMode === 'frequency' ? '#7a2840' : undefined,
+            }}
+          >
+            多い天気を優先
+          </button>
+        </div>
+        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          午前・午後・夜間のアイコンに使うルールです。
+        </p>
+        <ul style={{ margin: 0, padding: '0 0 0 1.2rem', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+          <li>「悪い天気を優先」　時間帯内で最も荒れた天気を表示（守り重視）</li>
+          <li>「多い天気を優先」　時間帯内で最も多い天気を表示（実態重視）</li>
+        </ul>
+      </div>
+
       <div>
         <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>注意報・警報の表示設定</h3>
         <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
