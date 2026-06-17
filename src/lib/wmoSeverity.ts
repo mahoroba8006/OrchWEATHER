@@ -25,3 +25,36 @@ export function wmoSeverity(code: number): number {
 export function worstCode(a: number, b: number): number {
   return wmoSeverity(a) >= wmoSeverity(b) ? a : b;
 }
+
+/** 天気コード集計方式 */
+export type WeatherCodeMode = 'severity' | 'frequency';
+
+/**
+ * コード配列から最頻値を返す。同頻度の場合は深刻度が高い方を採用。
+ * frequency モードで使用。
+ */
+export function modeCode(codes: number[]): number | null {
+  if (codes.length === 0) return null;
+  const freq = new Map<number, number>();
+  for (const c of codes) freq.set(c, (freq.get(c) ?? 0) + 1);
+  let maxFreq = 0, result = 0;
+  for (const [code, count] of freq) {
+    if (count > maxFreq || (count === maxFreq && wmoSeverity(code) > wmoSeverity(result))) {
+      maxFreq = count; result = code;
+    }
+  }
+  return result;
+}
+
+/**
+ * モードに応じてコード配列から代表値を選択する統一関数。
+ * severity: 最深刻度（デフォルト）
+ * frequency: 最頻値（同数タイは深刻度高い方）
+ */
+export function selectCode(codes: number[], mode: WeatherCodeMode): number | null {
+  if (codes.length === 0) return null;
+  if (mode === 'severity') {
+    return codes.reduce((a, b) => wmoSeverity(a) >= wmoSeverity(b) ? a : b);
+  }
+  return modeCode(codes);
+}
