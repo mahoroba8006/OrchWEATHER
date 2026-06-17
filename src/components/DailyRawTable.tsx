@@ -6,7 +6,6 @@ import type { WeatherData } from '../api/weather';
 interface DailyRawTableProps {
   targets: CompareTarget[];
   weatherData: Record<string, WeatherData>;
-  getYearColor: (index: number, baseColor: string) => string;
   getLocationName: (id: string) => string;
   accumStartDates: { precip: string; sunshine: string; radiation: string; gdd: string };
   baseTempSettings: [number, number];
@@ -54,7 +53,7 @@ const METRICS: { label: string; key: keyof DayRow; fixed: number }[] = [
   { label: '最低飽差(g/m³)', key: 'vpdMin',          fixed: 2 },
 ];
 
-export function DailyRawTable({ targets, weatherData, getYearColor, getLocationName, accumStartDates, baseTempSettings }: DailyRawTableProps) {
+export function DailyRawTable({ targets, weatherData, getLocationName, accumStartDates, baseTempSettings }: DailyRawTableProps) {
   // すべてのターゲットの MM-DD を収集してソート
   const allDates = React.useMemo(() => {
     const dateSet = new Set<string>();
