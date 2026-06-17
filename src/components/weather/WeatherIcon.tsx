@@ -11,7 +11,7 @@ function codeToIconFile(code: number, isNight: boolean): string {
   if (code === 0)                 return `clear-${d}`;
   if (code === 1)                 return `mostly-clear-${d}`;
   if (code === 2)                 return `partly-cloudy-${d}`;
-  if (code === 3)                 return 'cloudy';
+  if (code === 3)                 return 'overcast';
 
   // 45/48: 霧・着氷霧
   if (code === 45 || code === 48) return `fog-${d}`;
