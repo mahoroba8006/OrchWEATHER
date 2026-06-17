@@ -11,13 +11,14 @@ function codeToIconFile(code: number, isNight: boolean): string {
   if (code === 0)                 return `clear-${d}`;
   if (code === 1)                 return `mostly-clear-${d}`;
   if (code === 2)                 return `partly-cloudy-${d}`;
-  if (code === 3)                 return 'overcast';
+  if (code === 3)                 return 'cloudy';
 
   // 45/48: 霧・着氷霧
   if (code === 45 || code === 48) return `fog-${d}`;
 
   // 51: 霧雨（弱） / 53-55: 霧雨（並〜強）
-  if (code === 51 || code === 53 || code === 55) return 'drizzle';
+  if (code === 51)                                return 'drizzle';
+  if (code === 53 || code === 55)                return 'overcast-drizzle';
 
   // 56: 着氷性の霧雨（弱） / 57: 着氷性の霧雨（強）
   if (code === 56 || code === 57) return 'sleet';
