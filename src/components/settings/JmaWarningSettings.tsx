@@ -182,7 +182,7 @@ export function JmaWarningSettings() {
               color: userSettings?.weatherCodeMode === 'severity' ? '#7a2840' : undefined,
             }}
           >
-            悪い天気を優先（推奨）
+            悪い天気を優先
           </button>
           <button
             onClick={() => updateWeatherCodeMode('frequency')}
@@ -197,7 +197,7 @@ export function JmaWarningSettings() {
           </button>
         </div>
         <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          午前・午後・夜間のアイコンに使うルールです。
+          午前・午後・夜間に表示される天気のルールです。
         </p>
         <ul style={{ margin: 0, padding: '0 0 0 1.2rem', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
           <li>「悪い天気を優先」　時間帯内で最も荒れた天気を表示（守り重視）</li>
