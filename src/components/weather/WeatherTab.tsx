@@ -276,7 +276,10 @@ export function WeatherTab() {
                   userSelect: 'none',
                 }}
               >
-                <span>✨ 空のアドバイスが届きました</span>
+                <span>
+                  <span style={{ display: 'inline-block', animation: 'fade-pulse 1.8s ease-in-out infinite' }}>✨</span>
+                  {' '}空のアドバイスが届きました
+                </span>
                 <ChevronDown size={15} style={{ flexShrink: 0 }} />
               </div>
             ) : null
