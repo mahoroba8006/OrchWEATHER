@@ -252,12 +252,12 @@ export const useAppStore = create<AppState>()((set, get) => ({
   updateWeatherCodeMode: async (mode) => {
     const uid = get().user?.uid;
     if (!uid) return;
-    await updateWeatherCodeModeRemote(uid, mode);
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, weatherCodeMode: mode }
         : null,
     }));
+    updateWeatherCodeModeRemote(uid, mode).catch(() => {/* best-effort */});
   },
 
   addLocation: async (loc) => {

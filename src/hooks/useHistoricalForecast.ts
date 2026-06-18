@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchHistoricalForecast } from '../api/historicalForecast';
 import type { ForecastData } from '../api/forecast';
-import type { WeatherCodeMode } from '../lib/wmoSeverity';
 
 const historyCache = new Map<string, { data: ForecastData; fetchedAt: number }>();
 const CACHE_TTL = 60 * 60 * 1000; // 1時間（過去データは変わらないのでTTL長め）
@@ -11,7 +10,6 @@ export function useHistoricalForecast(
   lat: number | null,
   lon: number | null,
   startDate: string | null,
-  mode: WeatherCodeMode = 'severity',
 ) {
   const [data,    setData]    = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +22,7 @@ export function useHistoricalForecast(
       setData(null);
       return;
     }
-    const key = `${lat},${lon},${startDate},${mode}`;
+    const key = `${lat},${lon},${startDate}`;
     activeKey.current = key;
 
     const cached = historyCache.get(key);
@@ -38,7 +36,7 @@ export function useHistoricalForecast(
     setError(null);
 
     try {
-      const result = await fetchHistoricalForecast(lat, lon, startDate, mode);
+      const result = await fetchHistoricalForecast(lat, lon, startDate);
       if (activeKey.current !== key) return; // stale
       historyCache.set(key, { data: result, fetchedAt: result.fetchedAt });
       setData(result);
@@ -53,7 +51,7 @@ export function useHistoricalForecast(
         setLoadingStatus('');
       }
     }
-  }, [lat, lon, startDate, mode]);
+  }, [lat, lon, startDate]);
 
   useEffect(() => {
     setData(null);
