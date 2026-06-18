@@ -239,7 +239,7 @@ export function HelpPage({ onBack }: Props) {
             じぶん好みタブでは以下のデータをAIに送信しています。プロンプトを書くときの参考にしてください。
           </p>
 
-          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>時間別（1時間ごと × 72エントリ／今後72時間分）</p>
+          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>時間別予報（1時間ごと × 72エントリ／今後72時間（3日）分）</p>
           <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
             <thead>
               <tr>
@@ -264,7 +264,7 @@ export function HelpPage({ onBack }: Props) {
             </tbody>
           </table>
 
-          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>日別予報（3〜7日後 / 5日分）および過去7日の日別実績</p>
+          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>日別実績（過去7日分）+日別予報（今後7日分）</p>
           <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
             <thead>
               <tr>
