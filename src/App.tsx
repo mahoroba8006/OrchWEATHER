@@ -1909,7 +1909,7 @@ function App() {
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '予報値', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('temp')}
             </>
@@ -2029,7 +2029,7 @@ function App() {
                 { label: '降水量', type: 'thin-bar' },
                 { label: '月間降水量', type: 'thick-bar' },
                 { label: '累積降水量', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '予報値', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('precip')}
             </>
@@ -2133,7 +2133,7 @@ function App() {
               {renderCustomLegend([
                 { label: '日照時間', type: 'thin-bar' },
                 { label: '累積日照時間', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '予報値', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('sunshine')}
             </>
@@ -2237,7 +2237,7 @@ function App() {
               {renderCustomLegend([
                 { label: '日射量', type: 'thin-bar' },
                 { label: '累積日射量', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '予報値', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('radiation')}
             </>
@@ -2363,7 +2363,7 @@ function App() {
               {renderCustomLegend([
                 { label: '有効積算温度', type: 'thin-bar' },
                 { label: '累積有効積算温度', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '予報値', type: 'dashed' as const }] : []),
               ])}
               {renderValueBox('gdd')}
             </>
@@ -2412,7 +2412,7 @@ function App() {
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月間平均', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '予報値', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('humid')}
             </>
@@ -2461,7 +2461,7 @@ function App() {
               {renderCustomLegend([
                 { label: '最低～最高', type: isMonthly ? 'thick-bar' : 'range-bar' },
                 { label: '月平均最高飽差', type: 'solid' },
-                ...(currentTargetHasForecast ? [{ label: '10日予報', type: 'dashed-range-bar' as const }] : []),
+                ...(currentTargetHasForecast ? [{ label: '予報値', type: 'dashed-range-bar' as const }] : []),
               ])}
               {renderValueBox('vpd')}
             </>
