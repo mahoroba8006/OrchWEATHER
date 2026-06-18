@@ -356,31 +356,66 @@ function FieldFeaturesSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 0 }}>
       <div className="lp-container">
-        <FadeIn>
-          <h2 className="lp-h2">農家の時間軸で、天気を読む。</h2>
-          <p className="lp-lead" style={{ marginTop: '0.5rem' }}>
-            ふつうの天気アプリは「消費者向け」に作られています。Orch.Weatherは、現場で使いながら磨いてきた「時間の刻み方」と「見方の選択」が違います。
-          </p>
-        </FadeIn>
-
         <FadeIn delay={0.1}>
-          <div className="lp-zigzag" style={{ marginTop: '2.2rem' }}>
+          <div className="lp-zigzag">
             <div>
               <p style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                 color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
                 margin: '0 0 0.7rem',
               }}>
-                <Clock size={16} /> 作業の実態に合わせた3時間帯
+                <Clock size={16} /> 農家の時間軸で、天気を読む
               </p>
               <h3 style={{ fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800, lineHeight: 1.5, margin: '0 0 0.8rem' }}>
-                「午前中に防除したい」——<br />その時間帯だけを、確認できる。
+                「午前は動ける、午後から雨」——<br />その答えを、自分の基準で出す。
               </h3>
               <p className="lp-lead" style={{ fontSize: '0.92rem', marginBottom: '1.6rem' }}>
-                ふつうの天気予報は「今日」「明日」という一日単位。でも農作業は時間勝負です。防除は午前中が勝負、施肥は雨の前後が狙い目——Orch.Weatherは<strong>午前（4〜12時）・午後（12〜20時）・夜間（20〜翌4時）</strong>に分けて、それぞれの気温・降水量・風速を一画面に表示します。「何時から動けるか」を判断する時間を、ゼロにします。
+                ふつうの天気予報は「今日」「明日」という一日単位。Orch.Weatherは<strong>午前（4〜12時）・午後（12〜20時）・夜間（20〜翌4時）</strong>の3時間帯に分けて気温・降水量・風速を表示します。「晴れのち一時雨」も、午前が晴れで午後が雨なのか一目でわかる。さらに、各時間帯の天気の<strong>見方</strong>を2モードで切り替えられます。
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+                  <div style={{
+                    flexShrink: 0,
+                    background: 'rgba(244,167,185,0.2)',
+                    border: '1px solid #e88ea8',
+                    borderRadius: 6,
+                    padding: '0.3rem 0.75rem',
+                    fontSize: '0.8rem', fontWeight: 700, color: '#9b2d4e',
+                    whiteSpace: 'nowrap',
+                    marginTop: '0.15rem',
+                  }}>
+                    リスクでみる
+                  </div>
+                  <div>
+                    <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>その時間帯でいちばん悪い天気を表示</p>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                      散布・播種など一度やり直しがきかない作業に。悪天候の見落としをゼロにしたいときの判断基準。
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+                  <div style={{
+                    flexShrink: 0,
+                    background: 'rgba(13,148,136,0.1)',
+                    border: '1px solid #0d9488',
+                    borderRadius: 6,
+                    padding: '0.3rem 0.75rem',
+                    fontSize: '0.8rem', fontWeight: 700, color: '#0f766e',
+                    whiteSpace: 'nowrap',
+                    marginTop: '0.15rem',
+                  }}>
+                    概況でみる
+                  </div>
+                  <div>
+                    <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>その時間帯でいちばん多い天気を表示</p>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                      雨がほんの一時でも大半が晴れなら晴れマークが出ます。雨の合間を積極的に活用したい日の指針に。
+                    </p>
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem' }}>
                   <div style={{
                     width: 34, height: 34, borderRadius: 8, flexShrink: 0,
@@ -424,80 +459,6 @@ function FieldFeaturesSection() {
                 height={1400}
                 loading="lazy"
               />
-            </div>
-          </div>
-        </FadeIn>
-
-        <FadeIn delay={0.15}>
-          <div className="lp-zigzag lp-zigzag--reverse" style={{ marginTop: 'clamp(2.5rem, 7vw, 4rem)' }}>
-            <div>
-              <img
-                className="lp-shot"
-                src="/lp/feature-daily.webp"
-                alt="リスクでみる・概況でみる切り替えの画面"
-                width={780}
-                height={1400}
-                loading="lazy"
-              />
-            </div>
-            <div>
-              <p style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
-                margin: '0 0 0.7rem',
-              }}>
-                <SlidersHorizontal size={16} /> 天気の「見方」を、自分で選ぶ
-              </p>
-              <h3 style={{ fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800, lineHeight: 1.5, margin: '0 0 0.8rem' }}>
-                「晴れのち一時雨」——<br />その「のち」がいつかを、明示する。
-              </h3>
-              <p className="lp-lead" style={{ fontSize: '0.92rem', marginBottom: '1.6rem' }}>
-                3時間帯に分けることで「午前：晴れ、午後：雨」と分かれ、いつ動けるかが一目でわかります。さらに各時間帯の天気の<strong>見方そのもの</strong>を2つのモードで切り替えられます。農作物は待ってくれません——自分の判断基準を、あらかじめ持っておく。
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
-                  <div style={{
-                    flexShrink: 0,
-                    background: 'rgba(244,167,185,0.2)',
-                    border: '1px solid #e88ea8',
-                    borderRadius: 6,
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.8rem', fontWeight: 700, color: '#9b2d4e',
-                    whiteSpace: 'nowrap',
-                    marginTop: '0.1rem',
-                  }}>
-                    リスクでみる
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>その時間帯でいちばん悪い天気を表示</p>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                      散布・播種など一度やり直しがきかない作業に。悪天候の見落としをゼロにしたいときの判断基準。
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
-                  <div style={{
-                    flexShrink: 0,
-                    background: 'rgba(13,148,136,0.1)',
-                    border: '1px solid #0d9488',
-                    borderRadius: 6,
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.8rem', fontWeight: 700, color: '#0f766e',
-                    whiteSpace: 'nowrap',
-                    marginTop: '0.1rem',
-                  }}>
-                    概況でみる
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>その時間帯でいちばん多い天気を表示</p>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                      雨がほんの一時でも大半が晴れなら晴れマークが出ます。雨の合間を積極的に活用したい日の指針に。
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </FadeIn>
