@@ -406,26 +406,11 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 );
               })}
             </tr>
-            {/* 時間帯別天気テキスト */}
+            {/* 天気アイコン（天気名テキストを同一セルに統合） */}
             <tr>
               {daily.map((day, i) => {
-                const wStyle: CSSProperties = { fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500 };
-                const amMain    = selectCode(day.amCodes,    weatherCodeMode);
-                const pmMain    = selectCode(day.pmCodes,    weatherCodeMode);
-                const nightMain = selectCode(day.nightCodes, weatherCodeMode);
-                return (
-                  <Fragment key={day.date}>
-                    <td style={amCell(day)}><div style={wStyle}>{amMain !== null ? (codeToLabel(amMain) ?? '—') : '—'}</div></td>
-                    <td style={pmCell(day)}><div style={wStyle}>{pmMain !== null ? (codeToLabel(pmMain) ?? '—') : '—'}</div></td>
-                    <td style={nightCell(day, i)}><div style={wStyle}>{nightMain !== null ? (codeToLabel(nightMain) ?? '—') : '—'}</div></td>
-                  </Fragment>
-                );
-              })}
-            </tr>
-            {/* 天気アイコン */}
-            <tr>
-              {daily.map((day, i) => {
-                const dashCell: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 148, color: 'var(--text-tertiary)', fontSize: '1rem' };
+                const wStyle: CSSProperties = { fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500, lineHeight: 1, flexShrink: 0 };
+                const dashCell: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--text-tertiary)', fontSize: '1rem' };
                 if (day.isPlaceholder) {
                   return (
                     <Fragment key={day.date}>
@@ -435,31 +420,32 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                     </Fragment>
                   );
                 }
-                const altMode      = weatherCodeMode === 'severity' ? 'frequency' : 'severity';
+                const altMode         = weatherCodeMode === 'severity' ? 'frequency' : 'severity';
                 const altModeLabel    = altMode === 'frequency' ? '概況' : 'リスク';
                 const altModeTagStyle: CSSProperties = altMode === 'frequency'
-                  ? { background: 'rgba(13,148,136,0.15)', color: 'var(--accent-color)', border: '1px solid rgba(13,148,136,0.3)' }
-                  : { background: 'rgba(244,167,185,0.45)', color: '#7a2840',             border: '1px solid rgba(244,167,185,0.6)' };
+                  ? { background: 'white', color: 'var(--accent-color)', border: '1px solid rgba(13,148,136,0.3)' }
+                  : { background: 'white', color: '#7a2840',             border: '1px solid rgba(244,167,185,0.6)' };
                 const amMain    = selectCode(day.amCodes,    weatherCodeMode);
                 const pmMain    = selectCode(day.pmCodes,    weatherCodeMode);
                 const nightMain = selectCode(day.nightCodes, weatherCodeMode);
                 const amAlt     = selectCode(day.amCodes,    altMode);
                 const pmAlt     = selectCode(day.pmCodes,    altMode);
                 const nightAlt  = selectCode(day.nightCodes, altMode);
-                // height: 148 = paddingTop(2) + icon(84) + gap(2) + mini label(14) + gap(2) + mini icon(42) + 2
+                // height: 160 = text(12) + gap(2) + icon(84) + gap(2) + mini label(14) + gap(2) + mini icon(42) + 2
                 const iconContainer: CSSProperties = {
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'flex-start', height: 148, paddingTop: 2, gap: 2,
+                  justifyContent: 'flex-start', height: 160, gap: 0,
                 };
                 return (
                   <Fragment key={day.date}>
                     <td
-                      style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
+                      style={{ ...amCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: onHalfDayClick ? 'pointer' : undefined }}
                       onClick={() => onHalfDayClick?.(day.date, 'am')}
                     >
                       <div style={iconContainer}>
+                        <div style={wStyle}>{amMain !== null ? (codeToLabel(amMain) ?? '—') : '—'}</div>
                         {amMain !== null ? <WeatherIcon code={amMain} size={84} /> : '—'}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: 8 }}>
                           {amAlt !== null && amAlt !== amMain && (
                             <>
                               <span style={{ fontSize: '0.58rem', fontWeight: 600, borderRadius: '999px', padding: '0.05rem 0.35rem', lineHeight: 1.4, whiteSpace: 'nowrap', marginBottom: 2, ...altModeTagStyle }}>
@@ -475,12 +461,13 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                       </div>
                     </td>
                     <td
-                      style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }}
+                      style={{ ...pmCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: onHalfDayClick ? 'pointer' : undefined }}
                       onClick={() => onHalfDayClick?.(day.date, 'pm')}
                     >
                       <div style={iconContainer}>
+                        <div style={wStyle}>{pmMain !== null ? (codeToLabel(pmMain) ?? '—') : '—'}</div>
                         {pmMain !== null ? <WeatherIcon code={pmMain} size={84} /> : '—'}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: 8 }}>
                           {pmAlt !== null && pmAlt !== pmMain && (
                             <>
                               <span style={{ fontSize: '0.58rem', fontWeight: 600, borderRadius: '999px', padding: '0.05rem 0.35rem', lineHeight: 1.4, whiteSpace: 'nowrap', marginBottom: 2, ...altModeTagStyle }}>
@@ -496,12 +483,13 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                       </div>
                     </td>
                     <td
-                      style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }}
+                      style={{ ...nightCell(day, i), paddingTop: '0.6rem', paddingBottom: 0, cursor: onHalfDayClick ? 'pointer' : undefined }}
                       onClick={() => onHalfDayClick?.(day.date, 'night')}
                     >
                       <div style={iconContainer}>
+                        <div style={wStyle}>{nightMain !== null ? (codeToLabel(nightMain) ?? '—') : '—'}</div>
                         {nightMain !== null ? <WeatherIcon code={nightMain} size={84} isNight /> : '—'}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: 8 }}>
                           {nightAlt !== null && nightAlt !== nightMain && (
                             <>
                               <span style={{ fontSize: '0.58rem', fontWeight: 600, borderRadius: '999px', padding: '0.05rem 0.35rem', lineHeight: 1.4, whiteSpace: 'nowrap', marginBottom: 2, ...altModeTagStyle }}>
@@ -543,9 +531,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 );
                 return (
                   <Fragment key={day.date}>
-                    <td style={amCell(day)}>{renderProb(day.amPrecipProb)}</td>
-                    <td style={pmCell(day)}>{renderProb(day.pmPrecipProb)}</td>
-                    <td style={nightCell(day, i)}>{renderProb(day.nightPrecipProb)}</td>
+                    <td style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'am')}>{renderProb(day.amPrecipProb)}</td>
+                    <td style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'pm')}>{renderProb(day.pmPrecipProb)}</td>
+                    <td style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'night')}>{renderProb(day.nightPrecipProb)}</td>
                   </Fragment>
                 );
               })}
@@ -569,9 +557,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 }
                 return (
                   <Fragment key={day.date}>
-                    <td style={amCell(day)}>{fmt(day.amWindMax)}</td>
-                    <td style={pmCell(day)}>{fmt(day.pmWindMax)}</td>
-                    <td style={nightCell(day, i)}>{fmt(day.nightWindMax)}</td>
+                    <td style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'am')}>{fmt(day.amWindMax)}</td>
+                    <td style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'pm')}>{fmt(day.pmWindMax)}</td>
+                    <td style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'night')}>{fmt(day.nightWindMax)}</td>
                   </Fragment>
                 );
               })}

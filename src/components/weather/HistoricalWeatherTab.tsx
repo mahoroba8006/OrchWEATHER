@@ -25,6 +25,7 @@ export function HistoricalWeatherTab() {
   const [yesterday] = useState(jstYesterday);
   const [startDate, setStartDate] = useState<string>(yesterday);
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
+  const hourlySectionRef = useRef<HTMLElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
 
   // デフォルト地点 or geoLocation が揃ったとき初期選択を確定させる
@@ -75,6 +76,7 @@ export function HistoricalWeatherTab() {
   const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
     const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
     setScrollTarget(`${date}T${hour}:00`);
+    hourlySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
   // 地点未登録かつ geo も未取得
@@ -230,7 +232,7 @@ export function HistoricalWeatherTab() {
                   color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
                 }}
               >
-                リスクをみる
+                リスクでみる
               </button>
               <button
                 onClick={() => updateWeatherCodeMode('frequency')}
@@ -242,7 +244,7 @@ export function HistoricalWeatherTab() {
                   color: weatherCodeMode === 'frequency' ? '#0f766e' : undefined,
                 }}
               >
-                概況をみる
+                概況でみる
               </button>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginLeft: '0.3rem' }}>
                 {weatherCodeMode === 'severity'
@@ -258,7 +260,7 @@ export function HistoricalWeatherTab() {
           </section>
 
           {data.hourly.length > 0 && (
-            <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
+            <section ref={hourlySectionRef} className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
               <HourlyTable
                 hourly={data.hourly}
                 daily={nonPlaceholderDaily}
