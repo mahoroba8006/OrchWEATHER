@@ -1,7 +1,6 @@
 // src/api/forecast.ts
 
 import { addDays } from '../lib/dateUtils';
-import { selectCode, type WeatherCodeMode } from '../lib/wmoSeverity';
 
 export interface HourlyForecast {
   time: string;          // "2026-05-21T15:00"
@@ -37,9 +36,9 @@ export interface DailyForecastData {
   snowfallSum: number;   // cm
   windSpeedMax: number;  // m/s
   sunshineDuration: number;  // h（日照時間、秒→時間に変換済み）
-  amWeatherCode:    number | null; // WMO max 04:00-11:00
-  pmWeatherCode:    number | null; // WMO max 12:00-19:00
-  nightWeatherCode: number | null; // WMO max 20:00-翌3:00
+  amCodes:   number[]; // WMO codes 04:00-11:00（モード選択はレンダー側で行う）
+  pmCodes:   number[]; // WMO codes 12:00-19:00
+  nightCodes: number[]; // WMO codes 20:00-翌3:00
   amPrecipProb:     number | null; // % max 04:00-11:00
   pmPrecipProb:     number | null; // % max 12:00-19:00
   nightPrecipProb:  number | null; // % max 20:00-翌3:00
@@ -76,7 +75,7 @@ export interface ForecastData {
   availability?: FieldAvailability; // 過去API用。未指定は全項目利用可（通常予報）
 }
 
-export async function fetchForecast(lat: number, lon: number, mode: WeatherCodeMode = 'severity'): Promise<ForecastData> {
+export async function fetchForecast(lat: number, lon: number): Promise<ForecastData> {
   const hourlyParams = [
     'temperature_2m', 'precipitation', 'precipitation_probability',
     'dew_point_2m', 'relative_humidity_2m',
@@ -218,9 +217,9 @@ export async function fetchForecast(lat: number, lon: number, mode: WeatherCodeM
     snowfallSum:   raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:  raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    amWeatherCode:    selectCode(dayAmPm.get(t)?.amCodes    ?? [], mode),
-    pmWeatherCode:    selectCode(dayAmPm.get(t)?.pmCodes    ?? [], mode),
-    nightWeatherCode: selectCode(dayAmPm.get(t)?.nightCodes ?? [], mode),
+    amCodes:   dayAmPm.get(t)?.amCodes    ?? [],
+    pmCodes:   dayAmPm.get(t)?.pmCodes    ?? [],
+    nightCodes: dayAmPm.get(t)?.nightCodes ?? [],
     amPrecipProb:     dayAmPm.get(t)?.amProb    ?? null,
     pmPrecipProb:     dayAmPm.get(t)?.pmProb    ?? null,
     nightPrecipProb:  dayAmPm.get(t)?.nightProb ?? null,

@@ -15,8 +15,6 @@
 //
 import type { ForecastData, DailyForecastData, HourlyForecast, FieldAvailability } from './forecast';
 
-import { selectCode, type WeatherCodeMode } from '../lib/wmoSeverity';
-
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 
 /** forecast API が過去を遡れる日数（open-meteo の仕様上 ~14日） */
@@ -64,7 +62,7 @@ function createPlaceholderDay(date: string): DailyForecastData {
     sunrise: '', sunset: '',
     radiationSum: 0, snowfallSum: 0,
     windSpeedMax: 0, sunshineDuration: 0,
-    amWeatherCode:    null, pmWeatherCode:    null, nightWeatherCode: null,
+    amCodes: [], pmCodes: [], nightCodes: [],
     amPrecipProb:     null, pmPrecipProb:     null, nightPrecipProb:  null,
     amPrecipSum:      null, pmPrecipSum:      null, nightPrecipSum:   null,
     amTempMax: null, amTempMin: null,
@@ -140,11 +138,11 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
 }
 
 /** AM/PM/夜間集計マップから daily エントリのフィールドを展開する */
-function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string, mode: WeatherCodeMode) {
+function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string) {
   return {
-    amWeatherCode:    selectCode(map.get(t)?.amCodes    ?? [], mode),
-    pmWeatherCode:    selectCode(map.get(t)?.pmCodes    ?? [], mode),
-    nightWeatherCode: selectCode(map.get(t)?.nightCodes ?? [], mode),
+    amCodes:   map.get(t)?.amCodes    ?? [],
+    pmCodes:   map.get(t)?.pmCodes    ?? [],
+    nightCodes: map.get(t)?.nightCodes ?? [],
     amPrecipProb:     map.get(t)?.amProb    ?? null,
     pmPrecipProb:     map.get(t)?.pmProb    ?? null,
     nightPrecipProb:  map.get(t)?.nightProb ?? null,
@@ -175,7 +173,6 @@ async function fetchViaForecastEndpoint(
   lon: number,
   startDate: string,
   endDate: string,
-  mode: WeatherCodeMode,
 ): Promise<ForecastData> {
   const hourlyParams = [
     'temperature_2m', 'precipitation', 'precipitation_probability',
@@ -247,7 +244,7 @@ async function fetchViaForecastEndpoint(
     snowfallSum:      raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:     raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    ...expandDayAmPm(dayAmPm, t, mode),
+    ...expandDayAmPm(dayAmPm, t),
   }));
 
   const availability: FieldAvailability = {
@@ -271,7 +268,6 @@ async function fetchViaArchiveApi(
   lon: number,
   startDate: string,
   endDate: string,
-  mode: WeatherCodeMode,
 ): Promise<ForecastData> {
   // ecmwf_ifs: アーカイブAPIでCAPEを提供できる唯一のモデル（ERA5はCAPEなし）
   // freezinglevel_height は全モデルで取得不可（null → 9999 でフォールバック）
@@ -346,7 +342,7 @@ async function fetchViaArchiveApi(
     snowfallSum:      raw.daily.snowfall_sum?.[i]                   ?? 0,
     windSpeedMax:     raw.daily.wind_speed_10m_max?.[i]             ?? 0,
     sunshineDuration: (raw.daily.sunshine_duration?.[i] ?? 0) / 3600,
-    ...expandDayAmPm(dayAmPm, t, mode),
+    ...expandDayAmPm(dayAmPm, t),
   }));
 
   // archive API は降水確率・0℃層高度・UV指数を要求していない（レスポンスに不在）。
@@ -380,7 +376,6 @@ export async function fetchHistoricalForecast(
   lat: number,
   lon: number,
   startDate: string,
-  mode: WeatherCodeMode = 'severity',
 ): Promise<ForecastData> {
   const { today, yesterday } = jstTodayAndYesterday();
 
@@ -397,17 +392,17 @@ export async function fetchHistoricalForecast(
       // 段階1: 直近14日 → forecast API（完全データ）
       apiData = await fetchViaForecastEndpoint(
         'https://api.open-meteo.com/v1/forecast',
-        lat, lon, startDate, apiEndDate, mode,
+        lat, lon, startDate, apiEndDate,
       );
     } else if (startDate >= HISTORICAL_FORECAST_START) {
       // 段階2: 2022-01-01 以降 → historical-forecast API（完全データ）
       apiData = await fetchViaForecastEndpoint(
         'https://historical-forecast-api.open-meteo.com/v1/forecast',
-        lat, lon, startDate, apiEndDate, mode,
+        lat, lon, startDate, apiEndDate,
       );
     } else {
       // 段階3: 2022年より前 → archive API + ecmwf_ifs（CAPE取得可）
-      apiData = await fetchViaArchiveApi(lat, lon, startDate, apiEndDate, mode);
+      apiData = await fetchViaArchiveApi(lat, lon, startDate, apiEndDate);
     }
   }
 
