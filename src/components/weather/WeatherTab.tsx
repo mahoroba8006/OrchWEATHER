@@ -249,7 +249,7 @@ export function WeatherTab() {
                   color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
                 }}
               >
-                リスクを優先
+                リスクをみる
               </button>
               <button
                 onClick={() => updateWeatherCodeMode('frequency')}
@@ -257,12 +257,17 @@ export function WeatherTab() {
                 style={{
                   padding: '0.3rem 0.7rem',
                   fontSize: '0.75rem',
-                  background: weatherCodeMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
-                  color: weatherCodeMode === 'frequency' ? '#7a2840' : undefined,
+                  background: weatherCodeMode === 'frequency' ? 'rgba(13,148,136,0.18)' : undefined,
+                  color: weatherCodeMode === 'frequency' ? '#0f766e' : undefined,
                 }}
               >
-                概況を優先
+                概況をみる
               </button>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginLeft: '0.3rem' }}>
+                {weatherCodeMode === 'severity'
+                  ? '時間帯でいちばん悪い天気を表示'
+                  : '時間帯でいちばん多い天気を表示'}
+              </span>
             </div>
             <DailyForecast
               daily={data.daily}

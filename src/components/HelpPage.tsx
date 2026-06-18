@@ -125,7 +125,7 @@ export function HelpPage({ onBack }: Props) {
           <a href="#location" style={TOC_ITEM_STYLE}>1. 地点登録の方法</a>
           <a href="#weather" style={TOC_ITEM_STYLE}>2. 空もよう</a>
           <a href="#compare" style={TOC_ITEM_STYLE}>3. 空くらべ</a>
-          <a href="#history" style={TOC_ITEM_STYLE}>4. あの日の空</a>
+          <a href="#history" style={TOC_ITEM_STYLE}>4. 空しらべ</a>
         </div>
 
         {/* ── 1. 地点登録 ── */}
@@ -321,9 +321,9 @@ export function HelpPage({ onBack }: Props) {
           </div>
         </section>
 
-        {/* ── 4. あの日の空 ── */}
+        {/* ── 4. 空しらべ ── */}
         <section id="history">
-          <h2 style={H2_STYLE}>4. あの日の空</h2>
+          <h2 style={H2_STYLE}>4. 空しらべ</h2>
           <p style={P_STYLE}>
             任意の日付を指定して、その日の気象データ（時間別・日別）を参照できる画面です。過去の作業記録との照合や、特定のイベント時の気象確認に使います。
           </p>

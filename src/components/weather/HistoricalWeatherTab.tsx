@@ -175,6 +175,7 @@ export function HistoricalWeatherTab() {
           </span>
         )}
 
+        <div style={{ width: '100%', height: 0 }} />
         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
           開始日
         </span>
@@ -189,7 +190,7 @@ export function HistoricalWeatherTab() {
           style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
         />
         <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
-          から10日分を表示（昨日以前のみ）
+          から10日分を表示
         </span>
       </div>
 
@@ -229,7 +230,7 @@ export function HistoricalWeatherTab() {
                   color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
                 }}
               >
-                リスクを優先
+                リスクをみる
               </button>
               <button
                 onClick={() => updateWeatherCodeMode('frequency')}
@@ -237,12 +238,17 @@ export function HistoricalWeatherTab() {
                 style={{
                   padding: '0.3rem 0.7rem',
                   fontSize: '0.75rem',
-                  background: weatherCodeMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
-                  color: weatherCodeMode === 'frequency' ? '#7a2840' : undefined,
+                  background: weatherCodeMode === 'frequency' ? 'rgba(13,148,136,0.18)' : undefined,
+                  color: weatherCodeMode === 'frequency' ? '#0f766e' : undefined,
                 }}
               >
-                概況を優先
+                概況をみる
               </button>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginLeft: '0.3rem' }}>
+                {weatherCodeMode === 'severity'
+                  ? '時間帯でいちばん悪い天気を表示'
+                  : '時間帯でいちばん多い天気を表示'}
+              </span>
             </div>
             <DailyForecast
               daily={nonPlaceholderDaily}

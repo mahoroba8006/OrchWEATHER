@@ -1564,7 +1564,7 @@ function App() {
               {([
                 { id: 'weather',  label: '空もよう',   Icon: Sun       },
                 { id: 'analysis', label: '空くらべ',   Icon: BarChart2 },
-                { id: 'history',  label: 'あの日の空', Icon: Clock     },
+                { id: 'history',  label: '空しらべ', Icon: Clock     },
               ] as const).map(({ id, label, Icon }) => {
                 const active = topTab === id;
                 return (
@@ -2512,7 +2512,7 @@ function App() {
           {([
             { id: 'weather',  label: '空もよう',   Icon: Sun       },
             { id: 'analysis', label: '空くらべ',   Icon: BarChart2 },
-            { id: 'history',  label: 'あの日の空', Icon: Clock     },
+            { id: 'history',  label: '空しらべ', Icon: Clock     },
           ] as const).map(({ id, label, Icon }) => {
             const active = topTab === 'help' ? prevTopTab.current === id : topTab === id;
             return (
