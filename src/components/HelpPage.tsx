@@ -216,11 +216,11 @@ export function HelpPage({ onBack }: Props) {
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>畑しごと</td>
-                <td>草取り・収穫・定植など外作業のタイミングと注意点を提案します。</td>
+                <td>管理作業・収穫・定植など外作業のタイミングと注意点を提案します。</td>
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>散布どき</td>
-                <td>農薬・液肥の散布に適した条件と最適な時間帯を提案します。</td>
+                <td>農薬・液肥の散布に適した条件から、作業のタイミングや時間帯を提案します。</td>
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>施肥どき</td>
