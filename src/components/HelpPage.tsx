@@ -165,7 +165,7 @@ export function HelpPage({ onBack }: Props) {
         <section id="weather">
           <h2 style={H2_STYLE}>2. 空もよう</h2>
           <p style={P_STYLE}>
-            登録した地点の現在の天気予報を表示します。日別予報・時間別予報（2時間刻み）・空のアドバイス（AI）の3つのセクションで構成されています。
+            登録した地点の現在の天気予報を表示します。日別予報・時間別予報・空のアドバイス（AI）の3つのセクションで構成されています。
           </p>
 
           <h3 style={H3_STYLE}>天気アイコンの表示モード</h3>
