@@ -108,7 +108,10 @@ export function WeatherTab() {
   const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
     const hour = period === 'am' ? '04' : period === 'pm' ? '12' : '20';
     setScrollTarget(`${date}T${hour}:00`);
-    hourlySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (hourlySectionRef.current) {
+      const rect = hourlySectionRef.current.getBoundingClientRect();
+      window.scrollBy({ top: rect.top - 56, behavior: 'smooth' });
+    }
   }, []);
 
   // 地点未登録かつ geo も未取得
