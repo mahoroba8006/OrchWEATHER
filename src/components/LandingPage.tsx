@@ -432,6 +432,104 @@ function FieldFeaturesSection() {
   );
 }
 
+function WeatherModeSection() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container-narrow">
+        <FadeIn>
+          <h2 className="lp-h2">夕方1時間の雨で、1日の仕事を止めていませんか。</h2>
+          <p className="lp-lead" style={{ marginTop: '0.5rem' }}>
+            一般の天気予報は「その日に雨が降るか」を基準にします。でも農家が知りたいのは「いつ動けて、いつ止まるべきか」——Orch.Weatherは天気の<strong>見方そのもの</strong>を切り替えられます。
+          </p>
+        </FadeIn>
+
+        <FadeIn delay={0.08}>
+          <div className="lp-glass" style={{
+            padding: '1.25rem 1.5rem',
+            marginTop: '1.8rem',
+            borderLeft: '4px solid #d97706',
+            background: 'rgba(245,158,11,0.05)',
+          }}>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.9 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>例：夕方16時に1時間だけ雨が降る日。</strong>多くの天気アプリは「雨」のマークをつけます。でも午前は晴れ、午後も乾いている——農薬散布も、草取りも、雨の前に十分できる時間があります。農作物は、あなたが天気予報を解釈し直すのを待ってくれません。
+            </p>
+          </div>
+        </FadeIn>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(248px, 1fr))',
+          gap: '1.1rem',
+          marginTop: '1.6rem',
+        }}>
+          <FadeIn delay={0.12}>
+            <div className="lp-glass" style={{
+              padding: '1.5rem',
+              borderTop: '3px solid #e88ea8',
+              height: '100%',
+              boxSizing: 'border-box',
+            }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                background: 'rgba(244,167,185,0.2)', color: '#a0284a',
+                fontWeight: 700, fontSize: '0.82rem', borderRadius: 999,
+                padding: '0.3rem 0.85rem', marginBottom: '0.9rem',
+              }}>
+                <CloudRain size={14} /> リスクでみる
+              </div>
+              <h4 style={{ fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.55rem', lineHeight: 1.5 }}>
+                その時間帯でいちばん<br />悪い天気を表示
+              </h4>
+              <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
+                散布・播種など一度やり直しがきかない作業に。悪天候の見落としをゼロにしたい日に。「本当に安全か」を最優先にした判断基準です。
+              </p>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#9b2d4e', fontWeight: 700 }}>
+                → 安全面を徹底的に確認したいとき
+              </p>
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={0.18}>
+            <div className="lp-glass" style={{
+              padding: '1.5rem',
+              borderTop: '3px solid #0d9488',
+              height: '100%',
+              boxSizing: 'border-box',
+            }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                background: 'rgba(13,148,136,0.12)', color: '#0f766e',
+                fontWeight: 700, fontSize: '0.82rem', borderRadius: 999,
+                padding: '0.3rem 0.85rem', marginBottom: '0.9rem',
+              }}>
+                <CloudSun size={14} /> 概況でみる
+              </div>
+              <h4 style={{ fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.55rem', lineHeight: 1.5 }}>
+                その時間帯でいちばん<br />多い天気を表示
+              </h4>
+              <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
+                雨がほんの一時でも、大半が晴れなら晴れマークが出ます。雨の合間を積極的に活用したい日に。「このくらいなら動ける」と経験でわかっている作業に。
+              </p>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#0f766e', fontWeight: 700 }}>
+                → 積極的に作業を進める指針に
+              </p>
+            </div>
+          </FadeIn>
+        </div>
+
+        <FadeIn delay={0.22}>
+          <p style={{
+            marginTop: '1.3rem', textAlign: 'center',
+            fontSize: '0.85rem', color: 'var(--text-tertiary)', lineHeight: 1.9,
+          }}>
+            どちらが正解ではありません。作業の種類、作物の状態、あなたの判断基準に合わせて<br />自分だけの「天気の見方」を選べるのが、Orch.Weatherです。
+          </p>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
 function ComparisonSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 0 }}>
@@ -614,6 +712,7 @@ export function LandingPage() {
       <MakerNote />
       <FeaturesSection />
       <FieldFeaturesSection />
+      <WeatherModeSection />
       <ComparisonSection />
       <StepsSection />
       <FinalCta loading={loading} onLogin={handleLogin} />
