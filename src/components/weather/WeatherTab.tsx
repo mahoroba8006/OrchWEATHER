@@ -15,7 +15,8 @@ import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
 export function WeatherTab() {
-  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user } = useAppStore();
+  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user, updateWeatherCodeMode } = useAppStore();
+  const weatherCodeMode = userSettings?.weatherCodeMode ?? 'severity';
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');
@@ -64,7 +65,6 @@ export function WeatherTab() {
   const { data, loading, loadingStatus, error, lastUpdated, refresh } = useForecast(
     location?.lat ?? null,
     location?.lon ?? null,
-    userSettings?.weatherCodeMode ?? 'severity',
   );
 
   // 気象庁注意報・警報（jmaAreaCode が設定済みの登録地点のみ有効）
@@ -238,7 +238,38 @@ export function WeatherTab() {
           <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <DailyForecast daily={data.daily} onHalfDayClick={scrollToHour} jmaWarnings={filteredJmaWarning?.items} />
+            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '0.4rem', padding: '0 0.75rem 0.5rem' }}>
+              <button
+                onClick={() => updateWeatherCodeMode('severity')}
+                className="secondary"
+                style={{
+                  padding: '0.3rem 0.7rem',
+                  fontSize: '0.75rem',
+                  background: weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
+                  color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
+                }}
+              >
+                リスクを優先
+              </button>
+              <button
+                onClick={() => updateWeatherCodeMode('frequency')}
+                className="secondary"
+                style={{
+                  padding: '0.3rem 0.7rem',
+                  fontSize: '0.75rem',
+                  background: weatherCodeMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
+                  color: weatherCodeMode === 'frequency' ? '#7a2840' : undefined,
+                }}
+              >
+                概況を優先
+              </button>
+            </div>
+            <DailyForecast
+              daily={data.daily}
+              weatherCodeMode={weatherCodeMode}
+              onHalfDayClick={scrollToHour}
+              jmaWarnings={filteredJmaWarning?.items}
+            />
           </section>
 
           <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textAlign: 'right', margin: '0.1rem 0.5rem' }}>

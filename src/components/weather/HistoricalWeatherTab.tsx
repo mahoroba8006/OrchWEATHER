@@ -17,7 +17,8 @@ function jstYesterday(): string {
 }
 
 export function HistoricalWeatherTab() {
-  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation } = useAppStore();
+  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, updateWeatherCodeMode } = useAppStore();
+  const weatherCodeMode = userSettings?.weatherCodeMode ?? 'severity';
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');
@@ -69,7 +70,6 @@ export function HistoricalWeatherTab() {
     location?.lat ?? null,
     location?.lon ?? null,
     startDate,
-    userSettings?.weatherCodeMode ?? 'severity',
   );
 
   const scrollToHour = useCallback((date: string, period: 'am' | 'pm' | 'night') => {
@@ -218,8 +218,35 @@ export function HistoricalWeatherTab() {
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '0.4rem', padding: '0 0.75rem 0.5rem' }}>
+              <button
+                onClick={() => updateWeatherCodeMode('severity')}
+                className="secondary"
+                style={{
+                  padding: '0.3rem 0.7rem',
+                  fontSize: '0.75rem',
+                  background: weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
+                  color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
+                }}
+              >
+                リスクを優先
+              </button>
+              <button
+                onClick={() => updateWeatherCodeMode('frequency')}
+                className="secondary"
+                style={{
+                  padding: '0.3rem 0.7rem',
+                  fontSize: '0.75rem',
+                  background: weatherCodeMode === 'frequency' ? 'rgba(244,167,185,0.45)' : undefined,
+                  color: weatherCodeMode === 'frequency' ? '#7a2840' : undefined,
+                }}
+              >
+                概況を優先
+              </button>
+            </div>
             <DailyForecast
               daily={nonPlaceholderDaily}
+              weatherCodeMode={weatherCodeMode}
               onHalfDayClick={scrollToHour}
             />
           </section>
