@@ -196,10 +196,7 @@ export function HelpPage({ onBack }: Props) {
                 <td style={{ fontWeight: 600 }}>施肥どき</td>
                 <td>粒状・粉状肥料の施用タイミングを雨・土の状態から最適化して提案します。</td>
               </tr>
-              <tr>
-                <td style={{ fontWeight: 600 }}>天気の備え</td>
-                <td>荒天・乾燥・低温など気候リスクと作物・施設への備えを提案します。</td>
-              </tr>
+
               <tr>
                 <td style={{ fontWeight: 600 }}>じぶん好み</td>
                 <td>自分でプロンプトを入力して、天気データに基づく任意の回答を取得できます。</td>

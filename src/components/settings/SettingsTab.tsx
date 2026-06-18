@@ -13,7 +13,7 @@ type SettingsSubTab = 'location' | 'weather' | 'ai' | 'analysis';
 const SUB_TAB_LABELS: Record<SettingsSubTab, string> = {
   location: '地点設定',
   weather: '天気情報',
-  ai: 'AIコメント',
+  ai: '空のアドバイス',
   analysis: '空くらべ',
 };
 

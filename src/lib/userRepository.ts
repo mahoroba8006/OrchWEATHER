@@ -23,7 +23,7 @@ const DEFAULT_JMA_GROUPS: JmaWarningGroup[] = [
 
 // SYNC: store.ts の DEFAULT_AI_SECTIONS と同期すること
 const DEFAULT_AI_SECTIONS: AiSection[] = [
-  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'disasterPrep',
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice',
 ];
 
 // じぶん好み（カスタマイズ）プロンプトの初期値。

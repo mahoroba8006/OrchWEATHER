@@ -24,7 +24,6 @@ export async function readAiCommentCache(
   if (Date.now() - cachedAt > TTL_MS) return null;
   return {
     weatherOverview:   typeof data.weatherOverview   === 'string' ? data.weatherOverview   : '',
-    disasterPrep:      typeof data.disasterPrep      === 'string' ? data.disasterPrep      : '',
     sprayingAdvice:    typeof data.sprayingAdvice    === 'string' ? data.sprayingAdvice    : '',
     fertilizingAdvice: typeof data.fertilizingAdvice === 'string' ? data.fertilizingAdvice : '',
     generalWorkAdvice: typeof data.generalWorkAdvice === 'string' ? data.generalWorkAdvice : '',
@@ -38,7 +37,6 @@ export async function writeAiCommentCache(
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid, 'aiComments', hash), {
     weatherOverview:   data.weatherOverview,
-    disasterPrep:      data.disasterPrep,
     sprayingAdvice:    data.sprayingAdvice,
     fertilizingAdvice: data.fertilizingAdvice,
     generalWorkAdvice: data.generalWorkAdvice,

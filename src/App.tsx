@@ -1072,7 +1072,7 @@ function App() {
         touchAction: isMonthly ? 'auto' : 'pan-y',
       }}
     >
-      <div style={{ height: '350px', width: '100%' }}>
+      <div style={{ height: '350px', width: '100%', background: '#ffffff', borderRadius: '8px' }}>
         {children}
       </div>
     </div>
@@ -1394,11 +1394,11 @@ function App() {
   }), [makeTooltipContent]);
 
   const sectionStyle = {
-    padding: '1.5rem',
+    padding: isMobile ? '0.75rem 1rem' : '1.5rem',
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '1rem',
-    marginTop: '1rem'
+    background: 'rgba(255, 255, 255, 0.97)',
   };
 
   // 累積開始日が非デフォルト（01-01）のときだけ、タイトル横に「4/20〜」バッジを表示
@@ -1669,7 +1669,7 @@ function App() {
       {topTab === 'history' && <HistoricalWeatherTab />}
 
       {topTab === 'analysis' && (
-      <div className="app-container">
+      <div className="app-container" style={isMobile ? { gap: '0.25rem' } : undefined}>
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象</span>
@@ -2471,7 +2471,7 @@ function App() {
 
         {/* 日別データスプレッドシート */}
         {Object.keys(weatherData).length > 0 && (
-          <section className="glass-panel" style={{ padding: '1.25rem' }}>
+          <section className="glass-panel" style={{ padding: '1.25rem', background: '#ffffff', border: '1px solid rgba(13, 148, 136, 0.3)', boxShadow: '0 4px 20px rgba(13, 148, 136, 0.12), 0 2px 8px rgba(0,0,0,0.07)' }}>
             <DailyRawTable
               targets={committedTargets}
               weatherData={weatherData}

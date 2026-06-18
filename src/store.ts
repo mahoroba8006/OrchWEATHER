@@ -47,16 +47,15 @@ export type AiSection =
   | 'generalWorkAdvice'  // 畑しごと
   | 'sprayingAdvice'     // 散布どき
   | 'fertilizingAdvice'  // 施肥どき
-  | 'disasterPrep'       // 天気の備え
   | 'custom';            // カスタマイズ（ユーザー入力プロンプト）
 
 export const ALL_AI_SECTIONS: AiSection[] = [
-  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'disasterPrep', 'custom',
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'custom',
 ];
 
 // カスタマイズはデフォルト無効（明示的にオプトインする）
 export const DEFAULT_AI_SECTIONS: AiSection[] = [
-  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'disasterPrep',
+  'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice',
 ];
 
 // ─── JMA 注意報・警報 表示グループ ───────────────────────────────────────────

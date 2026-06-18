@@ -1,6 +1,6 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { RefreshCw, MapPin, Loader2 } from 'lucide-react';
+import { RefreshCw, MapPin, Loader2, ChevronDown } from 'lucide-react';
 import { useAppStore, ALL_JMA_GROUPS, DEFAULT_AI_SECTIONS, warningNameToGroup } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
@@ -22,6 +22,7 @@ export function WeatherTab() {
   const [buttonGeoError, setButtonGeoError] = useState('');
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
   const hourlySectionRef = useRef<HTMLElement>(null);
+  const aiSectionRef = useRef<HTMLDivElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
 
   // デフォルト地点 or geoLocation が揃ったとき初期選択を確定させる
@@ -240,6 +241,47 @@ export function WeatherTab() {
 
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+
+          {/* AI ステータスバー */}
+          {enabledAiSections.some(s => s !== 'custom') && (
+            aiCommentLoading ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.5rem 0.85rem',
+                background: 'rgba(255,255,255,0.75)',
+                border: '1px solid var(--card-border)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.8rem', color: 'var(--text-secondary)',
+              }}>
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)', flexShrink: 0 }} />
+                空もようを分析中…
+              </div>
+            ) : aiComment ? (
+              <div
+                role="button"
+                onClick={() => {
+                  if (aiSectionRef.current) {
+                    const rect = aiSectionRef.current.getBoundingClientRect();
+                    window.scrollBy({ top: rect.top - 56, behavior: 'smooth' });
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '0.5rem 0.85rem',
+                  background: 'rgba(13,148,136,0.08)',
+                  border: '1px solid rgba(13,148,136,0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.8rem', color: 'var(--accent-color)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+              >
+                <span>✨ 空のアドバイスが届きました</span>
+                <ChevronDown size={15} style={{ flexShrink: 0 }} />
+              </div>
+            ) : null
+          )}
+
           <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
@@ -252,6 +294,7 @@ export function WeatherTab() {
                   fontSize: '0.75rem',
                   background: weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
                   color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
+                  borderColor: weatherCodeMode === 'severity' ? '#e88ea8' : undefined,
                 }}
               >
                 リスクでみる
@@ -264,6 +307,7 @@ export function WeatherTab() {
                   fontSize: '0.75rem',
                   background: weatherCodeMode === 'frequency' ? 'rgba(13,148,136,0.18)' : undefined,
                   color: weatherCodeMode === 'frequency' ? '#0f766e' : undefined,
+                  borderColor: weatherCodeMode === 'frequency' ? '#0d9488' : undefined,
                 }}
               >
                 概況でみる
@@ -290,14 +334,16 @@ export function WeatherTab() {
             <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={filteredJmaWarning?.items} />
           </section>
 
-          <AiCommentCard
-            comment={aiComment}
-            loading={aiCommentLoading}
-            enabledSections={enabledAiSections}
-            customText={aiCustomText}
-            customLoading={aiCustomLoading}
-            hasCustomPrompt={!!(aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT)}
-          />
+          <div ref={aiSectionRef}>
+            <AiCommentCard
+              comment={aiComment}
+              loading={aiCommentLoading}
+              enabledSections={enabledAiSections}
+              customText={aiCustomText}
+              customLoading={aiCustomLoading}
+              hasCustomPrompt={!!(aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT)}
+            />
+          </div>
 
         </div>
       )}

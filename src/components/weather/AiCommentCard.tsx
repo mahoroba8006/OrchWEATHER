@@ -5,7 +5,7 @@
 // カスタマイズタブはプロンプト未設定時にガイドメッセージを表示。
 
 import { useState, useEffect, useRef } from 'react';
-import { CloudSun, AlertTriangle, Droplets, Shovel, Sprout, Pencil } from 'lucide-react';
+import { CloudSun, Droplets, Shovel, Sprout, Pencil } from 'lucide-react';
 import type { AiCommentData } from '../../api/aiComment';
 import type { AiSection } from '../../store';
 
@@ -29,7 +29,6 @@ const ALL_TABS: TabDef[] = [
   { key: 'generalWorkAdvice', Icon: Shovel,        label: '畑しごと'   },
   { key: 'sprayingAdvice',    Icon: Droplets,      label: '散布どき'   },
   { key: 'fertilizingAdvice', Icon: Sprout,        label: '施肥どき'   },
-  { key: 'disasterPrep',      Icon: AlertTriangle, label: '天気の備え' },
   { key: 'custom',            Icon: Pencil,        label: 'じぶん好み' },
 ];
 

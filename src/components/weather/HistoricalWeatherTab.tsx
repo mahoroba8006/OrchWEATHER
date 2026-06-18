@@ -233,6 +233,7 @@ export function HistoricalWeatherTab() {
                   fontSize: '0.75rem',
                   background: weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
                   color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
+                  borderColor: weatherCodeMode === 'severity' ? '#e88ea8' : undefined,
                 }}
               >
                 リスクでみる
@@ -245,6 +246,7 @@ export function HistoricalWeatherTab() {
                   fontSize: '0.75rem',
                   background: weatherCodeMode === 'frequency' ? 'rgba(13,148,136,0.18)' : undefined,
                   color: weatherCodeMode === 'frequency' ? '#0f766e' : undefined,
+                  borderColor: weatherCodeMode === 'frequency' ? '#0d9488' : undefined,
                 }}
               >
                 概況でみる
