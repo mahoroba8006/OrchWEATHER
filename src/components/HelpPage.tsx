@@ -165,12 +165,42 @@ export function HelpPage({ onBack }: Props) {
         <section id="weather">
           <h2 style={H2_STYLE}>2. 空もよう</h2>
           <p style={P_STYLE}>
-            登録した地点の現在の天気予報を表示します。時間別予報（2時間刻み）・日別予報・AIコメントの3つのセクションで構成されています。
+            登録した地点の現在の天気予報を表示します。日別予報・時間別予報（2時間刻み）・空のアドバイス（AI）の3つのセクションで構成されています。
+          </p>
+
+          <h3 style={H3_STYLE}>天気アイコンの表示モード</h3>
+          <p style={P_STYLE}>
+            日別予報の上部にある切替ボタンで、天気アイコンの決め方を変えられます。
+          </p>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
+            <thead>
+              <tr>
+                <th>モード</th>
+                <th>内容</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>リスクでみる</td>
+                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も悪い天気コード</strong>を代表アイコンとして表示します。悪天候を見逃したくないときに使います。（デフォルト）</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>概況でみる</td>
+                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も多い天気コード</strong>を代表アイコンとして表示します。その時間帯全体の天気の傾向を把握したいときに使います。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 style={H3_STYLE}>ミニアイコンタグ</h3>
+          <p style={P_STYLE}>
+            各時間帯セルのアイコン下には、<strong>現在選んでいないモードの天気</strong>を小さなタグで表示しています。
+            「リスクでみる」選択中はティール色のタグが概況の天気を、「概況でみる」選択中はピンク色のタグがリスクの天気を補足表示します。
+            2つのモードの違いが大きい日（たとえば夜だけ雨が降るなど）を一目で確認できます。
           </p>
 
           <h3 style={H3_STYLE}>AIコメントの各タブ</h3>
           <p style={P_STYLE}>
-            AIコメントは農作業の観点から気象データを解説します。設定タブで表示するタブを有効／無効に切り替えられます。
+            空のアドバイスは農作業の観点から気象データを解説します。設定タブ「空のアドバイス」で表示するタブを有効／無効に切り替えられます。
           </p>
           <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%' }}>
             <thead>
