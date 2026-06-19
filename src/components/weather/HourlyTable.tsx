@@ -225,18 +225,16 @@ const DATA_ROWS: { key: string; label: string; unit?: string; fmt: (h: HourlyFor
   { key: 'freezing',     label: '0℃層高度',  unit: 'm',     fmt: h => Math.round(h.freezingLevel).toString() },
 ];
 
-// ── Gantt helpers ─────────────────────────────────────────
-
-/** UTC ms を JST 時刻文字列 "YYYY-MM-DDTHH:00" に変換する */
-function toJSTHourStr(utcMs: number): string {
-  const jstMs = utcMs + 9 * 60 * 60 * 1000;
-  const d = new Date(jstMs);
-  const y  = d.getUTCFullYear();
-  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dy = String(d.getUTCDate()).padStart(2, '0');
-  const h  = String(d.getUTCHours()).padStart(2, '0');
-  return `${y}-${mo}-${dy}T${h}:00`;
-}
+// ── Gantt helpers（ガントバー再表示時はこのセクション全体のコメントを外す）─────
+// function toJSTHourStr(utcMs: number): string {
+//   const jstMs = utcMs + 9 * 60 * 60 * 1000;
+//   const d = new Date(jstMs);
+//   const y  = d.getUTCFullYear();
+//   const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+//   const dy = String(d.getUTCDate()).padStart(2, '0');
+//   const h  = String(d.getUTCHours()).padStart(2, '0');
+//   return `${y}-${mo}-${dy}T${h}:00`;
+// }
 
 // ガントバー再表示時はこの関数のコメントを外す
 // function warningToHourlyBar(
