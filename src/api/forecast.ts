@@ -243,6 +243,6 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   const pastDaily = daily.filter(d => d.date < todayJst);
   const futureDaily = daily.filter(d => d.date >= todayJst);
 
-  // HourlyTable 用は past_hours(20) + 72h のみ返す（dayAmPm は全384h で構築済み）
-  return { hourly: hourly.slice(0, 20 + 72), daily: futureDaily, pastDaily, fetchedAt: Date.now() };
+  // HourlyTable 用は past_hours(20) + 240h（今日含め10日分）のみ返す（dayAmPm は全384h で構築済み）
+  return { hourly: hourly.slice(0, 20 + 240), daily: futureDaily, pastDaily, fetchedAt: Date.now() };
 }

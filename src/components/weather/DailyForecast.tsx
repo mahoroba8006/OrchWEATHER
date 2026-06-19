@@ -12,6 +12,7 @@ interface Props {
   weatherCodeMode: WeatherCodeMode;
   onHalfDayClick?: (date: string, period: 'am' | 'pm' | 'night') => void;
   jmaWarnings?: JmaWarningItem[];
+  hourlyLastDate?: string; // この日付以降はタップ不可（時間別データなし）
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -252,10 +253,12 @@ function warningToBar(
   return { left: `${left}px`, width: `${right - left}px` };
 }
 
-export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarnings }: Props) {
+export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarnings, hourlyLastDate }: Props) {
   const tableRef = useRef<HTMLTableElement>(null);
   const [dayX, setDayX] = useState<number[] | null>(null);
   const [dayWidths, setDayWidths] = useState<number[] | null>(null);
+
+  const canTap = (date: string) => !!onHalfDayClick && (!hourlyLastDate || date <= hourlyLastDate);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -439,8 +442,8 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 return (
                   <Fragment key={day.date}>
                     <td
-                      style={{ ...amCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: onHalfDayClick ? 'pointer' : undefined }}
-                      onClick={() => onHalfDayClick?.(day.date, 'am')}
+                      style={{ ...amCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: canTap(day.date) ? 'pointer' : undefined }}
+                      onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'am') : undefined}
                     >
                       <div style={iconContainer}>
                         <div style={wStyle}>{amMain !== null ? (codeToLabel(amMain) ?? '—') : '—'}</div>
@@ -461,8 +464,8 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                       </div>
                     </td>
                     <td
-                      style={{ ...pmCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: onHalfDayClick ? 'pointer' : undefined }}
-                      onClick={() => onHalfDayClick?.(day.date, 'pm')}
+                      style={{ ...pmCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: canTap(day.date) ? 'pointer' : undefined }}
+                      onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'pm') : undefined}
                     >
                       <div style={iconContainer}>
                         <div style={wStyle}>{pmMain !== null ? (codeToLabel(pmMain) ?? '—') : '—'}</div>
@@ -483,8 +486,8 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                       </div>
                     </td>
                     <td
-                      style={{ ...nightCell(day, i), paddingTop: '0.6rem', paddingBottom: 0, cursor: onHalfDayClick ? 'pointer' : undefined }}
-                      onClick={() => onHalfDayClick?.(day.date, 'night')}
+                      style={{ ...nightCell(day, i), paddingTop: '0.6rem', paddingBottom: 0, cursor: canTap(day.date) ? 'pointer' : undefined }}
+                      onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'night') : undefined}
                     >
                       <div style={iconContainer}>
                         <div style={wStyle}>{nightMain !== null ? (codeToLabel(nightMain) ?? '—') : '—'}</div>
@@ -531,9 +534,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 );
                 return (
                   <Fragment key={day.date}>
-                    <td style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'am')}>{renderProb(day.amPrecipProb)}</td>
-                    <td style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'pm')}>{renderProb(day.pmPrecipProb)}</td>
-                    <td style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'night')}>{renderProb(day.nightPrecipProb)}</td>
+                    <td style={{ ...amCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'am') : undefined}>{renderProb(day.amPrecipProb)}</td>
+                    <td style={{ ...pmCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'pm') : undefined}>{renderProb(day.pmPrecipProb)}</td>
+                    <td style={{ ...nightCell(day, i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'night') : undefined}>{renderProb(day.nightPrecipProb)}</td>
                   </Fragment>
                 );
               })}
@@ -557,9 +560,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 }
                 return (
                   <Fragment key={day.date}>
-                    <td style={{ ...amCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'am')}>{fmt(day.amWindMax)}</td>
-                    <td style={{ ...pmCell(day), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'pm')}>{fmt(day.pmWindMax)}</td>
-                    <td style={{ ...nightCell(day, i), cursor: onHalfDayClick ? 'pointer' : undefined }} onClick={() => onHalfDayClick?.(day.date, 'night')}>{fmt(day.nightWindMax)}</td>
+                    <td style={{ ...amCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'am') : undefined}>{fmt(day.amWindMax)}</td>
+                    <td style={{ ...pmCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'pm') : undefined}>{fmt(day.pmWindMax)}</td>
+                    <td style={{ ...nightCell(day, i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'night') : undefined}>{fmt(day.nightWindMax)}</td>
                   </Fragment>
                 );
               })}

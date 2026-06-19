@@ -151,6 +151,7 @@ export function WeatherTab() {
   // ここで追加フィルターをかけると端数時間が除外され、
   // nightPrecipSum など日別集計値と表示値がずれるため、そのまま渡す。
   const filteredHourly = data ? data.hourly : [];
+  const hourlyLastDate = filteredHourly.length > 0 ? filteredHourly[filteredHourly.length - 1].time.slice(0, 10) : undefined;
 
   return (
     <div className="app-container">
@@ -327,6 +328,7 @@ export function WeatherTab() {
               weatherCodeMode={weatherCodeMode}
               onHalfDayClick={scrollToHour}
               jmaWarnings={filteredJmaWarning?.items}
+              hourlyLastDate={hourlyLastDate}
             />
           </section>
 
