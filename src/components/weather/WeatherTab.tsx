@@ -269,7 +269,7 @@ export function WeatherTab() {
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '0.5rem 0.85rem',
-                  background: 'rgba(13,148,136,0.08)',
+                  background: '#ffffff',
                   border: '1px solid rgba(13,148,136,0.3)',
                   borderRadius: 'var(--radius-md)',
                   fontSize: '0.8rem', color: 'var(--accent-color)',

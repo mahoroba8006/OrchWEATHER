@@ -444,8 +444,8 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               })}
             </tr>
             <MiniChartRow tl={tl} hourlyPos={hourlyPos} />
-            {/* ガントバー行 */}
-            {jmaWarnings && jmaWarnings.length > 0 && (() => {
+            {/* ガントバー行（非表示中・再表示する場合はコメントを外す） */}
+            {/* {jmaWarnings && jmaWarnings.length > 0 && (() => {
               const lanes = computeWarningLanes(jmaWarnings);
               return lanes.map((lane, laneIdx) => (
                 <tr key={`gantt-${laneIdx}`}>
@@ -466,7 +466,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   </td>
                 </tr>
               ));
-            })()}
+            })()} */}
             {!hiddenRowKeys?.has('uv') && (
               <UVRow tl={tl} isNighttime={isNighttime} cutoff={effectiveCutoff} />
             )}
