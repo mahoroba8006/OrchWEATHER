@@ -3,8 +3,9 @@ import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
 import type { JmaWarningItem } from '../../api/jmaWarning';
-import { computeWarningLanes } from '../../lib/warningGantt';
-import { WarningBar } from './WarningBar';
+// ガントバー再表示時は以下2行のコメントを外す
+// import { computeWarningLanes } from '../../lib/warningGantt';
+// import { WarningBar } from './WarningBar';
 
 interface Props {
   hourly: HourlyForecast[];
@@ -237,42 +238,36 @@ function toJSTHourStr(utcMs: number): string {
   return `${y}-${mo}-${dy}T${h}:00`;
 }
 
-function warningToHourlyBar(
-  warning: JmaWarningItem,
-  hourly: HourlyForecast[],
-  hourlyPos: number[],
-  totalCols: number,
-): { left: string; width: string } | null {
-  if (!warning.startMs || hourly.length === 0) return null;
-
-  const startStr = toJSTHourStr(warning.startMs);
-
-  let startHIdx = 0;
-  for (let i = 0; i < hourly.length; i++) {
-    if (hourly[i].time <= startStr) startHIdx = i;
-    else break;
-  }
-  if (startStr > hourly[hourly.length - 1].time) return null;
-
-  // r8 API は終了時刻を提供しない。発表時刻（startMs）は常に過去のため
-  // 「現在時刻 + 12h」をバー右端にする。
-  const end12Str = toJSTHourStr(Date.now() + 12 * 60 * 60 * 1000);
-  const idx12 = hourly.findIndex(h => h.time >= end12Str);
-  const leftCol  = hourlyPos[startHIdx];
-  const rightCol = idx12 === -1
-    ? hourlyPos[hourly.length - 1] + 1  // テーブル末尾右端にクリップ
-    : hourlyPos[idx12];
-  if (rightCol <= leftCol) return null;
-  // 列インデックスを td 全幅（colSpan=totalCols）に対する % に変換する。
-  // 列は固定幅（COL_W）で等幅なので、% 位置 = 実際の列位置と一致する。
-  return {
-    left:  `${(leftCol / totalCols) * 100}%`,
-    width: `${((rightCol - leftCol) / totalCols) * 100}%`,
-  };
-}
+// ガントバー再表示時はこの関数のコメントを外す
+// function warningToHourlyBar(
+//   warning: JmaWarningItem,
+//   hourly: HourlyForecast[],
+//   hourlyPos: number[],
+//   totalCols: number,
+// ): { left: string; width: string } | null {
+//   if (!warning.startMs || hourly.length === 0) return null;
+//   const startStr = toJSTHourStr(warning.startMs);
+//   let startHIdx = 0;
+//   for (let i = 0; i < hourly.length; i++) {
+//     if (hourly[i].time <= startStr) startHIdx = i;
+//     else break;
+//   }
+//   if (startStr > hourly[hourly.length - 1].time) return null;
+//   const end12Str = toJSTHourStr(Date.now() + 12 * 60 * 60 * 1000);
+//   const idx12 = hourly.findIndex(h => h.time >= end12Str);
+//   const leftCol  = hourlyPos[startHIdx];
+//   const rightCol = idx12 === -1
+//     ? hourlyPos[hourly.length - 1] + 1
+//     : hourlyPos[idx12];
+//   if (rightCol <= leftCol) return null;
+//   return {
+//     left:  `${(leftCol / totalCols) * 100}%`,
+//     width: `${((rightCol - leftCol) / totalCols) * 100}%`,
+//   };
+// }
 
 // ── Main component ────────────────────────────────────────
-export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, jmaWarnings, hiddenRowKeys }: Props) {
+export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, hiddenRowKeys }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
 
