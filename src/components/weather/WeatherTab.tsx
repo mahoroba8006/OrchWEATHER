@@ -154,6 +154,7 @@ export function WeatherTab() {
 
   return (
     <div className="app-container">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
       <div className="glass-panel" style={{
         display: 'flex',
         alignItems: 'center',
@@ -240,7 +241,7 @@ export function WeatherTab() {
       )}
 
       {data && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        <>
 
           {/* AI ステータスバー */}
           {enabledAiSections.some(s => s !== 'custom') && (
@@ -348,8 +349,9 @@ export function WeatherTab() {
             />
           </div>
 
-        </div>
+        </>
       )}
+      </div>
       <Footer />
     </div>
   );
