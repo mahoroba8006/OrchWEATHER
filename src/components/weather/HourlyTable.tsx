@@ -25,7 +25,7 @@ const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 // 0〜3mm は農作業のカッパ判断（迷う帯）に合わせた体感表現、3mm以上は気象庁「雨の強さ」区分に準拠
 function precipToLabel(mm: number): string {
   if (mm < 0.5)  return 'ぽつぽつ'; // ぽつりと当たる程度
-  if (mm < 1.5)  return 'カッパ？'; // 濡れ始める。カッパ判断の境
+  if (mm < 1.0)  return 'カッパ？'; // 濡れ始める。カッパ判断の境
   if (mm < 3.0)  return 'カッパ！'; // しっかり濡れる。カッパ必須
   if (mm < 10.0) return '本降り';   // 並の雨
   if (mm < 20.0) return 'ザーザー';   // やや強い雨
