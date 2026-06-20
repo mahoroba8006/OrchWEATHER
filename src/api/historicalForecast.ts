@@ -14,6 +14,7 @@
 //            CAPE ✅（約8ヶ月分） / 0℃層高度 ❌（9999固定） / 降水確率 ❌ / UV指数 ❌
 //
 import type { ForecastData, DailyForecastData, HourlyForecast, FieldAvailability } from './forecast';
+import { addDays } from '../lib/dateUtils';
 
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 
@@ -43,12 +44,6 @@ function hasValues(arr: unknown): boolean {
   return Array.isArray(arr) && arr.some(v => v != null);
 }
 
-/** YYYY-MM-DD に n 日加算した文字列を返す */
-function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
 
 /** データがない日（未来など）のプレースホルダーエントリ */
 function createPlaceholderDay(date: string): DailyForecastData {
