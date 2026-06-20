@@ -74,6 +74,9 @@ type DayAmPmEntry = {
   amProb: number | null; pmProb: number | null; nightProb: number | null;
   amPrecipSum: number;   pmPrecipSum: number;   nightPrecipSum: number;
   amWindMax: number | null; pmWindMax: number | null; nightWindMax: number | null;
+  amTempMax: number | null; amTempMin: number | null;
+  pmTempMax: number | null; pmTempMin: number | null;
+  nightTempMax: number | null; nightTempMin: number | null;
 };
 
 /** 時間別データから AM(4-12) / PM(12-20) / 夜間(20-翌4) の集計マップを構築する */
@@ -87,9 +90,7 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
     let targetDate: string;
     let period: 'am' | 'pm' | 'night';
     if (hr < 4) {
-      const d = new Date(date + 'T00:00:00');
-      d.setDate(d.getDate() - 1);
-      targetDate = d.toISOString().slice(0, 10);
+      targetDate = addDays(date, -1);
       period = 'night';
     } else if (hr < 12) {
       targetDate = date;
@@ -108,6 +109,9 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
         amProb: null, pmProb: null, nightProb: null,
         amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
         amWindMax: null, pmWindMax: null, nightWindMax: null,
+        amTempMax: null, amTempMin: null,
+        pmTempMax: null, pmTempMin: null,
+        nightTempMax: null, nightTempMin: null,
       });
     }
     const d = map.get(targetDate)!;
@@ -116,16 +120,22 @@ function buildDayAmPmMap(hourly: HourlyForecast[]): Map<string, DayAmPmEntry> {
       d.amProb       = d.amProb === null ? h.precipProb  : Math.max(d.amProb,  h.precipProb);
       d.amPrecipSum += h.precipitation;
       d.amWindMax    = d.amWindMax === null ? h.windSpeed  : Math.max(d.amWindMax, h.windSpeed);
+      d.amTempMax    = d.amTempMax === null ? h.temperature : Math.max(d.amTempMax, h.temperature);
+      d.amTempMin    = d.amTempMin === null ? h.temperature : Math.min(d.amTempMin, h.temperature);
     } else if (period === 'pm') {
       d.pmCodes.push(h.weatherCode);
       d.pmProb       = d.pmProb === null ? h.precipProb  : Math.max(d.pmProb,  h.precipProb);
       d.pmPrecipSum += h.precipitation;
       d.pmWindMax    = d.pmWindMax === null ? h.windSpeed  : Math.max(d.pmWindMax, h.windSpeed);
+      d.pmTempMax    = d.pmTempMax === null ? h.temperature : Math.max(d.pmTempMax, h.temperature);
+      d.pmTempMin    = d.pmTempMin === null ? h.temperature : Math.min(d.pmTempMin, h.temperature);
     } else {
       d.nightCodes.push(h.weatherCode);
       d.nightProb       = d.nightProb === null ? h.precipProb  : Math.max(d.nightProb,  h.precipProb);
       d.nightPrecipSum += h.precipitation;
       d.nightWindMax    = d.nightWindMax === null ? h.windSpeed  : Math.max(d.nightWindMax, h.windSpeed);
+      d.nightTempMax    = d.nightTempMax === null ? h.temperature : Math.max(d.nightTempMax, h.temperature);
+      d.nightTempMin    = d.nightTempMin === null ? h.temperature : Math.min(d.nightTempMin, h.temperature);
     }
   }
 
@@ -144,9 +154,12 @@ function expandDayAmPm(map: Map<string, DayAmPmEntry>, t: string) {
     amPrecipSum:      map.has(t) ? map.get(t)!.amPrecipSum    : null,
     pmPrecipSum:      map.has(t) ? map.get(t)!.pmPrecipSum    : null,
     nightPrecipSum:   map.has(t) ? map.get(t)!.nightPrecipSum : null,
-    amTempMax: null, amTempMin: null,
-    pmTempMax: null, pmTempMin: null,
-    nightTempMax: null, nightTempMin: null,
+    amTempMax:    map.get(t)?.amTempMax    ?? null,
+    amTempMin:    map.get(t)?.amTempMin    ?? null,
+    pmTempMax:    map.get(t)?.pmTempMax    ?? null,
+    pmTempMin:    map.get(t)?.pmTempMin    ?? null,
+    nightTempMax: map.get(t)?.nightTempMax ?? null,
+    nightTempMin: map.get(t)?.nightTempMin ?? null,
     amWindMax:    map.get(t)?.amWindMax    ?? null,
     pmWindMax:    map.get(t)?.pmWindMax    ?? null,
     nightWindMax: map.get(t)?.nightWindMax ?? null,
