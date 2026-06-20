@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type ReactNode, type CSSProperties } from 
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import {
   Leaf, ArrowRight, Quote, Sparkles, BarChart2, CloudSun, SlidersHorizontal, Sprout,
-  Clock, Sun, CloudRain,
+  Clock, Sun, CloudRain, History,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import '../landing.css';
@@ -46,9 +46,6 @@ function FadeIn({ children, delay = 0, style }: {
 
 /* ─────────────────────────────────────────
    iOS PWA モード判定
-   通常の iOS Safari ブラウザは signInWithPopup が使えるが、
-   ホーム画面から起動した PWA モードではポップアップが OS レベルで
-   ブロックされるため signInWithRedirect を使う必要がある。
 ───────────────────────────────────────── */
 const isIOSStandalone = () =>
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -58,57 +55,21 @@ const isIOSStandalone = () =>
 /* ─────────────────────────────────────────
    データ定義
 ───────────────────────────────────────── */
-const pains = [
+const tabOverview = [
   {
-    label: '去年との違いが見えない',
-    quote: '「今年は暖かい気がする」けど、実際去年と比べてどれくらい違うのか、何日進んでいるか、数字で確認できない。',
-  },
-  {
-    label: '今日か明日か、頭の中で計算',
-    quote: '防除、散布、施肥…。今日できるか明日できるか、気温・降水確率・風速を一つずつ確認しながら考えている。',
-  },
-  {
-    label: '自分の農場に合わせた提案が欲しい',
-    quote: '「うちは標高が高いから予想気温から3℃は低くなる。」自分の持っている基準でアラートが出せたらいいのに。',
-  },
-];
-
-const features = [
-  {
-    icon: Sparkles,
-    eyebrow: 'AI農作業アドバイス',
-    title: '「明日、散布できるか」に、答えが出る。',
-    body: 'AIが気象データから作業できる時間帯と残るリスクをわかりやすく提案。あなたの判断をサポート。材料はすべてここに。',
-    img: '/lp/feature-ai.webp',
-    w: 780, h: 744,
-    alt: 'AI農作業アドバイスの画面',
+    icon: CloudSun,
+    name: '空もよう',
+    tagline: '今日・明日の判断を、AIが手伝う',
   },
   {
     icon: BarChart2,
-    eyebrow: '前年比較・積算',
-    title: '「今年は早い？遅い？」が、数字でわかる。',
-    body: '積算温度・降水量・日射量などを自動計算しグラフィカルに表示。比較したい年、登録地点を選択でき「去年より何日進んでいるか」「あの場所とどれくらい違うか」まで一目。',
-    img: '/lp/feature-kurabe.webp',
-    w: 1178, h: 1922,
-    alt: '前年比較チャートの画面',
+    name: '空くらべ',
+    tagline: '去年と比べて、数字で見える',
   },
   {
-    icon: CloudSun,
-    eyebrow: '時間ごとの空',
-    title: '露点・飽差・0℃層高度まで、時間別に。',
-    body: '気温と降水確率だけでは農作業の判断はできません。露点温度、飽差、0℃層高度（雹リスク）、大気安定度（落雷リスク）——農業に効く専門データを時間別に一覧表示。「空しらべ」機能では過去任意の日付も同じ画面で確認でき、失敗した作業の原因追跡にも役立ちます。',
-    img: '/lp/feature-hourly.webp',
-    w: 1165, h: 1959,
-    alt: '時間別予報テーブルの画面',
-  },
-  {
-    icon: SlidersHorizontal,
-    eyebrow: 'じぶん好みAI',
-    title: 'あなたの畑に合わせて、AIに聞ける。',
-    body: '「標高が高いから2℃低めで考えて」「風に弱い作物がある」——自分の言葉で条件を登録すれば、AIがそれを踏まえて答えます。',
-    img: '/lp/feature-custom.webp',
-    w: 1167, h: 1830,
-    alt: 'じぶん好みプロンプト設定の画面',
+    icon: History,
+    name: '空しらべ',
+    tagline: 'あの日の天気を、同じ画面で確認',
   },
 ];
 
@@ -180,6 +141,25 @@ function GoogleIcon() {
   );
 }
 
+function TabBadge({ icon: Icon, name }: { icon: typeof CloudSun; name: string }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+      padding: '0.45rem 1rem',
+      background: 'var(--accent-light)',
+      border: '1px solid rgba(13,148,136,0.3)',
+      borderRadius: 999,
+      color: 'var(--accent-color)',
+      fontWeight: 800,
+      fontSize: '0.9rem',
+      marginBottom: '1.6rem',
+    }}>
+      <Icon size={15} />
+      {name}
+    </div>
+  );
+}
+
 /* ─────────────────────────────────────────
    セクション
 ───────────────────────────────────────── */
@@ -233,7 +213,6 @@ function Hero({ loading, error, onLogin }: { loading: boolean; error: string | n
         </FadeIn>
         <FadeIn delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
           <div className="lp-phone">
-            {/* width/height は Task 7 で実画像の寸法に更新する */}
             <img src="/lp/hero-imanosora.webp" alt="空もよう — 時間ごとの空模様とAI提案の画面" width={780} height={1688} />
           </div>
         </FadeIn>
@@ -242,96 +221,39 @@ function Hero({ loading, error, onLogin }: { loading: boolean; error: string | n
   );
 }
 
-function PainSection() {
+/* ── 3タブ俯瞰 ── */
+function BridgeSection() {
   return (
-    <section className="lp-section" style={{ paddingBottom: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-      <div className="lp-container">
+    <section className="lp-section" style={{ paddingTop: 0, paddingBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
+      <div className="lp-container-narrow">
         <FadeIn>
-          <h2 className="lp-h2">農家の気象データ活用、こんな悩みはありませんか</h2>
+          <h2 className="lp-h2">3つの画面で、農業の時間をすべてカバーする。</h2>
         </FadeIn>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '1.1rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+          gap: '1rem',
           marginTop: '1.8rem',
         }}>
-          {pains.map((p, i) => (
-            <FadeIn key={p.label} delay={i * 0.1}>
-              <div className="lp-glass" style={{ padding: '1.4rem 1.3rem', height: '100%', boxSizing: 'border-box' }}>
-                <Quote size={18} color="var(--accent-color)" style={{ marginBottom: '0.6rem' }} />
-                <p style={{ fontWeight: 700, margin: '0 0 0.55rem', fontSize: '0.98rem' }}>{p.label}</p>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.85 }}>{p.quote}</p>
-              </div>
-            </FadeIn>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MakerNote() {
-  return (
-    <section className="lp-section" style={{ paddingTop: 0 }}>
-      <div className="lp-container-narrow">
-        <FadeIn>
-          <div className="lp-glass" style={{
-            padding: 'clamp(1.6rem, 4vw, 2.4rem)',
-            textAlign: 'center',
-            borderTop: '3px solid var(--accent-color)',
-          }}>
-            <Sprout size={26} color="var(--accent-color)" style={{ marginBottom: '0.8rem' }} />
-            <h2 className="lp-h2" style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.6rem)' }}>
-              作ったのは、同じ悩みを持つ農家です。
-            </h2>
-            <p className="lp-lead" style={{ textAlign: 'left' }}>
-              Orch.Weatherは、毎朝の天気判断に時間を取られていた一人の農家が、自分の畑のために作ったアプリです。机の上ではなく、現場で使いながら磨いてきました。カッパが要るかまでわかる時間別表示も、雨の合間を見つけるAIの提案も、「現場で欲しかったもの」だけを載せています。
-            </p>
-          </div>
-        </FadeIn>
-      </div>
-    </section>
-  );
-}
-
-function FeaturesSection() {
-  return (
-    <section className="lp-section" style={{ paddingTop: 0 }}>
-      <div className="lp-container">
-        <FadeIn>
-          <h2 className="lp-h2">画面を見れば、今日やることが決まる。</h2>
-        </FadeIn>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'clamp(2.5rem, 7vw, 4.5rem)',
-          marginTop: '2.2rem',
-        }}>
-          {features.map((f, i) => {
-            const Icon = f.icon;
+          {tabOverview.map((tab, i) => {
+            const Icon = tab.icon;
             return (
-              <FadeIn key={f.title}>
-                <div className={i % 2 === 1 ? 'lp-zigzag lp-zigzag--reverse' : 'lp-zigzag'}>
-                  <div>
-                    <p style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                      color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
-                      margin: '0 0 0.7rem',
-                    }}>
-                      <Icon size={16} /> {f.eyebrow}
-                    </p>
-                    <h3 style={{
-                      fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-                      lineHeight: 1.5, margin: '0 0 0.8rem',
-                    }}>
-                      {f.title}
-                    </h3>
-                    <p className="lp-lead" style={{ fontSize: '0.92rem' }}>{f.body}</p>
+              <FadeIn key={tab.name} delay={i * 0.1}>
+                <div className="lp-glass" style={{ padding: '1.4rem 1.2rem', textAlign: 'center', height: '100%', boxSizing: 'border-box' }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12,
+                    background: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(13,148,136,0.28))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 0.75rem',
+                  }}>
+                    <Icon size={20} color="var(--accent-color)" />
                   </div>
-                  <div>
-                    {/* width/height は Task 7 で実画像の寸法に更新する */}
-                    <img className="lp-shot" src={f.img} alt={f.alt} width={f.w} height={f.h} loading="lazy" />
-                  </div>
+                  <p style={{ fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.4rem', letterSpacing: '0.02em' }}>
+                    {tab.name}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.75 }}>
+                    {tab.tagline}
+                  </p>
                 </div>
               </FadeIn>
             );
@@ -342,21 +264,201 @@ function FeaturesSection() {
   );
 }
 
-function MarkCell({ mark, ours = false }: { mark: CompMark; ours?: boolean }) {
-  const color = mark.m === '✓' ? 'var(--accent-color)' : mark.m === '△' ? '#d97706' : '#b3bcc9';
+/* ── 空もよう（メイン） ── */
+function SoraMoyoSection() {
   return (
-    <td className={ours ? 'lp-comp-ours' : undefined}>
-      <span style={{ color, fontWeight: 800, fontSize: '1rem' }}>{mark.m}</span>
-      {mark.note && <span className="lp-comp-note">{mark.note}</span>}
-    </td>
+    <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
+      <div className="lp-container">
+        <FadeIn>
+          <TabBadge icon={CloudSun} name="空もよう" />
+          <div className="lp-glass" style={{
+            padding: '1.2rem 1.4rem',
+            marginBottom: '2.5rem',
+            borderLeft: '3px solid var(--accent-color)',
+          }}>
+            <Quote size={16} color="var(--accent-color)" style={{ marginBottom: '0.4rem' }} />
+            <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
+              今日できるか、毎朝頭の中で計算している
+            </p>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
+              防除、散布、施肥…。今日できるか明日できるか、気温・降水確率・風速を一つずつ確認しながら考えている。
+            </p>
+          </div>
+        </FadeIn>
+
+        {/* AI農作業アドバイス */}
+        <FadeIn>
+          <div className="lp-zigzag" style={{ marginBottom: 'clamp(2.5rem, 7vw, 4rem)' }}>
+            <div>
+              <p style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+                margin: '0 0 0.7rem',
+              }}>
+                <Sparkles size={16} /> AI農作業アドバイス
+              </p>
+              <h3 style={{
+                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+                lineHeight: 1.5, margin: '0 0 0.8rem',
+              }}>
+                「明日、散布できるか」に、答えが出る。
+              </h3>
+              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+                AIが気象データから作業できる時間帯と残るリスクをわかりやすく提案。あなたの判断をサポート。材料はすべてここに。
+              </p>
+            </div>
+            <div>
+              <img className="lp-shot" src="/lp/feature-ai.webp" alt="AI農作業アドバイスの画面" width={780} height={744} loading="lazy" />
+            </div>
+          </div>
+        </FadeIn>
+
+        {/* じぶん好みAI */}
+        <FadeIn>
+          <div className="lp-zigzag lp-zigzag--reverse" style={{ marginBottom: 'clamp(2.5rem, 7vw, 4rem)' }}>
+            <div>
+              <p style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+                margin: '0 0 0.7rem',
+              }}>
+                <SlidersHorizontal size={16} /> じぶん好みAI
+              </p>
+              <h3 style={{
+                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+                lineHeight: 1.5, margin: '0 0 0.8rem',
+              }}>
+                あなたの畑に合わせて、AIに聞ける。
+              </h3>
+              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+                「標高が高いから2℃低めで考えて」「風に弱い作物がある」——自分の言葉で条件を登録すれば、AIがそれを踏まえて答えます。
+              </p>
+            </div>
+            <div>
+              <img className="lp-shot" src="/lp/feature-custom.webp" alt="じぶん好みプロンプト設定の画面" width={1167} height={1830} loading="lazy" />
+            </div>
+          </div>
+        </FadeIn>
+
+        {/* サブ機能グリッド */}
+        <FadeIn>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '1.1rem',
+          }}>
+
+            {/* 3分割 + リスク/概況 */}
+            <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                background: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(13,148,136,0.28))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '0.85rem',
+              }}>
+                <Clock size={17} color="var(--accent-color)" />
+              </div>
+              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
+                午前・午後・夜間の3分割表示
+              </p>
+              <p style={{ margin: '0 0 0.9rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                「晴れのち一時雨」も、午前が晴れで午後から雨なのか一目でわかる。リスク/概況の2モードで見方を切り替えられます。
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                  <div style={{
+                    background: 'rgba(244,167,185,0.2)', border: '1px solid #e88ea8',
+                    borderRadius: 5, padding: '0.2rem 0.6rem',
+                    fontSize: '0.75rem', fontWeight: 700, color: '#9b2d4e',
+                    whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
+                  }}>
+                    リスクでみる
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.75 }}>
+                    散布・播種など一発勝負の作業に。悪天候の見落としをゼロに。
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                  <div style={{
+                    background: 'rgba(13,148,136,0.1)', border: '1px solid #0d9488',
+                    borderRadius: 5, padding: '0.2rem 0.6rem',
+                    fontSize: '0.75rem', fontWeight: 700, color: '#0f766e',
+                    whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
+                  }}>
+                    概況でみる
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.75 }}>
+                    雨の合間を積極的に活用したい日の指針に。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 農業専門データ */}
+            <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                background: 'linear-gradient(135deg, rgba(14,165,233,0.12), rgba(14,165,233,0.28))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '0.85rem',
+              }}>
+                <CloudRain size={17} color="#0284c7" />
+              </div>
+              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
+                農業に効く専門データを時間別に
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                露点温度（病害感染リスク）、飽差（水分管理）、0℃層高度（雹リスク）、大気安定度（落雷リスク）——気温と降水確率だけでは見えない判断材料を時間別に一覧表示。
+              </p>
+            </div>
+
+            {/* UV・カッパ */}
+            <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                background: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.28))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginBottom: '0.85rem',
+              }}>
+                <Sun size={17} color="#d97706" />
+              </div>
+              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
+                紫外線指数とカッパ判断ラベル
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                UV指数を時間別に確認。降水量はさらに3段階ラベルで表示：<strong>ぽつぽつ</strong>（0.5mm未満）・<strong>カッパ？</strong>（0.5〜1.0mm）・<strong>カッパ！</strong>（1.0mm〜）。この一段階の細かさが、作業を続けるか切り上げるかの判断を変えます。
+              </p>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
   );
 }
 
-function FieldFeaturesSection() {
+/* ── 空くらべ ── */
+function SoraKurabeSection() {
   return (
-    <section className="lp-section" style={{ paddingTop: 0 }}>
+    <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
       <div className="lp-container">
-        <FadeIn delay={0.1}>
+        <FadeIn>
+          <TabBadge icon={BarChart2} name="空くらべ" />
+          <div className="lp-glass" style={{
+            padding: '1.2rem 1.4rem',
+            marginBottom: '2.5rem',
+            borderLeft: '3px solid var(--accent-color)',
+          }}>
+            <Quote size={16} color="var(--accent-color)" style={{ marginBottom: '0.4rem' }} />
+            <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
+              「今年は暖かい気がする」けど、数字で確認できない
+            </p>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
+              去年と比べてどれくらい違うのか、何日進んでいるか——感覚ではなく数字で把握したい。
+            </p>
+          </div>
+        </FadeIn>
+
+        <FadeIn>
           <div className="lp-zigzag">
             <div>
               <p style={{
@@ -364,106 +466,62 @@ function FieldFeaturesSection() {
                 color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
                 margin: '0 0 0.7rem',
               }}>
-                <Clock size={16} /> 農家の時間軸で、天気を読む
+                <BarChart2 size={16} /> 前年比較・積算
               </p>
-              <h3 style={{ fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800, lineHeight: 1.5, margin: '0 0 0.8rem' }}>
-                「午前は動ける、午後から雨」——<br />その答えを、自分の基準で出す。
+              <h3 style={{
+                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+                lineHeight: 1.5, margin: '0 0 0.8rem',
+              }}>
+                「今年は早い？遅い？」が、数字でわかる。
               </h3>
-              <p className="lp-lead" style={{ fontSize: '0.92rem', marginBottom: '1.6rem' }}>
-                ふつうの天気予報は「今日」「明日」という一日単位。Orch.Weatherは<strong>午前（4〜12時）・午後（12〜20時）・夜間（20〜翌4時）</strong>の3時間帯に分けて気温・降水量・風速を表示します。「晴れのち一時雨」も、午前が晴れで午後が雨なのか一目でわかる。さらに、各時間帯の天気の<strong>見方</strong>を2モードで切り替えられます。
+              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+                積算温度・降水量・日射量などを自動計算しグラフィカルに表示。比較したい年、登録地点を選択でき「去年より何日進んでいるか」「あの場所とどれくらい違うか」まで一目。
               </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
-                  <div style={{
-                    flexShrink: 0,
-                    background: 'rgba(244,167,185,0.2)',
-                    border: '1px solid #e88ea8',
-                    borderRadius: 6,
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.8rem', fontWeight: 700, color: '#9b2d4e',
-                    whiteSpace: 'nowrap',
-                    marginTop: '0.15rem',
-                  }}>
-                    リスクでみる
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>その時間帯でいちばん悪い天気を表示</p>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                      散布・播種など一度やり直しがきかない作業に。悪天候の見落としをゼロにしたいときの判断基準。
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
-                  <div style={{
-                    flexShrink: 0,
-                    background: 'rgba(13,148,136,0.1)',
-                    border: '1px solid #0d9488',
-                    borderRadius: 6,
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.8rem', fontWeight: 700, color: '#0f766e',
-                    whiteSpace: 'nowrap',
-                    marginTop: '0.15rem',
-                  }}>
-                    概況でみる
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>その時間帯でいちばん多い天気を表示</p>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                      雨がほんの一時でも大半が晴れなら晴れマークが出ます。雨の合間を積極的に活用したい日の指針に。
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem' }}>
-                  <div style={{
-                    width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                    background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.3))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Sun size={17} color="#d97706" />
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: 700, margin: '0 0 0.25rem', fontSize: '0.93rem' }}>紫外線指数（UV）を時間別に表示</p>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>
-                      屋外で何時間も動く農家にとって、紫外線は見えにくいリスク。帽子だけでいいか、腕まで覆うべきか——UV指数が時間別に確認できるので、日焼け対策を前日から計画できます。
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.8rem' }}>
-                  <div style={{
-                    width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                    background: 'linear-gradient(135deg, rgba(14,165,233,0.15), rgba(14,165,233,0.3))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <CloudRain size={17} color="#0284c7" />
-                  </div>
-                  <div>
-                    <p style={{ fontWeight: 700, margin: '0 0 0.25rem', fontSize: '0.93rem' }}>「小雨」をさらに細かく——カッパ判断ラベル</p>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>
-                      一般の天気アプリが「小雨」でひとくくりにする3mm以下の雨を、Orch.Weatherはさらに3段階に分けます。0.5mm未満は<strong>ぽつぽつ</strong>（カッパ不要）、0.5〜1.5mmは<strong>カッパ？</strong>（迷う帯）、1.5〜3mmは<strong>カッパ！</strong>（着て動ける）。この一段階の細かさが、作業を続けるか切り上げるかの判断を変えます。
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
-
             <div>
-              <img
-                className="lp-shot"
-                src="/lp/feature-daily.webp"
-                alt="午前・午後・夜間の時間帯別天気予報画面"
-                width={780}
-                height={1400}
-                loading="lazy"
-              />
+              <img className="lp-shot" src="/lp/feature-kurabe.webp" alt="前年比較チャートの画面" width={1178} height={1922} loading="lazy" />
             </div>
           </div>
         </FadeIn>
       </div>
     </section>
+  );
+}
+
+/* ── 空しらべ（軽め） ── */
+function SoraShirabeSection() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
+      <div className="lp-container-narrow">
+        <FadeIn>
+          <TabBadge icon={History} name="空しらべ" />
+          <div className="lp-glass" style={{ padding: 'clamp(1.6rem, 4vw, 2.4rem)' }}>
+            <h3 style={{
+              fontSize: 'clamp(1.1rem, 2.8vw, 1.35rem)', fontWeight: 800,
+              lineHeight: 1.5, margin: '0 0 0.85rem',
+            }}>
+              あの日の天気が、今日と同じ画面で見える。
+            </h3>
+            <p className="lp-lead" style={{ fontSize: '0.9rem', margin: 0 }}>
+              「防除が効かなかったのは天気のせいか」「あの大雨、実際どれくらいだった？」——
+              空しらべは過去の任意の日付を選ぶと、時間別のすべてのデータをそのまま表示します。
+              失敗した作業の原因追跡にも、翌年の作業計画を立てるときの参考にも。
+            </p>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ── 比較表 ── */
+function MarkCell({ mark, ours = false }: { mark: CompMark; ours?: boolean }) {
+  const color = mark.m === '✓' ? 'var(--accent-color)' : mark.m === '△' ? '#d97706' : '#b3bcc9';
+  return (
+    <td className={ours ? 'lp-comp-ours' : undefined}>
+      <span style={{ color, fontWeight: 800, fontSize: '1rem' }}>{mark.m}</span>
+      {mark.note && <span className="lp-comp-note">{mark.note}</span>}
+    </td>
   );
 }
 
@@ -505,6 +563,32 @@ function ComparisonSection() {
   );
 }
 
+/* ── 作った人 ── */
+function MakerNote() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container-narrow">
+        <FadeIn>
+          <div className="lp-glass" style={{
+            padding: 'clamp(1.6rem, 4vw, 2.4rem)',
+            textAlign: 'center',
+            borderTop: '3px solid var(--accent-color)',
+          }}>
+            <Sprout size={26} color="var(--accent-color)" style={{ marginBottom: '0.8rem' }} />
+            <h2 className="lp-h2" style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.6rem)' }}>
+              作ったのは、同じ悩みを持つ農家です。
+            </h2>
+            <p className="lp-lead" style={{ textAlign: 'left' }}>
+              Orch.Weatherは、毎朝の天気判断に時間を取られていた一人の農家が、自分の畑のために作ったアプリです。机の上ではなく、現場で使いながら磨いてきました。カッパが要るかまでわかる時間別表示も、雨の合間を見つけるAIの提案も、「現場で欲しかったもの」だけを載せています。
+            </p>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+/* ── 始め方 ── */
 function StepsSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 0 }}>
@@ -541,6 +625,7 @@ function StepsSection() {
   );
 }
 
+/* ── 最終CTA ── */
 function FinalCta({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
   return (
     <section className="lp-section lp-final">
@@ -566,6 +651,7 @@ function FinalCta({ loading, onLogin }: { loading: boolean; onLogin: () => void 
   );
 }
 
+/* ── フッター ── */
 function LpFooter() {
   return (
     <footer className="lp-footer">
@@ -617,18 +703,13 @@ export function LandingPage() {
     setError(null);
     try {
       if (isIOSStandalone()) {
-        // iOS PWA モード: ポップアップが OS レベルでブロックされるためリダイレクト方式
         await signInWithRedirect(auth, new GoogleAuthProvider());
       } else {
-        // 通常ブラウザ（iOS Safari 含む）: ポップアップ方式
-        // iOS Safari で signInWithRedirect を使うと ITP により認証ステートが
-        // リダイレクト後に失われ LP に戻ってしまうバグがあるため popup を使用
         await signInWithPopup(auth, new GoogleAuthProvider());
       }
     } catch (err: unknown) {
       const code = (err as { code?: string }).code;
       if (code === 'auth/popup-blocked') {
-        // ポップアップがブロックされた場合はリダイレクト方式にフォールバック
         try {
           await signInWithRedirect(auth, new GoogleAuthProvider());
           return;
@@ -645,11 +726,12 @@ export function LandingPage() {
     <div className="lp-root">
       <Nav loading={loading} onLogin={handleLogin} />
       <Hero loading={loading} error={error} onLogin={handleLogin} />
-      <PainSection />
-      <MakerNote />
-      <FeaturesSection />
-      <FieldFeaturesSection />
+      <BridgeSection />
+      <SoraMoyoSection />
+      <SoraKurabeSection />
+      <SoraShirabeSection />
       <ComparisonSection />
+      <MakerNote />
       <StepsSection />
       <FinalCta loading={loading} onLogin={handleLogin} />
       <LpFooter />
