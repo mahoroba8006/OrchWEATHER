@@ -16,6 +16,14 @@ function jstYesterday(): string {
   return yd.toISOString().slice(0, 10);
 }
 
+/** JST の「n日前」の日付文字列（YYYY-MM-DD）を返す */
+function jstDaysAgo(n: number): string {
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const d = new Date(jstNow);
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
 export function HistoricalWeatherTab() {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, updateWeatherCodeMode } = useAppStore();
   const weatherCodeMode = userSettings?.weatherCodeMode ?? 'severity';
@@ -23,7 +31,7 @@ export function HistoricalWeatherTab() {
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');
   const [yesterday] = useState(jstYesterday);
-  const [startDate, setStartDate] = useState<string>(yesterday);
+  const [startDate, setStartDate] = useState<string>(() => jstDaysAgo(10));
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
   const hourlySectionRef = useRef<HTMLElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
