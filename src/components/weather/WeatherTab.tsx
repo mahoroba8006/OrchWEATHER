@@ -256,7 +256,7 @@ export function WeatherTab() {
                 fontSize: '0.8rem', color: 'var(--text-secondary)',
               }}>
                 <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)', flexShrink: 0 }} />
-                空もようを、みています…
+                空のようすを みています…
               </div>
             ) : aiComment ? (
               <div
@@ -280,7 +280,7 @@ export function WeatherTab() {
               >
                 <span>
                   <span style={{ display: 'inline-block', animation: 'fade-pulse 1.8s ease-in-out infinite' }}>✨</span>
-                  {' '}空もようから、この先の段取りをまとめました
+                  {' '}空もようと 段取りをまとめました
                 </span>
                 <ChevronDown size={15} style={{ flexShrink: 0 }} />
               </div>
