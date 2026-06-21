@@ -25,9 +25,45 @@
 - 1.0mmは「小雨の上端」として農家が説明しやすいキリ番
 - 「カッパ！の判断を前倒しする」が目的。帯域の幅（0.5mm）は予報値の精度上、実用的に問題なし
 
+#### 3. 空しらべ デフォルト開始日を10日前に変更
+**コミット:** `4068491`（main反映済み）
+
+- `HistoricalWeatherTab.tsx` に `jstDaysAgo(n)` ヘルパーを追加
+- `startDate` 初期値を「昨日」→「10日前」に変更（10日分が初期表示される）
+
+#### 4. 空しらべ 9日しか表示されないUTCバグ修正
+**コミット:** `911ce3f`（main反映済み）
+
+- `historicalForecast.ts` に独自定義されていた `addDays` が `new Date(str+'T00:00:00')` + `toISOString()` という JST-UTC ズレを起こす実装だった
+- `src/lib/dateUtils.ts` の UTC 安全版 `addDays` に置き換えて修正
+- バグにより end_date が1日前に計算され、先頭スロット（i=0）が API 返却範囲外になり non-placeholder が9件になっていた
+
+#### 5. 空しらべ 気温ミニグラフ表示
+**コミット:** `d7e55f1`（main反映済み）
+
+- `buildDayAmPmMap` の `DayAmPmEntry` 型に 6 フィールド追加（`amTempMax/Min`, `pmTempMax/Min`, `nightTempMax/Min`）
+- 各時間帯の集計ループで `h.temperature` の max/min を蓄積
+- `expandDayAmPm` が `null` 固定だった箇所を実値返却に変更
+- 夜間（0〜3時）の前日振り分けにも同じ UTC バグがあったため `addDays(date, -1)` に修正
+- 空しらべの日別表示に空もようと同じ気温ミニグラフが表示されるようになった
+
+#### 6. LP 再構成（タブ軸：空もよう・空くらべ・空しらべ）
+**コミット:** `f3748eb`（main反映済み）
+
+- 旧構成（Pain バラバラ・Features バラバラ）→ 3タブを軸に再整理
+- **BridgeSection 新設:** 3タブをアイコン付き俯瞰カードで紹介
+- **SoraMoyoSection（メイン）:** 悩みカード→AI農作業アドバイス→じぶん好みAI の zigzag 2段＋3分割表示・農業専門データ・UV/カッパのサブグリッド
+- **SoraKurabeSection:** 悩みカード→前年比較・積算 の zigzag 1段
+- **SoraShirabeSection（軽め）:** コンパクトな glass カード 1枚（スクショなし）
+- じぶん好みAI を空もよう内に統合（独立セクションから移動）
+- カッパラベルテキストも閾値変更（1.5→1.0mm）に合わせて LP 内を修正
+- 旧セクション（PainSection・FeaturesSection・FieldFeaturesSection）を削除
+
 ### 決定事項
 - AIステータスバーは「空もようを、みています…」／「空もようから、この先の段取りをまとめました」で確定
 - カッパ判断閾値は1.0mmボーダーで確定
+- LP構成はアプリの3タブ（空もよう・空くらべ・空しらべ）を軸に再整理。じぶん好みAIは空もよう内、空しらべは軽めのカード1枚
+- 全変更を main に反映済み（`e0c1435` → `f3748eb`）
 
 ### 未完了・次回候補
 - ET₀をAIコメント入力データに追加（持ち越し・優先度高）
