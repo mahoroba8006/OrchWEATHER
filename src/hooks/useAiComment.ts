@@ -34,7 +34,8 @@ export function useAiComment(
   const [error, setError] = useState<string | null>(null);
 
   // 入力とハッシュを毎レンダー計算する純粋処理（findCalmWindows は O(72) で安価）。
-  // Date.now() を使うが、時間別データは時刻単位のため hash は同一時間帯内で安定する。
+  // 時刻は buildAiCommentInput 内で4時間バケットに丸めるため、hash は同一バケット内で
+  // 安定し、4時間 TTL のキャッシュ（aiCommentCache.ts）が実効化する。
   const input =
     uid && locationName && forecast
       ? buildAiCommentInput(locationName, forecast, warnings ?? [])

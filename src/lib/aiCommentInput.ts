@@ -150,6 +150,23 @@ function djb2(str: string): string {
   return (hash >>> 0).toString(16);
 }
 
+// ─── キャッシュキー安定化（4時間バケット）─────────────────────────────────────
+//
+// 入力ペイロードは「現在時刻ラベル(now)」と「hourly 窓の開始位置」を Date.now() から
+// 導出しているため、放置すると毎時ハッシュが変わり、4時間 TTL（aiCommentCache.ts）が
+// 発火する前にキャッシュミスして AI を再生成してしまう。
+// そこで時刻の基準点を JST 4時間バケット境界（0/4/8/12/16/20時）に切り下げ、
+// 同一バケット内ではペイロード＝ハッシュを完全固定する。これにより「時計が進むだけ」の
+// 再生成が消える（予報値そのものの更新はハッシュが変わるため従来どおり再生成される）。
+
+const BUCKET_MS = 4 * 60 * 60 * 1000; // 4時間（aiCommentCache.ts の TTL と一致）
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** nowMs を JST の4時間バケット境界（0/4/8/12/16/20時）に切り下げる */
+function bucketStartMs(nowMs: number): number {
+  return Math.floor((nowMs + JST_OFFSET_MS) / BUCKET_MS) * BUCKET_MS - JST_OFFSET_MS;
+}
+
 // ─── 標準4タブ用 ─────────────────────────────────────────────────────────────
 
 /**
@@ -160,7 +177,8 @@ export function buildAiCommentInput(
   forecast: ForecastData,
   warnings: JmaWarningItem[],
 ): AiCommentInput {
-  const nowMs = Date.now();
+  // 4時間バケット境界に固定し、同一バケット内でハッシュ＝キャッシュキーを安定させる
+  const nowMs = bucketStartMs(Date.now());
   const { warningNames, nowLabel, month } = buildCommon(nowMs, warnings);
 
   const hourly: AiHourlyEntry[] = forecast.hourly
@@ -207,7 +225,8 @@ export function buildAiCustomInput(
   forecast: ForecastData,
   warnings: JmaWarningItem[],
 ): AiCustomInput {
-  const nowMs = Date.now();
+  // 4時間バケット境界に固定し、同一バケット内でハッシュ＝キャッシュキーを安定させる
+  const nowMs = bucketStartMs(Date.now());
   const { warningNames, nowLabel, month } = buildCommon(nowMs, warnings);
 
   const hourly: AiHourlyEntryRich[] = forecast.hourly
