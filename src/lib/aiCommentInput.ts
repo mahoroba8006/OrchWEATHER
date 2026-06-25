@@ -63,7 +63,7 @@ export interface AiCommentInput {
   warnings: string[];
   past_daily: AiDailyEntry[];     // 過去7日分の日別実績
   hourly: AiHourlyEntry[];        // 2時間おき 36エントリ（72時間分）
-  daily: AiDailyEntry[];          // 3日後〜7日後の日別予報
+  daily: AiDailyEntry[];          // 今日〜8日後の日別予報（9日分）
 }
 
 /** カスタマイズ用の入力ペイロード（詳細） */
@@ -74,7 +74,7 @@ export interface AiCustomInput {
   warnings: string[];
   past_daily: AiDailyEntry[];     // 過去7日分の日別実績
   hourly: AiHourlyEntryRich[];    // 1時間おき 72エントリ（72時間分）
-  daily: AiDailyEntry[];          // 3日後〜7日後の日別予報
+  daily: AiDailyEntry[];          // 今日〜8日後の日別予報（9日分）
 }
 
 const LEVEL_SUFFIX: Record<string, string> = {
@@ -124,11 +124,11 @@ function buildPastDaily(forecast: ForecastData): AiDailyEntry[] {
     }));
 }
 
-/** 今後7日の日別予報を生成（hourly の2日後〜7日後） */
+/** 今日〜8日後の日別予報を生成（9日分） */
 function buildDaily(forecast: ForecastData): AiDailyEntry[] {
   return forecast.daily
     .filter(d => !d.isPlaceholder)
-    .slice(2, 9)
+    .slice(0, 9)
     .map(d => ({
       date: fmtDate(d.date),
       tmpMax: Math.round(d.tempMax),
