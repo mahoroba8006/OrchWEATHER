@@ -1,4 +1,112 @@
 
+## 2026-06-25 セッション（93回目）
+
+### 作業内容（AIコスト施策A〜Bの実装・前回調査の実行フェーズ）
+
+#### 1. プロンプト微修正の確定（コミット `209b640`）
+- 立ち位置の文言「偵察役」→「アドバイザー」に統一
+- 防除・散布の許容条件に「湿度の高い時間帯」を追記
+
+#### 2. AIコスト施策A：キャッシュキーを4時間バケットに固定（コミット `33fcfa8`）★完了
+**前回発見「TTL4時間だがキー毎時変化でTTLが死んでいる」の根治。**
+- [aiCommentInput.ts](src/lib/aiCommentInput.ts) に `bucketStartMs()` を追加。`Date.now()` を JST 4時間バケット境界（0/4/8/12/16/20時）に切り下げ
+- `now` ラベルと `hourly` 窓開始位置が4時間固定 → 同一バケット内はハッシュ不変 → 4時間TTLが実効化
+- 標準版・カスタム版の両ビルダーに適用。予報値の更新時はハッシュが変わり従来どおり再生成（鮮度は維持）
+- 効果: 1ユーザー1地点あたり最大24回/日→6回/日に上限低下。バケット粒度は前回案の6hでなく**TTLと一致する4h**を採用
+
+#### 3. AIへ渡す日別データの範囲を拡張（コミット `7217159`）
+- ユーザー指示で `buildDaily` の `slice(2,9)`→`slice(0,9)` ＝ daily を**明後日〜8日後（7日分）→ 今日〜8日後（9日分）**に
+- 日別データの引き渡し範囲は過去7日〜8日後に
+- 不正確だったコード内コメント3箇所を実態（今日〜8日後・9日分）に修正
+
+#### 4. システムプロンプトの入力データ説明を実態へ同期（コミット `a84610c`）
+- daily拡張に伴う陳腐化を解消。`daily`：「2日後〜8日後」→「今日〜8日後（9日分）」
+- `hourly`：「今後2日分」→「今後3日分（72時間）」、欠落していた `uv/vpd` を追記（vpdは専門用語制約と整合させ平易な補足を併記）
+
+#### 5. AIコスト施策B：モデル変更を試行 → モデルのみ撤回
+- `gemini-2.5-flash` → `gemini-2.5-flash-lite` ＋文字数250-350→200-300 ＋minLength 250→200（コミット `1d77541`）
+- その後ユーザー指示で**モデルのみ flash に戻す**（コミット `c24c033`）。**文字数200-300・minLength 200 は維持**
+- 理由: flash-lite の品質A/B未実施。採否はA/B後に判断
+
+#### 6. main へ反映（fast-forward）
+- `git push origin develop:main` ＋ ローカルmainポインタ同期。`bfa2a57`→`c24c033`（7コミット）。working tree（session-log）には未接触
+
+### 設計議論（口頭整理のみ・未実装）
+- **施策C（共有キャッシュ）の本丸はパス変更でなくキー再設計**: 現状ハッシュは「自由入力の地点名＋toFixed(6)精度の座標由来の予報値」を含み実質ユーザー固有 → パスだけ `/shared/` 化してもヒット率ほぼ0。座標を**グリッドに丸め**＋地点名をキーから外す再設計が前提。書き込み信頼境界は**サーバー（Pages Function＋Admin SDK）書き込み・クライアント読取専用**が綺麗（中規模改修）。カスタムコメントは共有不可（プライバシー＋不一致）。有料化直前・地域集積後に着手
+- **施策B品質A/Bの回し方を詳細化**: 凍結した同一入力JSONを flash/flash-lite 両方に投げる再現ハーネス。測定4軸（①数値引用の正確性=半自動 ②防除デッドライン整合=人手 ③自然さ=人手 ④文字数遵守=自動）。判定ゲートは「①ハルシネーション1件で即不可／④200-300遵守率9割以上」。入力はDevToolsで実ペイロードをキャプチャ＋エッジケースは編集合成
+
+### 決定事項
+- 施策A（キャッシュキー4hバケット化）**完了・本番反映済み**
+- モデルは `gemini-2.5-flash` 据え置き（flash-lite はA/B後に判断）。AIコメント文字数は **200-300字に短縮を採用**
+- 施策Cは「座標丸め＋サーバー書き込み」設計で有料化直前に実施
+
+### 未完了・次回候補
+- **施策B品質A/B（再現ハーネス）の実施 → flash-lite 採否決定**（GEMINI_API_KEY＋実ペイロード採取が前提）
+- `thinkingBudget: 1024` の削減判断（512 or OFF。コストの残りレバー）
+- 施策C（共有キャッシュ）の設計確定 → 有料化直前に実装。前提のFirestore TTLポリシーも同時
+- session-log の92回目ブロックは本コミットで確定（前回未コミットだった分）
+- ET₀をAIコメント入力に追加（持ち越し・優先度高・5セッション持ち越し）
+- 有料化実装（ログイン任意化・トライアル設計・機能線引き）／Open-Meteo Professional 月額照会
+- LP残り2枚差し替え（hero-imanosora / feature-ai）／iOS Safari 実機確認
+
+---
+
+## 2026-06-24 セッション（92回目）
+
+### 作業内容（コミットなし・調査と意思決定が中心）
+
+#### 1. session-log.md（91回目分）をコミット
+**コミット:** `0dc7389`（develop→origin push 済み）
+- 前回宙ぶらりんだったセッションログ追記分を確定。develop/main/origin すべて同期済み。
+
+#### 2. Open-Meteo 有料化（商用利用）プラン調査
+**結論: 空くらべがある限り Professional 必須。Standard は選択肢にならない。**
+
+- アプリが使う Open-Meteo API は3つ（コード実測）:
+  - Forecast API（`api.open-meteo.com/v1/forecast`）→ Standard で商用可
+  - Historical Weather API（`archive-api.open-meteo.com/v1/archive`）→ Professional 必須
+  - Historical Forecast API（`historical-forecast-api.open-meteo.com/v1/forecast`）→ Standard/Professional 不明（要照会）
+- 料金ページFAQ逐語: "Historical, climate, ensemble, and satellite radiation APIs require the Professional API Plan or higher."
+- 機能対応:
+  - 空もよう・AIコメント = Forecast API のみ → Standard 完全動作
+  - 空しらべ（履歴）= 3段階分岐（直近14日=Forecast / 2022〜=Hist.Forecast / 2022以前=archive）。90日キャップで Standard に収まる余地あり
+  - **空くらべ（年比較）= 100% archive API 依存（[useWeather.ts:66](src/hooks/useWeather.ts#L66) → [weather.ts:13](src/api/weather.ts#L13)）。年跨ぎ比較が本質なので90日キャップ不可＝機能ごと消滅。Professional 以外に道なし**
+- データ源の代替検討: Open-Meteo は ERA5/JMA-MSM（無料公開データ）のラッパー。逃げ道は ①Open-Meteoセルフホスト（AGPL・改修ほぼbaseUrlのみ・但し履歴ホストは重い）②NASA POWER（無料商用可・農業特化だが解像度50kmで粗い）。**重要な制約: 空くらべは全年で単一データ源に統一しないとモデル差が気温差として出て比較が破綻する → ハイブリッド不可**
+- 推奨: **Professional 前提 + archive永続キャッシュ（Firestore/KV）**から入る。年比較データは同一地点・同一年なら永久不変なのでキャッシュで500万コール枠を実質無限化。セルフホストは固定費が割に合わなくなってから移行（早すぎる最適化を避ける）
+- 未確認: Professional の正確な月額（€）。WebFetch でEUR価格取れず。損益分岐を引くには要確認
+
+#### 3. AIコメント（Gemini）コスト・スリム化の調査
+**最大の発見: キャッシュTTLは4時間だがキャッシュキーが毎時変わるためTTLが死んでいる。**
+
+- 現状実装: モデル `gemini-2.5-flash`、`thinkingBudget: 1024`、システムプロンプト巨大（毎回送信、入力~3000トークン）、出力4項目×250-350字
+- コスト主成分は**出力（thinking込み）**。Gemini 2.5 Flash は出力単価が入力の約8倍
+- キャッシュが効かない原因: [aiCommentInput.ts:163-182](src/lib/aiCommentInput.ts#L163) のハッシュ対象に毎時変わる `now`（"H時"）とスライドする `hourly[].t` が含まれる → `(ユーザー×地点×時刻)` ごとに1コール課金
+- さらに [aiCommentCache.ts:38](src/lib/aiCommentCache.ts#L38) は per-user 保存。予報は地点共通なのにユーザーごとに重複生成 → 有料化・人数増で線形にコスト膨張する構造的上限
+- スリム化施策（インパクト×手間順）:
+  - **A. キャッシュキーを6時間バケットに粗化**（now と窓開始を6h境界にアンカー）→ コール数2〜4分の1・リスクなし・手間小 ★最優先
+  - **B. モデルを gemini-2.5-flash-lite に＋thinking削減/無効化** → 1コール単価約5分の1・品質A/B要・手間小
+  - **C. 共有キャッシュ化**（`/aiCommentsShared/{hash}` 等、地点単位で全ユーザー共有）→ 人数増時に激減・手間中・有料化直前に実施
+  - D. システムプロンプトの明示的コンテキストキャッシュ → 入力分のみ微減・効果小
+- A×B重ねで理論上1コール課金が現状の約10分の1
+- 盲点: Bの品質判断は項目別であるべき（概況=lite十分、防除=推論要でflash寄り）。まず全項目liteで試し、防除のみ品質不足ならそこだけflashに戻す
+
+### 決定事項
+- 有料化のデータ基盤は **Open-Meteo Professional + archive永続キャッシュ** 方針で進める（空くらべを残す前提）
+- AIコスト削減は **施策A（キャッシュキー粗化）から着手**（低リスク・即効）。B（モデル変更）は品質比較の取り方を決めてから
+
+### 未完了・次回候補
+- **AIコスト施策A（キャッシュキー6時間バケット化）の実装** ← 次回最優先・低リスク・即効
+- AIコスト施策B（flash-lite＋thinking削減）の品質A/B方法を決定 → 実装
+- Open-Meteo Professional の正確な月額（€）を照会（損益分岐用）／Historical Forecast API の Standard 可否を info@open-meteo.com に照会
+- archive永続キャッシュ層の設計（Firestore/KV、年比較データ用）
+- ET₀をAIコメント入力データに追加（持ち越し・優先度高・4セッション持ち越し）
+- 有料化実装（ログイン任意化・トライアル期間設計・機能線引きの確定から）
+- LP残り2枚差し替え（hero-imanosora / feature-ai）
+- iOS Safari 実機確認
+- Firestore TTL ポリシー設定（優先度低）
+
+---
+
 ## 2026-06-21 セッション（91回目）
 
 ### 作業内容
