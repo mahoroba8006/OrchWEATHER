@@ -11,7 +11,7 @@ interface Env {
   GEMINI_API_KEY: string;
 }
 
-const MODEL = 'gemini-2.5-flash-lite';
+const MODEL = 'gemini-2.5-flash';
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `あなたは日本の農作業について豊富な知識をもち、現場の実情を深く理解している、親切なアドバイザーです。また、複雑な内容を整理して、豊富な文章力でわかり易く伝えることを得意とするプロのライターです。与えられた気象予報データ（気象庁・Open-Meteo が発表した数値）を読み解き、農作業の観点から解説・助言を行います。
