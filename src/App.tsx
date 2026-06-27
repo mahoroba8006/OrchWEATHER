@@ -134,7 +134,7 @@ function calcInitialDisplayRange(): { startMM: number; endMM: number } {
 }
 
 function App() {
-  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, setAiAllowed, loadAiAllowed, guestMode, setGuestMode } = useAppStore();
+  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, loadAiAllowed, resetUserData, guestMode, setGuestMode } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings' | 'help'>('weather');
   const prevTopTab = useRef<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
@@ -199,7 +199,7 @@ function App() {
           console.error("Failed to load user settings or locations:", error);
         }
       } else {
-        setAiAllowed(false);
+        resetUserData();
       }
       setAuthLoading(false);
     });

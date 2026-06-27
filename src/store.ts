@@ -136,6 +136,7 @@ interface AppState {
   setGeoStatus: (status: 'idle' | 'loading' | 'error') => void;
   loadAiAllowed: () => Promise<void>;
   setAiAllowed: (allowed: boolean) => void;
+  resetUserData: () => void;
   setGuestMode: (on: boolean) => void;
   loadLocations: (uid: string) => Promise<void>;
   loadUserSettings: (uid: string) => Promise<void>;
@@ -168,6 +169,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   setGeoLocation: (loc) => set({ geoLocation: loc }),
   setGeoStatus: (status) => set({ geoStatus: status }),
   setAiAllowed: (allowed) => set({ aiAllowed: allowed }),
+  // ログアウト時に前ユーザーのデータを消去（ゲストモードへ残留させない）
+  resetUserData: () => set({ locations: [], userSettings: null, aiAllowed: false }),
   setGuestMode: (on) => {
     try {
       if (on) localStorage.setItem('guestMode', '1');
