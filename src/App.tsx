@@ -134,7 +134,7 @@ function calcInitialDisplayRange(): { startMM: number; endMM: number } {
 }
 
 function App() {
-  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, setAiAllowed, loadAiAllowed } = useAppStore();
+  const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, setAiAllowed, loadAiAllowed, guestMode, setGuestMode } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings' | 'help'>('weather');
   const prevTopTab = useRef<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
@@ -150,6 +150,7 @@ function App() {
 
   // モバイル判定（マウント時1回のみ。リサイズで再判定しないことで操作中のリセットを防ぐ）
   const [isMobile] = useState(() => window.innerWidth < 768);
+  const isGuest = !user && guestMode;
 
   // Bitgo風: 日次モードのパン可能ウィンドウ（365日）
   const DAILY_WINDOW = 365;
@@ -184,6 +185,7 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
+        setGuestMode(false);
         try {
           // ensureUserDocument を直列で先に実行。getDocFromServer と並行すると
           // setDoc 書き込み中のスナップショットを掴んで部分データが返る競合が起きる
@@ -1475,8 +1477,8 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <LandingPage />;
+  if (!user && !guestMode) {
+    return <LandingPage onTryGuest={() => setGuestMode(true)} />;
   }
 
   return (
@@ -1539,14 +1541,25 @@ function App() {
             >
               <HelpCircle size={20} />
             </button>
-            {user.photoURL && (
-              <img
-                src={user.photoURL}
-                alt={user.displayName ?? ''}
-                width={28}
-                height={28}
-                style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)', flexShrink: 0 }}
-              />
+            {user ? (
+              user.photoURL && (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName ?? ''}
+                  width={28}
+                  height={28}
+                  style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)', flexShrink: 0 }}
+                />
+              )
+            ) : (
+              <button
+                className="secondary"
+                onClick={() => setGuestMode(false)}
+                title="ログイン"
+                style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
+              >
+                ログイン
+              </button>
             )}
             <button
               onClick={() => setTopTab('settings')}
@@ -1653,23 +1666,36 @@ function App() {
               >
                 <Settings size={18} strokeWidth={topTab === 'settings' ? 2.2 : 1.8} />
               </button>
-              {user.photoURL && (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName ?? ''}
-                  width={28}
-                  height={28}
-                  style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)' }}
-                />
+              {user ? (
+                <>
+                  {user.photoURL && (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName ?? ''}
+                      width={28}
+                      height={28}
+                      style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)' }}
+                    />
+                  )}
+                  <button
+                    className="secondary"
+                    onClick={() => signOut(auth)}
+                    title="ログアウト"
+                    style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
+                  >
+                    <LogOut size={13} /> ログアウト
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="secondary"
+                  onClick={() => setGuestMode(false)}
+                  title="ログイン"
+                  style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
+                >
+                  ログイン
+                </button>
               )}
-              <button
-                className="secondary"
-                onClick={() => signOut(auth)}
-                title="ログアウト"
-                style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
-              >
-                <LogOut size={13} /> ログアウト
-              </button>
             </div>
           </>
         )}
@@ -2501,7 +2527,25 @@ function App() {
     </div>
     )}
 
-      {topTab === 'settings' && <SettingsTab />}
+      {topTab === 'settings' && (isGuest ? (
+        <div className="app-container">
+          <div className="glass-panel" style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
+            <p style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>ログインが必要です</p>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1.2rem' }}>
+              地点の登録や各種設定は、ログインすると利用できます。<br />未ログインでは現在地の天気のみご覧いただけます。
+            </p>
+            <button
+              className="secondary"
+              onClick={() => setGuestMode(false)}
+              style={{ padding: '0.5rem 1.2rem', borderRadius: 'var(--radius-md)' }}
+            >
+              ログインする
+            </button>
+          </div>
+        </div>
+      ) : (
+        <SettingsTab />
+      ))}
       {topTab === 'help' && <HelpPage onBack={() => setTopTab(prevTopTab.current)} />}
       </div>
 
