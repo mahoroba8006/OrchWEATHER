@@ -569,6 +569,58 @@ function ComparisonSection() {
   );
 }
 
+/* ── 料金プラン別 機能比較 ── */
+const tierRows: { label: string; guest: CompMark; free: CompMark; paid: CompMark }[] = [
+  { label: '空もよう｜天気情報',          guest: { m: '△', note: '現在地のみ' }, free: { m: '✓', note: '地点登録10件' }, paid: { m: '✓', note: '地点登録50件' } },
+  { label: '空もよう｜AIアドバイス',      guest: { m: '✗' },                     free: { m: '✗', note: '近日提供予定' }, paid: { m: '✓' } },
+  { label: '空くらべ（前年比較・積算）',  guest: { m: '△', note: '現在地' },     free: { m: '✓', note: '登録地点で比較' }, paid: { m: '✓', note: '登録地点で比較' } },
+  { label: '空しらべ（過去の天気）',      guest: { m: '△', note: '現在地' },     free: { m: '✓', note: '登録地点' },     paid: { m: '✓', note: '登録地点' } },
+  { label: 'CSV出力',                     guest: { m: '✗' },                     free: { m: '✗' },                       paid: { m: '✓' } },
+];
+
+function TierComparisonSection() {
+  return (
+    <section className="lp-section" style={{ paddingTop: 0 }}>
+      <div className="lp-container-narrow">
+        <FadeIn>
+          <h2 className="lp-h2">ログイン状態でできること</h2>
+        </FadeIn>
+        <FadeIn delay={0.1}>
+          <div className="lp-glass" style={{ overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table className="lp-comp">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>ログインなし</th>
+                    <th>ログイン<br />（無料）</th>
+                    <th style={{ color: 'var(--accent-color)' }}>ログイン<br />（有料）<span style={{ fontSize: '0.68rem', fontWeight: 600 }}>※予定</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tierRows.map(r => (
+                    <tr key={r.label}>
+                      <td>{r.label}</td>
+                      <MarkCell mark={r.guest} />
+                      <MarkCell mark={r.free} />
+                      <MarkCell mark={r.paid} ours />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </FadeIn>
+        <FadeIn delay={0.15}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.85, margin: '1rem 0 0' }}>
+            現在は特別に、多くの機能を無料で開放しています。ご利用いただける機能の範囲は、サービスの状況により今後変更となる場合があります。あらかじめご了承ください。
+          </p>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
 /* ── 作った人 ── */
 function MakerNote() {
   return (
@@ -737,6 +789,7 @@ export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
       <SoraKurabeSection />
       <SoraShirabeSection />
       <ComparisonSection />
+      <TierComparisonSection />
       <MakerNote />
       <StepsSection />
       <FinalCta loading={loading} onLogin={handleLogin} />
