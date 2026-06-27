@@ -272,6 +272,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
   addLocation: async (loc) => {
     const uid = get().user?.uid;
     if (!uid) return;
+    const limit = get().aiAllowed ? 50 : 10;
+    if (get().locations.length >= limit) {
+      throw new Error(`登録できる地点は最大${limit}件までです`);
+    }
     const id = await addLocationToFirestore(uid, loc);
     set((state) => ({
       locations: [...state.locations, { ...loc, id }],
