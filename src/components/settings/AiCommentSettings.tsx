@@ -36,7 +36,10 @@ const SAVE_BTN: CSSProperties = {
 };
 
 export function AiCommentSettings() {
-  const { userSettings, updateEnabledAiSections, updateAiCustomPrompt } = useAppStore();
+  const { userSettings, updateEnabledAiSections, updateAiCustomPrompt, aiAllowed } = useAppStore();
+
+  // AI 利用が許可されていない（未ログイン／ログイン無料ユーザー）場合はすべて選択不可。
+  const locked = !aiAllowed;
 
   const [enabledSections, setEnabledSections] = useState<AiSection[]>(
     userSettings?.enabledAiSections ?? DEFAULT_AI_SECTIONS
@@ -99,10 +102,25 @@ export function AiCommentSettings() {
           </p>
         </div>
 
+        {locked && (
+          <div style={{
+            padding: '0.7rem 0.9rem',
+            borderRadius: 'var(--radius-md, 8px)',
+            background: 'rgba(13,148,136,0.08)',
+            border: '1px solid rgba(13,148,136,0.25)',
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.7,
+          }}>
+            空のアドバイスは近日提供予定の機能です。提供開始までは設定を変更できません。
+          </div>
+        )}
+
         <div style={{
           border: '1px solid var(--card-border)',
           borderRadius: 'var(--radius-md, 8px)',
           overflow: 'hidden',
+          opacity: locked ? 0.55 : 1,
         }}>
           {SECTION_ORDER.map((section, idx) => {
             const info = SECTION_INFO[section];
@@ -125,17 +143,18 @@ export function AiCommentSettings() {
                     display: 'flex',
                     gap: '0.75rem',
                     padding: '0.75rem 1rem 0.5rem',
-                    cursor: 'pointer',
+                    cursor: locked ? 'not-allowed' : 'pointer',
                   }}>
                     <input
                       type="checkbox"
                       checked={isChecked}
+                      disabled={locked}
                       onChange={e => toggleSection(section, e.target.checked)}
                       style={{
                         width: '1rem',
                         height: '1rem',
                         marginTop: '0.15rem',
-                        cursor: 'pointer',
+                        cursor: locked ? 'not-allowed' : 'pointer',
                         flexShrink: 0,
                         accentColor: 'var(--accent-color)',
                       }}
@@ -159,7 +178,7 @@ export function AiCommentSettings() {
                       <textarea
                         value={customPrompt}
                         onChange={e => setCustomPrompt(e.target.value.slice(0, MAX_CUSTOM_PROMPT))}
-                        disabled={!isChecked}
+                        disabled={!isChecked || locked}
                         placeholder={DEFAULT_AI_CUSTOM_PROMPT}
                         rows={6}
                         style={{
@@ -201,7 +220,7 @@ export function AiCommentSettings() {
                   gap: '0.75rem',
                   padding: '0.75rem 1rem',
                   borderBottom: isLast ? 'none' : '1px solid var(--card-border)',
-                  cursor: 'pointer',
+                  cursor: locked ? 'not-allowed' : 'pointer',
                   background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
                   transition: 'background 0.15s',
                 }}
@@ -209,12 +228,13 @@ export function AiCommentSettings() {
                 <input
                   type="checkbox"
                   checked={isChecked}
+                  disabled={locked}
                   onChange={e => toggleSection(section, e.target.checked)}
                   style={{
                     width: '1rem',
                     height: '1rem',
                     marginTop: '0.15rem',
-                    cursor: 'pointer',
+                    cursor: locked ? 'not-allowed' : 'pointer',
                     flexShrink: 0,
                     accentColor: 'var(--accent-color)',
                   }}
@@ -236,11 +256,11 @@ export function AiCommentSettings() {
           {renderStatus(saveStatus)}
           <button
             onClick={handleSave}
-            disabled={saveStatus.kind === 'saving'}
+            disabled={saveStatus.kind === 'saving' || locked}
             style={{
               ...SAVE_BTN,
-              cursor: saveStatus.kind === 'saving' ? 'not-allowed' : 'pointer',
-              opacity: saveStatus.kind === 'saving' ? 0.6 : 1,
+              cursor: (saveStatus.kind === 'saving' || locked) ? 'not-allowed' : 'pointer',
+              opacity: (saveStatus.kind === 'saving' || locked) ? 0.6 : 1,
             }}
           >
             <Save size={14} /> 保存
