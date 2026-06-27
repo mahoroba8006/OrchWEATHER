@@ -4,7 +4,7 @@
 // クライアントから天気予報ペイロード + ユーザー入力プロンプトを受け取り、
 // Gemini に自由形式のテキスト回答を生成させて返す。
 
-import { getBearerToken, verifyIdToken, isAllowlisted } from './_auth';
+import { requireAiAccess } from './_auth';
 
 interface Env {
   GEMINI_API_KEY: string;
@@ -49,29 +49,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     });
   }
 
-  // ── 認可: ログイン済み かつ AI許可リストに含まれるユーザーのみ ──
-  const token = getBearerToken(context.request);
-  if (!token) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  let email: string | null;
-  try {
-    ({ email } = await verifyIdToken(token, context.env.FIREBASE_PROJECT_ID));
-  } catch {
-    return new Response(JSON.stringify({ error: 'invalid token' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  if (!isAllowlisted(email, context.env.AI_ALLOWLIST)) {
-    return new Response(JSON.stringify({ error: 'forbidden' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  const denied = await requireAiAccess(context.request, context.env);
+  if (denied) return denied;
 
   const apiKey = context.env.GEMINI_API_KEY;
   if (!apiKey) {

@@ -44,6 +44,8 @@ export async function verifyIdToken(token: string, projectId: string): Promise<V
   const pem = certs[kid];
   if (!pem) throw new Error('unknown kid');
   const key = await importX509(pem, 'RS256');
+  // 注: email_verified は検査していない。許可リストは手動管理の明示メールのみのため十分。
+  // 将来ドメイン一致（@example.com 等）に広げる場合は email_verified === true の検査を追加すること。
   const { payload } = await jwtVerify(token, key, {
     issuer: `https://securetoken.google.com/${projectId}`,
     audience: projectId,
@@ -62,4 +64,23 @@ export function isAllowlisted(email: string | null, allowlist: string | undefine
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
   return set.includes(email.toLowerCase());
+}
+
+/** AI エンドポイント共通の認可ガード。拒否時はその Response を、許可時は null を返す。 */
+export async function requireAiAccess(
+  request: Request,
+  env: { AI_ALLOWLIST: string; FIREBASE_PROJECT_ID: string },
+): Promise<Response | null> {
+  const json = (body: unknown, status: number) =>
+    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  const token = getBearerToken(request);
+  if (!token) return json({ error: 'unauthorized' }, 401);
+  let email: string | null;
+  try {
+    ({ email } = await verifyIdToken(token, env.FIREBASE_PROJECT_ID));
+  } catch {
+    return json({ error: 'invalid token' }, 401);
+  }
+  if (!isAllowlisted(email, env.AI_ALLOWLIST)) return json({ error: 'forbidden' }, 403);
+  return null;
 }
