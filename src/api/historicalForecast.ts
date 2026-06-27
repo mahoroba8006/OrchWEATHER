@@ -15,6 +15,7 @@
 //
 import type { ForecastData, DailyForecastData, HourlyForecast, FieldAvailability } from './forecast';
 import { addDays } from '../lib/dateUtils';
+import { weatherFetch, weatherDataError } from '../lib/weatherFetch';
 
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 
@@ -208,12 +209,11 @@ async function fetchViaForecastEndpoint(
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`過去の気象データの取得に失敗しました (${res.status})`);
+  const res = await weatherFetch(url);
   const raw = await res.json();
 
   if (!raw?.hourly?.time || !raw?.daily?.time) {
-    throw new Error('気象データの形式が不正です');
+    throw weatherDataError();
   }
 
   const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({
@@ -306,12 +306,11 @@ async function fetchViaArchiveApi(
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`過去の気象データの取得に失敗しました (${res.status})`);
+  const res = await weatherFetch(url);
   const raw = await res.json();
 
   if (!raw?.hourly?.time || !raw?.daily?.time) {
-    throw new Error('気象データの形式が不正です');
+    throw weatherDataError();
   }
 
   const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({

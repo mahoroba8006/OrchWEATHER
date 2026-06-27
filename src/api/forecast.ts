@@ -1,6 +1,7 @@
 // src/api/forecast.ts
 
 import { addDays } from '../lib/dateUtils';
+import { weatherFetch, weatherDataError } from '../lib/weatherFetch';
 
 export interface HourlyForecast {
   time: string;          // "2026-05-21T15:00"
@@ -106,12 +107,11 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`予報データの取得に失敗しました (${res.status})`);
+  const res = await weatherFetch(url);
   const raw = await res.json();
 
   if (!raw?.hourly?.time || !raw?.daily?.time) {
-    throw new Error('予報データの形式が不正です');
+    throw weatherDataError();
   }
 
   const hourly: HourlyForecast[] = (raw.hourly.time as string[]).map((t: string, i: number) => ({

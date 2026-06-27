@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { weatherFetch } from '../lib/weatherFetch';
 
 const weatherCache = new Map<string, WeatherData>();
 
@@ -84,11 +85,7 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
   const { baseUrl, modelParam } = getApiConfig(year);
   const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,sunshine_duration&timezone=Asia%2FTokyo${modelParam}`;
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error('Failed to fetch weather data');
-  }
-
+  const response = await weatherFetch(url);
   const rawData = await response.json();
   const daily = rawData.daily;
 

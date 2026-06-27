@@ -231,7 +231,7 @@ export function WeatherTab() {
 
       {error && (
         <div style={{ padding: '1rem', color: '#c0392b', fontSize: '0.85rem', textAlign: 'center', background: '#fff9f8', borderRadius: 'var(--radius-md)' }}>
-          {error}。↻ で再試行してください。
+          {error}
         </div>
       )}
 

@@ -1904,7 +1904,7 @@ function App() {
 
         {error && (
           <div style={{ padding: '1rem', background: 'rgba(244, 63, 94, 0.2)', border: '1px solid var(--chart-temp)', borderRadius: '8px', color: 'var(--text-primary)' }}>
-            ⚠️ エラーが発生しました: {error}
+            ⚠️ {error}
           </div>
         )}
 
