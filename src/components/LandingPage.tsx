@@ -73,7 +73,7 @@ const tabOverview = [
   },
 ];
 
-type CompMark = { m: '✓' | '△' | '✗'; note?: string };
+type CompMark = { m: '✓' | '○' | '◎' | '△' | '✗'; note?: string };
 type CompRow = { label: string; ours: CompMark; general: CompMark; jma: CompMark };
 
 const compRows: CompRow[] = [
@@ -522,7 +522,7 @@ function SoraShirabeSection() {
 
 /* ── 比較表 ── */
 function MarkCell({ mark, ours = false }: { mark: CompMark; ours?: boolean }) {
-  const color = mark.m === '✓' ? 'var(--accent-color)' : mark.m === '△' ? '#d97706' : '#b3bcc9';
+  const color = (mark.m === '✓' || mark.m === '○' || mark.m === '◎') ? 'var(--accent-color)' : mark.m === '△' ? '#d97706' : '#b3bcc9';
   return (
     <td className={ours ? 'lp-comp-ours' : undefined}>
       <span style={{ color, fontWeight: 800, fontSize: '1rem' }}>{mark.m}</span>
@@ -574,21 +574,21 @@ const tierGroups: { group: string; rows: { label: string; guest: CompMark; free:
   {
     group: '空もよう',
     rows: [
-      { label: '天気情報',     guest: { m: '△', note: '現在地のみ' }, free: { m: '✓', note: '地点登録10件' }, paid: { m: '✓', note: '地点登録50件' } },
-      { label: 'AIアドバイス', guest: { m: '✗' },                     free: { m: '✗', note: '近日提供予定' }, paid: { m: '✓' } },
+      { label: '天気情報',     guest: { m: '△', note: '現在地' }, free: { m: '○', note: '10件' },           paid: { m: '◎', note: '50件' } },
+      { label: 'AIアドバイス', guest: { m: '✗' },                 free: { m: '△', note: '近日・制限あり' }, paid: { m: '◎' } },
     ],
   },
   {
     group: '空くらべ',
     rows: [
-      { label: '前年比較・積算',             guest: { m: '△', note: '現在地' }, free: { m: '✓', note: '登録地点で比較' }, paid: { m: '✓', note: '登録地点で比較' } },
-      { label: 'CSV出力（一括ダウンロード）', guest: { m: '✗' },                 free: { m: '✗' },                       paid: { m: '✓' } },
+      { label: '前年比較・積算',             guest: { m: '△', note: '現在地のみ' }, free: { m: '◎', note: '登録地点' }, paid: { m: '◎', note: '登録地点' } },
+      { label: 'CSV出力（一括ダウンロード）', guest: { m: '✗' },                     free: { m: '✗' },                   paid: { m: '◎' } },
     ],
   },
   {
     group: '空しらべ',
     rows: [
-      { label: '過去の天気', guest: { m: '△', note: '現在地' }, free: { m: '✓', note: '登録地点' }, paid: { m: '✓', note: '登録地点' } },
+      { label: '過去の天気', guest: { m: '△', note: '現在地' }, free: { m: '◎', note: '登録地点' }, paid: { m: '◎', note: '登録地点' } },
     ],
   },
 ];
