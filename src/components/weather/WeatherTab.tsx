@@ -187,16 +187,18 @@ export function WeatherTab() {
             ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />取得中…</>
             : <><MapPin size={14} />現在地を表示</>}
         </button>
-        <select
-          value={location?.id ?? ''}
-          onChange={e => setSelectedLocationId(e.target.value)}
-          style={{ fontSize: '0.85rem', padding: '0.4rem 0.75rem' }}
-        >
-          {geoLocation && <option value="__geo__">📍 現在地</option>}
-          {locations.map(loc => (
-            <option key={loc.id} value={loc.id}>{loc.name}</option>
-          ))}
-        </select>
+        {user && (
+          <select
+            value={location?.id ?? ''}
+            onChange={e => setSelectedLocationId(e.target.value)}
+            style={{ fontSize: '0.85rem', padding: '0.4rem 0.75rem' }}
+          >
+            {geoLocation && <option value="__geo__">📍 現在地</option>}
+            {locations.map(loc => (
+              <option key={loc.id} value={loc.id}>{loc.name}</option>
+            ))}
+          </select>
+        )}
         {buttonGeoError && (
           <span style={{ fontSize: '0.78rem', color: '#c62828', width: '100%' }}>
             ⚠ {buttonGeoError}
