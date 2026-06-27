@@ -7,8 +7,12 @@
 //
 // 重要: AI には新たな気象予想を一切させない。既に発表された予報値の解説のみ。
 
+import { getBearerToken, verifyIdToken, isAllowlisted } from './_auth';
+
 interface Env {
   GEMINI_API_KEY: string;
+  AI_ALLOWLIST: string;
+  FIREBASE_PROJECT_ID: string;
 }
 
 const MODEL = 'gemini-2.5-flash';
@@ -51,6 +55,30 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   if (context.request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'method not allowed' }), {
       status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // ── 認可: ログイン済み かつ AI許可リストに含まれるユーザーのみ ──
+  const token = getBearerToken(context.request);
+  if (!token) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  let email: string | null;
+  try {
+    ({ email } = await verifyIdToken(token, context.env.FIREBASE_PROJECT_ID));
+  } catch {
+    return new Response(JSON.stringify({ error: 'invalid token' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  if (!isAllowlisted(email, context.env.AI_ALLOWLIST)) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), {
+      status: 403,
       headers: { 'Content-Type': 'application/json' },
     });
   }
