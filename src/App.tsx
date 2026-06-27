@@ -1485,13 +1485,22 @@ function App() {
         borderBottom: '1px solid var(--card-border)',
         display: 'flex',
         alignItems: 'center',
-        padding: '0 1rem',
+        justifyContent: 'center',
         height: 56,
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        gap: '0.5rem',
       }}>
+        {/* 内側コンテンツを本体（.app-container, max-width:1200px）と同じ中央幅に揃える */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          width: '100%',
+          maxWidth: 1200,
+          padding: isMobile ? '0 1rem' : '0 2rem',
+          boxSizing: 'border-box',
+        }}>
         {/* アプリアイコン（装飾のみ） */}
         <img
           src="/icon.png"
@@ -1661,6 +1670,7 @@ function App() {
             </div>
           </>
         )}
+        </div>
       </div>
 
       <div style={isMobile ? { paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' } : undefined}>
