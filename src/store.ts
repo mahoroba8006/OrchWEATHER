@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { User } from 'firebase/auth';
 import type { WeatherCodeMode } from './lib/wmoSeverity';
+import { fetchAiAllowed } from './api/me';
 import {
   fetchLocations,
   addLocationToFirestore,
@@ -126,11 +127,14 @@ interface AppState {
   userSettings: UserSettings | null;
   geoLocation: LocationInfo | null;
   geoStatus: 'idle' | 'loading' | 'error';
+  aiAllowed: boolean;
 
   setUser: (user: User | null) => void;
   setAuthLoading: (loading: boolean) => void;
   setGeoLocation: (loc: LocationInfo | null) => void;
   setGeoStatus: (status: 'idle' | 'loading' | 'error') => void;
+  loadAiAllowed: () => Promise<void>;
+  setAiAllowed: (allowed: boolean) => void;
   loadLocations: (uid: string) => Promise<void>;
   loadUserSettings: (uid: string) => Promise<void>;
   updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
@@ -154,11 +158,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
   userSettings: null,
   geoLocation: null,
   geoStatus: 'idle',
+  aiAllowed: false,
 
   setUser: (user) => set({ user }),
   setAuthLoading: (loading) => set({ authLoading: loading }),
   setGeoLocation: (loc) => set({ geoLocation: loc }),
   setGeoStatus: (status) => set({ geoStatus: status }),
+  setAiAllowed: (allowed) => set({ aiAllowed: allowed }),
+  loadAiAllowed: async () => {
+    const allowed = await fetchAiAllowed();
+    set({ aiAllowed: allowed });
+  },
 
   loadLocations: async (uid) => {
     set({ locationsLoading: true });
