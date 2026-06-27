@@ -128,6 +128,7 @@ interface AppState {
   geoLocation: LocationInfo | null;
   geoStatus: 'idle' | 'loading' | 'error';
   aiAllowed: boolean;
+  guestMode: boolean;
 
   setUser: (user: User | null) => void;
   setAuthLoading: (loading: boolean) => void;
@@ -135,6 +136,7 @@ interface AppState {
   setGeoStatus: (status: 'idle' | 'loading' | 'error') => void;
   loadAiAllowed: () => Promise<void>;
   setAiAllowed: (allowed: boolean) => void;
+  setGuestMode: (on: boolean) => void;
   loadLocations: (uid: string) => Promise<void>;
   loadUserSettings: (uid: string) => Promise<void>;
   updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
@@ -159,12 +161,20 @@ export const useAppStore = create<AppState>()((set, get) => ({
   geoLocation: null,
   geoStatus: 'idle',
   aiAllowed: false,
+  guestMode: typeof localStorage !== 'undefined' && localStorage.getItem('guestMode') === '1',
 
   setUser: (user) => set({ user }),
   setAuthLoading: (loading) => set({ authLoading: loading }),
   setGeoLocation: (loc) => set({ geoLocation: loc }),
   setGeoStatus: (status) => set({ geoStatus: status }),
   setAiAllowed: (allowed) => set({ aiAllowed: allowed }),
+  setGuestMode: (on) => {
+    try {
+      if (on) localStorage.setItem('guestMode', '1');
+      else localStorage.removeItem('guestMode');
+    } catch { /* localStorage 不可環境は無視 */ }
+    set({ guestMode: on });
+  },
   loadAiAllowed: async () => {
     const allowed = await fetchAiAllowed();
     set({ aiAllowed: allowed });
