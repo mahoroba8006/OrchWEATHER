@@ -206,18 +206,12 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
             {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
             <ArrowRight size={17} />
           </button>
-          <button
-            onClick={onTryGuest}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.86rem',
-              padding: '0.6rem 0.2rem', marginLeft: '0.6rem',
-            }}
-          >
-            ログインせずに試す（現在地のみ）
-            <ArrowRight size={15} />
-          </button>
+          <div style={{ marginTop: '0.8rem' }}>
+            <button className="lp-cta lp-cta--ghost" onClick={onTryGuest}>
+              ログインせずに試す（現在地のみ）
+              <ArrowRight size={17} />
+            </button>
+          </div>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: '0.7rem 0 0' }}>
             登録30秒・いまは完全無料
           </p>

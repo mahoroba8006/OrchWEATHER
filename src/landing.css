@@ -83,6 +83,13 @@
 .lp-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(13, 148, 136, 0.35); }
 .lp-cta:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 .lp-cta--small { padding: 0.5rem 1.1rem; font-size: 0.85rem; }
+.lp-cta--ghost {
+  background: #ffffff;
+  color: var(--accent-color);
+  border: 1.5px solid var(--accent-color);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.12);
+}
+.lp-cta--ghost:hover { box-shadow: 0 8px 20px rgba(13, 148, 136, 0.2); }
 
 /* HERO のスマホフレーム（CSS描画・画像はフレームなしの素のスクショ） */
 .lp-phone {
