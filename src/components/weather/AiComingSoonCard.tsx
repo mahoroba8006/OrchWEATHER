@@ -18,10 +18,10 @@ export function AiComingSoonCard() {
           marginBottom: '0.5rem',
         }}
       >
-        <Sparkles size={16} /> AIによる段取りまとめ
+        <Sparkles size={16} /> AIによるアドバイス
       </div>
       <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-        近日提供予定です。気象データから散布・施肥・畑しごとの段取りをAIが提案します。
+        近日提供予定。気象データをもとに、散布・施肥・畑しごとのアドバイス、自分好みの気象情報、をAIが提案します。
       </p>
     </section>
   );
