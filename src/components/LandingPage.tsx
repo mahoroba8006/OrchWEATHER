@@ -574,8 +574,8 @@ const tierRows: { label: string; guest: CompMark; free: CompMark; paid: CompMark
   { label: '空もよう｜天気情報',          guest: { m: '△', note: '現在地のみ' }, free: { m: '✓', note: '地点登録10件' }, paid: { m: '✓', note: '地点登録50件' } },
   { label: '空もよう｜AIアドバイス',      guest: { m: '✗' },                     free: { m: '✗', note: '近日提供予定' }, paid: { m: '✓' } },
   { label: '空くらべ（前年比較・積算）',  guest: { m: '△', note: '現在地' },     free: { m: '✓', note: '登録地点で比較' }, paid: { m: '✓', note: '登録地点で比較' } },
+  { label: '　└ CSV出力（一括ダウンロード）', guest: { m: '✗' },               free: { m: '✗' },                       paid: { m: '✓' } },
   { label: '空しらべ（過去の天気）',      guest: { m: '△', note: '現在地' },     free: { m: '✓', note: '登録地点' },     paid: { m: '✓', note: '登録地点' } },
-  { label: 'CSV出力',                     guest: { m: '✗' },                     free: { m: '✗' },                       paid: { m: '✓' } },
 ];
 
 function TierComparisonSection() {
@@ -583,7 +583,7 @@ function TierComparisonSection() {
     <section className="lp-section" style={{ paddingTop: 0 }}>
       <div className="lp-container-narrow">
         <FadeIn>
-          <h2 className="lp-h2">ログイン状態でできること</h2>
+          <h2 className="lp-h2">ログインでひろがる、できること</h2>
         </FadeIn>
         <FadeIn delay={0.1}>
           <div className="lp-glass" style={{ overflow: 'hidden' }}>
@@ -613,7 +613,7 @@ function TierComparisonSection() {
         </FadeIn>
         <FadeIn delay={0.15}>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.85, margin: '1rem 0 0' }}>
-            現在は特別に、多くの機能を無料で開放しています。ご利用いただける機能の範囲は、サービスの状況により今後変更となる場合があります。あらかじめご了承ください。
+いまはお試し期間として、多くの機能を無料でお使いいただけます。ご利用いただける機能の範囲は、お試し期間の終了やサービスの状況により、今後変更となる場合があります。あらかじめご了承ください。
           </p>
         </FadeIn>
       </div>
