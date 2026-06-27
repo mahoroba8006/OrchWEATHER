@@ -1,0 +1,5 @@
+# Cloudflare Pages Functions のローカル開発用環境変数のサンプル。
+# 実値は .dev.vars（gitignore対象）に記載し、本番は Cloudflare Pages のダッシュボードに設定する。
+GEMINI_API_KEY=your-gemini-api-key
+AI_ALLOWLIST=allowed1@example.com,allowed2@example.com
+FIREBASE_PROJECT_ID=your-firebase-project-id
