@@ -1,7 +1,8 @@
 import React from 'react';
-import { Download } from 'lucide-react';
+import { Download, Lock } from 'lucide-react';
 import type { CompareTarget } from '../hooks/useWeather';
 import type { WeatherData } from '../api/weather';
+import { useAppStore } from '../store';
 
 interface DailyRawTableProps {
   targets: CompareTarget[];
@@ -54,6 +55,8 @@ const METRICS: { label: string; key: keyof DayRow; fixed: number }[] = [
 ];
 
 export function DailyRawTable({ targets, weatherData, getLocationName, accumStartDates, baseTempSettings }: DailyRawTableProps) {
+  // CSV出力は有料（AI許可）ユーザー限定。未許可は押せないロック表示にする。
+  const aiAllowed = useAppStore(s => s.aiAllowed);
   // すべてのターゲットの MM-DD を収集してソート
   const allDates = React.useMemo(() => {
     const dateSet = new Set<string>();
@@ -220,14 +223,26 @@ export function DailyRawTable({ targets, weatherData, getLocationName, accumStar
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-      <button
-        className="secondary"
-        onClick={handleDownload}
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.82rem', alignSelf: 'flex-start' }}
-      >
-        <Download size={14} />
-        CSVダウンロード
-      </button>
+      {aiAllowed ? (
+        <button
+          className="secondary"
+          onClick={handleDownload}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.82rem', alignSelf: 'flex-start' }}
+        >
+          <Download size={14} />
+          CSVダウンロード
+        </button>
+      ) : (
+        <button
+          className="secondary"
+          disabled
+          title="CSV出力は有料プラン（予定）の機能です"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.82rem', alignSelf: 'flex-start', cursor: 'not-allowed', opacity: 0.6 }}
+        >
+          <Lock size={14} />
+          CSVダウンロード（有料予定）
+        </button>
+      )}
       <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
         グラフに表示されているすべての項目（気温・降水・日射・日照・湿度・飽差・累積値など）を一括で取得できます。※予測値は含まれません
       </p>
