@@ -570,12 +570,27 @@ function ComparisonSection() {
 }
 
 /* ── 料金プラン別 機能比較 ── */
-const tierRows: { label: string; guest: CompMark; free: CompMark; paid: CompMark }[] = [
-  { label: '空もよう｜天気情報',          guest: { m: '△', note: '現在地のみ' }, free: { m: '✓', note: '地点登録10件' }, paid: { m: '✓', note: '地点登録50件' } },
-  { label: '空もよう｜AIアドバイス',      guest: { m: '✗' },                     free: { m: '✗', note: '近日提供予定' }, paid: { m: '✓' } },
-  { label: '空くらべ（前年比較・積算）',  guest: { m: '△', note: '現在地' },     free: { m: '✓', note: '登録地点で比較' }, paid: { m: '✓', note: '登録地点で比較' } },
-  { label: '　└ CSV出力（一括ダウンロード）', guest: { m: '✗' },               free: { m: '✗' },                       paid: { m: '✓' } },
-  { label: '空しらべ（過去の天気）',      guest: { m: '△', note: '現在地' },     free: { m: '✓', note: '登録地点' },     paid: { m: '✓', note: '登録地点' } },
+const tierGroups: { group: string; rows: { label: string; guest: CompMark; free: CompMark; paid: CompMark }[] }[] = [
+  {
+    group: '空もよう',
+    rows: [
+      { label: '天気情報',     guest: { m: '△', note: '現在地のみ' }, free: { m: '✓', note: '地点登録10件' }, paid: { m: '✓', note: '地点登録50件' } },
+      { label: 'AIアドバイス', guest: { m: '✗' },                     free: { m: '✗', note: '近日提供予定' }, paid: { m: '✓' } },
+    ],
+  },
+  {
+    group: '空くらべ',
+    rows: [
+      { label: '前年比較・積算',             guest: { m: '△', note: '現在地' }, free: { m: '✓', note: '登録地点で比較' }, paid: { m: '✓', note: '登録地点で比較' } },
+      { label: 'CSV出力（一括ダウンロード）', guest: { m: '✗' },                 free: { m: '✗' },                       paid: { m: '✓' } },
+    ],
+  },
+  {
+    group: '空しらべ',
+    rows: [
+      { label: '過去の天気', guest: { m: '△', note: '現在地' }, free: { m: '✓', note: '登録地点' }, paid: { m: '✓', note: '登録地点' } },
+    ],
+  },
 ];
 
 function TierComparisonSection() {
@@ -591,21 +606,29 @@ function TierComparisonSection() {
               <table className="lp-comp">
                 <thead>
                   <tr>
-                    <th></th>
+                    <th colSpan={2}></th>
                     <th>ログインなし</th>
                     <th>ログイン<br />（無料）</th>
                     <th style={{ color: 'var(--accent-color)' }}>ログイン<br />（有料）<span style={{ fontSize: '0.68rem', fontWeight: 600 }}>※予定</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {tierRows.map(r => (
-                    <tr key={r.label}>
-                      <td>{r.label}</td>
+                  {tierGroups.flatMap(g => g.rows.map((r, i) => (
+                    <tr key={g.group + r.label}>
+                      {i === 0 && (
+                        <td
+                          rowSpan={g.rows.length}
+                          style={{ textAlign: 'left', fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap', borderRight: '1px solid var(--card-border-sub)' }}
+                        >
+                          {g.group}
+                        </td>
+                      )}
+                      <td style={{ textAlign: 'left', fontWeight: 500 }}>{r.label}</td>
                       <MarkCell mark={r.guest} />
                       <MarkCell mark={r.free} />
                       <MarkCell mark={r.paid} ours />
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
