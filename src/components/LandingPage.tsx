@@ -179,7 +179,7 @@ function Nav({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
   );
 }
 
-function Hero({ loading, error, onLogin }: { loading: boolean; error: string | null; onLogin: () => void }) {
+function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error: string | null; onLogin: () => void; onTryGuest: () => void }) {
   return (
     <section className="lp-section" style={{ paddingTop: 'clamp(2.5rem, 6vw, 4rem)' }}>
       <div className="lp-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'clamp(2rem, 5vw, 3.5rem)' }}>
@@ -205,6 +205,18 @@ function Hero({ loading, error, onLogin }: { loading: boolean; error: string | n
             <span style={{ background: '#fff', borderRadius: 6, padding: 3, display: 'inline-flex' }}><GoogleIcon /></span>
             {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
             <ArrowRight size={17} />
+          </button>
+          <button
+            onClick={onTryGuest}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.86rem',
+              padding: '0.6rem 0.2rem', marginLeft: '0.6rem',
+            }}
+          >
+            ログインせずに試す（現在地のみ）
+            <ArrowRight size={15} />
           </button>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: '0.7rem 0 0' }}>
             登録30秒・いまは完全無料
@@ -694,7 +706,7 @@ function LpFooter() {
 /* ─────────────────────────────────────────
    LandingPage 本体
 ───────────────────────────────────────── */
-export function LandingPage() {
+export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -725,7 +737,7 @@ export function LandingPage() {
   return (
     <div className="lp-root">
       <Nav loading={loading} onLogin={handleLogin} />
-      <Hero loading={loading} error={error} onLogin={handleLogin} />
+      <Hero loading={loading} error={error} onLogin={handleLogin} onTryGuest={onTryGuest} />
       <BridgeSection />
       <SoraMoyoSection />
       <SoraKurabeSection />
