@@ -5,6 +5,7 @@
 // Content-Type が JSON でない場合はエラーにして呼び出し元でグレースフルに無視させる。
 
 import type { AiCommentInput, AiCustomInput } from '../lib/aiCommentInput';
+import { auth } from '../lib/firebase';
 
 export interface AiCommentData {
   weatherOverview:    string; // 天気概況
@@ -13,13 +14,21 @@ export interface AiCommentData {
   generalWorkAdvice:  string; // 畑しごと
 }
 
+// ログイン中なら ID トークンを Authorization に載せる（サーバー側の認可ゲート用）。
+async function authHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = await auth.currentUser?.getIdToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 export async function fetchAiCustomComment(
   input: AiCustomInput,
   customPrompt: string,
 ): Promise<string> {
   const res = await fetch('/api/ai-custom', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders(),
     body: JSON.stringify({ ...input, customPrompt, locationInfo: input.location }),
   });
 
@@ -39,7 +48,7 @@ export async function fetchAiCustomComment(
 export async function fetchAiComment(input: AiCommentInput): Promise<AiCommentData> {
   const res = await fetch('/api/ai-comment', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await authHeaders(),
     body: JSON.stringify(input),
   });
 
