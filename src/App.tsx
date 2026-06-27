@@ -191,8 +191,8 @@ function App() {
           await Promise.all([
             loadLocations(firebaseUser.uid),
             loadUserSettings(firebaseUser.uid),
+            loadAiAllowed(),
           ]);
-          await loadAiAllowed();
         } catch (error) {
           console.error("Failed to load user settings or locations:", error);
         }
