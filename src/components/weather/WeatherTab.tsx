@@ -8,6 +8,7 @@ import { useJmaWarning } from '../../hooks/useJmaWarning';
 import { DailyForecast } from './DailyForecast';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
+import { AiComingSoonCard } from './AiComingSoonCard';
 import { useAiComment } from '../../hooks/useAiComment';
 import { useAiCustomComment } from '../../hooks/useAiCustomComment';
 import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
@@ -15,7 +16,7 @@ import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 
 export function WeatherTab() {
-  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user, updateWeatherCodeMode } = useAppStore();
+  const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user, updateWeatherCodeMode, aiAllowed } = useAppStore();
   const weatherCodeMode = userSettings?.weatherCodeMode ?? 'severity';
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
@@ -90,7 +91,7 @@ export function WeatherTab() {
 
   // AI 農作業コメント（予報・警報が揃ったら非同期取得）
   const { comment: aiComment, loading: aiCommentLoading } = useAiComment(
-    user?.uid,
+    aiAllowed ? user?.uid : null,
     location?.name,
     data,
     filteredJmaWarning?.items,
@@ -99,7 +100,7 @@ export function WeatherTab() {
   // カスタマイズAIコメント（'custom' セクションが有効かつプロンプト設定済みのとき取得）
   const customEnabled = enabledAiSections.includes('custom');
   const { text: aiCustomText, loading: aiCustomLoading } = useAiCustomComment(
-    customEnabled ? user?.uid : null,
+    aiAllowed && customEnabled ? user?.uid : null,
     customEnabled ? location?.name : null,
     customEnabled ? data : null,
     customEnabled ? filteredJmaWarning?.items : undefined,
@@ -341,14 +342,18 @@ export function WeatherTab() {
           </section>
 
           <div ref={aiSectionRef}>
-            <AiCommentCard
-              comment={aiComment}
-              loading={aiCommentLoading}
-              enabledSections={enabledAiSections}
-              customText={aiCustomText}
-              customLoading={aiCustomLoading}
-              hasCustomPrompt={!!(aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT)}
-            />
+            {aiAllowed ? (
+              <AiCommentCard
+                comment={aiComment}
+                loading={aiCommentLoading}
+                enabledSections={enabledAiSections}
+                customText={aiCustomText}
+                customLoading={aiCustomLoading}
+                hasCustomPrompt={!!(aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT)}
+              />
+            ) : (
+              <AiComingSoonCard />
+            )}
           </div>
 
         </>
