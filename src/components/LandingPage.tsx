@@ -575,7 +575,7 @@ const tierGroups: { group: string; rows: { label: string; guest: CompMark; free:
     group: '空もよう',
     rows: [
       { label: '天気情報',     guest: { m: '△', note: '現在地' }, free: { m: '○', note: '10件' },           paid: { m: '◎', note: '50件' } },
-      { label: 'AIアドバイス', guest: { m: '✗' },                 free: { m: '△', note: '近日・制限あり' }, paid: { m: '◎' } },
+      { label: 'AIアドバイス', guest: { m: '✗' },                 free: { m: '✗' },                         paid: { m: '◎' } },
     ],
   },
   {
