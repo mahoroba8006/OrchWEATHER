@@ -199,7 +199,7 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
             今日できるか、すぐわかる。<br />去年と比べて、数字で見える。
           </h1>
           <p className="lp-lead" style={{ marginBottom: '1.6rem' }}>
-            天気は午前・午後・夜間に分けて表示。雨は「カッパが要るか」までわかります。去年との比較も積算温度も自動で計算。農家が現場で欲しかったものだけを、ひとつのアプリに。
+            天気は午前・午後・夜間に分けて、雨は「カッパが要るか」まで——農業に効くさまざまな指標をわかりやすく表示。去年や他の地点との比較も、積算温度の自動計算も、グラフで見える化。農家が現場で欲しかったものだけを、ひとつのアプリに。
           </p>
           <button className="lp-cta" onClick={onLogin} disabled={loading}>
             <span style={{ background: '#fff', borderRadius: 6, padding: 3, display: 'inline-flex' }}><GoogleIcon /></span>
@@ -219,7 +219,7 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
         </FadeIn>
         <FadeIn delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
           <div className="lp-phone">
-            <img src="/lp/hero-imanosora.webp" alt="空もよう — 午前・午後・夜間の空模様がわかる画面" width={780} height={1688} />
+            <img src="/lp/hero-imanosora.png" alt="空もよう — 午前・午後・夜間の空模様がわかる画面" width={1170} height={2439} />
           </div>
         </FadeIn>
       </div>
@@ -307,8 +307,23 @@ function SoraMoyoSection() {
           </div>
         </FadeIn>
 
-        {/* 現場機能グリッド */}
+        {/* 日別の表示 */}
         <FadeIn>
+          <div style={{ marginBottom: '1.3rem' }}>
+            <p style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              margin: '0 0 0.7rem',
+            }}>
+              <CloudSun size={16} /> 日別の表示
+            </p>
+            <h3 style={{
+              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+              lineHeight: 1.5, margin: 0,
+            }}>
+              まずは一日を、大きくつかむ。
+            </h3>
+          </div>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
@@ -329,7 +344,7 @@ function SoraMoyoSection() {
                 作業時間に合わせた1日3分割
               </p>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                1日を畑仕事の時間帯で3つに分割（<strong>午前4〜12時</strong>・<strong>午後12〜20時</strong>・<strong>夜間20〜翌4時</strong>）。「晴れのち雨」が午前のうちなのか、午後から崩れるのか——天気が変わるタイミングが一目でわかります。さらに<strong>1時間単位</strong>でも確認できるので、崩れる時間をピンポイントでつかめます。
+                1日を畑仕事の時間帯で3つに分割（<strong>午前4〜12時</strong>・<strong>午後12〜20時</strong>・<strong>夜間20〜翌4時</strong>）。「晴れのち雨」が午前のうちなのか、午後から崩れるのか——天気が変わるタイミングが一目でわかります。
               </p>
             </div>
 
@@ -378,6 +393,40 @@ function SoraMoyoSection() {
                 </div>
               </div>
             </div>
+          </div>
+        </FadeIn>
+
+        {/* 時間別の表示 */}
+        <FadeIn>
+          <div className="lp-zigzag" style={{ marginTop: 'clamp(2.2rem, 6vw, 3.2rem)', marginBottom: 'clamp(1.6rem, 4vw, 2.4rem)' }}>
+            <div>
+              <p style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+                margin: '0 0 0.7rem',
+              }}>
+                <Clock size={16} /> 時間別の表示
+              </p>
+              <h3 style={{
+                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+                lineHeight: 1.5, margin: '0 0 0.8rem',
+              }}>
+                気になる時間は、1時間ごとに。
+              </h3>
+              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+                午前・午後・夜間の3分割からさらに踏み込んで、<strong>1時間ごと</strong>の細かな動きまで。気温・降水・風がどう変わるかを時間軸で追えるので、天気が崩れるタイミングをピンポイントでつかめます。
+              </p>
+            </div>
+            <div>
+              <img className="lp-shot" src="/lp/hour.png" alt="空もよう — 時間別の天気がわかる画面" width={1170} height={2022} loading="lazy" />
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: '1.1rem',
+          }}>
 
             {/* カッパ判断 */}
             <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
@@ -476,7 +525,7 @@ function SoraKurabeSection() {
           }}>
             <Quote size={16} color="var(--accent-color)" style={{ marginBottom: '0.4rem' }} />
             <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
-              「今年は暖かい気がする」けど、数字で確認できない
+              「今年は去年より暖かい気がする」けど、実際どうなのかわからない
             </p>
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
               去年と比べてどれくらい違うのか、何日進んでいるか——感覚ではなく数字で把握したい。
@@ -501,11 +550,43 @@ function SoraKurabeSection() {
                 「今年は早い？遅い？」が、数字でわかる。
               </h3>
               <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-                積算温度・降水量・日射量などを自動計算しグラフィカルに表示。比較したい年、登録地点を選択でき「去年より何日進んでいるか」「あの場所とどれくらい違うか」まで一目。
+                比較したい年や登録地点を選んでグラフに重ねると、「去年より何日進んでいるか」「あの場所とどれくらい違うか」までひと目でわかります。
               </p>
             </div>
             <div>
-              <img className="lp-shot" src="/lp/feature-kurabe.webp" alt="前年比較チャートの画面" width={1178} height={1922} loading="lazy" />
+              <img className="lp-shot" src="/lp/feature-kurabe.png" alt="前年比較チャートの画面" width={1170} height={1884} loading="lazy" />
+            </div>
+          </div>
+        </FadeIn>
+
+        {/* 積算のしくみ */}
+        <FadeIn>
+          <div className="lp-glass" style={{
+            padding: 'clamp(1.5rem, 4vw, 2rem)',
+            marginTop: 'clamp(1.8rem, 5vw, 2.6rem)',
+          }}>
+            <p style={{ fontWeight: 800, margin: '0 0 1.1rem', fontSize: '1rem' }}>
+              自分の畑の生育に合わせて、積算を作れる。
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.95rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-color)', flexShrink: 0, marginTop: '0.5rem' }} />
+                <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
+                  <strong>毎日の数値を自動で積算してグラフ表示。</strong><span style={{ color: 'var(--text-secondary)' }}>降水量・日照時間・日射量・積算温度の4つを、毎日の値から自動で積み上げて見える化します。</span>
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-color)', flexShrink: 0, marginTop: '0.5rem' }} />
+                <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
+                  <strong>積算の開始日は、生育状況に合わせて自由に設定。</strong><span style={{ color: 'var(--text-secondary)' }}>萌芽や定植のタイミングなど、いつから積み上げるかを自分で決められます。</span>
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-color)', flexShrink: 0, marginTop: '0.5rem' }} />
+                <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
+                  <strong>積算温度は、基準温度を2種類まで登録。</strong><span style={{ color: 'var(--text-secondary)' }}>作物や用途に合わせた基準温度を2つ持てるので、ねらいの異なる積算を並べて確認できます。</span>
+                </p>
+              </div>
             </div>
           </div>
         </FadeIn>
@@ -567,7 +648,7 @@ function AiAdviceSection() {
               気象データを読み解く手間を、AIにまかせる。
             </p>
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
-              AIが気象データから作業できる時間帯と残るリスクを提案する機能を準備中です。まずは空もよう・空くらべ・空しらべを無料でお使いいただけます。
+              AIが気象データから作業できる時間帯と残るリスクを提案する機能を準備中です。
             </p>
           </div>
         </FadeIn>
@@ -601,28 +682,23 @@ function AiAdviceSection() {
 
         {/* じぶん好みAI */}
         <FadeIn>
-          <div className="lp-zigzag lp-zigzag--reverse">
-            <div>
-              <p style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
-                margin: '0 0 0.7rem',
-              }}>
-                <SlidersHorizontal size={16} /> じぶん好みAI
-              </p>
-              <h3 style={{
-                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-                lineHeight: 1.5, margin: '0 0 0.8rem',
-              }}>
-                あなたの畑に合わせて、AIに聞ける。
-              </h3>
-              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-                「標高が高いから2℃低めで考えて」「風に弱い作物がある」——自分の言葉で条件を登録すれば、AIがそれを踏まえて答えます。
-              </p>
-            </div>
-            <div>
-              <img className="lp-shot" src="/lp/feature-custom.webp" alt="じぶん好みプロンプト設定の画面" width={1167} height={1830} loading="lazy" />
-            </div>
+          <div>
+            <p style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              margin: '0 0 0.7rem',
+            }}>
+              <SlidersHorizontal size={16} /> じぶん好みAI
+            </p>
+            <h3 style={{
+              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+              lineHeight: 1.5, margin: '0 0 0.8rem',
+            }}>
+              あなたの畑に合わせて、AIに聞ける。
+            </h3>
+            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+              「うちは標高が高いから、露点温度0度以下、気温7度以下の可能性があれば霜の警告を出して」「風に弱い作物があるので風速に重点を置いて解説して」自分の言葉で条件を登録すれば、AIがそれを踏まえて答えます。
+            </p>
           </div>
         </FadeIn>
       </div>
@@ -733,7 +809,7 @@ function TierComparisonSection() {
                           {g.group}
                         </td>
                       )}
-                      <td style={{ textAlign: 'left', fontWeight: 500 }}>{r.label}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 500, whiteSpace: 'nowrap', width: '1%' }}>{r.label}</td>
                       <MarkCell mark={r.guest} />
                       <MarkCell mark={r.free} />
                       <MarkCell mark={r.paid} ours />
