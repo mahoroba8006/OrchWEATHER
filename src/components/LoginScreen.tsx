@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { Leaf, Copy, Check } from 'lucide-react';
 import { auth } from '../lib/firebase';
+import { logLogin } from '../lib/analytics';
 
 const provider = new GoogleAuthProvider();
 
@@ -31,6 +32,7 @@ export function LoginScreen() {
   const handleLogin = async () => {
     setLoading(true);
     setError(null);
+    logLogin();
     try {
       if (isIOSStandalone()) {
         await signInWithRedirect(auth, provider);

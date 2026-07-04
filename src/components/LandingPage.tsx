@@ -5,6 +5,7 @@ import {
   Clock, CloudRain, History, Droplets,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
+import { logLogin } from '../lib/analytics';
 import '../landing.css';
 
 /* ─────────────────────────────────────────
@@ -977,6 +978,7 @@ export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
   const handleLogin = async () => {
     setLoading(true);
     setError(null);
+    logLogin();
     try {
       if (isIOSStandalone()) {
         await signInWithRedirect(auth, new GoogleAuthProvider());

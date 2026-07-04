@@ -15,6 +15,7 @@ import { WeatherTab } from './components/weather/WeatherTab';
 import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
 import { Footer } from './components/Footer';
 import { HelpPage } from './components/HelpPage';
+import { logGuestStart, logWeatherView } from './lib/analytics';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -311,6 +312,13 @@ function App() {
   };
 
   const { data: weatherData, loading, loadingStatus, error } = useWeatherData(committedTargets);
+
+  // コア機能（天気データ表示）への到達を計測。logWeatherView 側でセッション1回に制限。
+  useEffect(() => {
+    if (Object.keys(weatherData).length > 0) {
+      logWeatherView();
+    }
+  }, [weatherData]);
 
   // 分析タブ用予報データ（committedTargets[0] の地点のみ取得）
   const forecastLoc = useMemo(() => {
@@ -1478,7 +1486,7 @@ function App() {
   }
 
   if (!user && !guestMode) {
-    return <LandingPage onTryGuest={() => setGuestMode(true)} />;
+    return <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />;
   }
 
   return (
