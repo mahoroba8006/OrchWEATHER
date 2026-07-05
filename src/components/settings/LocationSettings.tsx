@@ -429,6 +429,8 @@ export function LocationSettings() {
         <LocationMapModal
           initialLat={typeof formData.lat === 'number' && !Number.isNaN(formData.lat) ? formData.lat : 35.0}
           initialLon={typeof formData.lon === 'number' && !Number.isNaN(formData.lon) ? formData.lon : 135.0}
+          // 既存地点の編集時は現在地へ飛ばさず登録座標を表示。新規追加時のみ現在地起点。
+          autoLocate={editingId === 'new'}
           onConfirm={handleMapConfirm}
           onClose={() => setShowMapModal(false)}
         />

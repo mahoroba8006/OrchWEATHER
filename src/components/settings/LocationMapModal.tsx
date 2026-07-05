@@ -20,6 +20,12 @@ L.Icon.Default.mergeOptions({
 export interface LocationMapModalProps {
   initialLat: number;
   initialLon: number;
+  /**
+   * true のとき、開いた直後に GPS 現在地へビューとマーカーを移動する。
+   * 新規地点の選択では便利だが、既存地点の編集では登録済み座標を
+   * 上書きしてしまうため false を渡すこと。デフォルト true（後方互換）。
+   */
+  autoLocate?: boolean;
   onConfirm: (lat: number, lon: number, suggestedName?: string) => void;
   onClose: () => void;
 }
@@ -27,6 +33,7 @@ export interface LocationMapModalProps {
 export function LocationMapModal({
   initialLat,
   initialLon,
+  autoLocate = true,
   onConfirm,
   onClose,
 }: LocationMapModalProps) {
@@ -91,23 +98,26 @@ export function LocationMapModal({
       setMarkerPos([lat, lon]);
     });
 
-    // GPS で現在地に移動（成功したらビューとマーカーも移動）
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => {
-        if (!mapRef.current) return; // アンマウント済みガード
-        const lat = parseFloat(pos.coords.latitude.toFixed(6));
-        const lon = parseFloat(pos.coords.longitude.toFixed(6));
-        map.setView([lat, lon], 13);
-        marker.setLatLng([lat, lon]);
-        setMarkerPos([lat, lon]);
-      },
-      () => {
-        if (!mapRef.current) return; // アンマウント済みガード
-        // GPS 失敗時は日本全体ビュー
-        map.setView([36.5, 138.0], 5);
-      },
-      GEO_OPTIONS,
-    );
+    // GPS で現在地に移動（新規選択時のみ。既存地点の編集では
+    // 登録済み座標 [initialLat, initialLon] を維持するため実行しない）
+    if (autoLocate) {
+      navigator.geolocation?.getCurrentPosition(
+        (pos) => {
+          if (!mapRef.current) return; // アンマウント済みガード
+          const lat = parseFloat(pos.coords.latitude.toFixed(6));
+          const lon = parseFloat(pos.coords.longitude.toFixed(6));
+          map.setView([lat, lon], 13);
+          marker.setLatLng([lat, lon]);
+          setMarkerPos([lat, lon]);
+        },
+        () => {
+          if (!mapRef.current) return; // アンマウント済みガード
+          // GPS 失敗時は日本全体ビュー
+          map.setView([36.5, 138.0], 5);
+        },
+        GEO_OPTIONS,
+      );
+    }
 
     return () => {
       map.remove();
