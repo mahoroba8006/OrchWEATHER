@@ -13,6 +13,7 @@ import { ensureUserDocument } from './lib/userRepository';
 import { GEO_OPTIONS } from './lib/geo';
 import { WeatherTab } from './components/weather/WeatherTab';
 import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
+import { WeatherLoader } from './components/weather/WeatherLoader';
 import { Footer } from './components/Footer';
 import { HelpPage } from './components/HelpPage';
 import { logGuestStart, logWeatherView } from './lib/analytics';
@@ -1480,7 +1481,7 @@ function App() {
   if (authLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src="/icon.png" alt="loading" style={{ width: 40, height: 40 }} />
+        <WeatherLoader label="読み込み中" />
       </div>
     );
   }
