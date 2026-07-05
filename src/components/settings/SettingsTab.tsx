@@ -74,8 +74,12 @@ export function SettingsTab() {
             key={tab}
             onClick={() => setSubTab(tab)}
             style={{
-              padding: '0.65rem 1.2rem',
-              fontSize: '0.88rem',
+              // モバイルは等幅で画面幅に4タブを収め、折り返しを防ぐ
+              flex: isMobile ? 1 : undefined,
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              padding: isMobile ? '0.6rem 0.1rem' : '0.65rem 1.2rem',
+              fontSize: isMobile ? '0.76rem' : '0.88rem',
               fontWeight: subTab === tab ? 700 : 500,
               color: subTab === tab ? 'var(--accent-color)' : 'var(--text-secondary)',
               background: 'transparent',
