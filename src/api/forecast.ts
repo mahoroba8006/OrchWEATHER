@@ -70,7 +70,7 @@ export interface FieldAvailability {
 
 export interface ForecastData {
   hourly: HourlyForecast[];        // 今日〜3日後（HourlyTable 用 72h）
-  daily: DailyForecastData[];      // 今日〜15日後（最大16日）
+  daily: DailyForecastData[];      // 今日〜14日後（最大15日）
   pastDaily: DailyForecastData[];  // 過去7日分
   fetchedAt: number;               // Date.now()
   availability?: FieldAvailability; // 過去API用。未指定は全項目利用可（通常予報）
@@ -102,7 +102,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + '&wind_speed_unit=ms'
     + '&past_hours=20'
     + '&past_days=7'
-    + '&forecast_days=16'
+    + '&forecast_days=15'
     + '&forecast_hours=384'
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
@@ -202,11 +202,18 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     }
   }
 
-  const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => ({
+  const daily: DailyForecastData[] = (raw.daily.time as string[]).map((t: string, i: number) => {
+  // 最遠日はモデル未計算のことがあり、temperature_2m_max/min が null で返る。
+  // `?? 0` だと 0℃ と誤表示されるため、欠損日はプレースホルダー扱いにして「—」表示にする。
+  const tMaxRaw = raw.daily.temperature_2m_max?.[i];
+  const tMinRaw = raw.daily.temperature_2m_min?.[i];
+  const isPlaceholder = tMaxRaw == null || tMinRaw == null;
+  return {
     date:          t,
+    isPlaceholder,
     weatherCode:   raw.daily.weather_code?.[i] ?? 0,
-    tempMax:       raw.daily.temperature_2m_max?.[i]             ?? 0,
-    tempMin:       raw.daily.temperature_2m_min?.[i]             ?? 0,
+    tempMax:       tMaxRaw             ?? 0,
+    tempMin:       tMinRaw             ?? 0,
     precipProbMax: raw.daily.precipitation_probability_max?.[i]  ?? 0,
     precipSum:     raw.daily.precipitation_sum?.[i]              ?? 0,
     humidMin:      raw.daily.relative_humidity_2m_min?.[i]       ?? 100,
@@ -235,7 +242,8 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     amWindMax:         dayAmPm.get(t)?.amWindMax          ?? null,
     pmWindMax:         dayAmPm.get(t)?.pmWindMax          ?? null,
     nightWindMax:      dayAmPm.get(t)?.nightWindMax       ?? null,
-  }));
+  };
+  });
 
   // 今日のJST日付でdailyを過去/未来に分割
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);

@@ -536,6 +536,7 @@ function App() {
       const fData = index === 0 ? forecastData : forecastData2;
       if (fData && target.year === currentYear) {
         fData.daily.forEach(fDay => {
+          if (fDay.isPlaceholder) return; // データ未作成日はオーバーレイに描かない
           const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
 
           if (!map.has(mmdd)) {
@@ -606,6 +607,7 @@ function App() {
         let forecastGddRunning = runningAccumTemp; // 昨日時点の累積GDD
 
         fData.daily.forEach(fDay => {
+          if (fDay.isPlaceholder) return; // データ未作成日は累積に加算しない
           const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
           const existing = overlay.get(mmdd) ?? {};
 
@@ -694,6 +696,7 @@ function App() {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
     const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
     forecastData.daily.forEach(fDay => {
+      if (fDay.isPlaceholder) return; // データ未作成日は予報タップ値に含めない
       const mmdd = fDay.date.slice(5);
       const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
       const diff = tempMean - selectedBaseTemp;
@@ -712,6 +715,7 @@ function App() {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
     const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
     forecastData2.daily.forEach(fDay => {
+      if (fDay.isPlaceholder) return; // データ未作成日は予報タップ値に含めない
       const mmdd = fDay.date.slice(5);
       const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
       const diff = tempMean - selectedBaseTemp;
