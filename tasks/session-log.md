@@ -1,4 +1,444 @@
 
+## 2026-07-13 セッション（105回目）
+
+### 作業内容（LP文言修正→本番反映／note記事ドラフト作成・保存）
+
+#### 1. LP（[LandingPage.tsx](src/components/LandingPage.tsx)）コピー5箇所を修正 → develop & main へ反映
+ユーザー指定どおり以下5点を修正（各文字列は該当行で一意・ピンポイント置換）。
+- 露点温度（病害感染リスク）→**霜害リスク**（l.505 農業専門データ説明）
+- 空くらべ tagline「去年と比べて、数字で見える」→**「去年と比べて、場所で比べて、数字で見える」**（l.68）
+- 空しらべ tagline「あの日の天気を、同じ画面で確認」→**「あの日の天気を、詳しく確認」**（l.73）
+- AI提案説明（l.675）に**作業別**の記述追記（畑仕事・農薬/液肥散布・肥料散布）
+- AI条件登録説明（l.701）に**「気象データをもとに、」**追記
+- `npm run build`（tsc+vite）通過。コミット `bdd68d4` を develop へ push → **`git push origin develop:main`（ff・`6512b83..bdd68d4`）で本番反映**。develop=main=`bdd68d4` に同期
+- 未変更（指定と一致せず・要統一時は別途）: h1「去年と比べて、数字で見える。」(l.200)／見出し「あの日の天気が、今日と同じ画面で見える。」(l.611)／比較表注記(l.106)
+
+#### 2. note記事の企画→ドラフト初稿を作成・保存
+- ユーザー企画: **元ITプロマネ・コンサル経験を踏まえた「AIとの役割分担」**をテーマに技術記事（筆者=リンゴ/ブドウ農家・今年就農・元PMメインフレーム畑）。ユーザー提示の6セクション骨格あり。
+- Claude作業: 過去の作業記録（lessons.md・session-log・git履歴）を精読し、**セクション5「ベンダーコントロールが活きた」を実際の修正記録で肉付け**。3資産に1対1対応させた:
+  - 資産①PMのリスク予知＝予報0℃バグの波及確認（1箇所修正が5箇所波及を先読み）
+  - 資産②コンサルの要件定義力＝ET₀機能を「精度詐称＝機能が無いより有害」で正式ボツ
+  - 資産③農家のドメイン知識＝露点「病害感染」→「霜害」等の現場翻訳
+  - 盲点の指摘: AIは「言いなりベンダー」でなく「議論できるベンダー」（ET₀ボツの論理はAI側が構造化）→ §5末尾に反映
+- **成果物: [docs/note-article-draft.md](docs/note-article-draft.md)**（本文初稿 約3,800字＋タイトル3案＋予備の実例ストック＋読者別展開メモ）。**未コミット**。
+
+### 決定事項
+- LPコピー修正5点を本番反映済み。note記事は「AIとの役割分担／発注者PM視点」を軸に確定（技術記事寄り・広報より知見共有）。
+
+### 未完了・次回候補
+- **note記事ドラフトの推敲**（[docs/note-article-draft.md](docs/note-article-draft.md)）: タイトル確定・アプリ名挿入・画像差し込み・文字数調整・資産の厚み調整。ユーザーが後日見直し予定。
+- **未コミット多数**: `docs/note-article-draft.md`（今回）＋前回104回の `docs/design/` 7ファイル＋`tasks/`。develop へコミットするか要判断。
+- 既存持ち越し: 本番実機スモーク／RTM要否／設計書の stale 追検証／Task6 地域集計／`functions/` 型チェック／iOS Safari実機／dotfilesバックアップ整備。
+
+---
+
+## 2026-07-10 セッション（104回目）
+
+### 作業内容（リバースエンジニアリングで設計書一式を作成。PMBOK観点で補強。実コード精読で stale メモリを是正）
+
+同日の103回目（日別予報の欠損日0℃修正・本番反映）に続き、設計書作成に着手。**未コミット（develop・作業ツリー）**。
+
+#### 1. 設計書一式を新規作成（`docs/design/`・7ファイル）
+ユーザー方針: 全モジュール対象・「ロジックより一段抽象化＋分岐/判断は網羅」・文書ごとにレビュー。
+- `00-README.md` 索引／`01-requirements.md` 要件定義（機能UR-*・ティア4区分・システム要件・**7章 前提/制約 A-01〜06/C-01〜11**）
+- `02-external-design.md` 外部設計（アーキ図・データフロー・10 IF仕様・ASP設定・**コード値定義**：WMO27値／r8警報レベル先頭桁5/4/3/2／R8_PHENOMENON／prefCode特例／**§5.6 DB設計**）
+  - §5.6 は後追いでDB設計レベルに拡充: コレクション階層・**ドキュメントID生成規則**（users=uid／locations=addDoc自動ID／aiComments=hash・c:hash）・users9項目/locations/aiComments を 項目/型/必須/既定/用途/制約 で網羅・セキュリティルール/TTL/初期化順序/整合性
+- `03-internal-design.md` 内部設計（レイヤ・依存図・全54モジュールの責務/処理概要・横断的単一ソース8点）
+- `04-module-design.md` モジュール設計（全モジュールを①責務②流れ③**分岐・判断ロジック網羅**④検証観点。判断が濃いものは詳説、presentationalは一覧表）
+
+#### 2. PMBOK観点の補強（ユーザー承認済み①〜③）
+- `01` に前提・制約章を追記／`05-risk-register.md` 新規（18リスク R-01〜18・確率×影響×対応戦略）／`06-adr.md` 新規（**ADR 27件**・memory/session-log/lessons/コードから理由を正規化）
+- スキップ判断: スケジュール/コスト/調達/要員計画は個人開発ゆえ不要と明示。**RTM（07-traceability）は保留**（保守コスト最大・要否は今後判断）
+- ADRは1ファイル集約を選択（27件を28ファイル分割より保守しやすい）
+
+#### 3. 【重要】実コード精読で stale メモリを是正
+- **リスク検出機能（霜・雷・雹等9種＋閾値カスタマイズ・RiskType・enabledRisks・riskDetection.ts・RISK_BADGES）は現行コードに存在しない**（削除済み）。メモリ（44〜54日前）が古かった。`frost` 等の文字列も src にゼロ。
+- 現在「リスク」が指すのは①天気コード表示モード（severity/frequency）②気象庁 注意報・警報 の2つのみ。
+- 是正: 要件定義書4.9「リスク検出」→「天気の見方（表示モード）」に置換／UR-WX-07・UR-SET-03 修正／ADR-0023 の `DEFAULT_RISK_THRESHOLDS`（3箇所コピー）記述を実態（store/userRepository の重複定義）に修正。
+
+### 決定事項
+- 設計書は `docs/design/` にMarkdownで一元化・コード変更時に併せて更新する運用（00-README にルール記載）。
+- PMBOK補強は①前提制約②リスク登録簿③ADR を採用。RTMは保留。
+
+### 未完了・次回候補
+- **`docs/design/` 7ファイル＋tasks/ が未コミット**（develop へコミットするか要判断）。
+- RTM（07-traceability）の要否判断。
+- 設計書はメモリ由来記述を含むため、他にも stale がないか実コードで追検証の余地（今回リスク検出以外は都度検証済み）。
+
+---
+
+## 2026-07-10 セッション（103回目）
+
+### 作業内容（日別予報の欠損日0℃表示バグを修正→本番リリース）
+
+#### 問題
+日別天気の最遠日が Open-Meteo のモデル未計算タイミングで `temperature_2m_max/min` を null で返すことがあり、[forecast.ts](src/api/forecast.ts) の `?? 0` フォールバックにより **気温が 0℃ と誤表示**される（「たまに」＝更新サイクル依存）。
+
+#### 対処（二重防御）
+1. **取得・表示を1日短縮:** `forecast_days=16 → 15`。最もリスクの高い最遠日を除去。`forecast_hours=384` は据え置き（15日目の午前/午後/夜間集計に翌日0-3時が必要なため時間別は16日分残す＝末尾日のデータ欠けなし）
+2. **null防御（構造的遮断）:** daily マッピングをブロック化し、`temperature_2m_max/min` が null の日を **`isPlaceholder: true`** に設定（[forecast.ts:208-213](src/api/forecast.ts)）。`?? 0` 由来の0℃を根絶。プレースホルダー日は履歴タブで本番稼働中の既存描画パス（気温非表示＋各セル「—」）を再利用
+3. **分析タブ予報オーバーレイの整合:** [App.tsx](src/App.tsx) の forecast オーバーレイ4箇所（538/609/697/715）に `if (fDay.isPlaceholder) return;` ガード追加。表で「—」の日をグラフでも0プロットしない
+
+#### 波及確認
+- AIコメント入力は既に `!d.isPlaceholder` で除外済み（[aiCommentInput.ts:113,130](src/lib/aiCommentInput.ts)）＝追加対応不要
+- 通常日は `isPlaceholder:false` になり、全消費側の `!d.isPlaceholder`／`if(d.isPlaceholder)` 判定が従来の undefined と同結果＝回帰なし
+- HourlyTable は日の出/入りのみ利用・対象約10日でプレースホルダー日（15日目）は範囲外
+- `npm run build`（tsc+vite）通過
+
+#### リリース
+- コミット `6512b83`（src/api/forecast.ts / src/App.tsx の2ファイル）を develop へ push
+- 本番反映: `git push origin develop:main`（ff・`ed4d0a8..6512b83`）→ Cloudflare Pages 自動デプロイ
+- develop=main=`6512b83` に同期
+
+### 決定事項
+- 日別予報の表示日数を **15日** に確定（最遠日の信頼性が低いため取得段階で1日短縮）
+- 気温欠損日は `isPlaceholder` で「—」表示にする方針を通常予報にも適用（従来は履歴タブ専用だった）
+
+### 未完了・次回候補
+- 本番実機でのスモーク（日別予報が15日表示＆最遠日0℃が出ないこと。ただし現状のAPIは16日目も実データ返却中のため、欠損は更新サイクル依存で再現に運が必要）
+- 既存持ち越し: 本番実機の最終スモーク（ログイン→現在地→地図→AI→アバター＋CSP違反ゼロ）／任意ハードニング／Task6 地域集計（鍵要）／`functions/` を型チェック対象に／iOS Safari実機／dotfilesバックアップ整備
+
+---
+
+## 2026-07-05 セッション（102回目）
+
+### 作業内容（一般公開前セキュリティ監査を完遂→本番反映。加えてUX2件＋ローダー統一を本番反映）
+
+#### 1. セキュリティ監査（公開前）— 攻撃面を体系的に洗い出し、全て対応
+体系整理して #1〜#4 に集約。詳細は新メモリ [[project_security_hardening]] に集約。
+- **#1 Firestore ルール:** ユーザー提示のルールを監査→`request.auth != null && request.auth.uid == userId` ＋ `{document=**}` 再帰＋他 match 無し（デフォルト拒否）＝**安全確認済み**。残る低優先=書き込み量/スキーマ上限（公開後で可）
+- **#2① Firebase 承認済みドメイン:** localhost / firebaseapp.com / web.app / orchweather.pages.dev / **weather.orch-app.com** の5件＝全て説明可・不審ゼロ＝クリーン
+- **#2② APIキー制限（重要な発見）:** Gemini キー(`AQ.…`)と Firebase 公開キー(`AIzaSyAJqi…`)は**別物・別GCPプロジェクト**。Gemini=プロジェクト番号 406509436712（SAバインド＋API制限=Gemini APIのみ）＝安全。Firebase 公開キー=プロジェクト `orchweather`（番号 419446595442）→ HTTPリファラー制限（weather.orch-app.com / pages.dev / firebaseapp.com / localhost:5173,8788 / develop.orchweather.pages.dev）を設定。**キー使い回しの重大穴は無いことを .env/.dev.vars の先頭照合で確定**
+- **#3 セキュリティヘッダ/CSP:** `public/_headers` 新設（全ルート）。CSP はビルド済みバンドルの全外部ホストと突合して網羅性検証→**手動洗い出しの漏れ2件（Google Fonts=fonts.googleapis/gstatic、reCAPTCHA=www.google.com/gstatic）を捕捉・追加**。`wrangler pages dev` で配信・整形を実証。frame-ancestors 'none' 等ハードニング。script-src は index.html のインライン起動ハンドラのため 'unsafe-inline'（XSS注入口が実在せず実リスク限定・将来ハッシュ化可）
+- **#4 npm audit fix:** `--force` 不使用で protobufjs(high)/@grpc/grpc-js 等を解消→**0件**。build 通過確認
+- **develop プレビューを常設ステージング化:** `develop.orchweather.pages.dev` を承認済みドメイン＋APIキーリファラーに追加＝以後リリース前フルリハ可能
+
+#### 2. UXバグ/改善（同セッションで実装→本番反映）
+- **モバイル設定サブタブの折り返し修正** [SettingsTab.tsx](src/components/settings/SettingsTab.tsx)：モバイル時のみ flex:1 等幅＋whiteSpace:nowrap＋フォント0.76rem/padding縮小。デスクトップ不変（`65243f0`）
+- **【バグ】既存地点の「地図で修正」が現在地に飛ぶ** [LocationMapModal.tsx](src/components/settings/LocationMapModal.tsx)：根本原因=用途を問わず開いた直後に無条件で GPS 現在地へビュー/マーカー上書き。`autoLocate` prop（既定true）を追加し編集時のみ false（`editingId!=='new'`）で登録座標を維持。新規/ヘッダー選択は従来どおり（`d3cc9fb`）
+- **起動ローダーをAIローダーに統一** 新規 [WeatherLoader.tsx](src/components/weather/WeatherLoader.tsx)：波打つアイコン＋点滅ドットを共有部品化し、AiCommentCard（忠実切り出し）と App 起動時（label「読み込み中」）で流用＝単一ソース（`ed4d0a8`）
+
+#### 3. 本番リリース（develop→main ff）
+- 5コミット（`94049cc`セキュリティヘッダ / `a26ed35`audit fix / `65243f0`タブ / `d3cc9fb`地図 / `ed4d0a8`ローダー）を `git push origin develop:main`（ff・`bf0a202..ed4d0a8`）
+- **本番 weather.orch-app.com で CSP/HSTS/X-Frame-Options/Permissions-Policy の配信を curl で実確認（HTTP 200）**＝CSP 本番初稼働
+
+### 決定事項
+- **一般公開に向けたセキュリティ面（#1〜#4）を全て締め、本番稼働**。コード核心（Firestore本人限定・サーバ側AI認可・XSS不在・シークレット非漏洩）は元々堅牢で、その上に多層防御（ヘッダ/CSP）と設定穴埋め（キー制限）を重ねた
+- develop=main=ed4d0a8 に同期。develop プレビューが常設ステージング（フルリハ環境）に
+
+### 未完了・次回候補
+- 本番実機の最終スモーク（ログイン→現在地→地図→AI→アバター＋コンソールCSP違反ゼロ）＝ユーザー確認
+- 任意ハードニング（公開後で可）: Firestore 書き込み量/スキーマ上限・index.html の innerHTML→textContent・CSP script-src のハッシュ化・archive.ts open proxy（休眠中）
+- 既存持ち越し: Task6 地域集計（鍵要）／`functions/` を型チェック対象に／iOS Safari実機／archiveプランOpen-Meteo照会／dotfilesバックアップ整備
+
+---
+
+## 2026-07-04 セッション（101回目）
+
+### 作業内容（利用状況アナリティクスを実装→本番リリース。develop→main フルリリース）
+
+#### 1. アナリティクス実装（実装計画 Task1〜5 を完遂・develop へ3コミット push）
+- `2026-06-29-usage-analytics.md` の Task1〜5 をインライン実装。ビルド（`tsc -b && vite build`）通過。
+- コミット: `9099395`（ラッパー）/ `1fe2a7e`（3イベント発火）/ `bf0a202`（privacy GA4明記）
+- 計画からの逸脱2点（判断込み）:
+  - App.tsx に `logLogin` を import する計画指示は、App.tsx が login を発火しない（発火は LandingPage/LoginScreen）ため `TS6133` 未使用エラー→ App.tsx の import から除外
+  - privacy-policy.html は素朴な `<h2>` 追記だと番号付き `<section>`＋目次構造に馴染まず、かつ第7項Cookieの「トラッキング目的には一切使用しません」がGA4と矛盾→ 専用セクション「8. アクセス解析ツール」新設＋番号繰下げ（改定9/免責10）＋Cookie項の断言修正＋最終更新日 2026年7月4日 に更新
+- measurementId `G-LNPJVTCFTC` を `.env` と `.env.example` に反映。ローカル dev で GA4 リアルタイムに `page_view`/`guest_start`/`weather_view` が出ることを実確認（動作証明済み）
+
+#### 2. develop → main フルリリース（有料化システム一式＋アナリティクスを本番公開）
+- ユーザー指示で `git push origin develop:main`（fast-forward・作業ツリー無傷）→ 約40コミットを本番へ。**有料化システム（ゲスト/AIトークンゲート/★3ティア/LP比較表/CSV有料限定）＋アナリティクスが初めて main に載った**
+- Cloudflare Pages（プロダクションブランチ=main・自動デプロイ有効）がビルド→ `Success! Your site was deployed!`。本番バンドル・privacy GA4節の反映を curl で確認
+
+#### 3. 【重要バグ】本番でアナリティクスが計測されない → 原因特定＆修正
+- 症状: 本番操作しても GA4 リアルタイムに何も出ない。env（変数一覧）には登録済みに見えた
+- **根本原因: Cloudflare の変数名が `VITE_FIREBASE_MEASUREMENT`（`_ID` 欠落）だった**。`VITE_*` は**ビルド時に JS へ焼き込まれる**ため、コードが参照する `VITE_FIREBASE_MEASUREMENT_ID` が空→ analytics 初期化されず（no-op のまま）
+- 修正: 変数名を `VITE_FIREBASE_MEASUREMENT_ID` に正し、**再デプロイ**（VITE_* は env 修正だけでは反映されずリビルド必須）→ 本番で計測動作を確認（ユーザー確認済み）
+- 検証手法の教訓も判明: curl が `.html` の正規化リダイレクトを追わず（-L 無し）、`/privacy-policy.html` が空を返して「未反映」と誤報。正規URL `/privacy-policy` で判定すべきだった
+
+### 決定事項
+- **有料化システム一式＋利用状況アナリティクスが本番（main）で稼働開始**。GA4 でリテンション/頻度データの蓄積が始まった
+- Task6（登録地域のオンデマンド集計スクリプト）は firebase-admin サービスアカウント鍵が必要・地域は参考程度のため**未実施のまま保留**
+
+### 未完了・次回候補
+- Task6 地域集計スクリプト（鍵準備時）
+- 本番実機の残確認: AIゲート（許可ユーザーで 401/403 なくAI生成＝本番 `AI_ALLOWLIST`/`FIREBASE_PROJECT_ID`/`GEMINI_API_KEY` の実効確認）・ゲストモード実機
+- 既存持ち越し: エラー3分類のブラウザ実機確認／ブラウザ3状態E2E／`functions/` を型チェック対象に／iOS Safari実機／archiveプランをOpen-Meteo照会／dotfilesバックアップリポジトリ整備
+
+---
+
+## 2026-06-29 セッション（100回目）
+
+### 作業内容（利用状況アナリティクスの設計＆実装計画を作成 — コード実装は未着手）
+
+ユーザー要望「ユーザー動向を確認できるようにしたい」（LP訪問数・「試す」/「ログイン」クリック数・登録地域・天気参照数）を brainstorming で深掘りし、設計→実装計画まで完成。**実装は次回**。
+
+#### 1. 問いの再定義（重要）
+- ユーザーの当初5項目は「集客の入口」に偏り、有料化判断の核心＝**リテンション/利用頻度**が欠けていた。ヒアリングで真の目的が「有料化に向けて、どの程度必要とされ・どのくらいの頻度で使われるか」だと判明。地域は参考程度、LP改善は対象外と確定。
+- 5項目は技術的に2系統に割れる: A=行動フロー（GA4イベント）/ B=登録地域（Firestore集計。GA4では取れない）。
+
+#### 2. スコープ確定（ユーザー合意）
+- 閲覧: **GA4管理画面を直接見る**（アプリ内ダッシュボードは作らない）
+- 同意: **プライバシーポリシー記載のみ**（Cookie同意バナーなし）
+- 地域: 参考程度・オンデマンド集計スクリプト（常設しない）
+- 完全自前ログ方式は過剰として却下（Firestore書き込み課金増）
+
+#### 3. 成果物（commit 済み・develop）
+- 設計書 `docs/superpowers/specs/2026-06-29-usage-analytics-design.md`（commit `8c365c6`）
+- 実装計画 `docs/superpowers/plans/2026-06-29-usage-analytics.md`（commit `3aa8c52`）。7タスク構成（Task1〜5でコア計測完結、Task6地域集計は鍵要・独立スキップ可、Task7検証）
+
+#### 4. 計測フックポイント（調査で特定済み）
+- `guest_start`: [App.tsx:1481](../src/App.tsx) の `onTryGuest={() => setGuestMode(true)}`
+- `login`: [LandingPage.tsx:977](../src/components/LandingPage.tsx) と [LoginScreen.tsx:31](../src/components/LoginScreen.tsx) の各 handleLogin 先頭（クリック時点で発火＝popup/redirect両対応）
+- `weather_view`: [App.tsx:313](../src/App.tsx) の `useWeatherData` 直後に useEffect、`analytics.ts` 側のモジュールフラグで1セッション1回に制限
+- ラッパー新設 `src/lib/analytics.ts`（measurementId 未設定/非対応ブラウザで no-op）。firebase.ts は `export const app` ＋ config に measurementId 追加が必要
+
+### 決定事項
+- アナリティクスは **GA4（Firebase Analytics）中心**。リテンション・アクティブ数・頻度はGA4が自動取得、カスタムイベントは3種（guest_start/login/weather_view）に絞る（YAGNI）
+- **テスト基盤が存在しない**（vitest未導入）ため、本実装ではTDD不適用。検証は `npm run build` 通過＋GA4 DebugView手動確認（CLAUDE.md「最小限の影響・YAGNI」優先）
+- GA4は新規プロパティだとデータ蓄積に時間がかかる→「今すぐ入れて寝かせる」のが有料化判断に最も得
+
+### 未完了・次回候補
+- **【次回最優先】** 上記実装計画のコード実装（Task1〜5）。方式未定（サブエージェント駆動 vs インライン。規模が小さくインライン推奨と提示済み）
+- ユーザー作業: Firebase で GA4有効化→measurementId取得→ローカル`.env`＋Cloudflare Pages env に `VITE_FIREBASE_MEASUREMENT_ID` 追加→再デプロイ→DebugView確認
+- Task6（地域集計）は firebase-admin サービスアカウント鍵が必要・後回し可
+- 既存持ち越し: 本番デプロイ＆実機確認／エラー3分類のブラウザ実機確認／ブラウザ3状態E2E／`functions/`型チェック／iOS Safari実機／archiveプランOpen-Meteo照会
+
+---
+
+## 2026-06-28 セッション（99回目）
+
+### 作業内容（LPスクショ差し替え＋空もよう/空くらべ再構成 — develop へ push 済み `0858dca`）
+
+#### 1. LP画像の差し替え（実スクショへ）
+- ユーザーが `public/lp/` に新スクショ3枚を配置（hero-imanosora.png 1170×2439／feature-kurabe.png 当初2050→**最終1884**／hour.png 1170×2022）。AI農作業アドバイスは既存 feature-ai.webp を流用
+- コードの `width`/`height` を各実寸に更新（アスペクト比ズレ＝歪み防止）。`.webp`→`.png` へ src 変更
+- 孤児 webp 4枚を削除（hero-imanosora/feature-kurabe/feature-hourly/feature-custom）。`public/lp/` は参照中の4枚のみ（feature-ai.webp / feature-kurabe.png / hero-imanosora.png / hour.png）
+
+#### 2. 空もようセクションを「日別／時間別」2グループに再編
+- 旧: リード→hour.png（全機能の前）→4カード混在。新: 画面の上から順に **【日別の表示】**（見出し「まずは一日を、大きくつかむ。」＋1日3分割/リスク概況）→ **【時間別の表示】**（zigzagで見出し「気になる時間は、1時間ごとに。」＋hour.png ＋カッパ/専門データ）
+- 1日3分割カード末尾の「1時間単位でも確認できる」を削除し hourly 説明を時間別グループへ一本化（グループ境界の矛盾解消）
+
+#### 3. 空くらべセクション拡充
+- 引用を「『今年は暖かい気がする』けど、数字で確認できない」→「『今年は去年より暖かい気がする』けど、実際どうなのかわからない」
+- リードを「比較」に役割集約（去年/他地点との差・何日進んでいるか）
+- **積算のしくみ**ブロックを新設（glassカード・3点）: ①降水量/日照時間/日射量/積算温度を毎日自動積算しグラフ表示 ②積算開始日を生育に合わせ自由設定 ③積算温度は基準温度2種類まで登録
+
+#### 4. AIアドバイス／比較表／Hero
+- じぶん好みAI: 画像（feature-custom.webp）削除→文言のみのブロック化。本文をユーザー指定の新コピー（霜の警告・風速重点の例）に差し替え
+- AIアドバイス案内文から「まずは空もよう・空くらべ・空しらべを無料でお使いいただけます。」を削除
+- 「ログインでひろがる、できること」表の2階層目（機能ラベル列）に `white-space:nowrap` ＋ `width:1%` → 最長項目「CSV出力（一括ダウンロード）」幅にフィット、余白は記号列へ
+- Heroリードを校正: 「カッパが要るか」を具体フックとして残しつつ「農業に効くさまざまな指標」へ広げる（具体→抽象）。他地点比較・グラフ見える化を追記。「比較を計算」のコロケーション崩れを「積算温度の自動計算」へ付け替えて修正
+
+### 決定事項
+- LPスクショは実画像PNGで確定（別日作業だった差し替えを完了）。画像差し替え時はアスペクト比＝コードの width/height 更新が必須（lessons相当）
+- 空もようは「日別→時間別」の画面順で説明する構成に確定
+
+### 未完了・次回候補
+- 本番デプロイ＆実機確認（Cloudflare env は対応済みとユーザー報告）。develop→本番反映の最終確認
+- エラー3分類のブラウザ実機確認（DevTools Offline／5xx再現）は未実施
+- `tasks/session-log.md` の98回目分はLPコミットと別系統のため未commit（本コミットにも含めず）
+- 既存持ち越し: ブラウザ3状態E2E（Phase6）／`functions/` を型チェック対象に／iOS Safari実機／archiveプランをOpen-Meteo照会
+
+---
+
+## 2026-06-28 セッション（98回目）
+
+### 作業内容（前回持ち越しのLPリニューアルを commit & push）
+- 最優先持ち越し「LPリニューアル（AI後退・現場機能前面化）の commit & push」を処理
+- 未commitだった [LandingPage.tsx](src/components/LandingPage.tsx) の差分（+182/-71）が第97回の作業内容と一致することを確認（Droplets追加・AiAdviceSection新設・「畑に出られるか」リード・比較表△近日提供予定）
+- ビルド再検証（`tsc -b && vite build` 通過）→ commit `ed5779a`「feat(lp): AI機能を「近日提供」に後退させ現場機能を主役化」→ develop へ push 完了（`300d7c4..ed5779a`）
+
+### 決定事項
+- 特になし（前回決定の実行のみ）
+
+### 未完了・次回候補
+- **【本番デプロイ前・必須】** Cloudflare Pages env 設定（`AI_ALLOWLIST`/`FIREBASE_PROJECT_ID=orchweather`/`GEMINI_API_KEY`）→ 要再デプロイ。※メモリ project_monetization では第97回でユーザーが「設定完了」と報告した記録あり（要最終確認）
+- エラー3分類のブラウザ実機確認（DevTools Offline／5xx再現）は未実施
+- LPスクショ4枚差し替え（別日・`public/lp/` 同名上書き・WebP変換CLI未インストール）
+- 既存持ち越し: ブラウザ3状態E2E（Phase6）／`functions/` を型チェック対象に／iOS Safari実機／archiveプランをOpen-Meteo照会
+
+---
+
+## 2026-06-27 セッション（97回目）
+
+### 作業内容（ET₀タスクの正式スコープアウト・コード変更なし）
+
+#### 1. 持ち越しタスク「ET₀をAIコメント入力に追加」の再確認
+- ユーザー問い: ET₀タスクの内容を再説明 → 出自（第76回・790行付近）まで遡って整理
+- **事実確認**: ET₀（`et0_fao_evapotranspiration`）は現状 [forecast.ts:89-96](src/api/forecast.ts#L89-L96) の `dailyParams` に未含＝API取得から追加が必要。「持っているデータを渡すだけ」ではない。AIコメント入力は [aiCommentInput.ts](src/lib/aiCommentInput.ts) の `AiDailyEntry` 側に乗せるのが整合（日別値のため）
+
+#### 2. 「乾き具合グラフ」案の検討（議論のみ）
+- ユーザー案: 日別の降水量 − ET₀ の差を基準日から積算し、0より上＝湿/下＝乾でグラフ化
+- **農業気象の確立手法と一致**: 水収支（water balance）／積算＝土壌水分欠損（SMD: Soil Moisture Deficit）
+- 素朴モデルの3補正を提示: ①土壌は上限付きバケツ（圃場容水量で0キャップ・グラフはマイナス領域に住む）②ET₀は芝基準でETc=ET₀×Kcが必要 ③有効雨量（強雨は流出）。行動閾値は0でなくMAD/RAWライン（-30〜-50mm目安）
+
+#### 3. ET₀タスクの正式削除（決定・反映済み）
+- **ユーザー判断**: 一律の数字は人によって使い方が変わり役に立たない → スコープアウト
+- 合意した本質的理由: 一律の圃場容水量・灌水ラインで作る絶対指標は「精度がないのに精度があるフリ」をし、現地と外れた瞬間にアプリ全体の信頼を失う＝**機能が無いより有害**
+- グラフ案とAIコメント入力版を切り分け: グラフ＝精度詐称で却下／AI版＝相対表現で懸念は当たらないが、**14回持ち越し＝「優先度高」ラベルが実態と乖離＝実需が弱い証拠**として今は着手せず、本番デプロイ後にユーザー実需が出てから再検討
+- 反映3箇所: メモリ project_orchweather.md（ET₀ブロックを削除決定の記録に書換＋ロードマップ取消線）／session-log 96回目キャリーオーバーから除去
+
+#### 4. LP「AI後退・現場機能前面化」リニューアル（[LandingPage.tsx](src/components/LandingPage.tsx) のみ・未commit）
+- **背景**: AI機能を後日リリースとするため、メイン表示を現場機能（非AI）に変更。AIは「近日提供」に後退
+- **ユーザー確認2点**: ①AI先行コピーをLP全体で書き換える（推奨採用）②AIアドバイスは冒頭3画面俯瞰に入れず本文のみ独立セクション（推奨採用）
+- **「空もよう」再構成**: AI 2機能（AI農作業アドバイス／じぶん好みAI）を切り出し。新リード見出し「知りたいのは『傘が要るか』より、『畑に出られるか』。」＋4カードグリッド = ①1日3分割（午前4-12/午後12-20/夜間20-翌4・**1時間単位でも確認可**を後で追記）②リスク/概況2モード（リスク=時間帯の最悪天気/概況=最長天気）③カッパ判断3段階（ぽつぽつ<0.5/カッパ?<1.0/カッパ!<3.0mm、実装 [HourlyTable.tsx:26-29](src/components/weather/HourlyTable.tsx#L26-L29) と一致確認）④農業専門データ（露点/飽差/0℃層/大気安定度/UV）
+- **AIアドバイス新設**: 空しらべの後ろに独立セクション `AiAdviceSection`。アンバー「近日提供開始予定」バッジ＋案内バナー。AI 2機能のzigzagを移設
+- **全体整合（おとり広告回避）**: Heroリード文／3タブ俯瞰の空もようタグライン「AIが手伝う」→「午前・午後・夜間で今日の作業を読む」／比較表「AIの作業提案」✓→△近日提供予定／始め方ステップ3のAI言及削除／Hero画像alt修正
+- imports: `Sun`削除・`Droplets`追加。`npm run build` 型チェック・ビルド通過
+- **未commit**。dev server で実機確認中に終了。スクショ差し替えは別日（下記）
+
+### 決定事項
+- ET₀（AIコメント入力追加・乾き具合グラフとも）を正式スコープアウト。14セッション持ち越しを終了
+- 幽霊タスク（後回しされ続ける「優先度高」）は実需確認後に着手 or 正式削除の2択で処理する方針
+- LPはAIを「近日提供」に後退させ現場機能を主役化。AIは独立セクション＋俯瞰には載せない
+
+### 未完了・次回候補
+- **【最優先・次回頭】** LPリニューアルの commit & push（develop）。現在 [LandingPage.tsx](src/components/LandingPage.tsx) 未commit・ビルドは通過済み
+- **LPスクショ差し替え（別日作業）**: 保存先 `public/lp/`（同名上書きでコード変更不要）。対象=hero-imanosora.webp(780×1688)/feature-ai.webp(780×744)/feature-custom.webp(1167×1830)/feature-kurabe.webp(1178×1922)。撮り方=Chrome DevTools デバイスモード幅390・DPR2-3でくっきり・枠/角丸/影は付けない（CSS .lp-phone/.lp-shot が付与）・実データ＆個人情報マスク。WebP変換は Squoosh（Q80）。変換CLI（cwebp/ImageMagick）未インストール。アスペクト比変更時はコードの width/height 更新が必要
+- エラー3分類のブラウザ実機確認（DevTools Offline で offline 文、5xx 再現で upstream 文）は未実施
+- 既存持ち越し: ブラウザ3状態E2E（Phase6）／`functions/` を型チェック対象に／iOS Safari実機／archiveプランをOpen-Meteo照会
+
+---
+
+## 2026-06-27 セッション（96回目）
+
+### 作業内容（エラー切り分け実装＋設定ゲート＋LP文言 / develop へ push 済み）
+
+#### 1. データ取得失敗の原因切り分け（3分類）— コミット `4da5470`
+- 課題: 取得失敗時に英語の "Failed to fetch" がそのまま表示。Open-Meteo 側障害かユーザー側問題か区別できない
+- **本質的洞察**: ブラウザからは「サーバー障害」と「自分のオフライン」を完全には区別できない（fetch reject はどちらも同じ TypeError）。確実に判定できるのは **5xx/429 応答（取得元側で確定）** と **`navigator.onLine===false`（ユーザー側で確定）** の2つのみ。それ以外（オンラインなのに到達不能）はオフラインを先にすくった上で「取得元側」に寄せる
+- 実装: 共通分類器 [src/lib/weatherFetch.ts](src/lib/weatherFetch.ts)（`weatherFetch(url)` + `WeatherFetchError{kind: offline|upstream|data}`・日本語メッセージ内包）を新規作成。`forecast.ts`/`weather.ts`/`historicalForecast.ts`(2箇所) の取得層を経由化。表示側の固定接尾辞「。↻ で再試行してください。」と「エラーが発生しました:」を撤去（メッセージが再試行文言を内包＝二重化回避）
+- 3メッセージ: オフライン=「インターネット接続が確認できません。接続を確認して ↻ で再試行してください。」／取得元=「気象データの取得元がメンテナンス中、または現在使用できません。数時間後に再試行してください。」／その他=「データを取得できませんでした。↻ で再試行してください。」
+- 位置情報エラーは従来どおり [geo.ts](src/lib/geo.ts) が別系統で個別文言（温存）
+
+#### 2. 「空のアドバイス」設定を非AI許可ユーザーに操作不可化 — コミット `50b5d0f`
+- [AiCommentSettings.tsx](src/components/settings/AiCommentSettings.tsx) で `locked = !aiAllowed`。全チェックボックス・じぶん好みプロンプト入力・保存ボタンを `disabled`、リストを `opacity:0.55`、案内バナー「空のアドバイスは近日提供予定の機能です。提供開始までは設定を変更できません。」を表示
+- 未ログインも無料も `aiAllowed=false` で両方カバー（default false で安全側）
+
+#### 3. ログイン状態ゲートの重複点検（ユーザー問い）
+- **結論: 処理重複なし。`aiAllowed` はストア単一ソースで5箇所が読むだけ**（地点上限50/10 [store.ts:288]／CSV [DailyRawTable:226]／設定ロック [AiCommentSettings:42]／AI実フェッチ [WeatherTab:94,103]／AIカード出し分け [WeatherTab:347]）。各々が別機能を駆動＝関心分離された正しい多層
+- **設定ロックは機能的には不要だった**（無料へのAI遮断は②WeatherTabゲート＋③サーバー`requireAiAccess`で既に成立）。今回追加分は純粋なUX整合
+- **唯一の指摘＝`aiAllowed` の意味的過負荷**: 「AI可否」と「プレミアム可否（地点・CSV）」を1フラグで兼任。現行1ティアでは正しいが、将来プラン分割時に `isPremium`/`canUseAi` 分離が必要。A2（カスタムクレーム）移行時が自然な実施タイミング
+
+#### 4. LP「作った人」セクション本文を刷新 — コミット `300d7c4`
+- [LandingPage.tsx](src/components/LandingPage.tsx) MakerNote 本文を差し替え。見出し「作ったのは、同じ悩みを持つ農家です。」は維持
+- ライター視点で原稿の4点を修正（係り受け破綻「判断/可視化」・語重複「農作業/農作物」・「畑に出て+現場で」重複・「表示」3連発＆「詰め込んだ/詰まっています」重複）
+- 2段落で階層化: 第1段落＝リード（由来）、第2段落＝本文サイズ（clamp 0.85–0.92rem・具体機能=積算温度/概況リスク/午前午後夜間/カッパ）
+
+### 決定事項
+- エラーは3分類（offline/upstream/data）。グレーゾーン（オンラインなのに到達不能）は取得元側に寄せる
+- 設定ロックはUX目的（機能ゲートは②③が本体）
+- `aiAllowed` の過負荷は現状維持・将来A2移行時に分離
+
+### 未完了・次回候補
+- **【本番デプロイ前・必須】** Cloudflare Pages env 設定（`AI_ALLOWLIST`=Text推奨/`FIREBASE_PROJECT_ID=orchweather`=Text/`GEMINI_API_KEY`=Secret存在確認）。**手順提示のみで未実施**。設定後は要再デプロイ（既存デプロイに遡及しない）。`/api/me` で aiAllowed 反映確認
+- エラー3分類のブラウザ実機確認（DevTools Offline で offline 文、5xx 再現で upstream 文）は未実施
+- 既存持ち越し: ブラウザ3状態E2E（Phase6）／`functions/` を型チェック対象に／iOS Safari実機／archiveプランをOpen-Meteo照会
+- ~~ET₀をAIコメント入力に追加~~ → **第97回でスコープアウト（正式削除）**。14回持ち越しで「優先度高」が実態と乖離。一律の乾き指標は精度詐称リスク。本番後にユーザー実需が出たら再検討
+
+---
+
+## 2026-06-27 セッション（95回目）
+
+### 作業内容（大型実装：ログイン状態による機能制限 + LP比較表 / develop へ push 済み）
+
+#### 0. PCヘッダーの中央寄せ修正（コミット `d827f82`・冒頭の小タスク）
+- PC幅でヘッダーの左右ボタン群が画面端に離れる問題を修正。全幅バーの背景は維持し、内側コンテンツを本体（.app-container, max-width:1200px, padding:2rem）と同じ中央幅に揃えた
+
+#### 1. 「ログイン状態による機能制限」を設計→計画→実装（subagent駆動）
+- **brainstorming → spec → writing-plans → subagent-driven-development** の正式フローで遂行
+- spec: [docs/superpowers/specs/2026-06-27-login-based-feature-gating-design.md](docs/superpowers/specs/2026-06-27-login-based-feature-gating-design.md)（コミット `4553d7b`）
+- plan: [docs/superpowers/plans/2026-06-27-login-based-feature-gating.md](docs/superpowers/plans/2026-06-27-login-based-feature-gating.md)（コミット `44fb21d`）
+- 各フェーズを実装サブエージェント→spec準拠レビュー→code-qualityレビューの2段で検証
+
+**3つのアクセス状態:**
+| 状態 | 地点 | AI |
+|---|---|---|
+| 未ログイン（ゲスト） | 現在地のみ・保存不可 | Coming Soon |
+| ログイン非許可 | 最大10件 | Coming Soon |
+| ログインAI許可（env名簿） | 最大50件 | 実AI |
+
+**実装の柱:**
+- **サーバー認可（Phase1）**: AIエンドポイント（ai-comment/ai-custom）に `jose` でFirebase IDトークン検証＋env `AI_ALLOWLIST` 許可リスト→401/403。共有ガード `requireAiAccess`（functions/api/_auth.ts）。`/api/me` が `{aiAllowed}` を返す。検証ヘルパーは uid も返す（将来の日次お試しAI用の前準備）
+- **クライアント（Phase2-4）**: `/api/me`→store `aiAllowed`。これ1値で「実AI vs Coming Soon」と地点上限50/10を駆動。`AiComingSoonCard` 追加。`addLocation` に上限ガード
+- **ゲストモード（Phase5）**: `guestMode`（localStorage永続）、LP「ログインせずに試す」、ゲート `!user && !guestMode`、ヘッダー/設定のログイン誘導
+- **方式決定**: AI許可は **B方式（env許可リスト）** で確定。課金フェーズで A2（カスタムクレーム）へ移行（土台のトークン検証を再利用、捨て分ほぼゼロ）。Cloudflare強制ゆえ A2 がA1より軽い
+
+#### 2. 最終レビューで発見した privacy 修正
+- ログアウト時に `locations`/`userSettings` が残り、ゲストモードで前ユーザーの保存地点が見える漏れ → `resetUserData()` を追加し onAuthStateChanged の else で呼ぶ（コミット `ca10341`）
+- ゲスト時に地点セレクタ非表示（`ab4a3d2`）、`.dev.vars.example` 追加（`41a9c77`）
+
+#### 3. LP比較表 + CSV有料ゲート（ユーザー追加要望）
+- **比較表**「ログインでひろがる、できること」を新設。大項目（空もよう/空くらべ/空しらべ）×中項目の2階層（rowSpan）。記号 ◎/○/△/✗ の4段階。注記は「お試し期間」ニュアンス
+- 最終内容: 天気情報=△現在地/○10件/◎50件、AIアドバイス=✗/✗/◎、前年比較・積算=△現在地のみ/◎/◎、CSV出力=✗/✗/◎、過去の天気=△/◎/◎
+- **CSV出力を有料(aiAllowed)限定**に。未許可はロックボタン「CSVダウンロード（有料予定）」（DailyRawTable.tsx, `79895fd`）
+- Coming Soonカード文言調整（`e9ffadf`）、ゲストボタンを主CTA同サイズのゴースト化（`97fc438`）
+
+#### 4. 検証
+- 全フェーズ build 通過。サーバー401/403は wrangler + curl で自動検証済み（no token→401, bogus→401, /api/me→401, ai-custom→401）
+- ブラウザでの3状態E2E（Phase6）は**未実施**
+
+### 決定事項
+- AI許可リストは B方式（env `AI_ALLOWLIST`）で確定。課金時にA2へ移行
+- CSV出力は有料限定（aiAllowed ゲート）
+- LP比較表でAIアドバイス無料は「✗」のみ（制限付き無料AIの先約を回避）
+- develop へ 32コミット push 済み（`d827f82..31c1f00`）
+
+### 未完了・次回候補
+- **【本番デプロイ前・必須】** Cloudflare Pages ダッシュボードに `AI_ALLOWLIST`（許可メール）と `FIREBASE_PROJECT_ID=orchweather` を設定。未設定だと全トークン検証失敗→全員401→許可ユーザーもAI出ず（コスト安全側だが機能死ぬ）
+- **ブラウザでの3状態E2E（Phase6）** 未実施。特にログアウト→ゲストで前ユーザー地点が残らないかの確認
+- follow-up: `functions/` をビルドの型チェック対象に含める（tsconfig が src のみ・CI未担保）。空コミット2件（`e0acceb`/`d964bf3`）が履歴に残存（最終コードは正常）
+- 既存持ち越し: ET₀をAIコメント入力に追加（優先度高）／LP残り2枚差し替え／iOS Safari実機確認／archiveプランをOpen-Meteo照会
+
+---
+
+## 2026-06-26 セッション（94回目）
+
+### 作業内容（コミットなし・調査と意思決定／有料化＆コスト戦略の議論が中心）
+
+#### 1. AIコスト施策のクローズ
+- **施策B（flash-lite）却下**：品質が悪いためユーザー判断で不採用。`gemini-2.5-flash` で確定。文字数200-300・minLength200は維持。`thinkingBudget:1024` は品質直結のため当面据え置き
+- **施策C（共有キャッシュ）見送り**：費用対効果が薄い（効果が地域集積前は実質0）ためユーザー判断で現時点不採用
+- → AIコスト施策は **A完了・B/C却下でクローズ**
+- **広告（アフィリエイト動画）でのコスト回収は不採用**：AIコメント1回≈¥1.2 vs 動画リワード1再生≈¥1でトントン止まり・固定費は救えず・主力AIに広告を被せると有料転換を毀損
+
+#### 2. 未ログイン設計の確定
+- **未ログイン＝AIコメント非表示**（ログイン特典化・コスト漏れ防止）。`useAiComment` は uid 無しで comment=null＝既存挙動と整合
+- **未ログイン＝現在地のみ**（保存なし）。既存 `__geo__` 機構（geolocation取得・Firestore非依存）に乗るため実装最小。地点保存は uid 必須＝未ログインでは原理的に不可
+- ログインゲートは現状 [App.tsx:1475](src/App.tsx#L1475) の `if(!user) return <LandingPage/>` で全ブロック → 未ログインを現在地モードでアプリ本体へ通す改修が必要
+
+#### 3. Open-Meteo 商用ライセンスの確定（規約逐語）
+- **商用利用は Free tier 不可**。規約逐語「subscriptions を持つ or 広告を表示する apps」＝商用。**判定はアプリ単位**。「天気は無料解放・AIだけ課金」でもアプリがAIサブスクを持てば商用＝有料プラン必須（ユーザー照会への確定回答）
+- **archive の必要プランは未確定**：Standard(€29≈¥4,500) か Professional(€99≈¥15,000) かで損益分岐3倍差（¥500課金で9人 vs 30人）。3ソース矛盾 → **`info@open-meteo.com` 照会 or Stripe購入画面で確認が宿題**
+- 現状コードは forecast/archive/historical-forecast すべて **APIキーなしのオープンエンドポイント**＝既にFree非商用で運用中（[weather.ts:13](src/api/weather.ts#L13)）
+
+#### 4. 当面の方針（測定ファースト）
+- **AIを「Coming Soon」にして他機能（空くらべ含む）を無料開放**。非商用＝固定費ゼロで測定フェーズを回せる。Coming Soonのクリック/通知登録でAI需要を先行測定
+- **未ログイン現在地／ログインで地点登録**にして、利用率・ログイン率を測定
+- 重要な解釈注意：AI抜きで測るログイン率は**下限値**（本番より低く出る）。出口閾値を先に決めること
+- **空くらべは後回し不可**（AIと並ぶ／上の訴求とユーザー判断）→ archive前提の固定費型ビジネスとして設計（損益分岐超で限界費用ほぼゼロ＝高収益）
+
+#### 5. archive永続キャッシュの設計を確定（別メモリ [[project_archive_cache_design]]）
+- 生座標キーは同一ユーザーのみ／ナイーブな0.05度丸めはモデル格子（JMA-MSM 5km投影格子）とずれて不成立
+- 結論：**Open-Meteoレスポンスの実格子点座標（現状 [weather.ts:92](src/api/weather.ts#L92) で捨てている latitude/longitude）を正規化キーにする2層方式**（探索表＝粗グリッド／本体＝厳密格子点）。誤データは構造的にゼロ＝安全側に倒れる
+
+### 決定事項
+- AIコスト施策クローズ（A完了・B/C却下）／広告回収不採用
+- 未ログイン＝AIなし・現在地のみ（確定）
+- 商用＝Open-Meteo Free不可（確定）／archiveプランは要直接照会
+- 当面はAI Coming Soon＋他機能無料開放で測定フェーズ
+- archive永続キャッシュは「実格子点キー＋2層方式」で設計確定（保存先・層の位置は未決）
+
+### 未完了・次回候補
+- **【次回開始点】geolocation拒否時のフォールバック設計**（現在地のみだと位置拒否ユーザーが何も見えず即離脱 → デフォルト地点 or 地点検索1回を許す）
+- ログインゲート改修（[App.tsx:1475](src/App.tsx#L1475) 未ログインを現在地モードへ）＋AI Coming Soon化（要 brainstorming）
+- 測定の出口閾値を先に決める（MAU/ログイン率/再訪率/Coming Soonクリック率＋撤退ライン）
+- archive永続キャッシュ未決：保存先（Firestore/KV）・層の位置（クライアント/Pages Function）・粗グリッド粒度
+- archiveプランを Open-Meteo に直接照会（損益分岐確定）／AI実コスト測定
+- 既存持ち越し：ET₀をAIコメント入力に追加（優先度高）／LP残り2枚差し替え／iOS Safari実機確認
+
+---
+
 ## 2026-06-25 セッション（93回目）
 
 ### 作業内容（AIコスト施策A〜Bの実装・前回調査の実行フェーズ）
