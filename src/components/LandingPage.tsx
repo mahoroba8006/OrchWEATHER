@@ -956,6 +956,7 @@ function LpFooter() {
           <p style={{ margin: '0 0 0.5rem' }}>
             <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
             　<a href="/disclaimer.html" target="_blank" rel="noopener noreferrer">免責事項</a>
+            　<a href="/contact.html" target="_blank" rel="noopener noreferrer">お問い合わせ</a>
           </p>
           <p style={{ margin: '0 0 0.5rem' }}>
             気象データ提供：<a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>

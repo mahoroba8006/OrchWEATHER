@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>お問い合わせ | Orch.Weather</title>
+  <meta name="description" content="Orch.Weather へのご質問・ご意見・不具合のご報告はこちらのフォームからお寄せください。" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #0d9488;
+      --accent-dark: #0f766e;
+      --bg: #f0faf8;
+      --surface: #ffffff;
+      --border: #d1e8e4;
+      --ink: #1a2e2c;
+      --ink-soft: #3d5754;
+      --ink-mute: #7a9e9b;
+      --accent-soft: #e8f7f5;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(13,148,136,0.08);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.7;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav.top-nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 60px;
+      background: rgba(240,250,248,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .nav-brand img { border-radius: 5px; }
+    .nav-brand span { font-weight: 800; font-size: 15px; color: var(--ink); letter-spacing: -0.01em; }
+    .nav-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 18px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+      color: #fff;
+      border-radius: 8px;
+      font-weight: 700; font-size: 13px;
+      text-decoration: none;
+    }
+
+    /* MAIN */
+    main { max-width: 760px; margin: 0 auto; padding: 56px 24px 96px; }
+
+    .page-label {
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 10px;
+    }
+    h1 {
+      font-size: clamp(26px, 4vw, 38px); font-weight: 900; color: var(--ink);
+      margin-bottom: 12px; letter-spacing: -0.02em;
+    }
+    .lead {
+      font-size: 14.5px; color: var(--ink-soft); line-height: 1.8;
+      margin-bottom: 32px;
+    }
+
+    .note-box {
+      background: var(--accent-soft); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 18px 24px;
+      margin-bottom: 32px;
+      font-size: 13px; color: var(--ink-soft); line-height: 1.75;
+    }
+
+    .form-card {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 24px 24px 16px;
+      box-shadow: var(--shadow); min-height: 480px;
+    }
+    .form-card iframe { display: block; border: 0; width: 100%; }
+
+    /* FOOTER */
+    footer {
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 32px 24px; text-align: center;
+    }
+    .footer-brand { font-weight: 800; font-size: 13px; color: var(--ink); margin-bottom: 12px; }
+    .footer-links { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+    .footer-links a { font-size: 12.5px; color: var(--ink-mute); font-weight: 500; }
+
+    @media (max-width: 600px) {
+      main { padding: 40px 16px 80px; }
+      .form-card { padding: 16px 14px 12px; }
+      .note-box { padding: 16px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    <a class="nav-brand" href="/">
+      <img src="/icon.png" width="24" height="24" alt="Orch.Weather" />
+      <span>Orch.Weather</span>
+    </a>
+    <a class="nav-btn" href="/">アプリを開く</a>
+  </nav>
+
+  <main>
+    <div style="margin-bottom: 32px;">
+      <p class="page-label">Contact</p>
+      <h1>お問い合わせ</h1>
+    </div>
+
+    <p class="lead">
+      ご質問・ご意見・不具合のご報告などは、以下のフォームよりお寄せください。<br />
+      内容を確認のうえ、原則3営業日以内にご返信いたします。
+    </p>
+
+    <div class="note-box">
+      送信いただいた内容は、お問い合わせフォーム提供元の Tally Forms（株式会社 Tally）を経由して当方の運用メールに転送されます。個人情報の取扱いの詳細は <a href="/privacy-policy" style="color: var(--accent-dark); font-weight: 600;">プライバシーポリシー</a> をご確認ください。
+    </div>
+
+    <div class="form-card">
+      <!-- Orch.Weather 用 Tally フォーム（https://tally.so/r/VLAv8N） -->
+      <iframe
+        id="tally-form"
+        loading="lazy"
+        width="100%"
+        height="480"
+        frameborder="0"
+        title="Orch.Weather お問い合わせフォーム"></iframe>
+    </div>
+  </main>
+
+  <footer>
+    <p class="footer-brand">Orch.Weather</p>
+    <div class="footer-links">
+      <a href="/">トップページ</a>
+      <a href="/privacy-policy">プライバシーポリシー</a>
+      <a href="/disclaimer">免責事項</a>
+    </div>
+  </footer>
+
+  <script>
+    // ▼ Orch.Weather 用 Tally フォームID（https://tally.so/r/VLAv8N）
+    var TALLY_FORM_ID = 'VLAv8N';
+    var embedSrc = 'https://tally.so/embed/' + TALLY_FORM_ID +
+      '?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1';
+    document.getElementById('tally-form').setAttribute('data-tally-src', embedSrc);
+  </script>
+  <script src="https://tally.so/widgets/embed.js"></script>
+
+</body>
+</html>
