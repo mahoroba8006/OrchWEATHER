@@ -945,7 +945,7 @@ function LpFooter() {
         }}>
           <p style={{ margin: '0 0 0.4rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>ご利用上の注意</p>
           <p style={{ margin: 0 }}>
-            本アプリは、気象庁等の公的機関が発表する公式予報データおよびOpen-Meteoの気象データをインプットとし、ユーザー自身が設定した指示文（プロンプト）に基づいて生成AIが機械的に文章を出力する「シミュレーション・サポートツール」です。アプリ自体が独自の気象予測を行うものではありません。AIの出力結果の正確性・安全性を保証するものではありませんので、実際の農作業の決定は、必ずご自身の責任のもとで公式の気象警報・注意報を確認して行ってください。
+            本アプリは、気象庁が発表する注意報・警報や、Open-Meteoが提供する気象データ（実績・予報）を、農業で使いやすい形に整理してお見せするツールです。アプリが独自に天気を予測することはなく、気象予報業務許可を要する予報業務を行うものではありません。表示される数値やグラフは参考情報であり、データの誤差・欠損・遅延や、予報と実際の天候が異なることがあります。農薬散布・防霜対策などの実際の作業判断は、気象庁の最新の警報・注意報や現地の状況とあわせて、ご自身の責任のもとで行ってください。詳しくは下記の免責事項をご覧ください。
           </p>
         </div>
         <div style={{ textAlign: 'center' }}>
@@ -955,12 +955,12 @@ function LpFooter() {
           </div>
           <p style={{ margin: '0 0 0.5rem' }}>
             <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
-            　<a href="/disclaimer.html" target="_blank" rel="noopener noreferrer">免責事項</a>
-            　<a href="/contact.html" target="_blank" rel="noopener noreferrer">お問い合わせ</a>
+            {'　'}<a href="/disclaimer.html" target="_blank" rel="noopener noreferrer">免責事項</a>
+            {'　'}<a href="/contact.html" target="_blank" rel="noopener noreferrer">お問い合わせ</a>
           </p>
           <p style={{ margin: '0 0 0.5rem' }}>
             気象データ提供：<a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
-            　注意報・警報：<a href="https://www.jma.go.jp" target="_blank" rel="noopener noreferrer">気象庁</a>
+            {'　'}注意報・警報：<a href="https://www.jma.go.jp" target="_blank" rel="noopener noreferrer">気象庁</a>
           </p>
           <p style={{ margin: 0 }}>© 2025 Orch.Weather — Orchシリーズ農業専用ツール</p>
         </div>
