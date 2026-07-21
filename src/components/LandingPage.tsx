@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type ReactNode, type CSSProperties } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode, type CSSProperties } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import {
   Leaf, ArrowRight, Quote, Sparkles, BarChart2, CloudSun, SlidersHorizontal, Sprout,
@@ -9,39 +9,188 @@ import { logLogin } from '../lib/analytics';
 import '../landing.css';
 
 /* ─────────────────────────────────────────
-   スクロールフェードイン
+   モーション・ユーティリティ
+   （スクロール進捗・パララックス・reduced-motion 判定）
 ───────────────────────────────────────── */
-function FadeIn({ children, delay = 0, style }: {
-  children: ReactNode;
-  delay?: number;
-  style?: CSSProperties;
-}) {
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** 全体スクロール進捗 (0-1) を rAF スロットル・passive で監視し onProgress に渡す。
+ *  reduced-motion 時は forceActive 指定がない限り購読しない（静的表示にフォールバック）。 */
+function useScrollProgress(onProgress: (p: number) => void, opts?: { forceActive?: boolean }) {
+  useEffect(() => {
+    if (!opts?.forceActive && prefersReducedMotion()) return;
+    let ticking = false;
+    const compute = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    };
+    const tick = () => {
+      onProgress(compute());
+      ticking = false;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(tick);
+      }
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [onProgress, opts?.forceActive]);
+}
+
+/** 要素がビューポート中心からどれだけ離れているかに応じた translate3d オフセットを返す（速度差でパララックス表現）。 */
+function useParallax<T extends HTMLElement>(speed: number) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const el = ref.current;
+    if (!el) return;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const rect = el.getBoundingClientRect();
+      const center = rect.top + rect.height / 2 - window.innerHeight / 2;
+      el.style.transform = `translate3d(0, ${(-center * speed).toFixed(2)}px, 0)`;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [speed]);
+  return ref;
+}
+
+/* ─────────────────────────────────────────
+   スカイバックドロップ（スクロールで晴れていく空）
+───────────────────────────────────────── */
+// スクロール最上部（Hero）に最も青い「晴天」を置き、白い雲のコントラストを確保する。
+// 下方向へ 青空 → 夜明け（暖色）へと推移。
+const SKY_STOPS: [string, string, string][] = [
+  ['#aaddff', '#d5eeff', '#fffbeb'], // 晴天（最上部）
+  ['#bfe0fb', '#ddeffe', '#f2faff'], // 青空（中間）
+  ['#fdf4e8', '#e3edf9', '#eef5fc'], // 夜明け（最下部）
+];
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function lerpChannel(a: number, b: number, t: number) {
+  return Math.round(a + (b - a) * t);
+}
+
+function skyColorsAt(p: number): [string, string, string] {
+  const idx = p <= 0.5 ? 0 : 1;
+  const t = p <= 0.5 ? p / 0.5 : (p - 0.5) / 0.5;
+  const from = SKY_STOPS[idx];
+  const to = SKY_STOPS[idx + 1];
+  return [0, 1, 2].map((i) => {
+    const [ar, ag, ab] = hexToRgb(from[i]);
+    const [br, bg, bb] = hexToRgb(to[i]);
+    return `rgb(${lerpChannel(ar, br, t)}, ${lerpChannel(ag, bg, t)}, ${lerpChannel(ab, bb, t)})`;
+  }) as [string, string, string];
+}
+
+function SkyBackdrop() {
   const ref = useRef<HTMLDivElement>(null);
+  const handleProgress = useCallback((p: number) => {
+    const el = ref.current;
+    if (!el) return;
+    const [c1, c2, c3] = skyColorsAt(p);
+    el.style.setProperty('--sky-1', c1);
+    el.style.setProperty('--sky-2', c2);
+    el.style.setProperty('--sky-3', c3);
+  }, []);
+  useScrollProgress(handleProgress);
+  return <div ref={ref} className="lp-sky-backdrop" aria-hidden="true" />;
+}
+
+/* ── パララックス装飾雲（セクション間） ── */
+function ParallaxCloud({ speed, style }: { speed: number; style?: CSSProperties }) {
+  const ref = useParallax<HTMLDivElement>(speed);
+  return <div ref={ref} className="lp-parallax-cloud" aria-hidden="true" style={style} />;
+}
+
+/* ─────────────────────────────────────────
+   スクロール出現演出（Reveal）
+───────────────────────────────────────── */
+type RevealVariant = 'fade-up' | 'fade-left' | 'fade-right' | 'scale' | 'blur';
+
+/** IntersectionObserver で1回だけ検知し、対象（または stagger 指定時は直接の子要素）に
+ *  transition-delay を仕込んでから .lp-reveal--in を付与する。 */
+function useRevealObserver<T extends HTMLElement>(delay: number, stagger?: number) {
+  const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      setTimeout(() => {
-        if (!el) return;
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-      }, delay * 1000);
+    if (stagger) {
+      Array.from(el.children).forEach((child, i) => {
+        (child as HTMLElement).style.transitionDelay = `${delay + (i * stagger) / 1000}s`;
+      });
+    } else {
+      el.style.transitionDelay = `${delay}s`;
+    }
+    const obs = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      el.classList.add('lp-reveal--in');
       obs.unobserve(el);
     }, { threshold: 0.08 });
     obs.observe(el);
     return () => obs.disconnect();
-  }, [delay]);
+  }, [delay, stagger]);
+  return ref;
+}
 
+function Reveal({ children, variant = 'fade-up', delay = 0, stagger, style, className }: {
+  children: ReactNode;
+  variant?: RevealVariant;
+  delay?: number;
+  /** 指定すると直接の子要素を80〜120ms間隔で時差表示する（カード群・リストなど） */
+  stagger?: number;
+  style?: CSSProperties;
+  className?: string;
+}) {
+  const ref = useRevealObserver<HTMLDivElement>(delay, stagger);
+  const rootClass = stagger ? 'lp-reveal-stagger' : 'lp-reveal';
   return (
-    <div ref={ref} style={{
-      opacity: 0,
-      transform: 'translateY(28px)',
-      transition: 'opacity 0.65s cubic-bezier(.22,1,.36,1), transform 0.65s cubic-bezier(.22,1,.36,1)',
-      ...style,
-    }}>
+    <div
+      ref={ref}
+      className={className ? `${rootClass} ${className}` : rootClass}
+      data-variant={variant}
+      style={style}
+    >
       {children}
     </div>
+  );
+}
+
+/** 比較表 tbody 用：行を上から順に stagger 表示。tr への transform 適用はSafari等での
+ *  互換性が不安定なため opacity のみで安全にアニメーションする。 */
+function RevealTbody({ children, stagger = 90 }: { children: ReactNode; stagger?: number }) {
+  const ref = useRevealObserver<HTMLTableSectionElement>(0, stagger);
+  return (
+    <tbody ref={ref} className="lp-reveal-stagger--row">
+      {children}
+    </tbody>
   );
 }
 
@@ -165,8 +314,18 @@ function TabBadge({ icon: Icon, name }: { icon: typeof CloudSun; name: string })
    セクション
 ───────────────────────────────────────── */
 function Nav({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
+  const [scrolled, setScrolled] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+  const handleProgress = useCallback((p: number) => {
+    setScrolled(window.scrollY > 40);
+    if (barRef.current) barRef.current.style.transform = `scaleX(${p})`;
+  }, []);
+  // ナビの状態遷移は継続的な演出ではなく離散的なUIフィードバックのため forceActive で reduced-motion 下でも維持
+  useScrollProgress(handleProgress, { forceActive: true });
+
   return (
-    <nav className="lp-nav">
+    <nav className={scrolled ? 'lp-nav lp-nav--scrolled' : 'lp-nav'}>
+      <div className="lp-nav-glass" aria-hidden="true" />
       <div className="lp-nav-inner">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Leaf size={20} color="var(--accent-color)" />
@@ -176,15 +335,34 @@ function Nav({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
           無料で始める
         </button>
       </div>
+      <div className="lp-nav-progress-track" aria-hidden="true">
+        <div ref={barRef} className="lp-nav-progress" />
+      </div>
     </nav>
   );
 }
 
-function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error: string | null; onLogin: () => void; onTryGuest: () => void }) {
+/* Hero「生きている空」装飾（雲の浮遊＋光のシマー）。aria-hidden・pointer-events:none で読み上げ／操作に影響しない */
+function HeroSky() {
   return (
-    <section className="lp-section" style={{ paddingTop: 'clamp(2.5rem, 6vw, 4rem)' }}>
+    <div className="lp-hero-sky" aria-hidden="true">
+      <div className="lp-hero-cloud lp-hero-cloud--1" />
+      <div className="lp-hero-cloud lp-hero-cloud--2" />
+      <div className="lp-hero-cloud lp-hero-cloud--3" />
+      <div className="lp-hero-cloud lp-hero-cloud--4" />
+      <div className="lp-hero-cloud lp-hero-cloud--5" />
+      <div className="lp-hero-shimmer" />
+    </div>
+  );
+}
+
+function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error: string | null; onLogin: () => void; onTryGuest: () => void }) {
+  const phoneParallaxRef = useParallax<HTMLDivElement>(0.06);
+  return (
+    <section className="lp-hero lp-section" style={{ paddingTop: 'clamp(2.5rem, 6vw, 4rem)' }}>
+      <HeroSky />
       <div className="lp-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'clamp(2rem, 5vw, 3.5rem)' }}>
-        <FadeIn style={{ flex: '1 1 400px', minWidth: 0 }}>
+        <Reveal style={{ flex: '1 1 400px', minWidth: 0 }}>
           <p style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
             background: 'var(--accent-light)', color: 'var(--accent-color)',
@@ -217,12 +395,14 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
             登録30秒・いまは完全無料
           </p>
           {error && <p style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '0.6rem' }}>{error}</p>}
-        </FadeIn>
-        <FadeIn delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
-          <div className="lp-phone">
-            <img src="/lp/hero-imanosora.png" alt="空もよう — 午前・午後・夜間の空模様がわかる画面" width={1170} height={2439} />
+        </Reveal>
+        <Reveal variant="scale" delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
+          <div ref={phoneParallaxRef} className="lp-phone-parallax">
+            <div className="lp-phone lp-phone--float">
+              <img src="/lp/hero-imanosora.png" alt="空もよう — 午前・午後・夜間の空模様がわかる画面" width={1170} height={2439} />
+            </div>
           </div>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -231,41 +411,43 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
 /* ── 3タブ俯瞰 ── */
 function BridgeSection() {
   return (
-    <section className="lp-section" style={{ paddingTop: 0, paddingBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
+    <section className="lp-section lp-section--cloud-host" style={{ paddingTop: 0, paddingBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
+      <ParallaxCloud speed={0.15} style={{ width: 220, height: 100, top: '-10%', right: '-6%' }} />
       <div className="lp-container-narrow">
-        <FadeIn>
+        <Reveal>
           <h2 className="lp-h2">3つの画面で、農業の時間をすべてカバーする。</h2>
-        </FadeIn>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-          gap: '1rem',
-          marginTop: '1.8rem',
-        }}>
-          {tabOverview.map((tab, i) => {
+        </Reveal>
+        <Reveal
+          stagger={100}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+            gap: '1rem',
+            marginTop: '1.8rem',
+          }}
+        >
+          {tabOverview.map((tab) => {
             const Icon = tab.icon;
             return (
-              <FadeIn key={tab.name} delay={i * 0.1}>
-                <div className="lp-glass" style={{ padding: '1.4rem 1.2rem', textAlign: 'center', height: '100%', boxSizing: 'border-box' }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 12,
-                    background: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(13,148,136,0.28))',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    margin: '0 auto 0.75rem',
-                  }}>
-                    <Icon size={20} color="var(--accent-color)" />
-                  </div>
-                  <p style={{ fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.4rem', letterSpacing: '0.02em' }}>
-                    {tab.name}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.75 }}>
-                    {tab.tagline}
-                  </p>
+              <div key={tab.name} className="lp-glass" style={{ padding: '1.4rem 1.2rem', textAlign: 'center', height: '100%', boxSizing: 'border-box' }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(13,148,136,0.28))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 0.75rem',
+                }}>
+                  <Icon size={20} color="var(--accent-color)" />
                 </div>
-              </FadeIn>
+                <p style={{ fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.4rem', letterSpacing: '0.02em' }}>
+                  {tab.name}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.75 }}>
+                  {tab.tagline}
+                </p>
+              </div>
             );
           })}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -276,7 +458,7 @@ function SoraMoyoSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
       <div className="lp-container">
-        <FadeIn>
+        <Reveal>
           <TabBadge icon={CloudSun} name="空もよう" />
           <div className="lp-glass" style={{
             padding: '1.2rem 1.4rem',
@@ -291,10 +473,10 @@ function SoraMoyoSection() {
               防除、散布、施肥…。今日できるか明日できるか、気温・降水確率・風速を一つずつ確認しながら考えている。
             </p>
           </div>
-        </FadeIn>
+        </Reveal>
 
         {/* 現場目線のリード */}
-        <FadeIn>
+        <Reveal variant="fade-left">
           <div style={{ marginBottom: 'clamp(1.8rem, 5vw, 2.6rem)' }}>
             <h3 style={{
               fontSize: 'clamp(1.3rem, 3.4vw, 1.7rem)', fontWeight: 800,
@@ -306,10 +488,10 @@ function SoraMoyoSection() {
               空もようは、ふつうの天気予報を農作業の現場に寄り添う形に作り直しました。天気・降水量・専門データのすべてを、作業の判断にそのまま使える見せ方で表示します。
             </p>
           </div>
-        </FadeIn>
+        </Reveal>
 
         {/* 日別の表示 */}
-        <FadeIn>
+        <Reveal>
           <div style={{ marginBottom: '1.3rem' }}>
             <p style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
@@ -325,11 +507,15 @@ function SoraMoyoSection() {
               まずは一日を、大きくつかむ。
             </h3>
           </div>
-          <div style={{
+        </Reveal>
+        <Reveal
+          stagger={110}
+          style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: '1.1rem',
-          }}>
+          }}
+        >
 
             {/* 1日3分割 */}
             <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
@@ -394,40 +580,41 @@ function SoraMoyoSection() {
                 </div>
               </div>
             </div>
-          </div>
-        </FadeIn>
+        </Reveal>
 
         {/* 時間別の表示 */}
-        <FadeIn>
-          <div className="lp-zigzag" style={{ marginTop: 'clamp(2.2rem, 6vw, 3.2rem)', marginBottom: 'clamp(1.6rem, 4vw, 2.4rem)' }}>
-            <div>
-              <p style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
-                margin: '0 0 0.7rem',
-              }}>
-                <Clock size={16} /> 時間別の表示
-              </p>
-              <h3 style={{
-                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-                lineHeight: 1.5, margin: '0 0 0.8rem',
-              }}>
-                気になる時間は、1時間ごとに。
-              </h3>
-              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-                午前・午後・夜間の3分割からさらに踏み込んで、<strong>1時間ごと</strong>の細かな動きまで。気温・降水・風がどう変わるかを時間軸で追えるので、天気が崩れるタイミングをピンポイントでつかめます。
-              </p>
-            </div>
-            <div>
-              <img className="lp-shot" src="/lp/hour.png" alt="空もよう — 時間別の天気がわかる画面" width={1170} height={2022} loading="lazy" />
-            </div>
-          </div>
+        <div className="lp-zigzag" style={{ marginTop: 'clamp(2.2rem, 6vw, 3.2rem)', marginBottom: 'clamp(1.6rem, 4vw, 2.4rem)' }}>
+          <Reveal variant="fade-left">
+            <p style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              margin: '0 0 0.7rem',
+            }}>
+              <Clock size={16} /> 時間別の表示
+            </p>
+            <h3 style={{
+              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+              lineHeight: 1.5, margin: '0 0 0.8rem',
+            }}>
+              気になる時間は、1時間ごとに。
+            </h3>
+            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+              午前・午後・夜間の3分割からさらに踏み込んで、<strong>1時間ごと</strong>の細かな動きまで。気温・降水・風がどう変わるかを時間軸で追えるので、天気が崩れるタイミングをピンポイントでつかめます。
+            </p>
+          </Reveal>
+          <Reveal variant="fade-right">
+            <img className="lp-shot" src="/lp/hour.png" alt="空もよう — 時間別の天気がわかる画面" width={1170} height={2022} loading="lazy" />
+          </Reveal>
+        </div>
 
-          <div style={{
+        <Reveal
+          stagger={110}
+          style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: '1.1rem',
-          }}>
+          }}
+        >
 
             {/* カッパ判断 */}
             <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
@@ -505,8 +692,7 @@ function SoraMoyoSection() {
                 露点温度（霜害リスク）、飽差（水分管理）、0℃層高度（雹リスク）、大気安定度（落雷リスク）、紫外線指数——気温と降水確率だけでは見えない判断材料を、時間別に一覧表示します。
               </p>
             </div>
-          </div>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -515,9 +701,10 @@ function SoraMoyoSection() {
 /* ── 空くらべ ── */
 function SoraKurabeSection() {
   return (
-    <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
+    <section className="lp-section lp-section--cloud-host" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
+      <ParallaxCloud speed={0.25} style={{ width: 260, height: 120, top: '55%', left: '-8%' }} />
       <div className="lp-container">
-        <FadeIn>
+        <Reveal>
           <TabBadge icon={BarChart2} name="空くらべ" />
           <div className="lp-glass" style={{
             padding: '1.2rem 1.4rem',
@@ -532,36 +719,34 @@ function SoraKurabeSection() {
               去年と比べてどれくらい違うのか、何日進んでいるか——感覚ではなく数字で把握したい。
             </p>
           </div>
-        </FadeIn>
+        </Reveal>
 
-        <FadeIn>
-          <div className="lp-zigzag">
-            <div>
-              <p style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
-                margin: '0 0 0.7rem',
-              }}>
-                <BarChart2 size={16} /> 前年比較・積算
-              </p>
-              <h3 style={{
-                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-                lineHeight: 1.5, margin: '0 0 0.8rem',
-              }}>
-                「今年は早い？遅い？」が、数字でわかる。
-              </h3>
-              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-                比較したい年や登録地点を選んでグラフに重ねると、「去年より何日進んでいるか」「あの場所とどれくらい違うか」までひと目でわかります。
-              </p>
-            </div>
-            <div>
-              <img className="lp-shot" src="/lp/feature-kurabe.png" alt="前年比較チャートの画面" width={1170} height={1884} loading="lazy" />
-            </div>
-          </div>
-        </FadeIn>
+        <div className="lp-zigzag">
+          <Reveal variant="fade-left">
+            <p style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              margin: '0 0 0.7rem',
+            }}>
+              <BarChart2 size={16} /> 前年比較・積算
+            </p>
+            <h3 style={{
+              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+              lineHeight: 1.5, margin: '0 0 0.8rem',
+            }}>
+              「今年は早い？遅い？」が、数字でわかる。
+            </h3>
+            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+              比較したい年や登録地点を選んでグラフに重ねると、「去年より何日進んでいるか」「あの場所とどれくらい違うか」までひと目でわかります。
+            </p>
+          </Reveal>
+          <Reveal variant="fade-right">
+            <img className="lp-shot" src="/lp/feature-kurabe.png" alt="前年比較チャートの画面" width={1170} height={1884} loading="lazy" />
+          </Reveal>
+        </div>
 
         {/* 積算のしくみ */}
-        <FadeIn>
+        <Reveal>
           <div className="lp-glass" style={{
             padding: 'clamp(1.5rem, 4vw, 2rem)',
             marginTop: 'clamp(1.8rem, 5vw, 2.6rem)',
@@ -569,7 +754,7 @@ function SoraKurabeSection() {
             <p style={{ fontWeight: 800, margin: '0 0 1.1rem', fontSize: '1rem' }}>
               自分の畑の生育に合わせて、積算を作れる。
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.95rem' }}>
+            <Reveal stagger={90} style={{ display: 'flex', flexDirection: 'column', gap: '0.95rem' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-color)', flexShrink: 0, marginTop: '0.5rem' }} />
                 <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
@@ -588,9 +773,9 @@ function SoraKurabeSection() {
                   <strong>積算温度は、基準温度を2種類まで登録。</strong><span style={{ color: 'var(--text-secondary)' }}>作物や用途に合わせた基準温度を2つ持てるので、ねらいの異なる積算を並べて確認できます。</span>
                 </p>
               </div>
-            </div>
+            </Reveal>
           </div>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -601,7 +786,7 @@ function SoraShirabeSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
       <div className="lp-container-narrow">
-        <FadeIn>
+        <Reveal variant="blur">
           <TabBadge icon={History} name="空しらべ" />
           <div className="lp-glass" style={{ padding: 'clamp(1.6rem, 4vw, 2.4rem)' }}>
             <h3 style={{
@@ -616,7 +801,7 @@ function SoraShirabeSection() {
               失敗した作業の原因追跡にも、翌年の作業計画を立てるときの参考にも。
             </p>
           </div>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -627,7 +812,7 @@ function AiAdviceSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
       <div className="lp-container">
-        <FadeIn>
+        <Reveal>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap' }}>
             <TabBadge icon={Sparkles} name="AIアドバイス" />
             <span style={{
@@ -652,37 +837,35 @@ function AiAdviceSection() {
               AIが気象データから作業できる時間帯と残るリスクを提案する機能を準備中です。
             </p>
           </div>
-        </FadeIn>
+        </Reveal>
 
         {/* AI農作業アドバイス */}
-        <FadeIn>
-          <div className="lp-zigzag" style={{ marginBottom: 'clamp(2.5rem, 7vw, 4rem)' }}>
-            <div>
-              <p style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
-                margin: '0 0 0.7rem',
-              }}>
-                <Sparkles size={16} /> AI農作業アドバイス
-              </p>
-              <h3 style={{
-                fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-                lineHeight: 1.5, margin: '0 0 0.8rem',
-              }}>
-                「明日、散布できるか」に、答えが出る。
-              </h3>
-              <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-                AIが気象データから作業できる時間帯と残るリスクをわかりやすく提案。天気の概要だけでなく、畑に出ての仕事、農薬や液肥の散布、肥料の散布、など作業別にあなたの判断をサポート。材料はすべてここに。
-              </p>
-            </div>
-            <div>
-              <img className="lp-shot" src="/lp/feature-ai.webp" alt="AI農作業アドバイスの画面" width={780} height={744} loading="lazy" />
-            </div>
-          </div>
-        </FadeIn>
+        <div className="lp-zigzag" style={{ marginBottom: 'clamp(2.5rem, 7vw, 4rem)' }}>
+          <Reveal variant="fade-left">
+            <p style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              margin: '0 0 0.7rem',
+            }}>
+              <Sparkles size={16} /> AI農作業アドバイス
+            </p>
+            <h3 style={{
+              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
+              lineHeight: 1.5, margin: '0 0 0.8rem',
+            }}>
+              「明日、散布できるか」に、答えが出る。
+            </h3>
+            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
+              AIが気象データから作業できる時間帯と残るリスクをわかりやすく提案。天気の概要だけでなく、畑に出ての仕事、農薬や液肥の散布、肥料の散布、など作業別にあなたの判断をサポート。材料はすべてここに。
+            </p>
+          </Reveal>
+          <Reveal variant="fade-right">
+            <img className="lp-shot" src="/lp/feature-ai.webp" alt="AI農作業アドバイスの画面" width={780} height={744} loading="lazy" />
+          </Reveal>
+        </div>
 
         {/* じぶん好みAI */}
-        <FadeIn>
+        <Reveal variant="fade-right">
           <div>
             <p style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
@@ -701,7 +884,7 @@ function AiAdviceSection() {
               「うちは標高が高いから、露点温度0度以下、気温7度以下の可能性があれば霜の警告を出して」「風に弱い作物があるので風速に重点を置いて解説して」自分の言葉で条件を登録すれば、気象データをもとに、AIがそれを踏まえて答えます。
             </p>
           </div>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -722,10 +905,10 @@ function ComparisonSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 0 }}>
       <div className="lp-container-narrow">
-        <FadeIn>
+        <Reveal>
           <h2 className="lp-h2">一般の天気アプリとの違い</h2>
-        </FadeIn>
-        <FadeIn delay={0.1}>
+        </Reveal>
+        <Reveal delay={0.1}>
           <div className="lp-glass" style={{ overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table className="lp-comp">
@@ -737,7 +920,7 @@ function ComparisonSection() {
                     <th>気象庁HP</th>
                   </tr>
                 </thead>
-                <tbody>
+                <RevealTbody>
                   {compRows.map(r => (
                     <tr key={r.label}>
                       <td>{r.label}</td>
@@ -746,11 +929,11 @@ function ComparisonSection() {
                       <MarkCell mark={r.jma} />
                     </tr>
                   ))}
-                </tbody>
+                </RevealTbody>
               </table>
             </div>
           </div>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -784,10 +967,10 @@ function TierComparisonSection() {
   return (
     <section className="lp-section" style={{ paddingTop: 0 }}>
       <div className="lp-container-narrow">
-        <FadeIn>
+        <Reveal>
           <h2 className="lp-h2">ログインでひろがる、できること</h2>
-        </FadeIn>
-        <FadeIn delay={0.1}>
+        </Reveal>
+        <Reveal delay={0.1}>
           <div className="lp-glass" style={{ overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <table className="lp-comp">
@@ -799,7 +982,7 @@ function TierComparisonSection() {
                     <th style={{ color: 'var(--accent-color)' }}>ログイン<br />（有料）<span style={{ fontSize: '0.68rem', fontWeight: 600 }}>※予定</span></th>
                   </tr>
                 </thead>
-                <tbody>
+                <RevealTbody>
                   {tierGroups.flatMap(g => g.rows.map((r, i) => (
                     <tr key={g.group + r.label}>
                       {i === 0 && (
@@ -816,16 +999,16 @@ function TierComparisonSection() {
                       <MarkCell mark={r.paid} ours />
                     </tr>
                   )))}
-                </tbody>
+                </RevealTbody>
               </table>
             </div>
           </div>
-        </FadeIn>
-        <FadeIn delay={0.15}>
+        </Reveal>
+        <Reveal delay={0.15}>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.85, margin: '1rem 0 0' }}>
 いまはお試し期間として、多くの機能を無料でお使いいただけます。ご利用いただける機能の範囲は、お試し期間の終了やサービスの状況により、今後変更となる場合があります。あらかじめご了承ください。
           </p>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -836,7 +1019,7 @@ function MakerNote() {
   return (
     <section className="lp-section" style={{ paddingTop: 0 }}>
       <div className="lp-container-narrow">
-        <FadeIn>
+        <Reveal variant="blur">
           <div className="lp-glass" style={{
             padding: 'clamp(1.6rem, 4vw, 2.4rem)',
             textAlign: 'center',
@@ -859,7 +1042,7 @@ function MakerNote() {
               積算温度を自動で計算し、昨年と何日違うかを並べて表示。天気は「概況」と「リスク」を切り替えて確認でき、1日は畑に出る時間に合わせて午前・午後・夜間に分割。カッパが要るかどうかまで一目でわかります。こうした機能は、机の上ではなく、現場で使いながら磨いてきたものばかりです。
             </p>
           </div>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -868,35 +1051,38 @@ function MakerNote() {
 /* ── 始め方 ── */
 function StepsSection() {
   return (
-    <section className="lp-section" style={{ paddingTop: 0 }}>
+    <section className="lp-section lp-section--cloud-host" style={{ paddingTop: 0 }}>
+      <ParallaxCloud speed={0.2} style={{ width: 240, height: 110, top: '10%', right: '-6%' }} />
       <div className="lp-container">
-        <FadeIn>
+        <Reveal>
           <h2 className="lp-h2">3ステップで、今日から使える。</h2>
-        </FadeIn>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '1.1rem',
-          marginTop: '1.8rem',
-        }}>
-          {steps.map((s, i) => (
-            <FadeIn key={s.num} delay={i * 0.1}>
-              <div className="lp-glass" style={{ padding: '1.5rem 1.3rem', height: '100%', boxSizing: 'border-box', textAlign: 'center' }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
-                  color: '#fff', fontWeight: 800, fontSize: '1.05rem',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 0.9rem',
-                }}>
-                  {s.num}
-                </div>
-                <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.98rem' }}>{s.title}</p>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>{s.body}</p>
+        </Reveal>
+        <Reveal
+          variant="scale"
+          stagger={110}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1.1rem',
+            marginTop: '1.8rem',
+          }}
+        >
+          {steps.map((s) => (
+            <div key={s.num} className="lp-glass" style={{ padding: '1.5rem 1.3rem', height: '100%', boxSizing: 'border-box', textAlign: 'center' }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+                color: '#fff', fontWeight: 800, fontSize: '1.05rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 0.9rem',
+              }}>
+                {s.num}
               </div>
-            </FadeIn>
+              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.98rem' }}>{s.title}</p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>{s.body}</p>
+            </div>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -906,8 +1092,9 @@ function StepsSection() {
 function FinalCta({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
   return (
     <section className="lp-section lp-final">
+      <div className="lp-final-glow" aria-hidden="true" />
       <div className="lp-container-narrow">
-        <FadeIn>
+        <Reveal>
           <h2 className="lp-h2" style={{ color: '#fff' }}>明日の朝から、判断が変わる。</h2>
           <p style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.9, margin: '0 0 1.6rem', fontSize: '0.95rem' }}>
             いまは完全無料。Googleアカウントがあれば30秒で始められます。
@@ -922,7 +1109,7 @@ function FinalCta({ loading, onLogin }: { loading: boolean; onLogin: () => void 
             {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
             <ArrowRight size={17} />
           </button>
-        </FadeIn>
+        </Reveal>
       </div>
     </section>
   );
@@ -1003,19 +1190,23 @@ export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
 
   return (
     <div className="lp-root">
+      <SkyBackdrop />
+      {/* Nav は sticky。positioned な .lp-content の内側に入れると sticky が壊れるため root 直下に置く（z-index:50 で空レイヤー/コンテンツより前面） */}
       <Nav loading={loading} onLogin={handleLogin} />
-      <Hero loading={loading} error={error} onLogin={handleLogin} onTryGuest={onTryGuest} />
-      <BridgeSection />
-      <SoraMoyoSection />
-      <SoraKurabeSection />
-      <SoraShirabeSection />
-      <AiAdviceSection />
-      <ComparisonSection />
-      <TierComparisonSection />
-      <MakerNote />
-      <StepsSection />
-      <FinalCta loading={loading} onLogin={handleLogin} />
-      <LpFooter />
+      <div className="lp-content">
+        <Hero loading={loading} error={error} onLogin={handleLogin} onTryGuest={onTryGuest} />
+        <BridgeSection />
+        <SoraMoyoSection />
+        <SoraKurabeSection />
+        <SoraShirabeSection />
+        <AiAdviceSection />
+        <ComparisonSection />
+        <TierComparisonSection />
+        <MakerNote />
+        <StepsSection />
+        <FinalCta loading={loading} onLogin={handleLogin} />
+        <LpFooter />
+      </div>
     </div>
   );
 }

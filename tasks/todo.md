@@ -1,3 +1,16 @@
+# LP ビジュアル刷新「スクロールで晴れていく空」（2026-07-21）
+
+仕様書: [docs/superpowers/specs/2026-07-21-lp-visual-redesign-design.md](../docs/superpowers/specs/2026-07-21-lp-visual-redesign-design.md)
+実装は Sonnet 5 サブエージェントに委任（クレジット節約方針）。
+
+- [x] 設計合意（空色背景＋teal維持／ライブラリなし／全力で先進的）
+- [x] 仕様書作成
+- [ ] Sonnet サブエージェントによる実装（LandingPage.tsx＋landing.css のみ・文言不変）
+- [ ] npm run build 通過＋dev サーバー目視検証（デスクトップ＋375px＋reduced-motion）
+- [ ] ユーザー実機確認 → OKならコミット＆push（develop）
+
+---
+
 # B案: Bitgo風モバイルチャート UX 実装計画
 
 ## 目的

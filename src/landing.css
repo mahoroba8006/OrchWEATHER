@@ -4,12 +4,34 @@
 ───────────────────────────────────────── */
 
 .lp-root {
+  position: relative;
   min-height: 100vh;
   min-height: 100svh; /* iOS Safari アドレスバー対策（対応ブラウザで上書き） */
-  background: var(--bg-gradient);
   color: var(--text-primary);
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+}
+
+/* コンテンツはスカイバックドロップの上に載せる */
+.lp-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── スカイバックドロップ（スクロールで晴れていく空） ──
+   --sky-1/2/3 は SkyBackdrop コンポーネントがスクロール進捗に応じて書き換える。
+   フォールバック値は「青空」段階の色＝reduced-motion 時の固定パレットと一致させている。 */
+.lp-sky-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    var(--sky-1, #bfe0fb) 0%,
+    var(--sky-2, #ddeffe) 55%,
+    var(--sky-3, #f2faff) 100%
+  );
+  pointer-events: none;
 }
 
 .lp-nav {
@@ -17,13 +39,27 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(255, 255, 255, 0.78);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--card-border);
+  background: transparent;
+  border-bottom: 1px solid transparent;
 }
 
+/* ナビの曇りガラス化はオーバーレイの opacity のみをアニメーションさせる
+   （backdrop-filter 自体は静的なので transform/opacity 限定の制約を満たす） */
+.lp-nav-glass {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.78);
+  border-bottom: 1px solid var(--card-border);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.lp-nav--scrolled .lp-nav-glass { opacity: 1; }
+
 .lp-nav-inner {
+  position: relative;
   max-width: 1080px;
   margin: 0 auto;
   display: flex;
@@ -31,6 +67,24 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.6rem 1.25rem;
+}
+
+/* スクロール進捗バー */
+.lp-nav-progress-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.lp-nav-progress {
+  width: 100%;
+  height: 100%;
+  background: #0d9488;
+  transform: scaleX(0);
+  transform-origin: left center;
 }
 
 .lp-section { padding: clamp(3rem, 8vw, 5.5rem) 1.25rem; }
@@ -91,7 +145,93 @@
 }
 .lp-cta--ghost:hover { box-shadow: 0 8px 20px rgba(13, 148, 136, 0.2); }
 
+/* HERO「生きている空」演出：雲の浮遊＋光のシマー（aria-hidden・pointer-events:none） */
+.lp-hero {
+  position: relative;
+  overflow: hidden;
+}
+.lp-hero-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.lp-hero-cloud {
+  position: absolute;
+  border-radius: 50%;
+  /* 淡い夜明けの空でも視認できるよう、白の不透明度を上げつつ
+     ブルーグレーの soft shadow で輪郭（雲の陰）を出す。blur はやや弱めて塊感を残す。 */
+  background: rgba(255, 255, 255, 0.92);
+  filter: blur(18px) drop-shadow(0 10px 16px rgba(96, 140, 200, 0.22));
+  will-change: transform;
+}
+.lp-hero-cloud--1 {
+  width: 260px;
+  height: 90px;
+  top: 10%;
+  left: -22%;
+  animation: lp-cloud-drift 60s linear infinite;
+}
+.lp-hero-cloud--2 {
+  width: 200px;
+  height: 72px;
+  top: 55%;
+  left: -30%;
+  opacity: 0.85;
+  animation: lp-cloud-drift 82s linear infinite;
+  animation-delay: -40s;
+}
+.lp-hero-cloud--3 {
+  width: 320px;
+  height: 108px;
+  top: 2%;
+  left: -25%;
+  opacity: 0.6;
+  animation: lp-cloud-drift 95s linear infinite;
+  animation-delay: -70s;
+}
+.lp-hero-cloud--4 {
+  width: 170px;
+  height: 62px;
+  top: 32%;
+  left: -20%;
+  opacity: 0.75;
+  animation: lp-cloud-drift 72s linear infinite;
+  animation-delay: -20s;
+}
+.lp-hero-cloud--5 {
+  width: 240px;
+  height: 82px;
+  top: 72%;
+  left: -28%;
+  opacity: 0.55;
+  animation: lp-cloud-drift 110s linear infinite;
+  animation-delay: -55s;
+}
+@keyframes lp-cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(160vw); }
+}
+.lp-hero-shimmer {
+  position: absolute;
+  inset: -10% -10% auto -10%;
+  height: 65%;
+  background: radial-gradient(60% 60% at 50% 30%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%);
+  animation: lp-shimmer 7s ease-in-out infinite;
+}
+@keyframes lp-shimmer {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+@media (max-width: 640px) {
+  /* モバイルは雲レイヤーを削減して負荷軽減（--1/--2 のみ残す） */
+  .lp-hero-cloud--3,
+  .lp-hero-cloud--4,
+  .lp-hero-cloud--5 { display: none; }
+}
+
 /* HERO のスマホフレーム（CSS描画・画像はフレームなしの素のスクショ） */
+.lp-phone-parallax { will-change: transform; }
 .lp-phone {
   width: min(300px, 78vw);
   margin: 0 auto;
@@ -102,6 +242,11 @@
   overflow: hidden;
 }
 .lp-phone img { display: block; width: 100%; height: auto; }
+.lp-phone--float { animation: lp-phone-float 5s ease-in-out infinite; }
+@keyframes lp-phone-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
 
 /* 機能ショーケース（ジグザグ） */
 .lp-zigzag {
@@ -112,6 +257,21 @@
 }
 .lp-zigzag--reverse { flex-direction: row-reverse; }
 .lp-zigzag > div { flex: 1 1 340px; min-width: 0; }
+
+/* セクション間のパララックス装飾雲を配置するためのホスト（絶対配置の基準＋はみ出し防止） */
+.lp-section--cloud-host {
+  position: relative;
+  overflow: hidden;
+}
+.lp-parallax-cloud {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.65);
+  filter: blur(36px);
+  opacity: 0.4;
+  pointer-events: none;
+  will-change: transform;
+}
 
 .lp-shot {
   display: block;
@@ -152,9 +312,98 @@
 
 /* FINAL CTA 帯 */
 .lp-final {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
   color: #ffffff;
   text-align: center;
+}
+/* 「晴天への着地」を表現する淡い放射光。opacity を極めて低く保ち可読性を優先 */
+.lp-final-glow {
+  position: absolute;
+  inset: -20%;
+  background: conic-gradient(
+    from 180deg at 50% 115%,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.12) 60%,
+    rgba(255, 255, 255, 0) 90%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+  animation: lp-final-glow-spin 45s linear infinite;
+}
+@keyframes lp-final-glow-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ─────────────────────────────────────────
+   Reveal（スクロール出現演出）
+───────────────────────────────────────── */
+.lp-reveal {
+  opacity: 0;
+  transition:
+    opacity 0.7s cubic-bezier(.22, 1, .36, 1),
+    transform 0.7s cubic-bezier(.22, 1, .36, 1),
+    filter 0.7s cubic-bezier(.22, 1, .36, 1);
+}
+.lp-reveal[data-variant="fade-up"]    { transform: translateY(28px); }
+.lp-reveal[data-variant="fade-left"]  { transform: translateX(-36px); }
+.lp-reveal[data-variant="fade-right"] { transform: translateX(36px); }
+.lp-reveal[data-variant="scale"]      { transform: scale(0.94); }
+.lp-reveal[data-variant="blur"]       { transform: translateY(16px); filter: blur(8px); }
+.lp-reveal.lp-reveal--in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* stagger: 直接の子要素それぞれが JS で仕込まれた transition-delay に従って時差表示される */
+.lp-reveal-stagger > * {
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(.22, 1, .36, 1), transform 0.6s cubic-bezier(.22, 1, .36, 1);
+}
+.lp-reveal-stagger[data-variant="fade-left"]  > * { transform: translateX(-30px); }
+.lp-reveal-stagger[data-variant="fade-right"] > * { transform: translateX(30px); }
+.lp-reveal-stagger[data-variant="scale"]      > * { transform: scale(0.94); }
+.lp-reveal-stagger:not([data-variant="fade-left"]):not([data-variant="fade-right"]):not([data-variant="scale"]) > * {
+  transform: translateY(24px);
+}
+.lp-reveal-stagger.lp-reveal--in > * {
+  opacity: 1;
+  transform: none;
+}
+
+/* 比較表の行：tr への transform 適用はブラウザ間で不安定なため opacity のみで安全に */
+.lp-reveal-stagger--row > tr {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.lp-reveal-stagger--row.lp-reveal--in > tr { opacity: 1; }
+
+/* ─────────────────────────────────────────
+   reduced-motion: すべての動的演出を無効化し、静的な表示に即時フォールバック
+───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .lp-reveal,
+  .lp-reveal-stagger > *,
+  .lp-reveal-stagger--row > tr {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .lp-hero-cloud,
+  .lp-hero-shimmer,
+  .lp-phone--float,
+  .lp-final-glow {
+    animation: none !important;
+  }
+  .lp-parallax-cloud,
+  .lp-phone-parallax {
+    transform: none !important;
+  }
 }
 
 /* フッター */
