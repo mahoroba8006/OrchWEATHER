@@ -1,4 +1,98 @@
 
+## 2026-09-08 セッション（108回目）
+
+### 作業内容（アプリ内ブラウザ案内・PWAインストール案内をdevelopへマージ）
+
+#### 1. feature/in-app-browser-guidance を develop へマージ・反映
+- 実装は別セッション（codex/Sonnet 5ワークツリー `.worktrees/in-app-browser-guidance`）で完了済み。本セッションはレビュー→マージ→検証→pushを担当。
+- **内容**: LINE/X/Instagram/Facebookのアプリ内ブラウザを限定UAパターンで検知し「メニュー→ブラウザで開く」案内＋URLコピー導線を表示。Android は `beforeinstallprompt` を使った正規PWAインストール導線、iPhone/iPadは共有メニューからのホーム画面追加手順を案内。「あとで」選択で7日間抑止、同一セッション内では再表示しない、インストール済みPWA/アプリ内ブラウザではインストール案内を出さない。
+- **構成変更**: `vite-plugin-pwa` 導入（`public/manifest.json` 手動管理から自動生成へ移行）、`vitest`+`@testing-library/react` でテスト基盤新設（`npm run test` 追加）。`src/lib/inAppBrowser.ts`／`installPrompt.ts`／`EnvironmentGuidance.tsx`ほか新規。
+- **マージ前レビュー**: package.json/vite.config.ts/main.tsx/App.tsx/inAppBrowser.ts/installPrompt.ts の差分を確認。vite-plugin-pwaによるmanifest.json削除は意図的（自動生成に統合）と判断、問題なし。
+- **マージ手順**: develop (`1e30b3a`) は feature branch のマージベースと一致（ff可能な状態）→ `--no-ff` でマージコミット `bc6bcb1` 作成。`npm install`（新規依存反映）→ `npm run test` **33件全成功** → `npm run build` **成功**（PWA manifest/Service Worker生成確認）→ `git push origin develop`（`1ebf5d6..bc6bcb1`）。
+- **mainへは未反映**（developのみ）。worktree `.worktrees/in-app-browser-guidance` は未削除（要否確認中）。
+
+### 決定事項
+- develop = `bc6bcb1`（origin push済み）。main = `1ebf5d6`のまま据え置き（ユーザー指示待ち）。
+
+### 未完了・次回候補
+- **main反映の要否判断**（実機確認前のためユーザー判断待ち）。
+- **実機確認未実施**: LINE/X（iOS・Android）でのアプリ内ブラウザ案内表示、iOS Safari/Android ChromeでのPWAインストール導線・インストール済み判定。
+- worktree `.worktrees/in-app-browser-guidance` の削除要否。
+- lint: 既存コード由来の54 errors/4 warningsが残存（今回の変更起因ではない、別途対応要否）。
+- 既存持ち越し: 本番URLでのLP演出スモーク、GSC登録＋sitemap送信、SEO Tier2/3、dotfilesバックアップ整備、Bitgo風チャートUX、note記事3本の推敲（未コミット・記録のみ・進行中todo外）。
+
+---
+
+## 2026-07-21〜22 セッション（107回目）
+
+### 作業内容（LPビジュアル刷新「スクロールで晴れていく空」→develop&main反映／note法務ニアミス記事ドラフト）
+
+#### 1. LPビジュアル刷新 → develop & main 反映（コミット `1ebf5d6`）
+- **ブレスト合意**: 空色背景＋teal維持／ライブラリ追加なし／全力で先進的。仕様書 [docs/superpowers/specs/2026-07-21-lp-visual-redesign-design.md](../docs/superpowers/specs/2026-07-21-lp-visual-redesign-design.md) に固定。
+- **実装は Sonnet 5 サブエージェントに委任**（クレジット節約）。1回目はユーザーが停止→2回目で完了。変更は [LandingPage.tsx](../src/components/LandingPage.tsx)＋[landing.css](../src/landing.css) の2ファイルのみ・文言/DOM順不変・npm build通過。
+- **実装内容**: スクロール進捗で空が連続変化する固定背景 `SkyBackdrop`／Heroの流れる雲＋シマー＋スマホ浮遊視差／ナビ透明→曇りガラス＋teal進捗バー／`FadeIn`→`Reveal`拡張(fade-up/left/right/scale/blur＋stagger、ジグザグは左右逆)／パララックス雲／比較表・ステップの時差表示／最終CTA放射光。依存ゼロ(IntersectionObserver＋rAF＋CSS)・`prefers-reduced-motion`対応。
+- **実機検証で判明したバグ2件を systematic-debugging で修正**:
+  - ナビが変化しない → 根本原因は nav を positioned な `.lp-content`(z-index必須・fixed空の上に載せるため static不可)の内側に入れ **sticky が壊れナビごとスクロールで消えていた**。→ nav を `.lp-root` 直下に戻して解決（overflow-x:hidden・セクション順維持）。※ユーザー確認では見た目変化なしだが「このままでよい」で確定。
+  - 雲が見えない → 白い雲(0.55)を淡い夜明け空に重ねコントラスト不足。→ 不透明度0.92＋ブルーグレーの drop-shadow＋blur18pxで輪郭化。
+- **ユーザー調整**: ①空の色を上下反転（最上部=晴天`#aaddff`〈雲のコントラスト確保〉→中間=青空→最下部=夜明け暖色）②雲の流速を約1.5倍（60/82/95s）③雲を3→5枚に増量（モバイルは負荷軽減で--1/--2の2枚維持）。
+- **反映**: develop `926c01b..1ebf5d6` push → `git push origin develop:main`(ff)で本番反映。develop=main=`1ebf5d6` 同期。Cloudflare Pages 自動デプロイ。
+
+#### 2. note記事③「法務ニアミス版」ドラフト作成（未コミット）
+- ユーザー指定タイトル「**AIと作業をしていたら、危うく法律違反になりそうになった話**」。リスク検出機能（霜/雷/雹を閾値で警告）を実装途中で「独自"予報"の発表では?」と気づき→**気象業務法**の予報業務許可の壁→機能撤去し「予報」→「データ表示・活用」へ転換→AIにも予報させないガードレール、という筋。
+- **成果物: [docs/note-article-legal-draft.md](../docs/note-article-legal-draft.md)**（約4,000字）。事実根拠は設計書 R-11/C-01/§5.5/ADR-0016＋session-logのリスク検出撤去記録。法律記述は断定回避＋気象庁照会が正式ルートと明記。**コミット不要**。
+- note記事は3本立てに（①裏話②紹介③法務）。**2026-07-21以降 note記事は tasks の進行中todoから除外**（記録のみ）。
+
+### 決定事項
+- LP刷新を本番反映済み（develop=main=`1ebf5d6`）。空色は上下反転版で確定。ナビの動的変化は現状維持（reduced-motion追加判断も不要）。
+- note記事3本はすべて未コミット・進行中todo外・後日ユーザーが個別判断。
+
+### 未完了・次回候補
+- 本番URL（weather.orch-app.com）でのLP演出スモーク（Cloudflare自動デプロイ反映後）。
+- 既存持ち越し: GSC登録＋sitemap送信、SEO Tier2/3、dotfilesバックアップ整備、Bitgo風チャートUX、本番実機スモーク、設計書stale追検証 等。
+
+---
+
+## 2026-07-14〜15 セッション（106回目）
+
+### 作業内容（問い合わせフォーム新設＋プライバシー対応／LP SEO対策 Tier1／note紹介記事ドラフト）
+
+#### 1. 問い合わせフォーム（Tally）を新設し法務ページを対応 → develop & main 反映
+- 参照アプリ `C:\dev\領収書アプリ`（Orch.RECIT・Next.js）の Tally 埋め込み方式を移植。気象アプリは Vite SPA＋静的HTML法務ページ（`public/*.html`）構成。
+- **新規: [public/contact.html](../public/contact.html)** — 既存法務ページ（teal系）スタイル準拠。Tally iframe 埋め込み＋`embed.js`。**Orch.Weather用 Tally フォームID = `VLAv8N`**（`https://tally.so/r/VLAv8N`。ユーザーが領収書アプリのフォームをコピーして作成）。
+- `public/privacy-policy.html`: §4にTally追記／**§9 お問い合わせ節**新設／目次・番号を10・11に繰下げ／更新日2026-07-14。
+- `public/disclaimer.html`・`Footer.tsx`（在アプリ下部）・`LandingPage.tsx`（LPフッター）に問い合わせ導線追加。
+- `public/_headers`: CSP `script-src`/`frame-src` に `https://tally.so` 追加。
+- コミット `0a88e86`（フォーム＋法務）／`c7e1b6f`（返信文言「必要に応じてご返信」に変更）→ develop→main（ff）反映。
+
+#### 2. プライバシーポリシーの正確性是正（ユーザー指摘）
+- **氏名取得**：実コード検証の結果、displayNameは設定画面で表示に使用（SettingsTab.tsx:50, App.tsx alt）、ただしFirestore保存はゼロ（ensureUserDocumentはcreatedAtのみ）。「取得しセッション維持・画面表示にのみ使用」の記載は**正確＝修正不要**と結論（ユーザーの「取得していないのでは」は実態とズレ）。AI/メール記載も現状維持（AI一般公開は当面しない方針）。
+- **Open-Meteo予報範囲**：`forecast.ts` は `forecast_days=15`＋`forecast_hours=384`。「10日間予報」を「**日別は最長15日先、時間別は最長16日先まで**」に是正。コミット `610bcd9` → develop→main。
+- 補足Q&A: 日別15日／時間別16日の非対称は**意図的で正しい**（夜間集計が翌日0-3時を要する／時間別テーブル表示は10日に限定 forecast.ts:255／0℃バグはisPlaceholderでdaily側解決済み）。コード変更不要と回答。
+
+#### 3. LP SEO対策 Tier1 → develop & main 反映
+- 現状監査: index.htmlは`<title>Orch.Weather</title>`のみでdescription/OGP/canonical/JSON-LD/robots/sitemap **全て未実装**（CSRのためSNS共有プレビューも出ない状態）。
+- 実装: [index.html](../index.html) にキーワード込みtitle（主軸「農業 天気アプリ」）・meta description・canonical・**OGP**・**Twitter大カード**・**JSON-LD（WebApplication・price:0）**。`public/robots.txt`・`public/sitemap.xml`（4URL）新規。
+- **OG画像**: ユーザー提供 `C:\Users\kazma\OneDrive\デスクトップ\work\icon.png`（960×579）を `public/og-image.png` に配置、`summary_large_image`＋`og:image:width/height`。
+- 意図的に aggregateRating は不採用（実レビュー無し＝虚偽回避）。コミット `131d102` → develop→main（`131d102` に同期）。
+- Tier2（LPプリレンダリング）／Tier3（コード分割で高速化）は今回スコープ外・後日判断。
+
+#### 4. note紹介記事ドラフト作成（未コミット）
+- 開発裏話記事（`docs/note-article-draft.md`）とは**別の「純粋なアプリ紹介」記事**。ユーザー提示の構成＋きっかけ/感じたこと文（全文採用）。
+- **成果物: [docs/note-article-intro-draft.md](../docs/note-article-intro-draft.md)**（約4,000字）。アプリ紹介パートはHelpPage等で実機能を裏取り。
+- **重要な事実是正**: きっかけ文05（雹）の「異常気象の事前検知機能」は実機能に存在しない（撤去済み）ため、「悪天候を"見逃さない"仕組み」に置換し、注意報・警報＋リスク表示に着地（ユーザー承認済み）。**note記事はコミット不要の指示**。
+
+### 決定事項
+- 問い合わせ＝Tally `VLAv8N`。SEO Tier1完了・本番反映済み。プライバシー是正2点（氏名は修正不要／予報範囲是正）。
+- develop = main = `131d102` に同期（本番反映済み）。
+
+### 未完了・次回候補
+- **GSC登録＋sitemap送信**（手順提示済み：URLプレフィックス`https://weather.orch-app.com/`＋GA4認証が最短）。ユーザー実施予定。
+- SEO Tier2（プリレンダリング）／Tier3（バンドル1.4MBのコード分割）。OG画像1200×630版の用意（任意）。
+- note記事2本の推敲（裏話版・紹介版とも未コミット・ユーザー後日）。
+- 既存持ち越し: 本番実機スモーク／RTM要否／設計書stale追検証／dotfilesバックアップ整備 等。
+
+---
+
 ## 2026-07-13 セッション（105回目）
 
 ### 作業内容（LP文言修正→本番反映／note記事ドラフト作成・保存）
@@ -22,12 +116,16 @@
   - 盲点の指摘: AIは「言いなりベンダー」でなく「議論できるベンダー」（ET₀ボツの論理はAI側が構造化）→ §5末尾に反映
 - **成果物: [docs/note-article-draft.md](docs/note-article-draft.md)**（本文初稿 約3,800字＋タイトル3案＋予備の実例ストック＋読者別展開メモ）。**未コミット**。
 
+#### 3. 未コミット分を一括コミット＆push（develop）
+- 前回104回の `docs/design/` 7ファイル＋今回の `docs/note-article-draft.md`＋`tasks/`（lessons/session-log）を `git add -A` → コミット `09033ea`「docs: 設計書一式・note記事ドラフトを追加、tasks更新」（10ファイル・2,268行追加）→ develop へ push（`bdd68d4..09033ea`）。作業ツリーclean。
+- すべて docs/tasks 類でソース不変のため **本番(main)反映は不要**（LP文言修正は `bdd68d4` で反映済み）。
+
 ### 決定事項
 - LPコピー修正5点を本番反映済み。note記事は「AIとの役割分担／発注者PM視点」を軸に確定（技術記事寄り・広報より知見共有）。
+- 前回からの未コミット分（設計書一式・note下書き・tasks）を develop へコミット済み＝GitHubバックアップ完了。
 
 ### 未完了・次回候補
 - **note記事ドラフトの推敲**（[docs/note-article-draft.md](docs/note-article-draft.md)）: タイトル確定・アプリ名挿入・画像差し込み・文字数調整・資産の厚み調整。ユーザーが後日見直し予定。
-- **未コミット多数**: `docs/note-article-draft.md`（今回）＋前回104回の `docs/design/` 7ファイル＋`tasks/`。develop へコミットするか要判断。
 - 既存持ち越し: 本番実機スモーク／RTM要否／設計書の stale 追検証／Task6 地域集計／`functions/` 型チェック／iOS Safari実機／dotfilesバックアップ整備。
 
 ---
