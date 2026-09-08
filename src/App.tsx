@@ -1960,13 +1960,6 @@ function AppContent() {
               ))}
             </div>
           </div>
-          {!isMonthly && dailyViewport && (
-            <div style={{ marginLeft: 'auto', color: 'var(--text-secondary)', fontSize: '0.78rem', lineHeight: 1.5, textAlign: 'right' }}>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{dailyViewport.end - dailyViewport.start}日表示</span>
-              <span aria-hidden="true"> · </span>
-              ピンチで拡大・縮小／左右にスワイプ
-            </div>
-          )}
         </div>
 
         {/* チャート選択タブ */}
