@@ -54,6 +54,31 @@ export function zoomViewport({
   return { start, end: start + nextWindow };
 }
 
+export function zoomViewportByFactor({
+  viewport,
+  total,
+  factor,
+  anchorRatio,
+  minWindow,
+}: {
+  viewport: ChartViewport;
+  total: number;
+  factor: number;
+  anchorRatio: number;
+  minWindow: number;
+}): ChartViewport {
+  const initialWindow = viewport.end - viewport.start;
+  const nextWindow = clamp(
+    Math.round(initialWindow * factor),
+    Math.min(minWindow, total),
+    total,
+  );
+  const ratio = clamp(anchorRatio, 0, 1);
+  const anchorIndex = viewport.start + ratio * initialWindow;
+  const start = clamp(Math.round(anchorIndex - ratio * nextWindow), 0, Math.max(0, total - nextWindow));
+  return { start, end: start + nextWindow };
+}
+
 export function classifySinglePointer(
   deltaX: number,
   deltaY: number,

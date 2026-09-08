@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, X, LogOut, Clock, Loader2, BarChart2, HelpCircle } from 'lucide-react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, Minus, Maximize2, X, LogOut, Clock, Loader2, BarChart2, HelpCircle } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -25,6 +25,7 @@ import {
   panViewport,
   shouldAcceptChartTooltip,
   zoomViewport,
+  zoomViewportByFactor,
   type ChartGestureMode,
   type ChartViewport,
 } from './lib/chartViewport';
@@ -185,6 +186,7 @@ function AppContent() {
   const panRafRef = useRef<number>(0);
   const pendingViewportRef = useRef<{ start: number; end: number } | null>(null);
   const chartFrameRef = useRef<HTMLDivElement | null>(null);
+  const analysisChartsRef = useRef<HTMLElement | null>(null);
   const [chartPixelWidth, setChartPixelWidth] = useState(300);
 
   // チャート幅をresizeに合わせて計測（pan時の dx → indices 換算用）
@@ -1145,6 +1147,39 @@ function AppContent() {
     setHover(null);
   };
 
+  const zoomDailyViewport = (factor: number, anchorRatio = 0.5) => {
+    if (isMonthly) return;
+    setDailyViewport(current => current && zoomViewportByFactor({
+      viewport: current,
+      total: chartData.length,
+      factor,
+      anchorRatio,
+      minWindow: MIN_DAILY_WINDOW,
+    }));
+  };
+
+  useEffect(() => {
+    const charts = analysisChartsRef.current;
+    if (!charts) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (isMonthly || (!e.ctrlKey && !e.metaKey)) return;
+      const target = e.target instanceof Element ? e.target.closest<HTMLElement>('.chart-bleed') : null;
+      if (!target || !charts.contains(target)) return;
+
+      e.preventDefault();
+      const bounds = target.getBoundingClientRect();
+      const anchorRatio = Math.max(0, Math.min(1, (e.clientX - bounds.left) / Math.max(1, bounds.width)));
+      const factor = Math.exp(Math.max(-100, Math.min(100, e.deltaY)) * 0.002);
+      beginTooltipSuppression('pinch');
+      zoomDailyViewport(factor, anchorRatio);
+      finishTooltipSuppression();
+    };
+
+    charts.addEventListener('wheel', handleWheel, { passive: false });
+    return () => charts.removeEventListener('wheel', handleWheel);
+  });
+
   const chartLoading = (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '350px', gap: '0.9rem' }}>
       <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)' }} />
@@ -1934,7 +1969,7 @@ function AppContent() {
           </div>
         </div>
 
-      <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <main ref={analysisChartsRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
         {/* 表示単位と日次グラフの操作案内 */}
         <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -1963,6 +1998,45 @@ function AppContent() {
               ))}
             </div>
           </div>
+          {!isMonthly && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                ドラッグで移動・Ctrl/⌘＋ホイールで拡大縮小
+              </span>
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => zoomDailyViewport(1.25)}
+                  title="縮小"
+                  aria-label="グラフを縮小"
+                  style={{ padding: '0.35rem', boxShadow: 'none' }}
+                >
+                  <Minus size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => zoomDailyViewport(0.8)}
+                  title="拡大"
+                  aria-label="グラフを拡大"
+                  style={{ padding: '0.35rem', boxShadow: 'none' }}
+                >
+                  <Plus size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => setDailyViewport({ start: 0, end: chartData.length })}
+                  title="全体表示"
+                  aria-label="グラフを全体表示"
+                  style={{ padding: '0.35rem', boxShadow: 'none' }}
+                >
+                  <Maximize2 size={15} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* チャート選択タブ */}

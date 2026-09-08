@@ -7,6 +7,7 @@ import {
   panViewport,
   shouldAcceptChartTooltip,
   zoomViewport,
+  zoomViewportByFactor,
 } from './chartViewport';
 
 describe('chart viewport calculations', () => {
@@ -43,6 +44,24 @@ describe('chart viewport calculations', () => {
     };
     expect(zoomViewport({ ...base, initialDistance: 100, currentDistance: 2000 })).toEqual({ start: 143, end: 157 });
     expect(zoomViewport({ ...base, initialDistance: 100, currentDistance: 10 })).toEqual({ start: 0, end: 365 });
+  });
+
+  it('zooms by wheel or button factor around the pointer position', () => {
+    expect(zoomViewportByFactor({
+      viewport: { start: 100, end: 200 },
+      total: 365,
+      factor: 0.8,
+      anchorRatio: 0.25,
+      minWindow: 14,
+    })).toEqual({ start: 105, end: 185 });
+
+    expect(zoomViewportByFactor({
+      viewport: { start: 100, end: 200 },
+      total: 365,
+      factor: 1.25,
+      anchorRatio: 0.5,
+      minWindow: 14,
+    })).toEqual({ start: 88, end: 213 });
   });
 });
 
