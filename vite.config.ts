@@ -39,8 +39,8 @@ export default defineConfig({
     target: 'es2020',
   },
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
+    environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'],
     passWithNoTests: true,
   },
   // server: {
