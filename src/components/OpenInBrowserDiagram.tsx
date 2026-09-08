@@ -1,4 +1,4 @@
-import { ArrowRight, Globe } from 'lucide-react';
+import { ArrowRight, Globe, Menu } from 'lucide-react';
 import type { InAppBrowserApp } from '../lib/inAppBrowser';
 
 type OpenInBrowserDiagramProps = {
@@ -13,7 +13,9 @@ export function OpenInBrowserDiagram({ app }: OpenInBrowserDiagramProps) {
     >
       <span style={{ padding: '0.45rem 0.65rem', background: '#fff', borderRadius: '0.55rem', boxShadow: 'var(--shadow-sm)' }}>{app}</span>
       <ArrowRight size={20} />
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.65rem', background: '#fff', borderRadius: '0.55rem', boxShadow: 'var(--shadow-sm)' }}><Globe size={17} /> ブラウザ</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.65rem', background: '#fff', borderRadius: '0.55rem', boxShadow: 'var(--shadow-sm)' }}><Menu size={17} /> メニュー</span>
+      <ArrowRight size={20} />
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.65rem', background: '#fff', borderRadius: '0.55rem', boxShadow: 'var(--shadow-sm)' }}><Globe size={17} /> ブラウザで開く</span>
     </div>
   );
 }

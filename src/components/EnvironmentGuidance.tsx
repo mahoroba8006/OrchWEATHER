@@ -23,8 +23,12 @@ function readInstallDismissal(): number | null {
   } catch { return null; }
 }
 
-function persistDismissal(key: string, value: string, storage: Storage): void {
-  try { storage.setItem(key, value); } catch { /* Blocked storage must not prevent app use. */ }
+function persistSessionDismissal(): void {
+  try { window.sessionStorage.setItem(IN_APP_DISMISSED_KEY, '1'); } catch { /* Blocked storage must not prevent app use. */ }
+}
+
+function persistInstallDismissal(value: string): void {
+  try { window.localStorage.setItem(INSTALL_DISMISSED_KEY, value); } catch { /* Blocked storage must not prevent app use. */ }
 }
 
 function currentPlatform(userAgent: string, maxTouchPoints: number): 'ios' | 'android' | null {
@@ -77,12 +81,12 @@ export function EnvironmentGuidance() {
   }, [showExternalBrowserNotice, showInstallPrompt]);
 
   const dismissExternalBrowserNotice = () => {
-    persistDismissal(IN_APP_DISMISSED_KEY, '1', sessionStorage);
+    persistSessionDismissal();
     setInAppDismissed(true);
   };
   const dismissInstallPrompt = () => {
     const now = Date.now();
-    persistDismissal(INSTALL_DISMISSED_KEY, String(now), localStorage);
+    persistInstallDismissal(String(now));
     setInstallDismissedAt(now);
     setInstallEvent(null);
     setPromptError(false);
