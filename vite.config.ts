@@ -1,11 +1,18 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  // Vitest 3 bundles its own Vite type definitions; cast keeps the existing
+  // Vite 8 React plugin compatible at the config boundary.
+  plugins: [react()] as any,
   build: {
     target: 'es2020',
+  },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+    passWithNoTests: true,
   },
   // server: {
   //   proxy: {
