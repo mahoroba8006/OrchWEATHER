@@ -1,7 +1,8 @@
 import { Check, Copy, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { InAppBrowserApp } from '../lib/inAppBrowser';
 import { OpenInBrowserDiagram } from './OpenInBrowserDiagram';
+import { useGuidanceModalFocus } from './useGuidanceModalFocus';
 
 type OpenInBrowserNoticeProps = { app: InAppBrowserApp; onDismiss: () => void };
 
@@ -28,6 +29,9 @@ async function copyUrl(url: string): Promise<boolean> {
 
 export function OpenInBrowserNotice({ app, onDismiss }: OpenInBrowserNoticeProps) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useGuidanceModalFocus(dialogRef, closeButtonRef);
   const url = window.location.href;
   const handleCopy = async () => {
     try { setCopyState(await copyUrl(url) ? 'copied' : 'failed'); } catch { setCopyState('failed'); }
@@ -35,10 +39,10 @@ export function OpenInBrowserNotice({ app, onDismiss }: OpenInBrowserNoticeProps
 
   return (
     <div className="modal-overlay" role="presentation" style={{ padding: '1rem' }}>
-      <section className="modal-content" role="dialog" aria-modal="true" aria-labelledby="open-in-browser-title" style={{ maxWidth: '440px', padding: '1.5rem' }}>
+      <section ref={dialogRef} className="modal-content" role="dialog" aria-modal="true" aria-labelledby="open-in-browser-title" tabIndex={-1} style={{ maxWidth: '440px', padding: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
           <div><p style={{ margin: 0, color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 800 }}>表示についてのお知らせ</p><h2 id="open-in-browser-title" style={{ margin: '0.25rem 0 0', fontSize: '1.35rem' }}>ブラウザで開くお願い</h2></div>
-          <button type="button" className="secondary" aria-label="閉じる" onClick={onDismiss} style={{ minWidth: 36, padding: '0.4rem' }}><X size={18} /></button>
+          <button ref={closeButtonRef} type="button" className="secondary" aria-label="閉じる" onClick={onDismiss} style={{ minWidth: 36, padding: '0.4rem' }}><X size={18} /></button>
         </div>
         <p style={{ lineHeight: 1.7, color: 'var(--text-secondary)', margin: '1rem 0' }}>{app}のアプリ内ブラウザでは、一部の機能が正しく動かないことがあります。下のURLをコピーし、ChromeやSafariなどのブラウザで開いてください。</p>
         <OpenInBrowserDiagram app={app} />
