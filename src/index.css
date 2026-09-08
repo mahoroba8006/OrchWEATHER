@@ -298,6 +298,31 @@ button.secondary:hover {
   animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.guidance-modal-overlay {
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+
+.guidance-modal-content {
+  max-width: 440px;
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1.5rem;
+}
+
+@media (max-height: 600px) {
+  .guidance-modal-overlay { align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guidance-modal-overlay,
+  .guidance-modal-content { animation: none; }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

@@ -16,6 +16,7 @@ import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab'
 import { WeatherLoader } from './components/weather/WeatherLoader';
 import { Footer } from './components/Footer';
 import { HelpPage } from './components/HelpPage';
+import { EnvironmentGuidance } from './components/EnvironmentGuidance';
 import { logGuestStart, logWeatherView } from './lib/analytics';
 import './App.css';
 
@@ -135,7 +136,7 @@ function calcInitialDisplayRange(): { startMM: number; endMM: number } {
   };
 }
 
-function App() {
+function AppContent() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, loadAiAllowed, resetUserData, guestMode, setGuestMode } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings' | 'help'>('weather');
   const prevTopTab = useRef<'weather' | 'history' | 'analysis' | 'settings'>('weather');
@@ -2619,6 +2620,15 @@ function App() {
         </nav>
       )}
   </>
+  );
+}
+
+function App() {
+  return (
+    <>
+      <EnvironmentGuidance />
+      <AppContent />
+    </>
   );
 }
 
