@@ -22,6 +22,16 @@
   --accent-blue-hover: #0369a1;
   --accent-blue-light: rgba(2, 132, 199, 0.06);
 
+  /* 設定画面の識別色（操作画面と区別する暖色系） */
+  --settings-bg-gradient: linear-gradient(135deg, #fdf8ea 0%, #faf1dc 100%);
+  --settings-accent: #f59e0b;       /* 薄い黄色系アクセント（設定アイコン用） */
+  --settings-accent-hover: #d97706;
+  --settings-accent-light: rgba(245, 158, 11, 0.18);
+  --settings-accent-text: #b45309;
+  --settings-shadow-sm: 0 2px 8px rgba(180, 83, 9, 0.04);
+  --settings-shadow-md: 0 8px 24px rgba(180, 83, 9, 0.07), 0 4px 12px rgba(217, 119, 6, 0.04);
+  --settings-shadow-lg: 0 16px 40px rgba(180, 83, 9, 0.09), 0 8px 20px rgba(217, 119, 6, 0.06);
+
   /* チャート用プレミアムカラー */
   --chart-temp: #f43f5e;     /* ローズレッド */
   --chart-precip: #0ea5e9;   /* スカイブルー */
@@ -90,6 +100,21 @@ body {
 .glass-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+/* 設定画面: アクセント・枠線・影をティール系→暖色系に上書き
+   （配下のコンポーネントは var(--accent-color) 等の共通変数を参照しているため、
+   ここで束ねて上書きするだけで設定画面全体に伝播する） */
+.settings-theme {
+  --accent-color: var(--settings-accent);
+  --accent-hover: var(--settings-accent-hover);
+  --accent-light: var(--settings-accent-light);
+  --card-border: rgba(245, 158, 11, 0.28);
+  --card-border-hover: rgba(217, 119, 6, 0.45);
+  --grid-color: rgba(245, 158, 11, 0.15);
+  --shadow-sm: var(--settings-shadow-sm);
+  --shadow-md: var(--settings-shadow-md);
+  --shadow-lg: var(--settings-shadow-lg);
 }
 
 /* Layout */
@@ -441,6 +466,13 @@ button.secondary:hover {
 }
 
 .premium-segmented-tab button:hover {
+  transform: none !important;
+}
+
+/* 設定画面のサブタブ（下線型）: デフォルトの button box-shadow/hover演出を打ち消す */
+.settings-subtab-btn,
+.settings-subtab-btn:hover {
+  box-shadow: none !important;
   transform: none !important;
 }
 

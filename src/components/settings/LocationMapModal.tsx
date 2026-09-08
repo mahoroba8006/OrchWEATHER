@@ -171,7 +171,7 @@ export function LocationMapModal({
             justifyContent: 'space-between',
             alignItems: 'center',
             padding: '0.8rem 1rem',
-            borderBottom: '1px solid rgba(13,148,136,0.2)',
+            borderBottom: '1px solid rgba(217,119,6,0.2)',
             flexShrink: 0,
           }}
         >
@@ -212,7 +212,7 @@ export function LocationMapModal({
         <div
           style={{
             padding: '0.8rem 1rem',
-            borderTop: '1px solid rgba(13,148,136,0.2)',
+            borderTop: '1px solid rgba(217,119,6,0.2)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -235,8 +235,8 @@ export function LocationMapModal({
                 padding: '0.5rem 1rem',
                 fontSize: '0.88rem',
                 background: resolving
-                  ? 'rgba(13,148,136,0.3)'
-                  : 'rgba(13,148,136,0.85)',
+                  ? 'rgba(217,119,6,0.3)'
+                  : 'rgba(217,119,6,0.85)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 'var(--radius-md, 6px)',

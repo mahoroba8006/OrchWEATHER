@@ -99,9 +99,9 @@ const GROUP_SECTIONS: { label: string; groups: JmaWarningGroup[] }[] = [
 ];
 
 const SAVE_BTN: CSSProperties = {
-  background: 'rgba(13,148,136,0.15)',
-  color: 'var(--accent-color)',
-  border: '1px solid rgba(13,148,136,0.35)',
+  background: 'rgba(244,167,185,0.35)',
+  color: '#7a2840',
+  border: '1px solid rgba(244,167,185,0.6)',
   borderRadius: 'var(--radius-md, 6px)',
   cursor: 'pointer',
   display: 'flex',

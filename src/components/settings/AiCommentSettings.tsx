@@ -23,9 +23,9 @@ const SECTION_ORDER: AiSection[] = [
 ];
 
 const SAVE_BTN: CSSProperties = {
-  background: 'rgba(13,148,136,0.15)',
-  color: 'var(--accent-color)',
-  border: '1px solid rgba(13,148,136,0.35)',
+  background: 'rgba(244,167,185,0.35)',
+  color: '#7a2840',
+  border: '1px solid rgba(244,167,185,0.6)',
   borderRadius: 'var(--radius-md, 6px)',
   cursor: 'pointer',
   display: 'flex',
@@ -106,8 +106,8 @@ export function AiCommentSettings() {
           <div style={{
             padding: '0.7rem 0.9rem',
             borderRadius: 'var(--radius-md, 8px)',
-            background: 'rgba(13,148,136,0.08)',
-            border: '1px solid rgba(13,148,136,0.25)',
+            background: 'rgba(217,119,6,0.08)',
+            border: '1px solid rgba(217,119,6,0.25)',
             fontSize: '0.8rem',
             color: 'var(--text-secondary)',
             lineHeight: 1.7,

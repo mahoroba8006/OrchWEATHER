@@ -1582,6 +1582,9 @@ function AppContent() {
 
   return (
     <>
+      {topTab === 'settings' && (
+        <div aria-hidden="true" style={{ position: 'fixed', inset: 0, background: 'var(--settings-bg-gradient)', zIndex: -1 }} />
+      )}
       <div style={{
         background: 'rgba(255, 255, 255, 0.75)',
         backdropFilter: 'blur(20px)',
@@ -1664,8 +1667,8 @@ function AppContent() {
               onClick={() => setTopTab('settings')}
               style={{
                 background: topTab === 'settings'
-                  ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)'
-                  : 'rgba(167, 203, 192, 0.2)',
+                  ? 'linear-gradient(135deg, var(--settings-accent) 0%, var(--settings-accent-hover) 100%)'
+                  : 'var(--settings-accent-light)',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 padding: '0.45rem',
@@ -1673,7 +1676,7 @@ function AppContent() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: topTab === 'settings' ? '#ffffff' : 'var(--text-secondary)',
+                color: topTab === 'settings' ? '#ffffff' : 'var(--settings-accent-text)',
                 flexShrink: 0,
               }}
               title="設定"
@@ -1750,8 +1753,8 @@ function AppContent() {
                 onClick={() => setTopTab('settings')}
                 style={{
                   background: topTab === 'settings'
-                    ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
-                    : 'linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(15,118,110,0.15) 100%)',
+                    ? 'linear-gradient(135deg, var(--settings-accent) 0%, var(--settings-accent-hover) 100%)'
+                    : 'var(--settings-accent-light)',
                   border: 'none',
                   borderRadius: '0.6rem',
                   padding: '0.45rem 0.6rem',
@@ -1759,7 +1762,7 @@ function AppContent() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: topTab === 'settings' ? '#ffffff' : '#0d9488',
+                  color: topTab === 'settings' ? '#ffffff' : 'var(--settings-accent-text)',
                 }}
                 title="設定"
               >
@@ -2610,7 +2613,7 @@ function AppContent() {
     )}
 
       {topTab === 'settings' && (isGuest ? (
-        <div className="app-container">
+        <div className="app-container settings-theme">
           <div className="glass-panel" style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
             <p style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>ログインが必要です</p>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1.2rem' }}>

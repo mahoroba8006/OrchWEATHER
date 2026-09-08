@@ -25,7 +25,7 @@ export function SettingsTab() {
   const [isMobile] = useState(() => window.innerWidth < 768);
 
   return (
-    <div className="app-container">
+    <div className="app-container settings-theme">
       {/* アカウントエリア（Mobile のみ） */}
       {isMobile && user && (
         <div style={{
@@ -72,6 +72,7 @@ export function SettingsTab() {
         {SUB_TABS.map((tab) => (
           <button
             key={tab}
+            className="settings-subtab-btn"
             onClick={() => setSubTab(tab)}
             style={{
               // モバイルは等幅で画面幅に4タブを収め、折り返しを防ぐ
@@ -87,6 +88,7 @@ export function SettingsTab() {
               borderBottom: subTab === tab ? '2px solid var(--accent-color)' : '2px solid transparent',
               marginBottom: '-1px',
               cursor: 'pointer',
+              boxShadow: 'none',
               transition: 'color 0.2s, border-color 0.2s',
             }}
           >
