@@ -18,6 +18,16 @@ import { Footer } from './components/Footer';
 import { HelpPage } from './components/HelpPage';
 import { EnvironmentGuidance } from './components/EnvironmentGuidance';
 import { logGuestStart, logWeatherView } from './lib/analytics';
+import {
+  createViewportAround,
+  horizontalPinchDistance,
+  nextGestureMode,
+  panViewport,
+  shouldAcceptChartTooltip,
+  zoomViewport,
+  type ChartGestureMode,
+  type ChartViewport,
+} from './lib/chartViewport';
 import './App.css';
 
 const CustomWideBar = (props: any) => {
@@ -121,20 +131,27 @@ const GDD_DELTA_DAYS_MIN_V0 = 30;
 // 累積日射量 序盤の Δ日 表示を抑制する閾値（MJ/m²）
 const RADIATION_DELTA_DAYS_MIN_V0 = 100;
 
-/**
- * モバイル用デフォルト viewport を計算する
- * start = 今日の月 −2 の月初日、end = 今日の月 +1 の月末日
- * 選択年のデータに当てはめてインデックスを返す（季節比較が目的）
- */
-// 初期表示期間: 前々月〜翌月（年跨ぎはクランプ）
-// 例) 6/6 → {startMM:4, endMM:7}、12/31 → {startMM:10, endMM:12}、1/1 → {startMM:1, endMM:2}
-function calcInitialDisplayRange(): { startMM: number; endMM: number } {
-  const m = new Date().getMonth() + 1; // 1–12
-  return {
-    startMM: Math.max(1, m - 2),
-    endMM:   Math.min(12, m + 1),
-  };
-}
+const MOBILE_INITIAL_DAILY_WINDOW = 120;
+const DESKTOP_INITIAL_DAILY_WINDOW = 180;
+const MIN_DAILY_WINDOW = 14;
+const GESTURE_TOOLTIP_DELAY_MS = 200;
+
+type ChartPointer = {
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+};
+
+type ChartGesture = {
+  mode: ChartGestureMode;
+  chartId: string | null;
+  pointers: Map<number, ChartPointer>;
+  primaryPointerId: number | null;
+  startViewport: ChartViewport | null;
+  initialDistance: number;
+  anchorRatio: number;
+};
 
 function AppContent() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, loadAiAllowed, resetUserData, guestMode, setGuestMode } = useAppStore();
@@ -142,9 +159,6 @@ function AppContent() {
   const prevTopTab = useRef<'weather' | 'history' | 'analysis' | 'settings'>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
-  const [displayRange, setDisplayRange] = useState(() =>
-    window.innerWidth < 768 ? calcInitialDisplayRange() : { startMM: 1, endMM: 12 }
-  );
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
   const [activeChart, setActiveChart] = useState<ChartId>('temp');
   const [hover, setHover] = useState<{ chartId: string; payload: any[]; label: string } | null>(null);
@@ -155,10 +169,19 @@ function AppContent() {
   const [isMobile] = useState(() => window.innerWidth < 768);
   const isGuest = !user && guestMode;
 
-  // Bitgo風: 日次モードのパン可能ウィンドウ（365日）
-  const DAILY_WINDOW = 365;
   const [dailyViewport, setDailyViewport] = useState<{ start: number; end: number } | null>(null);
-  const panRef = useRef<{ startX: number; startViewportStart: number; dragging: boolean; chartId: string } | null>(null);
+  const gestureRef = useRef<ChartGesture>({
+    mode: 'idle',
+    chartId: null,
+    pointers: new Map(),
+    primaryPointerId: null,
+    startViewport: null,
+    initialDistance: 0,
+    anchorRatio: 0.5,
+  });
+  const [tooltipGestureMode, setTooltipGestureMode] = useState<ChartGestureMode>('idle');
+  const tooltipGestureModeRef = useRef<ChartGestureMode>('idle');
+  const tooltipDelayRef = useRef<number>(0);
   const panRafRef = useRef<number>(0);
   const pendingViewportRef = useRef<{ start: number; end: number } | null>(null);
   const chartFrameRef = useRef<HTMLDivElement | null>(null);
@@ -179,6 +202,12 @@ function AppContent() {
   useEffect(() => {
     setHover(null);
   }, [activeChart]);
+
+  useEffect(() => () => {
+    if (hoverRafRef.current) cancelAnimationFrame(hoverRafRef.current);
+    if (panRafRef.current) cancelAnimationFrame(panRafRef.current);
+    if (tooltipDelayRef.current) window.clearTimeout(tooltipDelayRef.current);
+  }, []);
 
   useEffect(() => {
     // iOS リダイレクト認証後の結果処理。onAuthStateChanged が自動で状態を更新するが
@@ -302,16 +331,6 @@ function AppContent() {
   }, [geoLocation]);
 
   const firstOfMonths = Array.from({length: 12}, (_, i) => `${String(i + 1).padStart(2, '0')}-01`);
-
-  const lastDayOfMonth = (mm: number) => new Date(2000, mm, 0).getDate();
-
-  const handleRangeChange = (field: 'startMM' | 'endMM', value: number) => {
-    setDisplayRange(prev => {
-      const next = { ...prev, [field]: value };
-      if (next.startMM > next.endMM) return prev;
-      return next;
-    });
-  };
 
   const { data: weatherData, loading, loadingStatus, error } = useWeatherData(committedTargets);
 
@@ -730,29 +749,7 @@ function AppContent() {
     return { targetId: committedTargets[1].id, values: map };
   }, [forecastData2, committedTargets, userSettings, selectedBaseTempIndex, currentYear]);
 
-  const filteredBaseChartData = useMemo(() => {
-    const startMM = displayRange.startMM;
-    const endMM   = displayRange.endMM;
-
-    const mainStart = `${String(startMM).padStart(2,'0')}-01`;
-    const mainEnd   = `${String(endMM).padStart(2,'0')}-${String(lastDayOfMonth(endMM)).padStart(2,'0')}`;
-
-    return baseChartData.filter((d: any) => {
-      if (d.dateStr >= mainStart && d.dateStr <= mainEnd) return true;
-      // 前日: 開始月の前月末（startMM > 1 のみ — 同年内に存在する）
-      if (startMM > 1) {
-        const prevMM  = startMM - 1;
-        const prevKey = `${String(prevMM).padStart(2,'0')}-${String(lastDayOfMonth(prevMM)).padStart(2,'0')}`;
-        if (d.dateStr === prevKey) return true;
-      }
-      // 翌日: 終了月の翌月1日（endMM < 12 のみ — 同年内に存在する）
-      if (endMM < 12) {
-        const nextKey = `${String(endMM + 1).padStart(2,'0')}-01`;
-        if (d.dateStr === nextKey) return true;
-      }
-      return false;
-    });
-  }, [baseChartData, displayRange]);
+  const filteredBaseChartData = baseChartData;
 
   const filteredGddChartData = useMemo(() => {
     if (gddData.overlay.size === 0) return filteredBaseChartData;
@@ -762,11 +759,7 @@ function AppContent() {
     });
   }, [filteredBaseChartData, gddData]);
 
-  const filteredFirstOfMonths = useMemo(() => {
-    const startKey = `${String(displayRange.startMM).padStart(2,'0')}-01`;
-    const endKey   = `${String(displayRange.endMM).padStart(2,'0')}-01`;
-    return firstOfMonths.filter(m => m >= startKey && m <= endKey);
-  }, [firstOfMonths, displayRange]);
+  const filteredFirstOfMonths = firstOfMonths;
 
 
 
@@ -940,12 +933,7 @@ function AppContent() {
     return entries;
   }, [monthlyStats, committedTargets]);
 
-  const filteredMonthlyChartData = useMemo(() => {
-    return monthlyChartData.filter(d => {
-      const m = parseInt(d.dateStr, 10);
-      return m >= displayRange.startMM && m <= displayRange.endMM;
-    });
-  }, [monthlyChartData, displayRange]);
+  const filteredMonthlyChartData = monthlyChartData;
 
   // チャート切替用ヘルパー
   const isMonthly = chartViewMode === 'monthly';
@@ -960,21 +948,19 @@ function AppContent() {
     ? (val: string) => `${parseInt(val, 10)}月`
     : (val: string) => val.split('-').join('/');
 
-  // 日次データのレンジが変わるたびに viewport をリセット
-  // モバイル: viewport なし（filteredBaseChartData 全体を表示）
-  // デスクトップ: 末尾 365日（従来どおり）
+  // 日次データが変わったら、モバイルは今日を中心とした約4か月、
+  // デスクトップは年間全体を初期表示する。
   useEffect(() => {
     const total = filteredBaseChartData.length;
     if (total === 0) { setDailyViewport(null); return; }
 
-    if (isMobile) {
-      setDailyViewport(null);
-      return;
-    }
-
-    const w = Math.min(DAILY_WINDOW, total);
-    setDailyViewport({ start: total - w, end: total });
-  }, [filteredBaseChartData.length, isMobile]);
+    const now = new Date();
+    const todayKey = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const firstOnOrAfterToday = filteredBaseChartData.findIndex(d => d.dateStr >= todayKey);
+    const anchorIndex = firstOnOrAfterToday >= 0 ? firstOnOrAfterToday : total - 1;
+    const requestedWindow = isMobile ? MOBILE_INITIAL_DAILY_WINDOW : DESKTOP_INITIAL_DAILY_WINDOW;
+    setDailyViewport(createViewportAround(total, anchorIndex, requestedWindow));
+  }, [filteredBaseChartData, isMobile]);
 
   // pan用: 表示中サブセット（月次はそのまま）
   const visibleChartData = useMemo(() => {
@@ -1009,54 +995,148 @@ function AppContent() {
   } as const;
   const yAxisCommonRight = { ...yAxisCommon } as const;
   const chartMargin = { top: 25, right: 0, left: 0, bottom: 0 };
+  const tooltipInteractionEnabled = shouldAcceptChartTooltip(tooltipGestureMode, 0, 0);
 
-  // Pointer events によるパンハンドラ
-  // Recharts は onMouseDown/Up を発火しないため、ChartFrameのラッパdivで検出する。
-  const justDraggedRef = useRef(false);
-
-  const handlePointerDown = (chartId: string) => (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isMobile || isMonthly || !dailyViewport) return;
-    panRef.current = {
-      startX: e.clientX,
-      startViewportStart: dailyViewport.start,
-      dragging: false,
-      chartId,
-    };
+  const queueViewport = (viewport: ChartViewport) => {
+    pendingViewportRef.current = viewport;
+    if (panRafRef.current) return;
+    panRafRef.current = requestAnimationFrame(() => {
+      panRafRef.current = 0;
+      const next = pendingViewportRef.current;
+      if (next) setDailyViewport(next);
+    });
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!panRef.current || !dailyViewport) return;
-    const dx = e.clientX - panRef.current.startX;
-    if (!panRef.current.dragging && Math.abs(dx) > 5) {
-      panRef.current.dragging = true;
-      try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+  const beginTooltipSuppression = (mode: 'pan' | 'pinch') => {
+    if (tooltipDelayRef.current) window.clearTimeout(tooltipDelayRef.current);
+    if (hoverRafRef.current) {
+      cancelAnimationFrame(hoverRafRef.current);
+      hoverRafRef.current = 0;
     }
-    if (panRef.current.dragging) {
-      e.preventDefault();
-      const windowSize = dailyViewport.end - dailyViewport.start;
-      const totalLen = chartData.length;
-      const plotWidth = Math.max(1, chartPixelWidth - 8);
-      const shift = Math.round(-dx / plotWidth * windowSize);
-      const newStart = Math.max(0, Math.min(totalLen - windowSize, panRef.current.startViewportStart + shift));
-      pendingViewportRef.current = { start: newStart, end: newStart + windowSize };
-      if (!panRafRef.current) {
-        panRafRef.current = requestAnimationFrame(() => {
-          panRafRef.current = 0;
-          const v = pendingViewportRef.current;
-          if (v) setDailyViewport(v);
-        });
+    pendingHoverRef.current = null;
+    tooltipGestureModeRef.current = mode;
+    setTooltipGestureMode(mode);
+    setHover(null);
+  };
+
+  const finishTooltipSuppression = () => {
+    tooltipGestureModeRef.current = 'blocked';
+    setTooltipGestureMode('blocked');
+    if (tooltipDelayRef.current) window.clearTimeout(tooltipDelayRef.current);
+    tooltipDelayRef.current = window.setTimeout(() => {
+      tooltipGestureModeRef.current = 'idle';
+      setTooltipGestureMode('idle');
+      tooltipDelayRef.current = 0;
+    }, GESTURE_TOOLTIP_DELAY_MS);
+  };
+
+  // Pointer Eventsでタップ、横パン、2本指ピンチ、縦スクロールを排他的に扱う。
+  const handlePointerDown = (chartId: string) => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isMonthly || !dailyViewport || (e.pointerType === 'mouse' && e.button !== 0)) return;
+
+    const gesture = gestureRef.current;
+    gesture.pointers.set(e.pointerId, {
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+    });
+
+    if (gesture.pointers.size === 1) {
+      gesture.mode = 'pending';
+      gesture.chartId = chartId;
+      gesture.primaryPointerId = e.pointerId;
+      gesture.startViewport = { ...dailyViewport };
+      return;
+    }
+
+    if (nextGestureMode(gesture.mode, gesture.pointers.size, 0, 0) === 'pinch' && gesture.chartId === chartId) {
+      const [first, second] = [...gesture.pointers.values()];
+      gesture.mode = 'pinch';
+      gesture.startViewport = { ...dailyViewport };
+      gesture.initialDistance = horizontalPinchDistance(first, second);
+      const bounds = e.currentTarget.getBoundingClientRect();
+      const midpointX = (first.x + second.x) / 2;
+      gesture.anchorRatio = Math.max(0, Math.min(1, (midpointX - bounds.left) / Math.max(1, bounds.width)));
+      beginTooltipSuppression('pinch');
+      for (const pointerId of gesture.pointers.keys()) {
+        try { e.currentTarget.setPointerCapture(pointerId); } catch {
+          // Pointer capture is optional and can fail after a native gesture cancellation.
+        }
       }
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (panRef.current?.dragging) {
-      justDraggedRef.current = true;
-      window.setTimeout(() => { justDraggedRef.current = false; }, 150);
-      try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
-      setHover(null); // パン後は表示位置がずれるのでクリア
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const gesture = gestureRef.current;
+    const pointer = gesture.pointers.get(e.pointerId);
+    if (!pointer || !gesture.startViewport || !dailyViewport) return;
+    pointer.x = e.clientX;
+    pointer.y = e.clientY;
+
+    if (gesture.mode === 'pending' && gesture.primaryPointerId === e.pointerId) {
+      const nextMode = nextGestureMode(
+        gesture.mode,
+        gesture.pointers.size,
+        pointer.x - pointer.startX,
+        pointer.y - pointer.startY,
+      );
+      gesture.mode = nextMode;
+      if (nextMode === 'pan') {
+        beginTooltipSuppression('pan');
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch {
+          // Continue without capture when the browser already released the pointer.
+        }
+      }
     }
-    panRef.current = null;
+
+    if (gesture.mode === 'pan' && gesture.primaryPointerId === e.pointerId) {
+      e.preventDefault();
+      queueViewport(panViewport(
+        gesture.startViewport,
+        chartData.length,
+        pointer.x - pointer.startX,
+        Math.max(1, chartPixelWidth - 8),
+      ));
+      return;
+    }
+
+    if (gesture.mode === 'pinch' && gesture.pointers.size >= 2) {
+      e.preventDefault();
+      const [first, second] = [...gesture.pointers.values()];
+      const currentDistance = horizontalPinchDistance(first, second);
+      queueViewport(zoomViewport({
+        viewport: gesture.startViewport,
+        total: chartData.length,
+        initialDistance: gesture.initialDistance,
+        currentDistance,
+        anchorRatio: gesture.anchorRatio,
+        minWindow: MIN_DAILY_WINDOW,
+      }));
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const gesture = gestureRef.current;
+    const previousMode = gesture.mode;
+    const completedGesture = previousMode === 'pan' || previousMode === 'pinch' || previousMode === 'blocked';
+    gesture.pointers.delete(e.pointerId);
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {
+      // Releasing a pointer that was never captured is harmless.
+    }
+
+    if (completedGesture && gesture.pointers.size > 0) {
+      gesture.mode = nextGestureMode(previousMode, gesture.pointers.size, 0, 0);
+      return;
+    }
+
+    if (gesture.pointers.size === 0) {
+      if (completedGesture) finishTooltipSuppression();
+      gesture.mode = 'idle';
+      gesture.chartId = null;
+      gesture.primaryPointerId = null;
+      gesture.startViewport = null;
+    }
   };
 
   // マウスがチャート外へ出たらパネルをクリア（タッチはタップ後も値を維持するためスキップ）
@@ -1383,12 +1463,17 @@ function AppContent() {
   // <Tooltip content={fn}> 経由でペイロードを受け取る方式に変更。
   // setHover は RAF でスロットリング（最大 60fps）し、render中の setState 連鎖を防ぐ。
   const makeTooltipContent = useCallback((chartId: string) => (props: any) => {
+    if (!tooltipInteractionEnabled) return null;
     const { payload, label, active } = props;
     if (active && payload?.length && label != null) {
       pendingHoverRef.current = { chartId, payload: payload as any[], label };
       if (!hoverRafRef.current) {
         hoverRafRef.current = requestAnimationFrame(() => {
           hoverRafRef.current = 0;
+          if (!shouldAcceptChartTooltip(tooltipGestureModeRef.current, 0, 0)) {
+            pendingHoverRef.current = null;
+            return;
+          }
           const p = pendingHoverRef.current;
           if (p) setHover(prev =>
             prev?.chartId === p.chartId && prev?.label === p.label ? prev
@@ -1398,7 +1483,7 @@ function AppContent() {
       }
     }
     return null;
-  }, []);
+  }, [tooltipInteractionEnabled]);
 
   // tooltip content 関数をメモ化：JSX 内でインライン呼び出しすると毎描画で新参照になり
   // Recharts が cascade 再描画するため、useMemo で安定させる。
@@ -1848,26 +1933,9 @@ function AppContent() {
 
       <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
-        {/* 表示期間 */}
-        <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示期間</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem' }}>
-            <select value={displayRange.startMM} onChange={e => handleRangeChange('startMM', +e.target.value)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}>
-              {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{i+1}月</option>)}
-            </select>
-            <span style={{ color: 'var(--text-secondary)' }}>〜</span>
-            <select value={displayRange.endMM} onChange={e => handleRangeChange('endMM', +e.target.value)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}>
-              {Array.from({length: 12}, (_, i) => <option key={i+1} value={i+1}>{i+1}月</option>)}
-            </select>
-            <button
-              onClick={() => setDisplayRange({ startMM: 1, endMM: 12 })}
-              className="secondary"
-              style={{ marginLeft: '0.5rem', padding: '0.35rem 0.85rem', fontSize: '0.8rem', borderRadius: 'var(--radius-md)' }}
-            >
-              年間表示
-            </button>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginLeft: 'auto' }}>
+        {/* 表示単位と日次グラフの操作案内 */}
+        <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>表示単位</span>
             <div className="premium-segmented-tab" style={{ padding: '0.18rem', background: 'rgba(167, 203, 192, 0.15)' }}>
               {(['daily', 'monthly'] as const).map(mode => (
@@ -1892,6 +1960,13 @@ function AppContent() {
               ))}
             </div>
           </div>
+          {!isMonthly && dailyViewport && (
+            <div style={{ marginLeft: 'auto', color: 'var(--text-secondary)', fontSize: '0.78rem', lineHeight: 1.5, textAlign: 'right' }}>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{dailyViewport.end - dailyViewport.start}日表示</span>
+              <span aria-hidden="true"> · </span>
+              ピンチで拡大・縮小／左右にスワイプ
+            </div>
+          )}
         </div>
 
         {/* チャート選択タブ */}
@@ -1938,7 +2013,7 @@ function AppContent() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={tooltipContents.temp} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.temp} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
                     {committedTargets.map((target, index) => {
                       const color = getYearColor(index, 'var(--chart-temp)');
                       return (
@@ -1988,7 +2063,7 @@ function AppContent() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis yAxisId="left" {...yAxisCommon} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={tooltipContents.precip} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.precip} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -2108,7 +2183,7 @@ function AppContent() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis yAxisId="left" {...yAxisCommon} label={{ value: isMonthly ? '(h/月)' : '(h/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(h)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={tooltipContents.sunshine} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.sunshine} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -2212,7 +2287,7 @@ function AppContent() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis yAxisId="left" {...yAxisCommon} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={tooltipContents.radiation} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.radiation} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -2338,7 +2413,7 @@ function AppContent() {
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis yAxisId="left" {...yAxisCommon} label={{ value: isMonthly ? '(℃/月)' : '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={tooltipContents.gdd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.gdd} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -2440,7 +2515,7 @@ function AppContent() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={tooltipContents.humid} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.humid} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
@@ -2489,7 +2564,7 @@ function AppContent() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
                     <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
                     <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(g/m³)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip content={tooltipContents.vpd} cursor={{ stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 }} isAnimationActive={false} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.vpd} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
 {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
