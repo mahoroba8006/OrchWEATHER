@@ -6,6 +6,8 @@ import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
 import { SegmentedControl } from '../ui/SegmentedControl';
+import { Skeleton } from '../ui/Skeleton';
+import { Reveal } from '../ui/Reveal';
 import { DailyForecast } from './DailyForecast';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
@@ -167,7 +169,10 @@ export function WeatherTab() {
     if (geoStatus === 'loading' || geoStatus === 'idle') {
       return (
         <div style={emptyStyle}>
-          <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '0.75rem' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Skeleton width="60%" height={20} />
+            <Skeleton width="60%" height={20} />
+          </div>
           <p style={{ fontSize: '1rem' }}>位置情報を取得中…</p>
         </div>
       );
@@ -233,17 +238,32 @@ export function WeatherTab() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
 
       {error && (
-        <div style={{ padding: '1rem', color: '#c0392b', fontSize: '0.85rem', textAlign: 'center', background: '#fff9f8', borderRadius: 'var(--radius-md)' }}>
+        <div
+          key={error}
+          role="alert"
+          className="ui-shake"
+          style={{
+            padding: '0.85rem 1rem',
+            color: 'var(--ink-1)',
+            fontSize: '0.85rem',
+            background: 'var(--surface-card)',
+            border: '1px solid var(--line)',
+            borderLeft: '4px solid #c0392b',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-card)',
+          }}
+        >
           {error}
         </div>
       )}
 
       {loading && !data && (
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 200, gap: '0.9rem' }}>
-          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)' }} />
-          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+        <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--ink-3)', textAlign: 'center', padding: '1.6rem 0 0.4rem' }}>
             {loadingStatus || '天気予報を取得中...'}
           </span>
+          <Skeleton height={280} radius="var(--radius-lg)" />
+          <Skeleton height={360} radius="var(--radius-lg)" />
         </div>
       )}
 
@@ -293,8 +313,11 @@ export function WeatherTab() {
             ) : null
           )}
 
-          <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
+          <Reveal index={0}>
+            <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
+          </Reveal>
 
+          <Reveal index={1}>
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '0.6rem', padding: '0 0.75rem 0.5rem' }}>
               <SegmentedControl
@@ -323,15 +346,19 @@ export function WeatherTab() {
               hourlyLastDate={hourlyLastDate}
             />
           </section>
+          </Reveal>
 
           <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textAlign: 'right', margin: '0.1rem 0.5rem' }}>
             午前：4〜12時　　午後：12〜20時　　夜間：20〜翌4時
           </p>
 
+          <Reveal index={2}>
           <section ref={hourlySectionRef} className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={filteredJmaWarning?.items} />
           </section>
+          </Reveal>
 
+          <Reveal index={3}>
           <div ref={aiSectionRef}>
             {aiAllowed ? (
               <AiCommentCard
@@ -346,6 +373,7 @@ export function WeatherTab() {
               <AiComingSoonCard />
             )}
           </div>
+          </Reveal>
 
         </>
       )}

@@ -186,3 +186,6 @@
 /* SegmentedControl 小型（モード切替など、文脈内で使う小さめの寸法） */
 .ui-seg--compact { flex-shrink: 0; }
 .ui-seg--compact .ui-seg__item { min-height: 30px; padding: 0 0.7rem; font-size: 0.75rem; }
+
+/* 中身のない Reveal は間隔(gap)を作らない */
+[data-reveal]:empty { display: none; }
