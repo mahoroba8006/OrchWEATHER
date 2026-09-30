@@ -1,4 +1,43 @@
 
+## 2026-09-08〜09 セッション（109回目）
+
+### 作業内容（チャートタッチナビゲーションのマージ／main運用ルール確定／設定画面の暖色テーマ化）
+
+#### 1. feature/chart-touch-navigation を develop→main へ反映
+- worktree（`.worktrees/chart-touch-navigation`）で完了済みの未コミット変更（`src/App.tsx`＋`src/lib/chartViewport.ts`＋テスト）をレビュー→コミット（`9a64a63`）→developへ`--no-ff`マージ（`8f1d00b`）。
+- **内容:** 比較分析チャートの日次モードにピンチズーム・横スワイプのタッチナビゲーションを実装。固定の月選択レンジUIを撤去し、「今日」を中心とした自動初期表示（モバイル120日/PC180日、最小14日）に変更。`src/lib/chartViewport.ts`（純粋関数：`createViewportAround`/`panViewport`/`zoomViewport`/`nextGestureMode`/`shouldAcceptChartTooltip`）でジェスチャー状態機械を実装、pan/pinch/縦スクロールを排他制御しツールチップ誤表示を防止。テスト41件成功・ビルド成功。
+- `npm run test`（41件）→`npm run build`成功を確認しdevelopへpush→ユーザー指示でmainへff push（`1ebf5d6..8f1d00b`）。
+- 表示単位パネルの「○○日表示」ラベルとジェスチャー説明文はユーザー指示で撤去（`51469e3`、develop→main両方に反映済み）。
+
+#### 2. 【重要】main反映の運用ルールをユーザーが明確化
+- ユーザーより「次から、メインにcommit/pushするときは、必ず指示をまってください。developまではokです」と明確な指示。develop先行の自律pushはこれまで通り継続してよいが、**mainへの反映（`git push origin develop:main`含む）は必ず毎回ユーザーの明示指示を待つ**運用に確定。フィードバックメモリ [[feedback_main_push_confirmation]] に記録済み。
+
+#### 3. 設定画面の暖色テーマ化（黄色系）→develop→main反映
+- **きっかけ:** ユーザーより「設定画面と通常操作画面の違いが分かりにくい」。当初提案は「設定画面全体を薄い黄色に」だったが、警告色連想・プレミアムUIの世界観分断・コントラスト比の懸念からAIが代案提示：①ヘッダー設定アイコンの円背景のみ薄い黄色アクセント、②設定画面本体は彩度を落とした暖色ニュートラル（アイボリー系）。ユーザー承認（「提案のとおりお願いします」）。
+- **実装:** `index.css`に`--settings-bg-gradient`（アイボリーグラデーション）・`--settings-accent`系変数・`--settings-shadow-*`を新設。`.settings-theme`クラスで`--accent-color`/`--card-border`/`--card-border-hover`/`--shadow-*`/`--grid-color`を暖色系へ一括上書き（配下コンポーネントがvar参照のため伝播）。`SettingsTab.tsx`・設定画面ゲスト用プレースホルダーに`settings-theme`クラス付与。ヘッダーの設定アイコン円（モバイル/PC）を黄色系に変更。App.tsxに`topTab==='settings'`時のみ全画面アイボリー背景レイヤーを追加。
+- **ユーザーからの複数回の実機フィードバックで段階的に是正**（スクリーンショット添付での指摘）:
+  1. カード（glass-panel）の影がティール系のまま緑がかって見える→`.settings-theme`で`--shadow-sm/md/lg`を暖色rgbaに上書き
+  2. サブタブ（地点設定/天気情報/空のアドバイス/空くらべ）のバー・下線がまだ緑→`.settings-theme`で`--accent-color`/`--card-border`も上書きする方式に拡張。加えて`LocationSettings.tsx`/`JmaWarningSettings.tsx`/`AiCommentSettings.tsx`/`LocationMapModal.tsx`内にハードコードされていた`rgba(13,148,136,X)`リテラル14箇所を暖色rgbaへ個別置換（var参照でないため一括上書きが効かなかった）
+  3. 「現在地で登録」「マップから選ぶ」ボタンの配色を「手動で追加」ボタン（ピンク系）に統一指示→`LocationSettings.tsx`の`greenButtonStyle`定義をピンク系に変更
+  4. 各サブ画面の「保存」ボタンの配色を「空くらべ」タブの保存ボタン（ピンク系）に統一指示→`JmaWarningSettings.tsx`/`AiCommentSettings.tsx`の`SAVE_BTN`をピンク系に変更
+  5. サブタブにまだ薄い緑の影が残る指摘→**根本原因判明**：グローバルな`button`要素のデフォルトCSS（`box-shadow: rgba(13,148,136,...)`、通常時+hover時）がインライン`background:transparent`だけでは打ち消せず素通りしていた。`boxShadow:'none'`をインライン追加＋`.settings-subtab-btn`クラス（hover含めて`!important`で打ち消し）を新設して解決
+- **検証:** 各段階で`npm run build`成功を確認（テストは変更対象外のため`npm run test`は主要マイルストーンのみ実施、41件成功）。`npm run dev`をユーザー環境で起動しスクリーンショットで都度確認してもらう運用（このWindows環境にはchromium-cli/playwright未導入のため、AI側でのスクリーンショット確認は今回不可・都度ユーザーに目視確認を依頼）。
+- **最終コミット:** develop `3d18c74`→ユーザー指示でmainへff push（`51469e3..3d18c74`）。develop=main=`3d18c74`同期。
+
+### 決定事項
+- develop=main=`3d18c74`（本番反映済み）。
+- **main反映は毎回ユーザーの明示指示を待つ**運用に確定（[[feedback_main_push_confirmation]]）。
+- 設定画面は「アイボリー背景＋アンバー系アクセント＋ピンク系保存/追加ボタン」で確定。今後この配下に新規UIを追加する際はこのテーマに従うこと。
+
+### 未完了・次回候補
+- PWAガイダンス機能・チャートタッチナビゲーション機能とも**実機確認は依然未実施**（LINE/X iOS・Android、PWAインストール導線、ピンチ/スワイプ操作）。
+- worktree `.worktrees/chart-touch-navigation`／`.worktrees/in-app-browser-guidance` 未削除（要否確認）。
+- この環境にヘッダレスブラウザ（chromium-cli/playwright）が未導入のため、AI側でのUIスクリーンショット自動確認ができない。今後UI変更が増える場合は導入を検討する余地あり。
+- lint: 既存コード由来の54 errors/4 warningsが残存（今回変更起因ではない）。
+- 既存持ち越し: 本番URLでのLP演出スモーク、GSC登録＋sitemap送信、SEO Tier2/3、dotfilesバックアップ整備、note記事3本の推敲（未コミット・記録のみ）。
+
+---
+
 ## 2026-09-08 セッション（108回目）
 
 ### 作業内容（アプリ内ブラウザ案内・PWAインストール案内をdevelopへマージ）
