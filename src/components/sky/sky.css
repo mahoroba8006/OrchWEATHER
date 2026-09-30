@@ -255,3 +255,18 @@
 @media (prefers-reduced-motion: reduce) {
   .sky-hero__spin { animation-duration: 3s; }
 }
+
+/* ── 空帯（SkyBand）: 空くらべ・空しらべの画面タイトル ── */
+.sky-band {
+  padding: 12px 20px 36px;
+  color: #fff;
+  transition: background 0.6s ease;
+}
+.sky-band__inner { max-width: 1200px; margin: 0 auto; }
+.sky-band__title { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.3; color: #fff; }
+@media (min-width: 768px) {
+  .sky-band { padding: 16px 32px 40px; }
+}
+/* 空帯の下端にコンテンツを重ねる */
+.sky-overlap { position: relative; margin-top: -24px; }
+.sky-overlap > .app-container { padding-top: 0 !important; }

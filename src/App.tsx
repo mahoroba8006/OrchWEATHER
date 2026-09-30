@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { m } from 'motion/react';
 import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Sun, Plus, Minus, Maximize2, X, Clock, Loader2, BarChart2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
@@ -18,7 +19,9 @@ import { Footer } from './components/Footer';
 import { HelpPage } from './components/HelpPage';
 import { AppHeader } from './components/shell/AppHeader';
 import { BottomNav } from './components/shell/BottomNav';
-import type { MainTab } from './components/shell/tabs';
+import { tabIndex, type MainTab } from './components/shell/tabs';
+import { SkyBand } from './components/sky/SkyBand';
+import { springs } from './lib/motion';
 import { EnvironmentGuidance } from './components/EnvironmentGuidance';
 import { logGuestStart, logWeatherView } from './lib/analytics';
 import {
@@ -160,6 +163,8 @@ type ChartGesture = {
 function AppContent() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, loadAiAllowed, resetUserData, guestMode, setGuestMode } = useAppStore();
   const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings' | 'help'>('weather');
+  /** タブ切替のスライド方向（-1: 左へ戻る / 0: 初回 / 1: 右へ進む） */
+  const [slideDir, setSlideDir] = useState(0);
   const prevTopTab = useRef<MainTab>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
@@ -1615,6 +1620,11 @@ function AppContent() {
   }
 
   const navTab: MainTab = topTab === 'settings' || topTab === 'help' ? prevTopTab.current : topTab;
+  const handleTabChange = (t: MainTab) => {
+    setSlideDir(Math.sign(tabIndex(t) - tabIndex(navTab)));
+    prevTopTab.current = t;
+    setTopTab(t);
+  };
 
   if (!user && !guestMode) {
     return <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />;
@@ -1627,7 +1637,7 @@ function AppContent() {
       )}
       <AppHeader
         tab={navTab}
-        onTabChange={t => { prevTopTab.current = t; setTopTab(t); }}
+        onTabChange={handleTabChange}
         isMobile={isMobile}
         user={user}
         onLogin={() => setGuestMode(false)}
@@ -1637,11 +1647,26 @@ function AppContent() {
       />
 
       <div style={isMobile ? { paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' } : undefined}>
+      {(topTab === 'weather' || topTab === 'history' || topTab === 'analysis') && (
+      <m.div
+        key={topTab}
+        initial={{ opacity: 0, x: slideDir * 24 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={springs.move}
+      >
       {topTab === 'weather' && <WeatherTab />}
 
-      {topTab === 'history' && <HistoricalWeatherTab />}
+      {topTab === 'history' && (
+        <>
+          <SkyBand title="空しらべ" />
+          <div className="sky-overlap"><HistoricalWeatherTab /></div>
+        </>
+      )}
 
       {topTab === 'analysis' && (
+      <>
+      <SkyBand title="空くらべ" />
+      <div className="sky-overlap">
       <div className="app-container" style={isMobile ? { gap: '0.25rem' } : undefined}>
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -2481,7 +2506,11 @@ function AppContent() {
       </main>
 
     </div>
+      </div>
+      </>
     )}
+      </m.div>
+      )}
 
       {topTab === 'settings' && (isGuest ? (
         <div className="app-container settings-theme">
@@ -2506,7 +2535,7 @@ function AppContent() {
       </div>
 
       {/* ── モバイル ボトムナビゲーション（fixed のため変形する親の外に置く） ── */}
-      {isMobile && <BottomNav tab={navTab} onTabChange={t => { prevTopTab.current = t; setTopTab(t); }} />}
+      {isMobile && <BottomNav tab={navTab} onTabChange={handleTabChange} />}
   </>
   );
 }
