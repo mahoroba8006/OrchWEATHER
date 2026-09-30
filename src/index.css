@@ -1,29 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+/* アプリ本体: IBM Plex Sans JP ／ LP（landing.css）: Outfit + Inter（LPは第5段階で統一するまで据え置き） */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* 自然と水をイメージした優しいグリーンとブルーのプレミアムパレット */
-  --bg-gradient: linear-gradient(135deg, #e6f2ee 0%, #e0ebf6 100%);
-  --bg-color: #eaf3f0;
-  --card-bg: rgba(255, 255, 255, 0.88);
-  --card-bg-solid: #ffffff;
-  --card-border: rgba(167, 203, 192, 0.35);
-  --card-border-hover: rgba(13, 148, 136, 0.45);
-  --card-border-sub: rgba(167, 203, 192, 0.18);
+  /* ── 面（不透明3段） ── */
+  --surface-ground: #F4F3EF;
+  --surface-card: #FFFFFF;
+  --surface-sunken: #ECEAE4;
 
-  --text-primary: #1e293b;   /* 落ち着いたディープスレート */
-  --text-secondary: #475569; /* 中庸なスレート */
-  --text-tertiary: #64748b;  /* 薄いスレート */
+  /* ── 文字（墨3段） ── */
+  --ink-1: #17191C;
+  --ink-2: #4A4F57;
+  --ink-3: #62676F;
 
-  /* 優しいグリーンとブルーのブランドカラー */
-  --accent-color: #0d9488;       /* 優しいディープティール (グリーン) */
-  --accent-hover: #0f766e;
-  --accent-rgb: 13, 148, 136;
-  --accent-light: rgba(13, 148, 136, 0.06);
-  --accent-blue: #0284c7;        /* 澄み渡るクリアブルー (水) */
-  --accent-blue-hover: #0369a1;
-  --accent-blue-light: rgba(2, 132, 199, 0.06);
+  /* ── 境界線 ── */
+  --line: rgba(23, 25, 28, 0.08);
+  --line-strong: rgba(23, 25, 28, 0.14);
 
-  /* 設定画面の識別色（注意報の暖色と区別するインディゴ系） */
+  /* ── アクセント（1色のみ・フラット） ── */
+  --accent: #0E6B65;
+  --accent-press: #0A5550;
+  --accent-rgb: 14, 107, 101;
+  --accent-soft: rgba(14, 107, 101, 0.08);
+
+  /* ── 影（無彩色1種） ── */
+  --shadow-card: 0 1px 2px rgba(23, 25, 28, 0.04), 0 4px 16px rgba(23, 25, 28, 0.05);
+  --shadow-raised: 0 2px 4px rgba(23, 25, 28, 0.05), 0 12px 32px rgba(23, 25, 28, 0.08);
+
+  /* ── 書体 ── */
+  --font-sans: 'IBM Plex Sans JP', system-ui, -apple-system, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+
+  /* ── 角丸 ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ── 互換エイリアス（既存コンポーネント用・第5段階で撤去） ── */
+  --bg-gradient: var(--surface-ground);
+  --bg-color: var(--surface-ground);
+  --card-bg: var(--surface-card);
+  --card-bg-solid: var(--surface-card);
+  --card-border: var(--line);
+  --card-border-hover: var(--line-strong);
+  --card-border-sub: var(--line);
+  --text-primary: var(--ink-1);
+  --text-secondary: var(--ink-2);
+  --text-tertiary: var(--ink-3);
+  --accent-color: var(--accent);
+  --accent-hover: var(--accent-press);
+  --accent-light: var(--accent-soft);
+  --accent-blue: #0369A1;
+  --accent-blue-hover: #075985;
+  --accent-blue-light: rgba(3, 105, 161, 0.06);
+  --shadow-sm: var(--shadow-card);
+  --shadow-md: var(--shadow-card);
+  --shadow-lg: var(--shadow-raised);
+  --grid-color: rgba(23, 25, 28, 0.06);
+
+  /* 設定画面の識別色（第2段階のシート化で撤去） */
   --settings-bg-gradient: linear-gradient(135deg, #f7f8fc 0%, #eef2ff 100%);
   --settings-accent: #4f46e5;
   --settings-accent-hover: #4338ca;
@@ -33,27 +68,15 @@
   --settings-shadow-md: 0 8px 24px rgba(67, 56, 202, 0.07), 0 4px 12px rgba(79, 70, 229, 0.04);
   --settings-shadow-lg: 0 16px 40px rgba(67, 56, 202, 0.09), 0 8px 20px rgba(79, 70, 229, 0.06);
 
-  /* チャート用プレミアムカラー */
-  --chart-temp: #f43f5e;     /* ローズレッド */
-  --chart-precip: #0ea5e9;   /* スカイブルー */
-  --chart-accum: #10b981;    /* ミントグリーン */
-  --chart-humid: #0d9488;    /* ティール */
-  --chart-sunshine: #f59e0b; /* アンバー */
+  /* チャート用（第4段階で意味色へ再設計） */
+  --chart-temp: #f43f5e;
+  --chart-precip: #0ea5e9;
+  --chart-accum: #10b981;
+  --chart-humid: #0d9488;
+  --chart-sunshine: #f59e0b;
 
-  /* 高級感のある多重シャドウ — プレミアムでふわりとした浮遊感 */
-  --shadow-sm: 0 2px 8px rgba(13, 148, 136, 0.03);
-  --shadow-md: 0 8px 24px rgba(13, 148, 136, 0.05), 0 4px 12px rgba(2, 132, 199, 0.03);
-  --shadow-lg: 0 16px 40px rgba(13, 148, 136, 0.07), 0 8px 20px rgba(2, 132, 199, 0.05);
-
-  --grid-color: rgba(167, 203, 192, 0.15);
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
-
-  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
-  font-feature-settings: 'cv02', 'cv03', 'cv04';
+  font-family: var(--font-sans);
+  font-feature-settings: 'palt';
 }
 
 * {
