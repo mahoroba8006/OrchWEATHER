@@ -2,6 +2,8 @@ import { useEffect, type CSSProperties, type RefObject } from 'react';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
+import { currentHourIndex } from '../../lib/sky';
+import './hourly.css';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 // ガントバー再表示時は以下2行のコメントを外す
 // import { computeWarningLanes } from '../../lib/warningGantt';
@@ -52,16 +54,20 @@ const LABEL_W = 76;
 const STICKY: CSSProperties = {
   position: 'sticky',
   left: 0,
-  background: '#eff6f3', /* iOSや一部モバイルブラウザのWebKitにおけるsticky+backdrop-filterクラッシュバグを回避するため不透明なミント背景に変更 */
+  background: 'var(--surface-card)', /* sticky+backdrop-filter の WebKit 不具合を避けるため不透明面を使う */
   padding: '0.35rem 0.6rem',
   fontWeight: 600,
-  color: 'var(--text-secondary)',
-  borderRight: '1px solid var(--card-border-sub)',
+  color: 'var(--ink-2)',
+  borderRight: '1px solid var(--line-strong)',
   zIndex: 1,
   minWidth: LABEL_W,
-  fontSize: '0.75rem',
+  fontSize: '0.78rem',
   verticalAlign: 'middle',
 };
+
+const ROW_BORDER = '1px solid var(--line)';
+const FADED_COLOR = 'var(--ink-3)';
+const FADED_OPACITY = 0.5;
 
 // ── Timeline ──────────────────────────────────────────────
 type HourlyEntry = { kind: 'hourly'; data: HourlyForecast };
@@ -108,16 +114,16 @@ function MiniChartRow({ tl, hourlyPos }: { tl: TLEntry[]; hourlyPos: number[] })
   for (let v = gMin; v <= gMax; v += gridStep) gridTemps.push(v);
 
   return (
-    <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
-      <td style={STICKY}>気温/降水</td>
+    <tr style={{ borderBottom: ROW_BORDER }}>
+      <td className="hourly-label" style={STICKY}>気温/降水</td>
       <td colSpan={tl.length} style={{ padding: 0, position: 'relative' }}>
         {/* SVG: バー・気温ライン。列が固定幅(COL_W)になったので td 幅 = 列数×COL_W = W と一致し、
             横伸縮（preserveAspectRatio="none"）は不要。実ピクセル座標でそのまま描画する。 */}
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
           {gridTemps.map(v => (
             <g key={v}>
-              <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} stroke="#e5e7eb" strokeWidth={1} />
-              <text x={3} y={ty(v) - 2} fontSize={7} fill="#c5c9d3">{v}</text>
+              <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} style={{ stroke: 'var(--line)' }} strokeWidth={1} />
+              <text x={3} y={ty(v) - 2} fontSize={7} style={{ fill: 'var(--ink-3)' }} opacity={0.7}>{v}</text>
             </g>
           ))}
           {hourlyPos.map((ti, i) => {
@@ -176,8 +182,8 @@ function UVRow({ tl, isNighttime, cutoff }: {
   cutoff: Date;
 }) {
   return (
-    <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
-      <td style={STICKY}>紫外線指数</td>
+    <tr style={{ borderBottom: ROW_BORDER }}>
+      <td className="hourly-label" style={STICKY}>紫外線指数</td>
       {tl.map((entry, i) => {
         if (entry.kind === 'sun') return <td key={`uv-sun-${i}`} style={{ minWidth: COL_W }} />;
         const h = entry.data;
@@ -320,8 +326,12 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
     container.scrollLeft += cell.getBoundingClientRect().left - container.getBoundingClientRect().left - STICKY_W;
   }, [scrollTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isPast = (e: TLEntry) => new Date(tlTime(e)) < effectiveCutoff;
   const todayStr = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  // 現在時刻の列（tl 上の位置）。履歴タブや、データが今日を含まない場合は無し。
+  const curHourly = disablePastOpacity ? -1 : currentHourIndex(hourly, now);
+  const currentTlIdx = curHourly >= 0 && hourly[curHourly].time.slice(0, 10) === todayStr ? hourlyPos[curHourly] : -1;
+
+  const isPast = (e: TLEntry) => new Date(tlTime(e)) < effectiveCutoff;
 
   // 夜間判定: daily の sunrise/sunset を時刻順に並べ、直前のイベントが sunset なら夜
   const allSunEvents = daily
@@ -345,20 +355,28 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
 
   return (
     <div>
-      <div ref={scrollRef ?? undefined} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)' }}>
+      <div ref={scrollRef ?? undefined} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
         {/* width を明示しないと table-layout:fixed が colgroup 幅を厳密適用せず、
             列がセル内容に合わせて COL_W より広くなる。すると固定ピクセルで描く
             ミニグラフSVG(W=列数×COL_W)が実列幅と食い違い、右へ行くほどバーがずれる。
             テーブル幅 = ラベル列 + 列数×COL_W に固定して各列を実寸 COL_W に揃える。 */}
-        <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap', tableLayout: 'fixed', width: LABEL_W + tl.length * COL_W }}>
+        <div style={{ position: 'relative', width: LABEL_W + tl.length * COL_W }}>
+        {/* 現在時刻の縦帯：上端から下端まで（表より前面・操作は透過）。ラベル列(z-index:1)の下に潜る */}
+        {currentTlIdx >= 0 && (
+          <div
+            aria-hidden
+            style={{ position: 'absolute', top: 0, bottom: 0, left: LABEL_W + currentTlIdx * COL_W, width: COL_W, background: 'var(--accent-soft)', pointerEvents: 'none' }}
+          />
+        )}
+        <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap', tableLayout: 'fixed', width: LABEL_W + tl.length * COL_W, fontVariantNumeric: 'tabular-nums' }}>
           <colgroup>
             <col style={{ width: LABEL_W }} />
             {tl.map((_, i) => <col key={i} style={{ width: COL_W }} />)}
           </colgroup>
           <tbody>
             {/* 日付 */}
-            <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
-              <td style={STICKY}>日付</td>
+            <tr style={{ borderBottom: ROW_BORDER }}>
+              <td className="hourly-label" style={STICKY}>日付</td>
               {(() => {
                 const cells: React.ReactElement[] = [];
                 let i = 0;
@@ -367,25 +385,22 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   const date = tlTime(entry).slice(0, 10);
                   let span = 1;
                   while (i + span < tl.length && tlTime(tl[i + span]).slice(0, 10) === date) span++;
-                  const isToday = date === todayStr;
                   const isPastDate = date < todayStr;
                   const mm = parseInt(date.slice(5, 7), 10);
                   const dd = parseInt(date.slice(8, 10), 10);
                   const dow = DAY_NAMES[new Date(`${date}T00:00:00`).getDay()];
                   const label = `${mm}/${dd}(${dow})`;
                   cells.push(
-                    <td key={`d-${i}`} colSpan={span} style={{ padding: '0.2rem 0.15rem', ...(i > 0 ? { borderLeft: '2px solid #ebeef5' } : {}) }}>
-                      <div style={{
-                        background: isPastDate ? 'rgba(180, 185, 200, 0.12)' : isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
-                        borderRadius: '6px',
-                        padding: '0.12rem 0.3rem',
-                        fontSize: '0.68rem',
-                        color: isPastDate ? '#c0c4cf' : isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
+                    <td key={`d-${i}`} colSpan={span} style={{ padding: '0.3rem 0.4rem', textAlign: 'left', ...(i > 0 ? { borderLeft: '1px solid var(--line-strong)' } : {}) }}>
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: '0.75rem',
+                        color: isPastDate ? FADED_COLOR : 'var(--ink-1)',
+                        opacity: isPastDate ? FADED_OPACITY : undefined,
                         fontWeight: 600,
-                        textAlign: 'center',
                       }}>
                         {label}
-                      </div>
+                      </span>
                     </td>
                   );
                   i += span;
@@ -394,28 +409,43 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               })()}
             </tr>
             {/* 時刻 */}
-            <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
-              <td style={STICKY}>時刻</td>
+            <tr style={{ borderBottom: ROW_BORDER }}>
+              <td className="hourly-label" style={STICKY}>時刻</td>
               {tl.map((entry, i) => {
                 const t = tlTime(entry);
                 const faded = isPast(entry);
+                const timePad = '0.6rem 0.2rem 0.3rem';
                 if (entry.kind === 'sun') {
                   return (
-                    <td key={`t-${i}`} style={{ padding: '0.3rem 0.2rem', textAlign: 'center', minWidth: COL_W, color: faded ? '#c0c4cf' : '#f59e0b', fontWeight: 600, fontSize: '0.62rem' }}>
+                    <td key={`t-${i}`} style={{ padding: timePad, textAlign: 'center', minWidth: COL_W, color: faded ? FADED_COLOR : '#f59e0b', opacity: faded ? FADED_OPACITY : undefined, fontWeight: 600, fontSize: '0.62rem' }}>
                       {t.slice(11, 16)}
                     </td>
                   );
                 }
+                const isCurrent = i === currentTlIdx;
                 return (
-                  <td key={`t-${i}`} data-time={t} style={{ padding: '0.3rem 0.4rem', textAlign: 'center', minWidth: COL_W, color: faded ? '#c0c4cf' : '#4b5563' }}>
+                  <td
+                    key={`t-${i}`}
+                    data-time={t}
+                    data-current={isCurrent ? 'true' : undefined}
+                    style={{
+                      position: 'relative', padding: timePad, textAlign: 'center', minWidth: COL_W,
+                      color: isCurrent ? 'var(--accent)' : faded ? FADED_COLOR : 'var(--ink-1)',
+                      fontWeight: isCurrent ? 600 : undefined,
+                      opacity: faded ? FADED_OPACITY : undefined,
+                    }}
+                  >
+                    {isCurrent && (
+                      <span style={{ position: 'absolute', top: 2, left: 0, right: 0, fontSize: '0.5rem', lineHeight: 1, fontWeight: 600 }}>今</span>
+                    )}
                     {String(parseInt(t.slice(11, 13), 10))}
                   </td>
                 );
               })}
             </tr>
             {/* 天気 */}
-            <tr style={{ borderBottom: '1px solid #f0f2f8' }}>
-              <td style={STICKY}>天気</td>
+            <tr style={{ borderBottom: ROW_BORDER }}>
+              <td className="hourly-label" style={STICKY}>天気</td>
               {tl.map((entry, i) => {
                 const faded = isPast(entry);
                 if (entry.kind === 'sun') {
@@ -425,7 +455,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   return (
                     <td key={`w-${i}`} style={{ padding: '0.2rem 0.1rem', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: faded ? 0.4 : 1 }}>
                       <Icon size={18} color={color} strokeWidth={1.5} />
-                      <div style={{ fontSize: '0.55rem', color: '#8a93a6', lineHeight: 1.2, marginTop: 2 }}>{label}</div>
+                      <div style={{ fontSize: '0.55rem', color: 'var(--ink-3)', lineHeight: 1.2, marginTop: 2 }}>{label}</div>
                     </td>
                   );
                 }
@@ -468,17 +498,28 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               .filter(row => row.key !== 'snowfall' || hasSnow)
               .filter(row => !hiddenRowKeys?.has(row.key))
               .map(row => (
-              <tr key={row.key} style={{ borderBottom: '1px solid #f0f2f8' }}>
-                <td style={STICKY}>
+              <tr key={row.key} style={{ borderBottom: ROW_BORDER }}>
+                <td className="hourly-label" style={STICKY}>
                   <div>{row.label}</div>
-                  {row.unit && <div style={{ fontSize: '0.6rem', fontWeight: 400, lineHeight: 1, marginTop: 1, color: 'var(--text-tertiary)' }}>{row.unit}</div>}
+                  {row.unit && <div style={{ fontSize: '0.65rem', fontWeight: 400, lineHeight: 1, marginTop: 1, color: 'var(--ink-3)' }}>{row.unit}</div>}
                 </td>
                 {tl.map((entry, i) => {
                   if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W }} />;
                   const h = entry.data;
+                  const faded = isPast(entry);
+                  const isPrecip = row.key === 'precip';
+                  const barPct = isPrecip && h.precipitation > 0
+                    ? Math.round(Math.min(1, h.precipitation / 10) * 70 * 10) / 10
+                    : 0;
                   return (
-                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, color: isPast(entry) ? '#c0c4cf' : '#4b5563', ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
-                      {row.fmt(h)}
+                    <td key={`${row.key}-${i}`} style={{ position: 'relative', padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, color: faded ? FADED_COLOR : 'var(--ink-1)', opacity: faded ? FADED_OPACITY : undefined, ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
+                      {barPct > 0 && (
+                        <span
+                          data-testid="precip-bar"
+                          style={{ position: 'absolute', left: 6, right: 6, bottom: 0, height: `${barPct}%`, background: 'var(--chart-precip)', opacity: 0.35, borderRadius: '2px 2px 0 0' }}
+                        />
+                      )}
+                      <span style={{ position: 'relative' }}>{row.fmt(h)}</span>
                     </td>
                   );
                 })}
@@ -486,6 +527,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
