@@ -5,7 +5,11 @@
 - [x] 設計合意（A空が主役／ヒーロー型／Motion導入／設定はシート）
 - [x] 仕様書作成・コミット
 - [x] 第1段階 実装計画: [docs/superpowers/plans/2026-09-30-app-redesign-phase1-foundation.md](../docs/superpowers/plans/2026-09-30-app-redesign-phase1-foundation.md)
-- [ ] 第1段階 土台（トークン・書体・Motion・共通部品・Playwright撮影）→develop
+- [x] 第1段階 土台（トークン・書体・Motion・共通部品・Playwright撮影）→develop `9262793`
+  - レビュー: テスト73件成功／ビルド成功／バンドル +38.4KB gzip（予算50KB内）／撮影 before・phase1-final 比較で崩れなし
+  - 途中是正: ①撮影にgeolocation付与（ゲストで地点なし→空画面だった）②Plex化でモード切替ボタンが折返し→nowrap ③グローバル button:hover の優先度が .premium-pill/.ui-btn の背景を上書き→:where() で優先度0に
+  - 第2段階への持ち越し: Sheet の閉じアニメ中も Esc/スクロールロックが残る（usePresenceで改善可）・スワイプ閉じの実機確認
+  - [ ] ユーザー実機確認（developプレビュー）
 - [ ] 第2段階 骨格（ヒーロー空・ナビ・タブ遷移・設定/ヘルプのシート化）
 - [ ] 第3段階 空もよう
 - [ ] 第4段階 空くらべ・空しらべ
