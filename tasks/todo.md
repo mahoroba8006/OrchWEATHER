@@ -1,3 +1,18 @@
+# アプリ全面リニューアル「空が主役」（2026-09-30〜）
+
+仕様書: [docs/superpowers/specs/2026-09-30-app-visual-redesign-design.md](../docs/superpowers/specs/2026-09-30-app-visual-redesign-design.md)
+
+- [x] 設計合意（A空が主役／ヒーロー型／Motion導入／設定はシート）
+- [x] 仕様書作成・コミット
+- [x] 第1段階 実装計画: [docs/superpowers/plans/2026-09-30-app-redesign-phase1-foundation.md](../docs/superpowers/plans/2026-09-30-app-redesign-phase1-foundation.md)
+- [ ] 第1段階 土台（トークン・書体・Motion・共通部品・Playwright撮影）→develop
+- [ ] 第2段階 骨格（ヒーロー空・ナビ・タブ遷移・設定/ヘルプのシート化）
+- [ ] 第3段階 空もよう
+- [ ] 第4段階 空くらべ・空しらべ
+- [ ] 第5段階 設定中身・ログイン・LP統一・互換エイリアス撤去
+
+---
+
 # LP ビジュアル刷新「スクロールで晴れていく空」（2026-07-21）
 
 仕様書: [docs/superpowers/specs/2026-07-21-lp-visual-redesign-design.md](../docs/superpowers/specs/2026-07-21-lp-visual-redesign-design.md)
