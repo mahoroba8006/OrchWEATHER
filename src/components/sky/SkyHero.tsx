@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { animate, m, useReducedMotion } from 'motion/react';
 import { Loader2, MapPin, RefreshCw } from 'lucide-react';
 import { springs } from '../../lib/motion';
+import { hasIntroPlayed, markIntroPlayed } from '../../lib/intro';
 import { useSkyStore, type SkyState } from '../../skyStore';
 import { WeatherIcon, codeToLabel } from '../weather/WeatherIcon';
 import { SkyParticles } from './SkyParticles';
@@ -27,9 +28,6 @@ export interface SkyHeroProps {
   children?: ReactNode;
 }
 
-/** 気温のカウントアップ演出は、アプリ起動後の初回だけ */
-let introPlayed = false;
-
 const round = (v: number | null) => (v === null ? '—' : String(Math.round(v)));
 
 export function SkyHero({
@@ -40,7 +38,7 @@ export function SkyHero({
   const rootRef = useRef<HTMLElement>(null);
   const [offscreen, setOffscreen] = useState(false);
   const [tabHidden, setTabHidden] = useState(() => document.visibilityState === 'hidden');
-  const [playIntro] = useState(() => !introPlayed);
+  const [playIntro] = useState(() => !hasIntroPlayed());
   /** カウントアップ中の表示値。null のときは temperature をそのまま出す */
   const [counting, setCounting] = useState<number | null>(null);
 
@@ -68,9 +66,9 @@ export function SkyHero({
 
   // 初回だけ 0 → 現在気温 へカウントアップ
   useLayoutEffect(() => {
-    if (temperature === null || introPlayed) return;
+    if (temperature === null || hasIntroPlayed()) return;
     if (reduced) {
-      introPlayed = true;
+      markIntroPlayed();
       return;
     }
     // 最終値が一瞬見えないよう、描画前に 0 から始める（副作用の同期 setState は意図的）
@@ -81,7 +79,7 @@ export function SkyHero({
       ease: [0.16, 1, 0.3, 1],
       onUpdate: v => setCounting(v),
       onComplete: () => {
-        introPlayed = true;
+        markIntroPlayed();
         setCounting(null);
       },
     });

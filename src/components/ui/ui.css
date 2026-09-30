@@ -148,3 +148,37 @@
   overscroll-behavior: contain;
   padding: 0 16px 24px;
 }
+
+/* Skeleton */
+.ui-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+}
+.ui-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: ui-skeleton-sweep 1.6s ease-in-out infinite;
+}
+@keyframes ui-skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+/* shake（エラー時に一度だけ揺れる） */
+.ui-shake { animation: ui-shake 0.4s cubic-bezier(.36, .07, .19, .97) both; }
+@keyframes ui-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton::after { display: none; }
+  .ui-shake { animation: none; }
+}
