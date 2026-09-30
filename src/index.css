@@ -288,7 +288,8 @@ button {
   transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
-button:hover {
+/* 優先度0: クラスで背景を指定したボタン（.premium-pill / .ui-btn 等）を上書きしない */
+:where(button:hover) {
   background-color: var(--accent-press);
 }
 

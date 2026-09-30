@@ -29,8 +29,10 @@ export function SegmentedControl<T extends string>({
     const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
     if (delta === 0) return;
     e.preventDefault();
-    const next = options[(index + delta + options.length) % options.length];
-    onChange(next.value);
+    const nextIndex = (index + delta + options.length) % options.length;
+    onChange(options[nextIndex].value);
+    // ロービングタブインデックス: フォーカスも選択先へ移す
+    (e.currentTarget.parentElement?.children[nextIndex] as HTMLElement | undefined)?.focus();
   };
 
   return (

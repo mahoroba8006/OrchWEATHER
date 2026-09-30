@@ -73,4 +73,9 @@ describe('AI-look removal', () => {
     expect(body).not.toContain('linear-gradient');
     expect(body).toContain('box-shadow: none');
   });
+
+  it('global button hover has zero specificity so class-styled buttons keep their background', () => {
+    expect(css).toContain(':where(button:hover) {');
+    expect(css.split(String.fromCharCode(10)).some(line => line.startsWith('button:hover {'))).toBe(false);
+  });
 });

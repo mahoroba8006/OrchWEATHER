@@ -53,5 +53,6 @@ describe('SegmentedControl', () => {
     );
     fireEvent.keyDown(screen.getByRole('tab', { name: '日' }), { key: 'ArrowRight' });
     expect(onChange).toHaveBeenCalledWith('monthly');
+    expect(document.activeElement).toBe(screen.getByRole('tab', { name: '月' }));
   });
 });
