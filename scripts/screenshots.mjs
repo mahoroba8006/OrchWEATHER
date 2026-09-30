@@ -24,6 +24,9 @@ try {
       hasTouch: vp.hasTouch,
       locale: 'ja-JP',
       timezoneId: 'Asia/Tokyo',
+      // ゲストモードは地点未登録のため現在地が必要（東京駅）
+      permissions: ['geolocation'],
+      geolocation: { latitude: 35.681, longitude: 139.767 },
     });
     await context.addInitScript(() => {
       window.localStorage.setItem('guestMode', '1');

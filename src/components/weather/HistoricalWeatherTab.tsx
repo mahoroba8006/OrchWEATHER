@@ -238,6 +238,8 @@ export function HistoricalWeatherTab() {
                 className="secondary"
                 style={{
                   padding: '0.3rem 0.7rem',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                   fontSize: '0.75rem',
                   background: weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
                   color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
@@ -251,6 +253,8 @@ export function HistoricalWeatherTab() {
                 className="secondary"
                 style={{
                   padding: '0.3rem 0.7rem',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                   fontSize: '0.75rem',
                   background: weatherCodeMode === 'frequency' ? 'rgba(13,148,136,0.18)' : undefined,
                   color: weatherCodeMode === 'frequency' ? '#0f766e' : undefined,
