@@ -24,6 +24,9 @@ dist
 dist-ssr
 *.local
 
+# デザイン検証用スクリーンショット（scripts/screenshots.mjs の出力）
+screenshots/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
