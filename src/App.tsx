@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Settings, Sun, Plus, Minus, Maximize2, X, LogOut, Clock, Loader2, BarChart2, HelpCircle } from 'lucide-react';
+import { m } from 'motion/react';
+import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Sun, Plus, Minus, Maximize2, X, Clock, Loader2, BarChart2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -16,6 +17,12 @@ import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab'
 import { WeatherLoader } from './components/weather/WeatherLoader';
 import { Footer } from './components/Footer';
 import { HelpPage } from './components/HelpPage';
+import { AppHeader } from './components/shell/AppHeader';
+import { BottomNav } from './components/shell/BottomNav';
+import { tabIndex, type MainTab } from './components/shell/tabs';
+import { Sheet } from './components/ui/Sheet';
+import { SkyBand } from './components/sky/SkyBand';
+import { springs } from './lib/motion';
 import { EnvironmentGuidance } from './components/EnvironmentGuidance';
 import { logGuestStart, logWeatherView } from './lib/analytics';
 import {
@@ -156,8 +163,13 @@ type ChartGesture = {
 
 function AppContent() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, loadAiAllowed, resetUserData, guestMode, setGuestMode } = useAppStore();
-  const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings' | 'help'>('weather');
-  const prevTopTab = useRef<'weather' | 'history' | 'analysis' | 'settings'>('weather');
+  const [topTab, setTopTab] = useState<MainTab>('weather');
+  /** 設定・ヘルプのシート（タブとは独立して重ねて出す） */
+  const [sheet, setSheet] = useState<'settings' | 'help' | null>(null);
+  /** シートを開いた時点のスクロール位置。背景の沈み込みの基点にして、見ている位置がずれないようにする */
+  const [sinkOriginY, setSinkOriginY] = useState(0);
+  /** タブ切替のスライド方向（-1: 左へ戻る / 0: 初回 / 1: 右へ進む） */
+  const [slideDir, setSlideDir] = useState(0);
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
@@ -1611,240 +1623,60 @@ function AppContent() {
     );
   }
 
+  const handleTabChange = (t: MainTab) => {
+    setSlideDir(Math.sign(tabIndex(t) - tabIndex(topTab)));
+    setTopTab(t);
+  };
+  const openSheet = (target: 'settings' | 'help') => {
+    setSinkOriginY(window.scrollY);
+    setSheet(target);
+  };
+  const sinking = sheet !== null && isMobile;
+
   if (!user && !guestMode) {
     return <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />;
   }
 
   return (
     <>
-      {topTab === 'settings' && (
-        <div aria-hidden="true" style={{ position: 'fixed', inset: 0, background: 'var(--settings-bg-gradient)', zIndex: -1 }} />
-      )}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.75)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--card-border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 56,
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-      }}>
-        {/* 内側コンテンツを本体（.app-container, max-width:1200px）と同じ中央幅に揃える */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          width: '100%',
-          maxWidth: 1200,
-          padding: isMobile ? '0 1rem' : '0 2rem',
-          boxSizing: 'border-box',
-        }}>
-        {/* アプリアイコン（装飾のみ） */}
-        <img
-          src="/icon.png"
-          alt=""
-          aria-hidden="true"
-          style={{ width: 24, height: 24, flexShrink: 0, pointerEvents: 'none', marginRight: '0.25rem' }}
-        />
+      {/* シートを開くとモバイルでは背景が少し沈む。ボトムナビは fixed のため、この変形する枠の外に置く */}
+      <m.div
+        animate={{ scale: sinking ? 0.94 : 1, borderRadius: sinking ? 16 : 0 }}
+        style={{ transformOrigin: `50% ${sinkOriginY}px`, overflow: sinking ? 'clip' : 'visible' }}
+        transition={springs.move}
+      >
+      <AppHeader
+        tab={topTab}
+        onTabChange={handleTabChange}
+        isMobile={isMobile}
+        user={user}
+        onLogin={() => { setSheet(null); setGuestMode(false); }}
+        onLogout={() => { setSheet(null); signOut(auth); }}
+        onOpenHelp={() => openSheet('help')}
+        onOpenSettings={() => openSheet('settings')}
+      />
 
-        {isMobile ? (
-          /* ── モバイルヘッダー: spacer + avatar + 設定ギア ── */
-          <>
-            <div style={{ flex: 1 }} />
-            <button
-              onClick={() => {
-                if (topTab !== 'help') prevTopTab.current = topTab;
-                setTopTab('help');
-              }}
-              style={{
-                background: topTab === 'help'
-                  ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)'
-                  : 'rgba(167, 203, 192, 0.2)',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.45rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: topTab === 'help' ? '#ffffff' : 'var(--text-secondary)',
-                flexShrink: 0,
-              }}
-              title="アプリの使い方"
-            >
-              <HelpCircle size={20} />
-            </button>
-            {user ? (
-              user.photoURL && (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName ?? ''}
-                  width={28}
-                  height={28}
-                  style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)', flexShrink: 0 }}
-                />
-              )
-            ) : (
-              <button
-                className="secondary"
-                onClick={() => setGuestMode(false)}
-                title="ログイン"
-                style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
-              >
-                ログイン
-              </button>
-            )}
-            <button
-              onClick={() => setTopTab('settings')}
-              style={{
-                background: topTab === 'settings'
-                  ? 'linear-gradient(135deg, var(--settings-accent) 0%, var(--settings-accent-hover) 100%)'
-                  : 'var(--settings-accent-light)',
-                border: 'none',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.45rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: topTab === 'settings' ? '#ffffff' : 'var(--settings-accent-text)',
-                flexShrink: 0,
-              }}
-              title="設定"
-            >
-              <Settings size={20} />
-            </button>
-          </>
-        ) : (
-          /* ── デスクトップヘッダー: モバイル準拠ピルタブ + gear + avatar + logout ── */
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flex: 1 }}>
-              {([
-                { id: 'weather',  label: '空もよう',   Icon: Sun       },
-                { id: 'analysis', label: '空くらべ',   Icon: BarChart2 },
-                { id: 'history',  label: '空しらべ', Icon: Clock     },
-              ] as const).map(({ id, label, Icon }) => {
-                const active = topTab === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setTopTab(id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      background: active
-                        ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
-                        : 'linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(15,118,110,0.15) 100%)',
-                      border: 'none',
-                      borderRadius: '0.6rem',
-                      cursor: 'pointer',
-                      color: active ? '#ffffff' : '#0d9488',
-                      fontWeight: active ? 700 : 500,
-                      fontSize: '0.84rem',
-                      padding: '0.45rem 1rem',
-                      transition: 'all 0.2s ease',
-                      boxShadow: active ? '0 2px 8px rgba(13,148,136,0.30)' : 'none',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-              <button
-                onClick={() => {
-                  if (topTab !== 'help') prevTopTab.current = topTab;
-                  setTopTab('help');
-                }}
-                style={{
-                  background: topTab === 'help'
-                    ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
-                    : 'linear-gradient(135deg, rgba(13,148,136,0.15) 0%, rgba(15,118,110,0.15) 100%)',
-                  border: 'none',
-                  borderRadius: '0.6rem',
-                  padding: '0.45rem 0.6rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  color: topTab === 'help' ? '#ffffff' : '#0d9488',
-                  fontSize: '0.84rem',
-                  fontWeight: topTab === 'help' ? 700 : 500,
-                }}
-                title="アプリの使い方"
-              >
-                <HelpCircle size={18} strokeWidth={topTab === 'help' ? 2.2 : 1.8} />
-                使い方
-              </button>
-              <button
-                onClick={() => setTopTab('settings')}
-                style={{
-                  background: topTab === 'settings'
-                    ? 'linear-gradient(135deg, var(--settings-accent) 0%, var(--settings-accent-hover) 100%)'
-                    : 'var(--settings-accent-light)',
-                  border: 'none',
-                  borderRadius: '0.6rem',
-                  padding: '0.45rem 0.6rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: topTab === 'settings' ? '#ffffff' : 'var(--settings-accent-text)',
-                }}
-                title="設定"
-              >
-                <Settings size={18} strokeWidth={topTab === 'settings' ? 2.2 : 1.8} />
-              </button>
-              {user ? (
-                <>
-                  {user.photoURL && (
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName ?? ''}
-                      width={28}
-                      height={28}
-                      style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)' }}
-                    />
-                  )}
-                  <button
-                    className="secondary"
-                    onClick={() => signOut(auth)}
-                    title="ログアウト"
-                    style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
-                  >
-                    <LogOut size={13} /> ログアウト
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="secondary"
-                  onClick={() => setGuestMode(false)}
-                  title="ログイン"
-                  style={{ padding: '0.4rem 0.7rem', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', borderRadius: 'var(--radius-md)' }}
-                >
-                  ログイン
-                </button>
-              )}
-            </div>
-          </>
-        )}
-        </div>
-      </div>
-
-      <div style={isMobile ? { paddingBottom: 'calc(56px + env(safe-area-inset-bottom))' } : undefined}>
+      <div style={isMobile ? { paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' } : undefined}>
+      {(topTab === 'weather' || topTab === 'history' || topTab === 'analysis') && (
+      <m.div
+        key={topTab}
+        initial={{ opacity: 0, x: slideDir * 24 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={springs.move}
+      >
       {topTab === 'weather' && <WeatherTab />}
 
-      {topTab === 'history' && <HistoricalWeatherTab />}
+      {topTab === 'history' && (
+        <>
+          <SkyBand title="空しらべ" />
+          <div className="sky-overlap"><HistoricalWeatherTab /></div>
+        </>
+      )}
 
       {topTab === 'analysis' && (
+      <>
+      <SkyBand title="空くらべ" />
+      <div className="sky-overlap">
       <div className="app-container" style={isMobile ? { gap: '0.25rem' } : undefined}>
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -2684,10 +2516,20 @@ function AppContent() {
       </main>
 
     </div>
+      </div>
+      </>
     )}
+      </m.div>
+      )}
 
-      {topTab === 'settings' && (isGuest ? (
-        <div className="app-container settings-theme">
+      </div>
+      </m.div>
+
+      {/* ── モバイル ボトムナビゲーション（fixed のため変形する親の外に置く） ── */}
+      {isMobile && <BottomNav tab={topTab} onTabChange={handleTabChange} />}
+
+      <Sheet open={sheet === 'settings'} onClose={() => setSheet(null)} title="設定" placement={isMobile ? 'bottom' : 'side'}>
+        {isGuest ? (
           <div className="glass-panel" style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
             <p style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>ログインが必要です</p>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1.2rem' }}>
@@ -2695,75 +2537,19 @@ function AppContent() {
             </p>
             <button
               className="secondary"
-              onClick={() => setGuestMode(false)}
+              onClick={() => { setSheet(null); setGuestMode(false); }}
               style={{ padding: '0.5rem 1.2rem', borderRadius: 'var(--radius-md)' }}
             >
               ログインする
             </button>
           </div>
-        </div>
-      ) : (
-        <SettingsTab />
-      ))}
-      {topTab === 'help' && <HelpPage onBack={() => setTopTab(prevTopTab.current)} />}
-      </div>
-
-      {/* ── モバイル ボトムナビゲーション ── */}
-      {isMobile && (
-        <nav style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 'calc(56px + env(safe-area-inset-bottom))',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          background: 'rgba(255, 255, 255, 0.92)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid var(--card-border)',
-          display: 'flex',
-          alignItems: 'stretch',
-          zIndex: 50,
-        }}>
-          {([
-            { id: 'weather',  label: '空もよう',   Icon: Sun       },
-            { id: 'analysis', label: '空くらべ',   Icon: BarChart2 },
-            { id: 'history',  label: '空しらべ', Icon: Clock     },
-          ] as const).map(({ id, label, Icon }) => {
-            const active = topTab === 'help' ? prevTopTab.current === id : topTab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => { prevTopTab.current = id; setTopTab(id); }}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.2rem',
-                  background: active
-                    ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
-                    : 'linear-gradient(135deg, rgba(13,148,136,0.18) 0%, rgba(15,118,110,0.18) 100%)',
-                  border: 'none',
-                  borderRadius: '0.6rem',
-                  cursor: 'pointer',
-                  color: active ? '#ffffff' : '#0d9488',
-                  fontWeight: active ? 700 : 500,
-                  fontSize: '0.65rem',
-                  margin: '0.3rem 0.25rem',
-                  padding: '0.35rem 0',
-                  transition: 'all 0.2s ease',
-                  boxShadow: active ? '0 2px 8px rgba(13,148,136,0.30)' : 'none',
-                }}
-              >
-                <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-      )}
+        ) : (
+          <SettingsTab />
+        )}
+      </Sheet>
+      <Sheet open={sheet === 'help'} onClose={() => setSheet(null)} title="使い方" placement={isMobile ? 'bottom' : 'side'}>
+        <HelpPage />
+      </Sheet>
   </>
   );
 }

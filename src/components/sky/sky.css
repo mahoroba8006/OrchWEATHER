@@ -1,0 +1,268 @@
+/* ── 空の演出（src/components/sky/）──
+   動かすのは transform と opacity だけ。粒子は最大60個。 */
+
+.sky-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sky-particles > * { pointer-events: none; }
+
+.sky-particle { position: absolute; will-change: transform, opacity; }
+
+/* 背景の呼吸 */
+.sky-breath {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 70% at 50% 0%, #fff 0%, rgba(255, 255, 255, 0) 70%);
+  opacity: 0.06;
+  animation: sky-breath 10s ease-in-out infinite alternate;
+}
+@keyframes sky-breath { from { opacity: 0.06; } to { opacity: 0.14; } }
+
+/* 昼の晴れ: 太陽の光のにじみ */
+.sky-sun {
+  position: absolute;
+  top: -30%;
+  right: -20%;
+  width: 90%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.55) 0%, rgba(255, 244, 214, 0) 65%);
+  animation: sky-sun 12s ease-in-out infinite alternate;
+}
+@keyframes sky-sun {
+  from { transform: scale(1); opacity: 0.75; }
+  to { transform: scale(1.08); opacity: 1; }
+}
+
+/* 星のまたたき */
+.sky-particle--star {
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.25;
+  animation: sky-twinkle var(--dur) ease-in-out var(--delay) infinite;
+}
+@keyframes sky-twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.95; }
+}
+
+/* 雲 */
+.sky-particle--cloud {
+  left: 0;
+  top: var(--y);
+  width: var(--w);
+  aspect-ratio: 2.6 / 1;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
+  animation: sky-cloud var(--dur) linear var(--delay) infinite;
+}
+@keyframes sky-cloud {
+  from { transform: translate3d(-110%, 0, 0); }
+  to { transform: translate3d(140%, 0, 0); }
+}
+
+/* 雨（雷雨も同じ） */
+.sky-particle--rain {
+  left: var(--x);
+  top: -8%;
+  width: 1.5px;
+  height: var(--len);
+  border-radius: 1px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.55));
+  animation: sky-rain var(--dur) linear var(--delay) infinite;
+}
+@keyframes sky-rain {
+  from { transform: translate3d(0, 0, 0) rotate(12deg); opacity: 0; }
+  10% { opacity: 1; }
+  to { transform: translate3d(-26vh, 120vh, 0) rotate(12deg); opacity: 1; }
+}
+
+/* 雪 */
+.sky-particle--snow {
+  left: var(--x);
+  top: -6%;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  animation: sky-snow var(--dur) linear var(--delay) infinite;
+}
+@keyframes sky-snow {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  8% { opacity: 1; }
+  30% { transform: translate3d(var(--sway), 40vh, 0); }
+  60% { transform: translate3d(calc(var(--sway) * -1), 80vh, 0); }
+  100% { transform: translate3d(0, 120vh, 0); opacity: 1; }
+}
+
+/* 霧 */
+.sky-particle--fog {
+  left: -20%;
+  top: var(--y);
+  width: 140%;
+  height: 34%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+  animation: sky-fog var(--dur) ease-in-out var(--delay) infinite alternate;
+}
+@keyframes sky-fog {
+  from { transform: translate3d(-8%, 0, 0); }
+  to { transform: translate3d(8%, 0, 0); }
+}
+
+/* 雷: 12秒周期で一瞬だけ光る */
+.sky-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  animation: sky-flash 12s linear infinite;
+}
+@keyframes sky-flash {
+  0%, 6%, 100% { opacity: 0; }
+  1% { opacity: 0.5; }
+  2% { opacity: 0.05; }
+  3% { opacity: 0.35; }
+  4.5% { opacity: 0; }
+}
+
+/* 画面外・タブ非表示のときは止める */
+.sky-particles--paused,
+.sky-particles--paused * { animation-play-state: paused; }
+
+/* 視差を減らす設定: 動きを止め、静止画として置く */
+@media (prefers-reduced-motion: reduce) {
+  .sky-particles,
+  .sky-particles * { animation: none; }
+  .sky-particle--rain, .sky-particle--snow { top: var(--y); }
+  .sky-particle--cloud { left: var(--x); }
+  .sky-particle--rain { transform: rotate(12deg); opacity: 0.8; }
+  .sky-particle--star { opacity: 0.7; }
+  .sky-particle--snow { opacity: 1; }
+  .sky-flash { display: none; }
+}
+
+/* ── ヒーロー（SkyHero）── */
+.sky-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 40vh;
+  color: #fff;
+}
+.sky-hero__inner {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sky-hero__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.sky-hero__loc {
+  position: relative;
+  min-height: 44px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+.sky-hero__loc-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 見た目は地点名テキスト、実体は全面に重ねた透明な select */
+.sky-hero .sky-hero__select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px; /* iOS の入力時ズーム防止 */
+}
+.sky-hero__loc:has(.sky-hero__select:focus-visible) {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.sky-hero__actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.sky-hero .sky-hero__btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: none;
+  box-shadow: none;
+  transition: background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.sky-hero .sky-hero__btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.28); }
+.sky-hero .sky-hero__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.sky-hero .sky-hero__btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.sky-hero__spin { animation: spin 1.2s linear infinite; }
+
+.sky-hero__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.sky-hero__temp {
+  font-size: clamp(72px, 22vw, 112px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.sky-hero__icon { display: inline-flex; flex-shrink: 0; }
+
+.sky-hero__meta {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.sky-hero__label { font-size: 1.1rem; font-weight: 500; }
+.sky-hero__range { margin-top: 0.15rem; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.sky-hero__range-sep, .sky-hero__range-min { color: rgba(255, 255, 255, 0.7); }
+.sky-hero__updated { font-size: 0.75rem; color: rgba(255, 255, 255, 0.7); white-space: nowrap; }
+.sky-hero__extra { margin-top: 0.75rem; font-size: 0.8rem; color: #fff; }
+
+@media (min-width: 768px) {
+  .sky-hero { min-height: 320px; }
+  .sky-hero__inner { padding: 0.5rem 2rem 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky-hero__spin { animation-duration: 3s; }
+}
+
+/* ── 空帯（SkyBand）: 空くらべ・空しらべの画面タイトル ── */
+.sky-band { color: #fff; transition: background 0.6s ease; }
+.sky-band__inner { max-width: 1200px; margin: 0 auto; padding: 12px 20px 36px; box-sizing: border-box; }
+.sky-band__title { margin: 0; font-size: 1.25rem; font-weight: 600; line-height: 1.3; color: #fff; }
+@media (min-width: 768px) {
+  .sky-band__inner { padding: 16px 2rem 40px; }
+}
+/* 空帯の下端にコンテンツを重ねる */
+.sky-overlap { position: relative; margin-top: -24px; }
+.sky-overlap > .app-container { padding-top: 0 !important; }
