@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { m } from 'motion/react';
 import { CloudRain, Thermometer, Droplets, DropletOff, Leaf, Sun, Plus, Minus, Maximize2, X, Clock, Loader2, BarChart2 } from 'lucide-react';
 import { Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, LabelList } from 'recharts';
 import { useAppStore } from '../../store';
@@ -6,8 +7,12 @@ import { DailyRawTable } from '../DailyRawTable';
 import { Footer } from '../Footer';
 import { SkyBand } from '../sky/SkyBand';
 import { GEO_OPTIONS } from '../../lib/geo';
+import { springs } from '../../lib/motion';
+import { Button } from '../ui/Button';
+import { SegmentedControl } from '../ui/SegmentedControl';
 import { CustomWideBar, CustomRangeBar, ForecastRangeBar } from './chartShapes';
 import type { ChartId, useAnalysisState } from './useAnalysisState';
+import './analysis.css';
 
 const CHART_TABS: { id: ChartId; label: string }[] = [
   { id: 'temp',      label: '気温' },
@@ -18,6 +23,18 @@ const CHART_TABS: { id: ChartId; label: string }[] = [
   { id: 'humid',     label: '湿度' },
   { id: 'vpd',       label: '飽差' },
 ];
+
+// チャート共通の見た目（軸線なし・淡い横グリッド・等幅数字の小さな目盛り）
+const TICK_STYLE = { fontVariantNumeric: 'tabular-nums' } as const;
+const GRID_PROPS = { vertical: false, stroke: 'var(--grid-color)' } as const;
+const X_AXIS_PROPS = {
+  axisLine: false,
+  tickLine: false,
+  tickMargin: 8,
+  tick: { fontSize: 11, fill: 'var(--ink-3)', style: TICK_STYLE },
+} as const;
+const CROSSHAIR = { stroke: 'var(--ink-2)', strokeWidth: 1, strokeOpacity: 0.35 } as const;
+const unitLabel = (value: string) => ({ value, position: 'top' as const, offset: 10, fill: 'var(--ink-3)', fontSize: 11 });
 
 // MM-DD → 日番号（非閏年ベース、2/29は便宜上60を返す）
 const MONTH_DAY_OFFSETS = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -61,10 +78,20 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
     handlePointerDown, handlePointerMove, handlePointerUp, handlePointerLeave,
   } = analysis;
 
+  // Y軸は共通propsに文字色・等幅数字だけ上書き（軸の幅・mirror 等はそのまま）
+  const yTick = { fontSize: 11, fill: 'var(--ink-3)', style: TICK_STYLE };
+  const yAxisLeft = { ...yAxisCommon, tick: yTick };
+  const yAxisRight = { ...yAxisCommonRight, tick: yTick };
+
+  // 選択中のグラフ種別タブが画面外なら見える位置までスクロール
+  useEffect(() => {
+    document.getElementById(`analysis-chart-tab-${activeChart}`)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [activeChart]);
+
   const chartLoading = (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '350px', gap: '0.9rem' }}>
-      <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)' }} />
-      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.02em' }}>
+      <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+      <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--ink-2)', letterSpacing: '0.02em' }}>
         {loadingStatus || 'データを取得中...'}
       </span>
     </div>
@@ -87,7 +114,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
         touchAction: isMonthly ? 'auto' : 'pan-y',
       }}
     >
-      <div style={{ height: '350px', width: '100%', background: '#ffffff', borderRadius: '8px' }}>
+      <div className="analysis-chart-frame">
         {children}
       </div>
     </div>
@@ -129,22 +156,9 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
   };
 
   const renderValueBox = (chartId: string) => {
-    const boxStyle: React.CSSProperties = {
-      marginTop: '0.5rem',
-      marginBottom: '0.5rem',
-      borderRadius: '8px',
-      padding: '0.6rem 0.75rem',
-      fontSize: '0.92rem',
-    };
-
     if (hover?.chartId !== chartId) {
       return (
-        <div style={{
-          ...boxStyle,
-          border: '1px dashed rgba(255,255,255,0.12)',
-          color: '#475569',
-          textAlign: 'center',
-        }}>
+        <div className="analysis-value analysis-value--empty">
           タップして値を表示
         </div>
       );
@@ -164,12 +178,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
     if (items.length === 0) return null;
 
     return (
-      <div style={{
-        ...boxStyle,
-        background: 'rgba(244,167,185,0.07)',
-        border: '1px solid rgba(244,167,185,0.2)',
-      }}>
-        <div style={{ fontSize: '0.84rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 700 }}>
+      <div className="analysis-value analysis-value--filled">
+        <div className="analysis-value__label">
           {formatHoverLabel(hover.label)}
         </div>
         {(() => {
@@ -315,7 +325,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
           };
 
           return sortedGroupEntries.map(([color, groupItems], gi) => (
-            <div key={gi} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.75rem', marginTop: gi > 0 ? '0.2rem' : 0 }}>
+            <div key={gi} className="analysis-value__row">
               {groupItems.map((p: any, i: number) => {
                 const isForecastItem = typeof p.dataKey === 'string' && p.dataKey.startsWith('forecast_');
                 const rawMetric = p.name.split(' ').slice(2).join(' ') || p.name;
@@ -348,22 +358,29 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                 return (
                   <React.Fragment key={i}>
                     {forecastDailyNote && (
-                      <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
-                        {forecastDailyNote.label} <strong>{forecastDailyNote.value}</strong>
+                      <span className="analysis-value__item">
+                        <span className="analysis-value__dot" style={{ background: color }} />
+                        <span>{forecastDailyNote.label} <strong>{forecastDailyNote.value}</strong></span>
                       </span>
                     )}
-                    <span style={{ color, whiteSpace: 'nowrap', fontSize: '0.92rem' }}>
-                      {metric} <strong>{formatHoverEntry(p)}</strong>
-                      {isForecastItem && (
-                        <span style={{ marginLeft: '0.25rem', opacity: 0.7, fontSize: '0.80rem', color: 'var(--text-secondary)' }}>
-                          ※予報値
-                        </span>
-                      )}
-                      {diffNote && (
-                        <span style={{ marginLeft: '0.25rem', opacity: 0.85, fontSize: '0.84rem' }}>
-                          {diffNote}
-                        </span>
-                      )}
+                    <span className="analysis-value__item">
+                      <span className="analysis-value__dot" style={{ background: color }} />
+                      <span>
+                        {metric}{' '}
+                        <strong>
+                          <m.span
+                            key={formatHoverEntry(p)}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={springs.press}
+                            style={{ display: 'inline-block' }}
+                          >
+                            {formatHoverEntry(p)}
+                          </m.span>
+                        </strong>
+                        {isForecastItem && <span className="analysis-value__note"> ※予報値</span>}
+                        {diffNote && <span className="analysis-value__note"> {diffNote}</span>}
+                      </span>
                     </span>
                   </React.Fragment>
                 );
@@ -376,66 +393,50 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
   };
 
 
-  const sectionStyle = {
-    padding: isMobile ? '0.75rem 1rem' : '1.5rem',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '1rem',
-    background: 'rgba(255, 255, 255, 0.97)',
-  };
-
   // 累積開始日が非デフォルト（01-01）のときだけ、タイトル横に「4/20〜」バッジを表示
   const renderAccumBadge = (chart: 'precip' | 'sunshine' | 'radiation' | 'gdd') => {
     const mmdd = userSettings?.accumStartDates?.[chart];
     if (!mmdd || mmdd === '01-01') return null;
     const [m, d] = mmdd.split('-').map(Number);
     return (
-      <span style={{
-        marginLeft: '0.5rem',
-        padding: '0.15rem 0.55rem',
-        fontSize: '0.7rem',
-        background: 'rgba(0,0,0,0.06)',
-        borderRadius: '999px',
-        color: 'var(--text-secondary)',
-        whiteSpace: 'nowrap',
-        fontWeight: 600,
-      }}>
+      <span className="analysis-badge">
         累積: {m}/{d}〜
       </span>
     );
   };
 
   const renderCustomLegend = (types: { label: string, type: 'dashed' | 'solid' | 'thin-bar' | 'thick-bar' | 'range-bar' | 'dashed-range-bar' }[]) => {
+    const mark = 'var(--ink-2)';
     return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginTop: '10px', marginBottom: '10px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+      <div className="analysis-legend">
+        <div className="analysis-legend__group">
           {committedTargets.map((target, index) => (
-            <div key={target.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: getYearColor(index, '') }}></span>
+            <div key={target.id} className="analysis-legend__item">
+              <span className="analysis-legend__dot" style={{ backgroundColor: getYearColor(index, '') }}></span>
               <span>{getLocationName(target.locationId)} {target.year}年</span>
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginLeft: 'auto' }}>
+        <div className="analysis-legend__group" style={{ marginLeft: 'auto' }}>
           {types.map((t, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {t.type === 'dashed' && <span style={{ display: 'inline-block', width: '20px', borderBottom: '2px dashed var(--text-secondary)' }}></span>}
-              {t.type === 'solid' && <span style={{ display: 'inline-block', width: '20px', borderBottom: '2px solid var(--text-secondary)' }}></span>}
-              {t.type === 'thin-bar' && <span style={{ display: 'inline-block', width: '8px', height: '12px', backgroundColor: 'var(--text-secondary)', borderRadius: '2px' }}></span>}
-              {t.type === 'thick-bar' && <span style={{ display: 'inline-block', width: '16px', height: '12px', backgroundColor: 'var(--text-secondary)', opacity: 0.3, borderRadius: '2px' }}></span>}
+            <div key={i} className="analysis-legend__item">
+              {t.type === 'dashed' && <span style={{ display: 'inline-block', width: '20px', borderBottom: `1.5px dashed ${mark}` }}></span>}
+              {t.type === 'solid' && <span style={{ display: 'inline-block', width: '20px', borderBottom: `2px solid ${mark}` }}></span>}
+              {t.type === 'thin-bar' && <span style={{ display: 'inline-block', width: '6px', height: '12px', backgroundColor: mark, opacity: 0.55, borderRadius: '2px' }}></span>}
+              {t.type === 'thick-bar' && <span style={{ display: 'inline-block', width: '16px', height: '12px', backgroundColor: mark, opacity: 0.3, borderRadius: '2px' }}></span>}
               {t.type === 'range-bar' && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '14px', width: '12px', position: 'relative', opacity: 0.5 }}>
-                  <span style={{ position: 'absolute', top: '0', bottom: '0', left: '50%', width: '1.5px', marginLeft: '-0.75px', backgroundColor: 'var(--text-secondary)' }}></span>
-                  <span style={{ position: 'absolute', top: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: 'var(--text-secondary)' }}></span>
-                  <span style={{ position: 'absolute', bottom: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: 'var(--text-secondary)' }}></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '14px', width: '12px', position: 'relative', opacity: 0.55 }}>
+                  <span style={{ position: 'absolute', top: '0', bottom: '0', left: '50%', width: '1.5px', marginLeft: '-0.75px', backgroundColor: mark }}></span>
+                  <span style={{ position: 'absolute', top: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: mark }}></span>
+                  <span style={{ position: 'absolute', bottom: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: mark }}></span>
                 </span>
               )}
               {t.type === 'dashed-range-bar' && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '12px', height: '14px', opacity: 0.7 }}>
                   <svg width="12" height="14">
-                    <line x1="6" y1="1" x2="6" y2="13" stroke="var(--text-secondary)" strokeWidth="1.5" strokeDasharray="3 2" />
-                    <line x1="3" y1="1" x2="9" y2="1" stroke="var(--text-secondary)" strokeWidth="1.5" />
-                    <line x1="3" y1="13" x2="9" y2="13" stroke="var(--text-secondary)" strokeWidth="1.5" />
+                    <line x1="6" y1="1" x2="6" y2="13" stroke={mark} strokeWidth="1.5" strokeDasharray="4 3" />
+                    <line x1="3" y1="1" x2="9" y2="1" stroke={mark} strokeWidth="1.5" />
+                    <line x1="3" y1="13" x2="9" y2="13" stroke={mark} strokeWidth="1.5" />
                   </svg>
                 </span>
               )}
@@ -451,39 +452,23 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
       <>
       <SkyBand title="空くらべ" />
       <div className="sky-overlap">
-      <div className="app-container" style={isMobile ? { gap: '0.25rem' } : undefined}>
-        <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>表示対象</span>
-          </div>
+      <div className="app-container analysis-page" style={{ gap: isMobile ? '12px' : '16px' }}>
+        <div className="analysis-card analysis-card--controls">
+          <h2 className="analysis-card__heading">表示対象</h2>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {targets.map((target, index) => (
-              <div key={target.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', background: 'rgba(255, 255, 255, 0.45)', padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border-sub)' }}>
-                <div style={{ flexShrink: 0, width: '4px', height: '24px', backgroundColor: getYearColor(index, 'var(--accent-color)'), borderRadius: '2px' }}></div>
+              <div key={target.id} className="analysis-target">
+                <div className="analysis-target__bar" style={{ backgroundColor: getYearColor(index, 'var(--accent)') }}></div>
                 {index > 0 && (
-                  <span
-                    title="1件目との差が表示されます"
-                    style={{
-                      flexShrink: 0,
-                      minWidth: '38px',
-                      textAlign: 'center',
-                      padding: '0.2rem 0.5rem',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      borderRadius: '999px',
-                      background: 'rgba(2,132,199,0.08)',
-                      color: 'var(--accent-blue)',
-                      border: '1px solid rgba(2,132,199,0.2)',
-                    }}
-                  >
+                  <span className="analysis-target__badge" title="1件目との差が表示されます">
                     比較
                   </span>
                 )}
                 <select
                   value={target.locationId}
                   onChange={(e) => updateTarget(target.id, 'locationId', e.target.value)}
-                  style={{ flex: 2, minWidth: 0, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                  style={{ flex: 2 }}
                 >
                   <option value="__geo__">📍 現在地</option>
                   {locations.map(loc => (
@@ -494,7 +479,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                 <select
                   value={target.year}
                   onChange={(e) => updateTarget(target.id, 'year', parseInt(e.target.value, 10))}
-                  style={{ flex: 1, minWidth: 0, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
+                  style={{ flex: 1 }}
                 >
                   {[...Array(new Date().getFullYear() - 2000 + 1)].map((_, i) => {
                     const y = new Date().getFullYear() - i;
@@ -502,182 +487,143 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                   })}
                 </select>
                 {targets.length > 1 && (
-                  <button
-                    className="secondary"
+                  <Button
+                    variant="ghost"
+                    className="analysis-icon-btn"
                     onClick={() => removeTarget(target.id)}
-                    style={{ flexShrink: 0, color: 'var(--chart-temp)', padding: '0.45rem', border: 'none', background: 'transparent', boxShadow: 'none' }}
                     title="この行を削除"
+                    aria-label="この行を削除"
                   >
                     <X size={18} />
-                  </button>
+                  </Button>
                 )}
               </div>
             ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
-              {targets.length < 2 ? (
-                <button
-                  onClick={addTarget}
-                  className="secondary"
-                  style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}
-                >
-                  <Plus size={15} /> 比較対象を追加
-                </button>
-              ) : (
-                <div />
-              )}
-              <button
-                disabled={isCommitting}
-                onClick={async () => {
-                  const needsGeo = targets.some(t => t.locationId === '__geo__');
-                  if (needsGeo && !geoLocation) {
-                    setIsCommitting(true);
-                    try {
-                      await new Promise<void>((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(
-                          pos => {
-                            const lat = parseFloat(pos.coords.latitude.toFixed(6));
-                            const lon = parseFloat(pos.coords.longitude.toFixed(6));
-                            setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
-                            resolve();
-                          },
-                          reject,
-                          GEO_OPTIONS,
-                        );
-                      });
-                    } catch {
-                      // GPS 失敗時もそのまま commit（useWeatherData でエラー表示）
-                    }
-                    setIsCommitting(false);
-                  }
-                  setCommittedTargets([...targets]);
-                }}
-                style={{
-                  padding: '0.5rem 1.25rem',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                  background: 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: isCommitting ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)',
-                  opacity: isCommitting ? 0.7 : 1,
-                }}
-              >
-                {isCommitting
-                  ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> 取得中…</>
-                  : <><BarChart2 size={16} /> 表示</>}
-              </button>
-            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {targets.length < 2 ? (
+              <Button variant="ghost" className="analysis-btn-sm" onClick={addTarget}>
+                <Plus size={15} /> 比較対象を追加
+              </Button>
+            ) : (
+              <div />
+            )}
+            <Button
+              variant="primary"
+              disabled={isCommitting}
+              onClick={async () => {
+                              const needsGeo = targets.some(t => t.locationId === '__geo__');
+                              if (needsGeo && !geoLocation) {
+                                setIsCommitting(true);
+                                try {
+                                  await new Promise<void>((resolve, reject) => {
+                                    navigator.geolocation.getCurrentPosition(
+                                      pos => {
+                                        const lat = parseFloat(pos.coords.latitude.toFixed(6));
+                                        const lon = parseFloat(pos.coords.longitude.toFixed(6));
+                                        setGeoLocation({ id: '__geo__', name: '現在地', lat, lon });
+                                        resolve();
+                                      },
+                                      reject,
+                                      GEO_OPTIONS,
+                                    );
+                                  });
+                                } catch {
+                                  // GPS 失敗時もそのまま commit（useWeatherData でエラー表示）
+                                }
+                                setIsCommitting(false);
+                              }
+                              setCommittedTargets([...targets]);
+                            }}
+            >
+              {isCommitting
+                ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> 取得中…</>
+                : <><BarChart2 size={16} /> 表示</>}
+            </Button>
           </div>
         </div>
 
-      <main ref={analysisChartsRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <main ref={analysisChartsRef} className="analysis-stack">
 
         {/* 表示単位と日次グラフの操作案内 */}
-        <div className="glass-panel" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>表示単位</span>
-            <div className="premium-segmented-tab" style={{ padding: '0.18rem', background: 'rgba(167, 203, 192, 0.15)' }}>
-              {(['daily', 'monthly'] as const).map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setChartViewMode(mode)}
-                  style={{
-                    padding: '0.35rem 0.9rem',
-                    fontSize: '0.8rem',
-                    background: chartViewMode === mode ? 'linear-gradient(135deg, var(--accent-color) 0%, #0f766e 100%)' : 'transparent',
-                    color: chartViewMode === mode ? '#ffffff' : 'var(--text-secondary)',
-                    border: 'none',
-                    fontWeight: chartViewMode === mode ? 700 : 500,
-                    borderRadius: 'calc(var(--radius-md) - 4px)',
-                    cursor: 'pointer',
-                    boxShadow: chartViewMode === mode ? '0 2px 8px rgba(13, 148, 136, 0.15)' : 'none',
-                    transition: 'all 0.25s ease',
-                  }}
-                >
-                  {mode === 'daily' ? '日次' : '月次'}
-                </button>
-              ))}
-            </div>
+        <div className="analysis-card analysis-card--bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="analysis-card__heading">表示単位</span>
+            <SegmentedControl
+              variant="pill"
+              className="ui-seg--compact"
+              layoutId="analysis-unit"
+              ariaLabel="表示単位"
+              options={[{ value: 'daily', label: '日次' }, { value: 'monthly', label: '月次' }] as const}
+              value={chartViewMode}
+              onChange={setChartViewMode}
+            />
           </div>
           {!isMonthly && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span className="analysis-hint">
                 ドラッグで移動・Ctrl/⌘＋ホイールで拡大縮小
               </span>
-              <div style={{ display: 'flex', gap: '0.25rem' }}>
-                <button
-                  type="button"
-                  className="secondary"
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <Button
+                  variant="ghost"
+                  className="analysis-icon-btn"
                   onClick={() => zoomDailyViewport(1.25)}
                   title="縮小"
                   aria-label="グラフを縮小"
-                  style={{ padding: '0.35rem', boxShadow: 'none' }}
                 >
                   <Minus size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="analysis-icon-btn"
                   onClick={() => zoomDailyViewport(0.8)}
                   title="拡大"
                   aria-label="グラフを拡大"
-                  style={{ padding: '0.35rem', boxShadow: 'none' }}
                 >
                   <Plus size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="analysis-icon-btn"
                   onClick={() => setDailyViewport({ start: 0, end: chartData.length })}
                   title="全体表示"
                   aria-label="グラフを全体表示"
-                  style={{ padding: '0.35rem', boxShadow: 'none' }}
                 >
                   <Maximize2 size={15} />
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
 
         {/* チャート選択タブ */}
-        <div
-          className="glass-panel"
-          style={{
-            padding: '0.6rem 1rem',
-            display: 'flex',
-            gap: '0.6rem',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-          }}
-        >
-          {CHART_TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveChart(tab.id)}
-              className={`premium-pill ${activeChart === tab.id ? 'active' : ''}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="analysis-card analysis-card--tabs">
+          <div className="ai-tab-bar analysis-tab-scroller">
+            <SegmentedControl
+              variant="underline"
+              className="ai-seg"
+              layoutId="analysis-chart"
+              ariaLabel="グラフの種類"
+              idPrefix="analysis-chart-tab"
+              options={CHART_TABS.map(tab => ({ value: tab.id, label: tab.label }))}
+              value={activeChart}
+              onChange={setActiveChart}
+            />
+          </div>
         </div>
 
         {error && (
-          <div style={{ padding: '1rem', background: 'rgba(244, 63, 94, 0.2)', border: '1px solid var(--chart-temp)', borderRadius: '8px', color: 'var(--text-primary)' }}>
+          <div className="analysis-error">
             ⚠️ {error}
           </div>
         )}
 
         {/* 1. 気温 (Temperature) */}
         {activeChart === 'temp' && (
-        <section className="glass-panel" style={sectionStyle}>
+        <section className="analysis-card analysis-card--chart" role="tabpanel" aria-labelledby={`analysis-chart-tab-${activeChart}`}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Thermometer size={18} /> 気温</h2>
+            <h2 className="analysis-chart-title"><Thermometer size={18} style={{ color: 'var(--chart-temp)' }} /> 気温</h2>
           </div>
           {loading ? (
             chartLoading
@@ -686,16 +632,16 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {chartFrame('temp', (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.temp} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
+                    <CartesianGrid {...GRID_PROPS} />
+                    <XAxis dataKey="dateStr" {...X_AXIS_PROPS} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis {...yAxisLeft} domain={['auto', 'auto']} label={unitLabel('(℃)')} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.temp} cursor={tooltipInteractionEnabled ? CROSSHAIR : false} isAnimationActive={false} />
                     {committedTargets.map((target, index) => {
                       const color = getYearColor(index, 'var(--chart-temp)');
                       return (
                         <React.Fragment key={target.id}>
                           <Bar dataKey={`t_${target.id}_tempRange`} name={`${getLocationName(target.locationId)} ${target.year}年 気温(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
-                          <Line type="monotone" dataKey={`t_${target.id}_monthlyMeanTemp`} name={`${getLocationName(target.locationId)} ${target.year}年 月平均気温`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                          <Line type="monotone" dataKey={`t_${target.id}_monthlyMeanTemp`} name={`${getLocationName(target.locationId)} ${target.year}年 月平均気温`} stroke={color} strokeWidth={2} dot={false} connectNulls={true} isAnimationActive={false}>
                             {isMonthly && index === 0 && (
                               <LabelList dataKey={`t_${target.id}_monthlyMeanTemp`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(1) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
@@ -723,9 +669,9 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
         {/* 2. 降水量 (Precipitation) */}
         {activeChart === 'precip' && (
-        <section className="glass-panel" style={sectionStyle}>
+        <section className="analysis-card analysis-card--chart" role="tabpanel" aria-labelledby={`analysis-chart-tab-${activeChart}`}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><CloudRain size={18} /> 降水量</h2>
+            <h2 className="analysis-chart-title"><CloudRain size={18} style={{ color: 'var(--chart-precip)' }} /> 降水量</h2>
             {renderAccumBadge('precip')}
           </div>
           {loading ? (
@@ -735,11 +681,11 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {chartFrame('precip', (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(mm)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.precip} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
+                    <CartesianGrid {...GRID_PROPS} />
+                    <XAxis dataKey="dateStr" {...X_AXIS_PROPS} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis yAxisId="left" {...yAxisLeft} label={unitLabel('(mm)')} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisRight} label={unitLabel('(mm)')} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.precip} cursor={tooltipInteractionEnabled ? CROSSHAIR : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -782,7 +728,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           name={`${name} 累積降水`}
                           stroke={getYearColor(index, 'var(--chart-precip)')}
                           dot={false}
-                          strokeWidth={index === 0 ? 3 : 2}
+                          strokeWidth={index === 0 ? 2 : 1.5}
                           opacity={index === 0 ? 1 : 0.7}
                           isAnimationActive={false}
                         />
@@ -798,8 +744,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_precip_${t0.id}`}
                           name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積降水`}
                           stroke={getYearColor(0, 'var(--chart-precip)')}
-                          strokeWidth={3}
-                          strokeDasharray="5 4"
+                          strokeWidth={2}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -815,8 +761,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_precip_${t1.id}`}
                           name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積降水`}
                           stroke={getYearColor(1, 'var(--chart-precip)')}
-                          strokeWidth={2}
-                          strokeDasharray="5 4"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -843,9 +789,9 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
         {/* 3. 日照時間 (Sunshine Duration) */}
         {activeChart === 'sunshine' && (
-        <section className="glass-panel" style={sectionStyle}>
+        <section className="analysis-card analysis-card--chart" role="tabpanel" aria-labelledby={`analysis-chart-tab-${activeChart}`}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Clock size={18} /> 日照時間</h2>
+            <h2 className="analysis-chart-title"><Clock size={18} style={{ color: 'var(--chart-sunshine)' }} /> 日照時間</h2>
             {renderAccumBadge('sunshine')}
           </div>
           {loading ? (
@@ -855,11 +801,11 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {chartFrame('sunshine', (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: isMonthly ? '(h/月)' : '(h/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(h)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.sunshine} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
+                    <CartesianGrid {...GRID_PROPS} />
+                    <XAxis dataKey="dateStr" {...X_AXIS_PROPS} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis yAxisId="left" {...yAxisLeft} label={unitLabel(isMonthly ? '(h/月)' : '(h/日)')} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisRight} label={unitLabel('(h)')} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.sunshine} cursor={tooltipInteractionEnabled ? CROSSHAIR : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -890,7 +836,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           name={`${name} 累積日照`}
                           stroke={getYearColor(index, 'var(--chart-sunshine)')}
                           dot={false}
-                          strokeWidth={index === 0 ? 3 : 2}
+                          strokeWidth={index === 0 ? 2 : 1.5}
                           opacity={index === 0 ? 1 : 0.7}
                           isAnimationActive={false}
                         />
@@ -906,8 +852,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_sunshine_${t0.id}`}
                           name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積日照`}
                           stroke={getYearColor(0, 'var(--chart-sunshine)')}
-                          strokeWidth={3}
-                          strokeDasharray="5 4"
+                          strokeWidth={2}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -923,8 +869,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_sunshine_${t1.id}`}
                           name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積日照`}
                           stroke={getYearColor(1, 'var(--chart-sunshine)')}
-                          strokeWidth={2}
-                          strokeDasharray="5 4"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -947,9 +893,9 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
         {/* 4. 日射量 (Solar Radiation) */}
         {activeChart === 'radiation' && (
-        <section className="glass-panel" style={sectionStyle}>
+        <section className="analysis-card analysis-card--chart" role="tabpanel" aria-labelledby={`analysis-chart-tab-${activeChart}`}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Sun size={18} /> 日射量</h2>
+            <h2 className="analysis-chart-title"><Sun size={18} style={{ color: 'var(--chart-sunshine)' }} /> 日射量</h2>
             {renderAccumBadge('radiation')}
           </div>
           {loading ? (
@@ -959,11 +905,11 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {chartFrame('radiation', (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(MJ/m²)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.radiation} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
+                    <CartesianGrid {...GRID_PROPS} />
+                    <XAxis dataKey="dateStr" {...X_AXIS_PROPS} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis yAxisId="left" {...yAxisLeft} label={unitLabel('(MJ/m²)')} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisRight} label={unitLabel('(MJ/m²)')} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.radiation} cursor={tooltipInteractionEnabled ? CROSSHAIR : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -994,7 +940,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           name={`${name} 累積日射`}
                           stroke={getYearColor(index, 'var(--chart-sunshine)')}
                           dot={false}
-                          strokeWidth={index === 0 ? 3 : 2}
+                          strokeWidth={index === 0 ? 2 : 1.5}
                           opacity={index === 0 ? 1 : 0.7}
                           isAnimationActive={false}
                         />
@@ -1010,8 +956,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_radiation_${t0.id}`}
                           name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積日射`}
                           stroke={getYearColor(0, 'var(--chart-sunshine)')}
-                          strokeWidth={3}
-                          strokeDasharray="5 4"
+                          strokeWidth={2}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -1027,8 +973,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_radiation_${t1.id}`}
                           name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積日射`}
                           stroke={getYearColor(1, 'var(--chart-sunshine)')}
-                          strokeWidth={2}
-                          strokeDasharray="5 4"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -1051,32 +997,21 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
         {/* 4. 有効積算温度 (Accumulated Temperature) */}
         {activeChart === 'gdd' && (
-        <section className="glass-panel" style={sectionStyle}>
+        <section className="analysis-card analysis-card--chart" role="tabpanel" aria-labelledby={`analysis-chart-tab-${activeChart}`}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem', flex: 1 }}>
-              <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Leaf size={18} /> 有効積算温度</h2>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem', flex: '1 1 auto' }}>
+              <h2 className="analysis-chart-title"><Leaf size={18} style={{ color: 'var(--chart-accum)' }} /> 有効積算温度</h2>
               {renderAccumBadge('gdd')}
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              {(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedBaseTempIndex(i as 0 | 1)}
-                  style={{
-                    padding: '0.35rem 0.8rem',
-                    fontSize: '0.85rem',
-                    background: i === selectedBaseTempIndex ? '#f4a7b9' : 'rgba(244,167,185,0.25)',
-                    color: i === selectedBaseTempIndex ? '#7a2840' : 'var(--text-secondary)',
-                    border: '1px solid rgba(244,167,185,0.6)',
-                    borderRadius: 'var(--radius-md, 6px)',
-                    fontWeight: i === selectedBaseTempIndex ? 600 : 400,
-                    cursor: 'pointer',
-                  }}
-                >
-                  基準温度 {temp}℃
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              variant="pill"
+              className="ui-seg--compact"
+              layoutId="analysis-basetemp"
+              ariaLabel="基準温度"
+              options={(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => ({ value: String(i), label: `基準温度 ${temp}℃` }))}
+              value={String(selectedBaseTempIndex)}
+              onChange={v => setSelectedBaseTempIndex(Number(v) as 0 | 1)}
+            />
           </div>
           {loading ? (
             chartLoading
@@ -1085,11 +1020,11 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {chartFrame('gdd', (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleGddChartData} margin={chartMargin}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis yAxisId="left" {...yAxisCommon} label={{ value: isMonthly ? '(℃/月)' : '(℃/日)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis yAxisId="right" orientation="right" {...yAxisCommonRight} label={{ value: '(℃)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.gdd} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
+                    <CartesianGrid {...GRID_PROPS} />
+                    <XAxis dataKey="dateStr" {...X_AXIS_PROPS} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis yAxisId="left" {...yAxisLeft} label={unitLabel(isMonthly ? '(℃/月)' : '(℃/日)')} />
+                    <YAxis yAxisId="right" orientation="right" {...yAxisRight} label={unitLabel('(℃)')} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.gdd} cursor={tooltipInteractionEnabled ? CROSSHAIR : false} isAnimationActive={false} />
 
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
@@ -1120,7 +1055,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           name={`${name} 累積積算`}
                           stroke={getYearColor(index, 'var(--chart-sunshine)')}
                           dot={false}
-                          strokeWidth={index === 0 ? 3 : 2}
+                          strokeWidth={index === 0 ? 2 : 1.5}
                           opacity={index === 0 ? 1 : 0.7}
                           isAnimationActive={false}
                         />
@@ -1136,8 +1071,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_gdd_${t0.id}`}
                           name={`${getLocationName(t0.locationId)} ${t0.year}年 予想累積積算`}
                           stroke={getYearColor(0, 'var(--chart-sunshine)')}
-                          strokeWidth={3}
-                          strokeDasharray="5 4"
+                          strokeWidth={2}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -1153,8 +1088,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                           dataKey={`forecast_accum_gdd_${t1.id}`}
                           name={`${getLocationName(t1.locationId)} ${t1.year}年 予想累積積算`}
                           stroke={getYearColor(1, 'var(--chart-sunshine)')}
-                          strokeWidth={2}
-                          strokeDasharray="5 4"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 3"
                           dot={false}
                           connectNulls={false}
                           isAnimationActive={false}
@@ -1177,9 +1112,9 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
         {/* 5. 湿度 (Humidity) */}
         {activeChart === 'humid' && (
-        <section className="glass-panel" style={sectionStyle}>
+        <section className="analysis-card analysis-card--chart" role="tabpanel" aria-labelledby={`analysis-chart-tab-${activeChart}`}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><Droplets size={18} /> 湿度</h2>
+            <h2 className="analysis-chart-title"><Droplets size={18} style={{ color: 'var(--chart-humid)' }} /> 湿度</h2>
           </div>
           {loading ? (
             chartLoading
@@ -1188,17 +1123,17 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {chartFrame('humid', (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(%)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.humid} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
+                    <CartesianGrid {...GRID_PROPS} />
+                    <XAxis dataKey="dateStr" {...X_AXIS_PROPS} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis {...yAxisLeft} domain={['auto', 'auto']} label={unitLabel('(%)')} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.humid} cursor={tooltipInteractionEnabled ? CROSSHAIR : false} isAnimationActive={false} />
                     {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
                         <React.Fragment key={target.id}>
                           <Bar dataKey={`humidRange_${target.id}`} name={`${name} 湿度(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
-                          <Line type="monotone" dataKey={`monthlyHumid_${target.id}`} name={`${name} 月平均湿度`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                          <Line type="monotone" dataKey={`monthlyHumid_${target.id}`} name={`${name} 月平均湿度`} stroke={color} strokeWidth={2} dot={false} connectNulls={true} isAnimationActive={false}>
                             {isMonthly && index === 0 && (
                               <LabelList dataKey={`monthlyHumid_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? Math.round(v).toString() : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
@@ -1226,9 +1161,9 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
         {/* 7. 飽差 (VPD) */}
         {activeChart === 'vpd' && (
-        <section className="glass-panel" style={sectionStyle}>
+        <section className="analysis-card analysis-card--chart" role="tabpanel" aria-labelledby={`analysis-chart-tab-${activeChart}`}>
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: '0.25rem' }}>
-            <h2 className="chart-title" style={{ marginBottom: 0, flexShrink: 0 }}><DropletOff size={18} /> 飽差</h2>
+            <h2 className="analysis-chart-title"><DropletOff size={18} style={{ color: 'var(--chart-humid)' }} /> 飽差</h2>
           </div>
           {loading ? (
             chartLoading
@@ -1237,17 +1172,17 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {chartFrame('vpd', (
                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <ComposedChart data={visibleChartData} margin={chartMargin}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-                    <XAxis dataKey="dateStr" stroke="var(--text-secondary)" tick={{fontSize: 12}} tickFormatter={xTickFormatter} ticks={xTicks} />
-                    <YAxis {...yAxisCommon} domain={['auto', 'auto']} label={{ value: '(g/m³)', position: 'top', offset: 10, fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.vpd} cursor={tooltipInteractionEnabled ? { stroke: 'var(--text-secondary)', strokeWidth: 1, strokeOpacity: 0.35 } : false} isAnimationActive={false} />
+                    <CartesianGrid {...GRID_PROPS} />
+                    <XAxis dataKey="dateStr" {...X_AXIS_PROPS} tickFormatter={xTickFormatter} ticks={xTicks} />
+                    <YAxis {...yAxisLeft} domain={['auto', 'auto']} label={unitLabel('(g/m³)')} />
+                    <Tooltip active={tooltipInteractionEnabled ? undefined : false} content={tooltipContents.vpd} cursor={tooltipInteractionEnabled ? CROSSHAIR : false} isAnimationActive={false} />
 {committedTargets.map((target, index) => {
                       const name = `${getLocationName(target.locationId)} ${target.year}年`;
                       const color = getYearColor(index, 'var(--chart-humid)');
                       return (
                         <React.Fragment key={target.id}>
                           <Bar dataKey={`vpdRange_${target.id}`} name={`${name} 飽差(最低-最高)`} fill={color} fillOpacity={isMonthly ? 0.3 : 1} shape={isMonthly ? undefined : <CustomRangeBar />} isAnimationActive={false} />
-                          <Line type="monotone" dataKey={`monthlyMeanVpdMax_${target.id}`} name={`${name} 月平均最高飽差`} stroke={color} strokeWidth={2.5} dot={false} connectNulls={true} isAnimationActive={false}>
+                          <Line type="monotone" dataKey={`monthlyMeanVpdMax_${target.id}`} name={`${name} 月平均最高飽差`} stroke={color} strokeWidth={2} dot={false} connectNulls={true} isAnimationActive={false}>
                             {isMonthly && index === 0 && (
                               <LabelList dataKey={`monthlyMeanVpdMax_${target.id}`} position="top" formatter={(v: any) => typeof v === 'number' ? v.toFixed(1) : ''} style={{ fontSize: 10, fill: color, fontWeight: 600 }} />
                             )}
@@ -1275,7 +1210,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
         {/* 日別データスプレッドシート */}
         {Object.keys(weatherData).length > 0 && (
-          <section className="glass-panel" style={{ padding: '1.25rem', background: '#ffffff', border: '1px solid rgba(13, 148, 136, 0.3)', boxShadow: '0 4px 20px rgba(13, 148, 136, 0.12), 0 2px 8px rgba(0,0,0,0.07)' }}>
+          <section className="analysis-card">
             <DailyRawTable
               targets={committedTargets}
               weatherData={weatherData}

@@ -58,12 +58,12 @@
   --shadow-lg: var(--shadow-raised);
   --grid-color: rgba(23, 25, 28, 0.06);
 
-  /* チャート用（第4段階で意味色へ再設計） */
-  --chart-temp: #f43f5e;
-  --chart-precip: #0ea5e9;
-  --chart-accum: #10b981;
-  --chart-humid: #0d9488;
-  --chart-sunshine: #f59e0b;
+  /* チャート用の意味色（系列＝比較対象の識別色とは別。識別色は AnalysisTab の getYearColor） */
+  --chart-temp: #E0555A;      /* 気温（暖色） */
+  --chart-precip: #2E7DD7;    /* 降水 */
+  --chart-accum: #3E9B6E;     /* 積算 */
+  --chart-humid: #1F8A8A;     /* 湿度 */
+  --chart-sunshine: #E09A1F;  /* 日照・日射 */
 
   font-family: var(--font-sans);
   font-feature-settings: 'palt';

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Download, Lock } from 'lucide-react';
+import { Button } from './ui/Button';
 import type { CompareTarget } from '../hooks/useWeather';
 import type { WeatherData } from '../api/weather';
 import { useAppStore } from '../store';
@@ -222,28 +223,28 @@ export function DailyRawTable({ targets, weatherData, getLocationName, accumStar
   if (allDates.length === 0) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
       {aiAllowed ? (
-        <button
-          className="secondary"
+        <Button
+          variant="secondary"
           onClick={handleDownload}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.82rem', alignSelf: 'flex-start' }}
+          style={{ alignSelf: 'flex-start', minHeight: 36, padding: '0 0.9rem', fontSize: '0.82rem' }}
         >
           <Download size={14} />
           CSVダウンロード
-        </button>
+        </Button>
       ) : (
-        <button
-          className="secondary"
+        <Button
+          variant="secondary"
           disabled
           title="CSV出力は有料プラン（予定）の機能です"
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.82rem', alignSelf: 'flex-start', cursor: 'not-allowed', opacity: 0.6 }}
+          style={{ alignSelf: 'flex-start', minHeight: 36, padding: '0 0.9rem', fontSize: '0.82rem' }}
         >
           <Lock size={14} />
           CSVダウンロード（有料予定）
-        </button>
+        </Button>
       )}
-      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--ink-3)', lineHeight: 1.6 }}>
         グラフに表示されているすべての項目（気温・降水・日射・日照・湿度・飽差・累積値など）を一括で取得できます。※予測値は含まれません
       </p>
     </div>
