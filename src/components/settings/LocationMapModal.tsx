@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { X, MapPin, Loader2 } from 'lucide-react';
 import { resolveJmaAreaCode, getAreaName } from '../../lib/jmaAreaResolver';
 import { GEO_OPTIONS } from '../../lib/geo';

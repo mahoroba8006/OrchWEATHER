@@ -1,11 +1,15 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import type { CSSProperties } from 'react';
 import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage, GEO_SUPPORTED } from '../../lib/geo';
 import { resolveJmaAreaCode, getAreaName } from '../../lib/jmaAreaResolver';
-import { LocationMapModal } from './LocationMapModal';
+
+// 地図（Leaflet 約40KB gzip）は地図を開いた時だけ読み込む
+const LocationMapModal = lazy(() =>
+  import('./LocationMapModal').then(m => ({ default: m.LocationMapModal })),
+);
 
 type GeoStatus = 'idle' | 'loading' | 'error';
 
@@ -427,6 +431,7 @@ export function LocationSettings() {
       )}
 
       {showMapModal && editingId && (
+        <Suspense fallback={null}>
         <LocationMapModal
           initialLat={typeof formData.lat === 'number' && !Number.isNaN(formData.lat) ? formData.lat : 35.0}
           initialLon={typeof formData.lon === 'number' && !Number.isNaN(formData.lon) ? formData.lon : 135.0}
@@ -435,14 +440,17 @@ export function LocationSettings() {
           onConfirm={handleMapConfirm}
           onClose={() => setShowMapModal(false)}
         />
+        </Suspense>
       )}
       {showHeaderMapModal && (
+        <Suspense fallback={null}>
         <LocationMapModal
           initialLat={35.0}
           initialLon={135.0}
           onConfirm={handleHeaderMapConfirm}
           onClose={() => setShowHeaderMapModal(false)}
         />
+        </Suspense>
       )}
 
       {/* 削除確認ダイアログ */}
