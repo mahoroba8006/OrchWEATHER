@@ -79,13 +79,13 @@
 }
 .shell-header__tab-label { position: relative; display: inline-flex; align-items: center; gap: 0.35rem; }
 
-/* 右側ボタン: 白15%の円、hoverで25% */
+/* 右側ボタン: 黒18%の円、hoverで28%（どの空でも白文字4.5:1を保つ） */
 .shell-header .shell-header__icon-btn,
 .shell-header .shell-header__text-btn {
   height: 40px;
   min-height: 40px;
   padding: 0;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.18);
   color: #fff;
   border: none;
   box-shadow: none;
@@ -96,7 +96,7 @@
 .shell-header .shell-header__icon-btn { width: 40px; }
 .shell-header .shell-header__text-btn { padding: 0 0.9rem; font-size: 0.8rem; font-weight: 600; gap: 0.35rem; white-space: nowrap; }
 .shell-header .shell-header__icon-btn:hover,
-.shell-header .shell-header__text-btn:hover { background: rgba(255, 255, 255, 0.25); }
+.shell-header .shell-header__text-btn:hover { background: rgba(0, 0, 0, 0.28); }
 .shell-header .shell-header__icon-btn:focus-visible,
 .shell-header .shell-header__text-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .shell-header__avatar {

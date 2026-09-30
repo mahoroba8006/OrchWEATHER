@@ -11,16 +11,15 @@ interface BottomNavProps {
 
 export function BottomNav({ tab, onTabChange }: BottomNavProps) {
   return (
-    <nav className="shell-bottomnav">
-      <div role="tablist" aria-label="画面" className="shell-bottomnav__list">
+    <nav aria-label="画面" className="shell-bottomnav">
+      <div className="shell-bottomnav__list">
         {MAIN_TABS.map(({ id, label, Icon }) => {
           const selected = tab === id;
           return (
             <m.button
               key={id}
               type="button"
-              role="tab"
-              aria-selected={selected}
+              aria-current={selected ? 'page' : undefined}
               className={`shell-bottomnav__item${selected ? ' is-selected' : ''}`}
               whileTap={{ scale: 0.9 }}
               transition={springs.press}

@@ -39,7 +39,7 @@ try {
     const page = await context.newPage();
     await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 30000 });
     for (const [i, label] of tabs.entries()) {
-      await page.getByRole('tab', { name: label }).first().click();
+      await page.getByRole('button', { name: label }).first().click();
       await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
       await page.waitForTimeout(2500); // 描画・アニメーション完了待ち
       const file = join(outDir, `${vp.name}-${i + 1}-${label}.png`);
@@ -47,7 +47,7 @@ try {
       console.log(`saved ${file}`);
     }
     // スクロール後（ヘッダーの縮小表示）
-    await page.getByRole('tab', { name: tabs[0] }).first().click();
+    await page.getByRole('button', { name: tabs[0] }).first().click();
     await page.waitForTimeout(1500);
     await page.evaluate(() => window.scrollTo(0, 600));
     await page.waitForTimeout(1000);

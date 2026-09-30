@@ -1651,7 +1651,7 @@ function AppContent() {
         isMobile={isMobile}
         user={user}
         onLogin={() => { setSheet(null); setGuestMode(false); }}
-        onLogout={() => signOut(auth)}
+        onLogout={() => { setSheet(null); signOut(auth); }}
         onOpenHelp={() => openSheet('help')}
         onOpenSettings={() => openSheet('settings')}
       />

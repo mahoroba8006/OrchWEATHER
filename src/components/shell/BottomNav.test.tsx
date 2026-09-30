@@ -7,16 +7,16 @@ beforeAll(setupMotionTestEnv);
 afterEach(cleanup);
 
 describe('BottomNav', () => {
-  it('選択中のタブが aria-selected になる', () => {
+  it('選択中のタブが aria-current になる', () => {
     renderWithMotion(<BottomNav tab="analysis" onTabChange={vi.fn()} />);
-    expect(screen.getByRole('tab', { name: '空くらべ' }).getAttribute('aria-selected')).toBe('true');
-    expect(screen.getByRole('tab', { name: '空もよう' }).getAttribute('aria-selected')).toBe('false');
+    expect(screen.getByRole('button', { name: '空くらべ' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: '空もよう' }).getAttribute('aria-current')).toBeNull();
   });
 
   it('他のタブをクリックすると onTabChange が呼ばれる', () => {
     const onTabChange = vi.fn();
     renderWithMotion(<BottomNav tab="weather" onTabChange={onTabChange} />);
-    fireEvent.click(screen.getByRole('tab', { name: '空しらべ' }));
+    fireEvent.click(screen.getByRole('button', { name: '空しらべ' }));
     expect(onTabChange).toHaveBeenCalledWith('history');
   });
 });

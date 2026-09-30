@@ -29,16 +29,16 @@ function setup(over: Partial<AppHeaderProps> = {}) {
 const summary = { temperature: 21.6, weatherCode: 0, locationName: 'テスト圃場' };
 
 describe('AppHeader', () => {
-  it('PC: 選択中タブが aria-selected で、他タブのクリックで onTabChange', () => {
+  it('PC: 選択中タブが aria-current で、他タブのクリックで onTabChange', () => {
     const props = setup({ tab: 'analysis' });
-    expect(screen.getByRole('tab', { name: '空くらべ' }).getAttribute('aria-selected')).toBe('true');
-    fireEvent.click(screen.getByRole('tab', { name: '空もよう' }));
+    expect(screen.getByRole('button', { name: '空くらべ' }).getAttribute('aria-current')).toBe('page');
+    fireEvent.click(screen.getByRole('button', { name: '空もよう' }));
     expect(props.onTabChange).toHaveBeenCalledWith('weather');
   });
 
   it('モバイル: ヘッダーにはタブを出さない', () => {
     setup({ isMobile: true });
-    expect(screen.queryByRole('tab')).toBeNull();
+    expect(screen.queryByRole('navigation')).toBeNull();
   });
 
   it('設定・使い方ボタンでコールバックが呼ばれる', () => {

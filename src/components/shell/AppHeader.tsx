@@ -49,15 +49,14 @@ export function AppHeader({
         </div>
 
         {!isMobile && (
-          <div role="tablist" aria-label="画面" className="shell-header__tabs">
+          <nav aria-label="画面" className="shell-header__tabs">
             {MAIN_TABS.map(({ id, label, Icon }) => {
               const selected = tab === id;
               return (
                 <m.button
                   key={id}
                   type="button"
-                  role="tab"
-                  aria-selected={selected}
+                  aria-current={selected ? 'page' : undefined}
                   className={`shell-header__tab${selected ? ' is-selected' : ''}`}
                   whileTap={{ scale: pressScale }}
                   transition={springs.press}
@@ -71,7 +70,7 @@ export function AppHeader({
                 </m.button>
               );
             })}
-          </div>
+          </nav>
         )}
 
         <div className="shell-header__right">

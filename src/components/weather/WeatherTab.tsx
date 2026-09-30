@@ -121,6 +121,13 @@ export function WeatherTab() {
     }
   }, []);
 
+  // 1分ごとに空を再計算する（再取得なしで日没などをまたいで更新するため）
+  const [minuteTick, setMinuteTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setMinuteTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   // 今の空（予報の現在時刻の行と日の出・日の入りから算出。未取得時は fallbackSky）
   const current = useMemo(() => {
     const now = new Date();
@@ -134,7 +141,9 @@ export function WeatherTab() {
     const weather = classifyWeather(hour.weatherCode);
     const sky: SkyState = { tod, weather, ...skyPalette(tod, weather) };
     return { sky, hour, today };
-  }, [data]);
+    // minuteTick は時刻の再計算トリガー
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, minuteTick]);
 
   // ヘッダー・他タブの空帯へ今の空を発行する
   const locationName = location?.name ?? '現在地';
