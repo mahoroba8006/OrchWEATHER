@@ -5,6 +5,7 @@ import { useAppStore } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useHistoricalForecast } from '../../hooks/useHistoricalForecast';
 import { SegmentedControl } from '../ui/SegmentedControl';
+import { Button } from '../ui/Button';
 import { DailyForecast } from './DailyForecast';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
@@ -147,32 +148,19 @@ export function HistoricalWeatherTab() {
         display: 'flex',
         alignItems: 'center',
         gap: '0.75rem',
-        padding: '0.75rem 1.25rem',
-        borderRadius: 'var(--radius-md)',
+        padding: '1rem 1.25rem',
         flexWrap: 'wrap',
       }}>
-        <button
+        <Button
+          variant="secondary"
           onClick={handleGetCurrentLocation}
           disabled={buttonGeoLoading}
-          style={{
-            padding: '0.4rem 0.8rem',
-            fontSize: '0.8rem',
-            background: 'rgba(13,148,136,0.12)',
-            color: 'var(--accent-color)',
-            border: '1px solid rgba(13,148,136,0.3)',
-            borderRadius: 'var(--radius-md, 6px)',
-            cursor: buttonGeoLoading ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            opacity: buttonGeoLoading ? 0.7 : 1,
-            flexShrink: 0,
-          }}
+          style={{ minHeight: 36, padding: '0 0.9rem', fontSize: '0.82rem', flexShrink: 0 }}
         >
           {buttonGeoLoading
             ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />取得中…</>
             : <><MapPin size={14} />現在地を表示</>}
-        </button>
+        </Button>
         <select
           value={location?.id ?? ''}
           onChange={e => setSelectedLocationId(e.target.value)}
@@ -190,7 +178,7 @@ export function HistoricalWeatherTab() {
         )}
 
         <div style={{ width: '100%', height: 0 }} />
-        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
           開始日
         </span>
         <input
@@ -203,7 +191,7 @@ export function HistoricalWeatherTab() {
           }}
           style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
         />
-        <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+        <span style={{ fontSize: '0.78rem', color: 'var(--ink-3)' }}>
           から10日分を表示
         </span>
       </div>

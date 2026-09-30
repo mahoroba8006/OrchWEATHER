@@ -1,0 +1,118 @@
+/* ── 空くらべ（src/components/analysis/）── */
+
+/* ページ余白: カード間 12px（モバイル）/ 16px（PC）。モバイルは左右にも 16px の余白 */
+.analysis-stack { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 701px) {
+  .analysis-stack { gap: 16px; }
+}
+@media (max-width: 700px) {
+  .app-container.analysis-page {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+.analysis-card {
+  background: var(--surface-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+}
+@media (min-width: 701px) {
+  .analysis-card { padding: 24px; }
+}
+.analysis-card--controls { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.analysis-card--bar { padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.analysis-card--tabs { padding: 0 16px; }
+.analysis-card--chart { display: flex; flex-direction: column; gap: 12px; }
+
+.analysis-card__heading { margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--ink-2); }
+
+/* 表示対象の行 */
+.analysis-target { display: flex; align-items: center; gap: 8px; }
+.analysis-target__bar { flex-shrink: 0; width: 4px; height: 24px; border-radius: 2px; }
+.analysis-target__badge {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-2);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.analysis-target select { padding: 0.4rem 0.75rem; font-size: 0.85rem; min-width: 0; }
+
+/* ボタンの寸法（ui.css の .ui-btn を上書き。詳細度で後読み込みに依存しない） */
+.ui-btn.analysis-btn-sm { min-height: 36px; padding: 0 0.9rem; font-size: 0.8rem; }
+.ui-btn.analysis-icon-btn { width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: var(--radius-pill); flex-shrink: 0; }
+
+.analysis-hint { font-size: 0.72rem; color: var(--ink-3); white-space: nowrap; }
+
+/* グラフ種別タブの横スクロール容器（.ai-tab-bar / .ai-seg は index.css） */
+.analysis-tab-scroller { margin: 0 -16px; padding: 0 16px; }
+.analysis-tab-scroller .ui-seg--underline { border-bottom: none; }
+.analysis-tab-scroller .ai-seg .ui-seg__item { min-height: 44px; padding: 0 0.9rem; }
+
+/* チャートカード */
+.analysis-chart-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+.analysis-badge {
+  margin-left: 0.5rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--ink-2);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.analysis-chart-frame { height: 350px; width: 100%; }
+.analysis-chart-frame .recharts-text, .analysis-chart-frame text { font-variant-numeric: tabular-nums; }
+
+.analysis-legend { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; font-size: 0.75rem; color: var(--ink-2); }
+.analysis-legend__group { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.analysis-legend__item { display: flex; align-items: center; gap: 6px; }
+.analysis-legend__dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+
+/* 値表示 */
+.analysis-value {
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+.analysis-value--empty { border: 1px dashed var(--line-strong); color: var(--ink-3); text-align: center; font-size: 0.8rem; }
+.analysis-value--filled { background: var(--surface-sunken); color: var(--ink-1); }
+.analysis-value__label { font-size: 0.8rem; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.analysis-value__row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.analysis-value__row + .analysis-value__row { margin-top: 4px; }
+.analysis-value__item { white-space: nowrap; display: inline-flex; align-items: baseline; gap: 4px; }
+.analysis-value__dot { align-self: center; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.analysis-value__note { font-size: 0.75rem; color: var(--ink-3); }
+
+.analysis-error {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(224, 85, 90, 0.4);
+  background: rgba(224, 85, 90, 0.08);
+  color: var(--ink-1);
+}
+
+/* 表示単位カード: PC は 単位 | 案内文 ・ズーム。モバイルは 単位 ・ズーム(右寄せ) の下に案内文 */
+.analysis-zoom { display: flex; gap: 4px; }
+.analysis-card--bar .analysis-hint { margin-left: auto; }
+@media (max-width: 700px) {
+  .analysis-card--bar { gap: 8px 12px; }
+  .analysis-card--bar .analysis-zoom { margin-left: auto; }
+  .analysis-card--bar .analysis-hint { order: 3; flex-basis: 100%; margin-left: 0; white-space: normal; }
+}
