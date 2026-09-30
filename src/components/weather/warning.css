@@ -1,0 +1,68 @@
+/* 注意報の帯（JmaWarningSummary） */
+.warn-card {
+  padding: 0.75rem 1rem;
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.warn-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.warn-card__title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-2); }
+.warn-card__time { font-size: 0.7rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.warn-card__list { display: flex; flex-direction: column; }
+
+.warn-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  min-height: 44px;
+  padding: 0.35rem 0 0.35rem 0.85rem;
+}
+.warn-row + .warn-row { border-top: 1px solid var(--line); }
+.warn-row__bar {
+  position: absolute;
+  left: 0;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 4px;
+  border-radius: 2px;
+  transform-origin: left;
+}
+.warn-row__bar--pulse { animation: warn-pulse 1.2s ease-in-out 3; }
+.warn-row__chip {
+  flex-shrink: 0;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.warn-row__name { font-size: 0.9rem; font-weight: 600; color: var(--ink-1); white-space: nowrap; }
+.warn-row__status {
+  flex-shrink: 0;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.warn-row__time { font-size: 0.75rem; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+@keyframes warn-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .warn-row__bar--pulse { animation: none; }
+}

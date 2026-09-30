@@ -5,6 +5,9 @@
  * WeatherTab で RiskSummary の上部に配置する。
  */
 
+import { m } from 'motion/react';
+import { springs } from '../../lib/motion';
+import './warning.css';
 import type { JmaWarningResult, JmaWarningItem, WarningLevel } from '../../api/jmaWarning';
 
 interface Props {
@@ -12,12 +15,12 @@ interface Props {
   loading: boolean;
 }
 
-/** 警報レベルに応じた表示スタイル */
-const LEVEL_STYLE: Record<WarningLevel, { color: string; bg: string; border: string; label: string }> = {
-  special:  { color: '#6d1a3e', bg: 'rgba(220,38,127,0.1)',  border: 'rgba(220,38,127,0.4)', label: '特別警報' },
-  warning:  { color: '#9b2226', bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.4)',  label: '警報' },
-  advisory: { color: '#7c4b00', bg: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.4)', label: '注意報' },
-  none:     { color: '#5b6478', bg: 'transparent',           border: 'transparent',          label: '' },
+/** 警報レベルに応じた意味色（既存の色値を流用）。bar=左端の帯、tint=種別チップの地、text=チップの文字 */
+const LEVEL_STYLE: Record<WarningLevel, { bar: string; tint: string; text: string; label: string }> = {
+  special:  { bar: 'rgb(220,38,127)', tint: 'rgba(220,38,127,0.12)', text: '#6d1a3e', label: '特別警報' },
+  warning:  { bar: 'rgb(239,68,68)',  tint: 'rgba(239,68,68,0.12)',  text: '#9b2226', label: '警報' },
+  advisory: { bar: 'rgb(251,146,60)', tint: 'rgba(251,146,60,0.16)', text: '#7c4b00', label: '注意報' },
+  none:     { bar: 'transparent',     tint: 'transparent',           text: 'var(--ink-2)', label: '' },
 };
 
 function WarningRow({ item }: { item: JmaWarningItem }) {
@@ -29,54 +32,25 @@ function WarningRow({ item }: { item: JmaWarningItem }) {
   const timeText = isIssued && item.validPeriod
     ? item.validPeriod.replace(/〜\s*$/, '')
     : null;
+  // 警報・特別警報のみ、帯が3回だけ脈動する（注意報は静止）
+  const pulse = item.level === 'warning' || item.level === 'special';
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      padding: '0.45rem 0.6rem',
-      background: style.bg,
-      border: `1px solid ${style.border}`,
-      borderRadius: 8,
-    }}>
-      <span style={{
-        flexShrink: 0,
-        fontSize: '0.68rem',
-        fontWeight: 700,
-        color: style.color,
-        background: style.border,
-        borderRadius: '999px',
-        padding: '0.1rem 0.45rem',
-        lineHeight: 1.6,
-        whiteSpace: 'nowrap',
-      }}>
+    <div className="warn-row" data-level={item.level}>
+      <m.span
+        aria-hidden="true"
+        className={pulse ? 'warn-row__bar warn-row__bar--pulse' : 'warn-row__bar'}
+        style={{ background: style.bar }}
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={springs.move}
+      />
+      <span className="warn-row__chip" style={{ color: style.text, background: style.tint }}>
         {style.label}
       </span>
-      <span style={{ fontWeight: 700, fontSize: '0.82rem', color: style.color, whiteSpace: 'nowrap' }}>
-        {item.name}
-      </span>
-      {badgeText && (
-        <span style={{
-          flexShrink: 0,
-          fontSize: '0.66rem',
-          fontWeight: 600,
-          color: style.color,
-          border: `1px solid ${style.border}`,
-          borderRadius: 4,
-          padding: '0.05rem 0.35rem',
-          lineHeight: 1.5,
-          whiteSpace: 'nowrap',
-          opacity: 0.85,
-        }}>
-          {badgeText}
-        </span>
-      )}
-      {timeText && (
-        <span style={{ fontSize: '0.75rem', color: style.color, opacity: 0.7, whiteSpace: 'nowrap' }}>
-          {timeText}
-        </span>
-      )}
+      <span className="warn-row__name">{item.name}</span>
+      {badgeText && <span className="warn-row__status">{badgeText}</span>}
+      {timeText && <span className="warn-row__time">{timeText}</span>}
     </div>
   );
 }
@@ -104,16 +78,12 @@ export function JmaWarningSummary({ result, loading }: Props) {
     : null;
 
   return (
-    <section className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-        <span style={{ fontSize: '0.75rem', color: '#8a93a6', letterSpacing: '0.05em', fontWeight: 600 }}>
-          気象庁 注意報・警報
-        </span>
-        {reportTime && (
-          <span style={{ fontSize: '0.68rem', color: '#b8c0cf' }}>{reportTime}</span>
-        )}
+    <section className="warn-card">
+      <div className="warn-card__head">
+        <span className="warn-card__title">気象庁 注意報・警報</span>
+        {reportTime && <span className="warn-card__time">{reportTime}</span>}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+      <div className="warn-card__list">
         {sorted.map((item) => (
           <WarningRow key={item.code} item={item} />
         ))}

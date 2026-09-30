@@ -6,6 +6,8 @@ import { computeWarningLanes } from '../../lib/warningGantt';
 import { WarningBar } from './WarningBar';
 import { addDays } from '../../lib/dateUtils';
 import { selectCode, type WeatherCodeMode } from '../../lib/wmoSeverity';
+import { m } from 'motion/react';
+import { pressScale, springs } from '../../lib/motion';
 
 interface Props {
   daily: DailyForecastData[];
@@ -16,13 +18,14 @@ interface Props {
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+type Period = 'am' | 'pm' | 'night';
 const PERIOD_W = 50;  // px per AM / PM / Night cell
 const CHART_H  = 80;
 
 function probColor(p: number): string {
   if (p >= 70) return 'var(--accent-blue)';
   if (p >= 40) return '#38bdf8';
-  return 'var(--text-tertiary)';
+  return 'var(--ink-3)';
 }
 
 interface DailyMiniChartProps {
@@ -102,8 +105,8 @@ function DailyMiniChart({ daily, dayX, dayWidths }: DailyMiniChartProps) {
     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block' }}>
       {gridTemps.map(v => (
         <g key={v}>
-          <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} style={{ stroke: 'var(--card-border-sub)' }} strokeWidth={1} />
-          <text x={3} y={ty(v) - 2} fontSize={8} style={{ fill: 'var(--text-tertiary)' }}>{v}</text>
+          <line x1={0} y1={ty(v)} x2={W} y2={ty(v)} style={{ stroke: 'var(--line)' }} strokeWidth={1} />
+          <text x={3} y={ty(v) - 2} fontSize={8} style={{ fill: 'var(--ink-3)' }}>{v}</text>
         </g>
       ))}
       {/* 降水バー */}
@@ -290,60 +293,58 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const today = jstNow.toISOString().slice(0, 10);
 
-  const cellBg = (_day: DailyForecastData): string => 'rgba(255, 255, 255, 0.35)';
-  const dayBorder = (i: number) =>
-    i < daily.length - 1 ? '1px solid var(--card-border-sub)' : undefined;
+  // 気温レンジバー用：表示期間全体の最低〜最高（placeholder 日は除く）
+  const realDays = daily.filter(d => !d.isPlaceholder);
+  const periodMin = realDays.length > 0 ? Math.min(...realDays.map(d => d.tempMin)) : 0;
+  const periodMax = realDays.length > 0 ? Math.max(...realDays.map(d => d.tempMax)) : 1;
+  const periodSpan = periodMax - periodMin || 1;
 
-  const spanCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
-    background: cellBg(day),
-    textAlign: 'center',
-    padding: '0.35rem 0.25rem',
-    verticalAlign: 'middle',
-    borderRight: dayBorder(i),
-    ...extra,
-  });
+  const [selected, setSelected] = useState<{ date: string; period: Period } | null>(null);
+  const pick = (date: string, period: Period) => {
+    onHalfDayClick?.(date, period);
+    setSelected({ date, period });
+  };
 
-  const innerBorder = '1px solid var(--card-border-sub)';
+  const daySep = (i: number) => (i < daily.length - 1 ? '1px solid var(--line)' : undefined);
+  const todayBg = (day: DailyForecastData) => (day.date === today ? 'var(--accent-soft)' : undefined);
 
-  const amCell = (day: DailyForecastData, extra?: CSSProperties): CSSProperties => ({
+  const cellStyle = (day: DailyForecastData, period: Period, i: number, extra?: CSSProperties): CSSProperties => ({
     width: PERIOD_W,
     minWidth: PERIOD_W,
-    background: cellBg(day),
+    background: todayBg(day),
     textAlign: 'center',
     padding: '0.15rem 0.1rem',
     verticalAlign: 'middle',
-    borderRight: innerBorder,
+    borderRight: period === 'night' ? daySep(i) : undefined,
+    position: 'relative',
     ...extra,
   });
 
-  const pmCell = (day: DailyForecastData, extra?: CSSProperties): CSSProperties => ({
-    width: PERIOD_W,
-    minWidth: PERIOD_W,
-    background: cellBg(day),
-    textAlign: 'center',
-    padding: '0.15rem 0.1rem',
-    verticalAlign: 'middle',
-    borderRight: innerBorder,
-    ...extra,
-  });
+  const clickable = (day: DailyForecastData, period: Period) =>
+    canTap(day.date)
+      ? { onClick: () => pick(day.date, period), style: { cursor: 'pointer' } as CSSProperties }
+      : { onClick: undefined, style: undefined };
 
-  const nightCell = (day: DailyForecastData, i: number, extra?: CSSProperties): CSSProperties => ({
-    width: PERIOD_W,
-    minWidth: PERIOD_W,
-    background: cellBg(day),
-    textAlign: 'center',
-    padding: '0.15rem 0.1rem',
-    verticalAlign: 'middle',
-    borderRight: dayBorder(i),
-    ...extra,
-  });
+  const selectionMark = (day: DailyForecastData, period: Period) =>
+    selected?.date === day.date && selected.period === period ? (
+      <m.span
+        layoutId="daily-selected"
+        data-testid="daily-selected"
+        transition={springs.move}
+        style={{
+          position: 'absolute', inset: 2, borderRadius: 'var(--radius-sm)',
+          boxShadow: 'inset 0 0 0 1.5px var(--accent)', background: 'var(--accent-soft)',
+          pointerEvents: 'none',
+        }}
+      />
+    ) : null;
 
   const chartColSpan = daily.length * 3;
 
   return (
     <div>
-      <div style={{ overflowX: 'auto', background: 'rgba(255, 255, 255, 0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid var(--card-border-sub)', boxShadow: 'var(--shadow-sm)' }}>
-        <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+      <div style={{ overflowX: 'auto', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
+        <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed', fontVariantNumeric: 'tabular-nums' }}>
           <colgroup>
             {daily.flatMap(day => [
               <col key={`${day.date}-am`}    style={{ width: PERIOD_W }} />,
@@ -359,48 +360,51 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 const dow = new Date(`${day.date}T00:00:00`).getDay();
                 const mm = parseInt(day.date.slice(5, 7), 10);
                 const dd = parseInt(day.date.slice(8, 10), 10);
-                const label = isToday
-                  ? `今日 ${mm}/${dd}(${DAY_NAMES[dow]})`
-                  : `${mm}/${dd}(${DAY_NAMES[dow]})`;
+                const dateLabel = `${mm}/${dd}(${DAY_NAMES[dow]})`;
+                const rangeLeft = ((day.tempMin - periodMin) / periodSpan) * 100;
+                const rangeWidth = ((day.tempMax - day.tempMin) / periodSpan) * 100;
                 return (
                   <td
                     key={day.date}
                     colSpan={3}
-                    style={{ ...spanCell(day, i), padding: '0.4rem 0.3rem 0.25rem', verticalAlign: 'top' }}
+                    style={{
+                      background: todayBg(day),
+                      padding: '0.5rem 0.4rem 0.35rem',
+                      verticalAlign: 'top',
+                      borderRight: daySep(i),
+                    }}
                   >
                     <div style={{
-                      background: isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
-                      borderRadius: '6px',
-                      padding: '0.18rem 0.4rem',
-                      position: 'relative',
-                      textAlign: 'center',
-                      fontSize: '0.875rem',
-                      color: isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
-                      fontWeight: isToday ? 700 : 600,
-                      whiteSpace: 'nowrap',
-                      marginBottom: '0.3rem',
+                      display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                      fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink-1)', whiteSpace: 'nowrap',
                     }}>
-                      {label}
+                      <span>
+                        {isToday && <span style={{ color: 'var(--accent)', marginRight: '0.3em' }}>今日</span>}
+                        {dateLabel}
+                      </span>
                       {!day.isPlaceholder && (
-                        <span style={{ position: 'absolute', right: '0.4rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', fontWeight: 600 }}>
-                          <span style={{ color: '#fb7185' }}>{Math.round(day.tempMax)}</span>
-                          <span style={{ opacity: 0.5, margin: '0 0.08rem' }}>/</span>
-                          <span style={{ color: '#7dd3fc' }}>{Math.round(day.tempMin)}</span>
+                        <span style={{ fontSize: '0.72rem' }}>
+                          <span style={{ color: TEMP_MAX_COLOR }}>{Math.round(day.tempMax)}</span>
+                          <span style={{ color: 'var(--ink-3)', margin: '0 0.08rem' }}>/</span>
+                          <span style={{ color: TEMP_MIN_COLOR }}>{Math.round(day.tempMin)}</span>
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.15rem' }}>
+                    <div style={{ position: 'relative', height: 4, borderRadius: 2, background: 'var(--surface-sunken)', margin: '0.4rem 0 0.35rem' }}>
+                      {!day.isPlaceholder && (
+                        <div
+                          data-testid="temp-range"
+                          style={{
+                            position: 'absolute', top: 0, bottom: 0, minWidth: 4, borderRadius: 2,
+                            left: `${rangeLeft}%`, width: `${rangeWidth}%`,
+                            background: `linear-gradient(to right, ${TEMP_MIN_COLOR}, ${TEMP_MAX_COLOR})`,
+                          }}
+                        />
+                      )}
+                    </div>
+                    <div style={{ display: 'flex' }}>
                       {['午前', '午後', '夜間'].map(p => (
-                        <div key={p} style={{
-                          flex: 1,
-                          textAlign: 'center',
-                          background: isToday ? 'rgba(59, 130, 246, 0.13)' : 'rgba(13, 148, 136, 0.11)',
-                          borderRadius: '999px',
-                          padding: '0.1rem 0',
-                          fontSize: '0.6rem',
-                          color: isToday ? 'var(--accent-blue)' : 'var(--accent-color)',
-                          fontWeight: 600,
-                        }}>
+                        <div key={p} style={{ flex: 1, textAlign: 'center', fontSize: '0.7rem', color: 'var(--ink-3)', fontWeight: 500 }}>
                           {p}
                         </div>
                       ))}
@@ -412,101 +416,68 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
             {/* 天気アイコン（天気名テキストを同一セルに統合） */}
             <tr>
               {daily.map((day, i) => {
-                const wStyle: CSSProperties = { fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 500, lineHeight: 1, flexShrink: 0 };
-                const dashCell: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--text-tertiary)', fontSize: '1rem' };
+                const wStyle: CSSProperties = { fontSize: '0.72rem', color: 'var(--ink-3)', fontWeight: 500, lineHeight: 1, flexShrink: 0 };
+                const dashCell: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: 'var(--ink-3)', fontSize: '1rem' };
                 if (day.isPlaceholder) {
                   return (
                     <Fragment key={day.date}>
-                      <td style={amCell(day)}><div style={dashCell}>—</div></td>
-                      <td style={pmCell(day)}><div style={dashCell}>—</div></td>
-                      <td style={nightCell(day, i)}><div style={dashCell}>—</div></td>
+                      <td style={cellStyle(day, 'am', i)}><div style={dashCell}>—</div></td>
+                      <td style={cellStyle(day, 'pm', i)}><div style={dashCell}>—</div></td>
+                      <td style={cellStyle(day, 'night', i)}><div style={dashCell}>—</div></td>
                     </Fragment>
                   );
                 }
                 const altMode         = weatherCodeMode === 'severity' ? 'frequency' : 'severity';
                 const altModeLabel    = altMode === 'frequency' ? '概況' : 'リスク';
                 const altModeTagStyle: CSSProperties = altMode === 'frequency'
-                  ? { background: 'white', color: 'var(--accent-color)', border: '1px solid rgba(13,148,136,0.3)' }
-                  : { background: 'white', color: '#7a2840',             border: '1px solid rgba(244,167,185,0.6)' };
-                const amMain    = selectCode(day.amCodes,    weatherCodeMode);
-                const pmMain    = selectCode(day.pmCodes,    weatherCodeMode);
-                const nightMain = selectCode(day.nightCodes, weatherCodeMode);
-                const amAlt     = selectCode(day.amCodes,    altMode);
-                const pmAlt     = selectCode(day.pmCodes,    altMode);
-                const nightAlt  = selectCode(day.nightCodes, altMode);
+                  ? { background: 'white', color: 'var(--accent)', border: '1px solid rgba(13,148,136,0.3)' }
+                  : { background: 'white', color: '#7a2840',       border: '1px solid rgba(244,167,185,0.6)' };
                 // height: 160 = text(12) + gap(2) + icon(84) + gap(2) + mini label(14) + gap(2) + mini icon(42) + 2
                 const iconContainer: CSSProperties = {
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'flex-start', height: 160, gap: 0,
+                  justifyContent: 'flex-start', height: 160, gap: 0, position: 'relative',
+                };
+                const iconCell = (period: Period, codes: number[]) => {
+                  const isNight = period === 'night';
+                  const main = selectCode(codes, weatherCodeMode);
+                  const alt  = selectCode(codes, altMode);
+                  const click = clickable(day, period);
+                  return (
+                    <td
+                      data-cell={`${day.date}-${period}`}
+                      style={{ ...cellStyle(day, period, i, { paddingTop: '0.6rem', paddingBottom: 0 }), ...click.style }}
+                      onClick={click.onClick}
+                    >
+                      {selectionMark(day, period)}
+                      <m.div
+                        style={iconContainer}
+                        whileTap={canTap(day.date) ? { scale: pressScale } : undefined}
+                        transition={springs.press}
+                      >
+                        <div style={wStyle}>{main !== null ? (codeToLabel(main) ?? '—') : '—'}</div>
+                        {main !== null ? <WeatherIcon code={main} size={84} isNight={isNight} /> : '—'}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: 8 }}>
+                          {alt !== null && alt !== main && (
+                            <>
+                              <span style={{ fontSize: '0.58rem', fontWeight: 600, borderRadius: '999px', padding: '0.05rem 0.35rem', lineHeight: 1.4, whiteSpace: 'nowrap', marginBottom: 2, ...altModeTagStyle }}>
+                                {altModeLabel}
+                              </span>
+                              <span style={{ fontSize: '0.6rem', color: 'var(--ink-2)', textAlign: 'center', lineHeight: 1, whiteSpace: 'nowrap', marginBottom: -6, display: 'block' }}>
+                                {codeToLabel(alt) ?? ''}
+                              </span>
+                              <WeatherIcon code={alt} size={42} isNight={isNight} />
+                            </>
+                          )}
+                        </div>
+                      </m.div>
+                    </td>
+                  );
                 };
                 return (
                   <Fragment key={day.date}>
-                    <td
-                      style={{ ...amCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: canTap(day.date) ? 'pointer' : undefined }}
-                      onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'am') : undefined}
-                    >
-                      <div style={iconContainer}>
-                        <div style={wStyle}>{amMain !== null ? (codeToLabel(amMain) ?? '—') : '—'}</div>
-                        {amMain !== null ? <WeatherIcon code={amMain} size={84} /> : '—'}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: 8 }}>
-                          {amAlt !== null && amAlt !== amMain && (
-                            <>
-                              <span style={{ fontSize: '0.58rem', fontWeight: 600, borderRadius: '999px', padding: '0.05rem 0.35rem', lineHeight: 1.4, whiteSpace: 'nowrap', marginBottom: 2, ...altModeTagStyle }}>
-                                {altModeLabel}
-                              </span>
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1, whiteSpace: 'nowrap', marginBottom: -6, display: 'block' }}>
-                                {codeToLabel(amAlt) ?? ''}
-                              </span>
-                              <WeatherIcon code={amAlt} size={42} />
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td
-                      style={{ ...pmCell(day), paddingTop: '0.6rem', paddingBottom: 0, cursor: canTap(day.date) ? 'pointer' : undefined }}
-                      onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'pm') : undefined}
-                    >
-                      <div style={iconContainer}>
-                        <div style={wStyle}>{pmMain !== null ? (codeToLabel(pmMain) ?? '—') : '—'}</div>
-                        {pmMain !== null ? <WeatherIcon code={pmMain} size={84} /> : '—'}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: 8 }}>
-                          {pmAlt !== null && pmAlt !== pmMain && (
-                            <>
-                              <span style={{ fontSize: '0.58rem', fontWeight: 600, borderRadius: '999px', padding: '0.05rem 0.35rem', lineHeight: 1.4, whiteSpace: 'nowrap', marginBottom: 2, ...altModeTagStyle }}>
-                                {altModeLabel}
-                              </span>
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1, whiteSpace: 'nowrap', marginBottom: -6, display: 'block' }}>
-                                {codeToLabel(pmAlt) ?? ''}
-                              </span>
-                              <WeatherIcon code={pmAlt} size={42} />
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td
-                      style={{ ...nightCell(day, i), paddingTop: '0.6rem', paddingBottom: 0, cursor: canTap(day.date) ? 'pointer' : undefined }}
-                      onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'night') : undefined}
-                    >
-                      <div style={iconContainer}>
-                        <div style={wStyle}>{nightMain !== null ? (codeToLabel(nightMain) ?? '—') : '—'}</div>
-                        {nightMain !== null ? <WeatherIcon code={nightMain} size={84} isNight /> : '—'}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: 8 }}>
-                          {nightAlt !== null && nightAlt !== nightMain && (
-                            <>
-                              <span style={{ fontSize: '0.58rem', fontWeight: 600, borderRadius: '999px', padding: '0.05rem 0.35rem', lineHeight: 1.4, whiteSpace: 'nowrap', marginBottom: 2, ...altModeTagStyle }}>
-                                {altModeLabel}
-                              </span>
-                              <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1, whiteSpace: 'nowrap', marginBottom: -6, display: 'block' }}>
-                                {codeToLabel(nightAlt) ?? ''}
-                              </span>
-                              <WeatherIcon code={nightAlt} size={42} isNight />
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+                    {iconCell('am', day.amCodes)}
+                    {iconCell('pm', day.pmCodes)}
+                    {iconCell('night', day.nightCodes)}
                   </Fragment>
                 );
               })}
@@ -517,16 +488,16 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 if (day.isPlaceholder) {
                   return (
                     <Fragment key={day.date}>
-                      <td style={amCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
-                      <td style={pmCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
-                      <td style={nightCell(day, i)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                      <td style={cellStyle(day, 'am', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle(day, 'pm', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle(day, 'night', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
                     </Fragment>
                   );
                 }
                 const renderProb = (prob: number | null) => (
                   <div style={{
                     fontSize: '0.72rem',
-                    color: prob !== null ? probColor(prob) : 'var(--text-tertiary)',
+                    color: prob !== null ? probColor(prob) : 'var(--ink-3)',
                     fontWeight: prob !== null && prob >= 70 ? 700 : undefined,
                   }}>
                     {prob !== null ? <><img src="https://cdn.meteocons.com/3.0.0-next.10/svg-static/flat/raindrop.svg" alt="" style={{ width: '1.8em', height: '1.8em', verticalAlign: 'middle', marginRight: '0.1em' }} />{prob}%</> : '—'}
@@ -534,9 +505,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 );
                 return (
                   <Fragment key={day.date}>
-                    <td style={{ ...amCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'am') : undefined}>{renderProb(day.amPrecipProb)}</td>
-                    <td style={{ ...pmCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'pm') : undefined}>{renderProb(day.pmPrecipProb)}</td>
-                    <td style={{ ...nightCell(day, i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'night') : undefined}>{renderProb(day.nightPrecipProb)}</td>
+                    <td style={{ ...cellStyle(day, 'am', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'am') : undefined}>{renderProb(day.amPrecipProb)}</td>
+                    <td style={{ ...cellStyle(day, 'pm', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'pm') : undefined}>{renderProb(day.pmPrecipProb)}</td>
+                    <td style={{ ...cellStyle(day, 'night', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'night') : undefined}>{renderProb(day.nightPrecipProb)}</td>
                   </Fragment>
                 );
               })}
@@ -545,24 +516,24 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
             <tr>
               {daily.map((day, i) => {
                 const fmt = (v: number | null) => (
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--ink-2)' }}>
                     {v === null ? '—' : <><img src="https://cdn.meteocons.com/3.0.0-next.10/svg-static/fill/wind-dust.svg" alt="" style={{ width: '1.8em', height: '1.8em', verticalAlign: 'middle', marginRight: '0.1em' }} />{v.toFixed(1)}m/s</>}
                   </div>
                 );
                 if (day.isPlaceholder) {
                   return (
                     <Fragment key={day.date}>
-                      <td style={amCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
-                      <td style={pmCell(day)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
-                      <td style={nightCell(day, i)}><div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</div></td>
+                      <td style={cellStyle(day, 'am', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle(day, 'pm', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle(day, 'night', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
                     </Fragment>
                   );
                 }
                 return (
                   <Fragment key={day.date}>
-                    <td style={{ ...amCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'am') : undefined}>{fmt(day.amWindMax)}</td>
-                    <td style={{ ...pmCell(day), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'pm') : undefined}>{fmt(day.pmWindMax)}</td>
-                    <td style={{ ...nightCell(day, i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => onHalfDayClick!(day.date, 'night') : undefined}>{fmt(day.nightWindMax)}</td>
+                    <td style={{ ...cellStyle(day, 'am', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'am') : undefined}>{fmt(day.amWindMax)}</td>
+                    <td style={{ ...cellStyle(day, 'pm', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'pm') : undefined}>{fmt(day.pmWindMax)}</td>
+                    <td style={{ ...cellStyle(day, 'night', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'night') : undefined}>{fmt(day.nightWindMax)}</td>
                   </Fragment>
                 );
               })}

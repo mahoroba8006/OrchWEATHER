@@ -19,11 +19,13 @@ interface SegmentedControlProps<T extends string> {
   layoutId: string;
   variant?: 'pill' | 'underline';
   className?: string;
+  /** 指定すると各タブに id=`${idPrefix}-${value}` を付ける（tabpanel の aria-labelledby 用） */
+  idPrefix?: string;
 }
 
 /** 選択印が滑って移動するタブ／セグメント */
 export function SegmentedControl<T extends string>({
-  options, value, onChange, ariaLabel, layoutId, variant = 'pill', className,
+  options, value, onChange, ariaLabel, layoutId, variant = 'pill', className, idPrefix,
 }: SegmentedControlProps<T>) {
   const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
@@ -48,6 +50,7 @@ export function SegmentedControl<T extends string>({
             key={opt.value}
             type="button"
             role="tab"
+            id={idPrefix ? `${idPrefix}-${opt.value}` : undefined}
             aria-selected={selected}
             aria-label={opt.ariaLabel}
             tabIndex={selected ? 0 : -1}

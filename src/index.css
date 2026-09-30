@@ -414,6 +414,15 @@ button.secondary:hover {
 .ai-tab-bar::-webkit-scrollbar {
   display: none;
 }
+/* 幅が足りないときは折り返さず、.ai-tab-bar 側で横スクロールさせる */
+.ai-tab-bar .ai-seg {
+  display: flex;
+  min-width: max-content;
+}
+.ai-tab-bar .ai-seg .ui-seg__item {
+  flex: 1 0 auto;
+  border-radius: 0;
+}
 
 @keyframes iconWaveBounce {
   0%, 60%, 100% { transform: translateY(0); }
@@ -427,17 +436,6 @@ button.secondary:hover {
   display: inline-block;
   animation: dotPulse 1.4s ease-in-out infinite;
 }
-
-@keyframes slideInFromRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-@keyframes slideInFromLeft {
-  from { transform: translateX(-100%); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
-}
-.slide-in-right { animation: slideInFromRight 0.22s ease-out; }
-.slide-in-left  { animation: slideInFromLeft  0.22s ease-out; }
 
 .premium-segmented-tab {
   display: inline-flex;
