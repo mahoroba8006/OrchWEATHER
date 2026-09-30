@@ -5,7 +5,7 @@
 // カスタマイズタブはプロンプト未設定時にガイドメッセージを表示。
 
 import { useState, useEffect, useRef } from 'react';
-import { AnimatePresence, m } from 'motion/react';
+import { AnimatePresence, m, useIsPresent } from 'motion/react';
 import { Cloud, CloudSun, Droplets, Shovel, Sprout, Pencil } from 'lucide-react';
 import type { AiCommentData } from '../../api/aiComment';
 import type { AiSection } from '../../store';
@@ -74,6 +74,26 @@ const SLIDE = {
   center: { x: 0, opacity: 1 },
   exit: (d: number) => ({ x: -d * 40, opacity: 0 }),
 };
+
+/** 入ってくる側だけ tabpanel。退場中は支援技術から隠す */
+function TabPanel({ tabKey, direction, children }: { tabKey: AiSection; direction: number; children: React.ReactNode }) {
+  const isPresent = useIsPresent();
+  return (
+    <m.div
+      role={isPresent ? 'tabpanel' : undefined}
+      aria-labelledby={isPresent ? `ai-tab-${tabKey}` : undefined}
+      aria-hidden={isPresent ? undefined : true}
+      custom={direction}
+      variants={SLIDE}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={springs.move}
+    >
+      {children}
+    </m.div>
+  );
+}
 
 const CLOUD_OFFSETS = [-1, 1, 0];
 
@@ -212,17 +232,9 @@ export function AiCommentCard({
         onTouchEnd={handleTouchEnd}
       >
         <AnimatePresence mode="popLayout" initial={false} custom={direction}>
-          <m.div
-            key={activeTab}
-            custom={direction}
-            variants={SLIDE}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={springs.move}
-          >
+          <TabPanel key={activeTab} tabKey={activeTab} direction={direction}>
             {content}
-          </m.div>
+          </TabPanel>
         </AnimatePresence>
       </div>
       {FOOTNOTE}
@@ -264,6 +276,7 @@ function TabBar({ tabs, activeTab, onSelect }: TabBarProps) {
         className="ai-seg"
         ariaLabel="AIコメントのセクション"
         layoutId="ai-section"
+        idPrefix="ai-tab"
         options={tabs.map(({ key, Icon, label }) => ({
           value: key,
           label: <><Icon size={15} />{label}</>,

@@ -55,4 +55,12 @@ describe('SegmentedControl', () => {
     expect(onChange).toHaveBeenCalledWith('monthly');
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: '月' }));
   });
+
+  it('sets tab ids from idPrefix', () => {
+    renderWithMotion(
+      <SegmentedControl ariaLabel="表示単位" layoutId="unit" idPrefix="u" options={options} value="daily" onChange={() => {}} />,
+    );
+    expect(screen.getByRole('tab', { name: '日' }).id).toBe('u-daily');
+    expect(screen.getByRole('tab', { name: '月' }).id).toBe('u-monthly');
+  });
 });

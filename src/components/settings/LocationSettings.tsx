@@ -4,12 +4,16 @@ import type { CSSProperties } from 'react';
 import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage, GEO_SUPPORTED } from '../../lib/geo';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+import { Skeleton } from '../ui/Skeleton';
 import { resolveJmaAreaCode, getAreaName } from '../../lib/jmaAreaResolver';
 
 // 地図（Leaflet 約40KB gzip）は地図を開いた時だけ読み込む
-const LocationMapModal = lazy(() =>
+const makeLazyMapModal = () => lazy(() =>
   import('./LocationMapModal').then(m => ({ default: m.LocationMapModal })),
 );
+// React.lazy は失敗（reject）を保持し続けるため、失敗時に作り直して再試行できるようにする
+let LocationMapModal = makeLazyMapModal();
 
 type GeoStatus = 'idle' | 'loading' | 'error';
 
@@ -39,11 +43,37 @@ const pinkButtonStyle: CSSProperties = {
   gap: '0.3rem',
 };
 
+const MAP_LOAD_ERROR = '地図を読み込めませんでした。通信状況を確認して、もう一度お試しください。';
+
+/** 地図チャンク読み込み中の即時フィードバック（モーダルと同じ暗幕に骨組みカード） */
+function MapModalFallback() {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.65)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      <Skeleton width={320} height={240} radius="var(--radius-lg)" />
+    </div>
+  );
+}
+
+/** 遅延読み込みの失敗時はモーダルを閉じ、設定画面にエラーを出す */
+function LazyMapBoundary({ onFail, children }: { onFail: () => void; children: React.ReactNode }) {
+  return (
+    <ErrorBoundary onError={() => { LocationMapModal = makeLazyMapModal(); onFail(); }} fallback={() => null}>
+      <Suspense fallback={<MapModalFallback />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
+}
+
 export function LocationSettings() {
   const { locations, addLocation, updateLocation, deleteLocation, userSettings, updateDefaultLocationId } =
     useAppStore();
   const defaultLocationId = userSettings?.defaultLocationId ?? null;
 
+  const [mapLoadError, setMapLoadError] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<LocationInfo>>({});
   // 編集開始時点の lat/lon を記憶して、変化した場合のみエリアコードを再解決する
@@ -218,7 +248,7 @@ export function LocationSettings() {
       </div>
       <button
         type="button"
-        onClick={() => setShowMapModal(true)}
+        onClick={() => { setMapLoadError(false); setShowMapModal(true); }}
         style={{
           alignSelf: 'flex-start',
           padding: '0.25rem 0.6rem',
@@ -303,7 +333,7 @@ export function LocationSettings() {
 
           {/* マップから選ぶ */}
           <button
-            onClick={() => { setEditingId(null); setShowHeaderMapModal(true); }}
+            onClick={() => { setEditingId(null); setMapLoadError(false); setShowHeaderMapModal(true); }}
             style={greenButtonStyle}
           >
             <MapPin size={16} />
@@ -431,7 +461,7 @@ export function LocationSettings() {
       )}
 
       {showMapModal && editingId && (
-        <Suspense fallback={null}>
+        <LazyMapBoundary onFail={() => { setShowMapModal(false); setMapLoadError(true); }}>
         <LocationMapModal
           initialLat={typeof formData.lat === 'number' && !Number.isNaN(formData.lat) ? formData.lat : 35.0}
           initialLon={typeof formData.lon === 'number' && !Number.isNaN(formData.lon) ? formData.lon : 135.0}
@@ -440,17 +470,29 @@ export function LocationSettings() {
           onConfirm={handleMapConfirm}
           onClose={() => setShowMapModal(false)}
         />
-        </Suspense>
+        </LazyMapBoundary>
       )}
       {showHeaderMapModal && (
-        <Suspense fallback={null}>
+        <LazyMapBoundary onFail={() => { setShowHeaderMapModal(false); setMapLoadError(true); }}>
         <LocationMapModal
           initialLat={35.0}
           initialLon={135.0}
           onConfirm={handleHeaderMapConfirm}
           onClose={() => setShowHeaderMapModal(false)}
         />
-        </Suspense>
+        </LazyMapBoundary>
+      )}
+      {mapLoadError && (
+        <div
+          role="alert"
+          style={{
+            padding: '0.85rem 1rem', color: 'var(--ink-1)', fontSize: '0.85rem',
+            background: 'var(--surface-card)', border: '1px solid var(--line)',
+            borderLeft: '4px solid #c0392b', borderRadius: 'var(--radius-md)',
+          }}
+        >
+          {MAP_LOAD_ERROR}
+        </div>
       )}
 
       {/* 削除確認ダイアログ */}

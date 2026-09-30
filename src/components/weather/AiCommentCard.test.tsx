@@ -52,4 +52,11 @@ describe('AiCommentCard', () => {
     expect(screen.getByText(/お天気を分析中/)).toBeTruthy();
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
   });
+
+  it('選択中のタブに紐づく tabpanel が1つだけある', () => {
+    renderCard();
+    const panel = screen.getByRole('tabpanel');
+    expect(panel.getAttribute('aria-labelledby')).toBe('ai-tab-weatherOverview');
+    expect(document.getElementById('ai-tab-weatherOverview')?.getAttribute('role')).toBe('tab');
+  });
 });
