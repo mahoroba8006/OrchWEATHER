@@ -5,6 +5,7 @@ import { useAppStore, ALL_JMA_GROUPS, DEFAULT_AI_SECTIONS, warningNameToGroup } 
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
+import { SegmentedControl } from '../ui/SegmentedControl';
 import { DailyForecast } from './DailyForecast';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
@@ -295,38 +296,20 @@ export function WeatherTab() {
           <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
 
           <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '0.4rem', padding: '0 0.75rem 0.5rem' }}>
-              <button
-                onClick={() => updateWeatherCodeMode('severity')}
-                className="secondary"
-                style={{
-                  padding: '0.3rem 0.7rem',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  fontSize: '0.75rem',
-                  background: weatherCodeMode === 'severity' ? 'rgba(244,167,185,0.45)' : undefined,
-                  color: weatherCodeMode === 'severity' ? '#7a2840' : undefined,
-                  borderColor: weatherCodeMode === 'severity' ? '#e88ea8' : undefined,
-                }}
-              >
-                リスクでみる
-              </button>
-              <button
-                onClick={() => updateWeatherCodeMode('frequency')}
-                className="secondary"
-                style={{
-                  padding: '0.3rem 0.7rem',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  fontSize: '0.75rem',
-                  background: weatherCodeMode === 'frequency' ? 'rgba(13,148,136,0.18)' : undefined,
-                  color: weatherCodeMode === 'frequency' ? '#0f766e' : undefined,
-                  borderColor: weatherCodeMode === 'frequency' ? '#0d9488' : undefined,
-                }}
-              >
-                概況でみる
-              </button>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginLeft: '0.3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '0.6rem', padding: '0 0.75rem 0.5rem' }}>
+              <SegmentedControl
+                variant="pill"
+                className="ui-seg--compact"
+                ariaLabel="天気アイコンの表示基準"
+                layoutId="weather-code-mode"
+                options={[
+                  { value: 'severity', label: 'リスクでみる' },
+                  { value: 'frequency', label: '概況でみる' },
+                ]}
+                value={weatherCodeMode}
+                onChange={updateWeatherCodeMode}
+              />
+              <span style={{ fontSize: '0.75rem', lineHeight: 1.35, color: 'var(--ink-3)', minWidth: 0 }}>
                 {weatherCodeMode === 'severity'
                   ? '時間帯でいちばん悪い天気を表示'
                   : '時間帯でいちばん多い天気を表示'}
