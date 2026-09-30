@@ -147,3 +147,91 @@
   .sky-particle--snow { opacity: 1; }
   .sky-flash { display: none; }
 }
+
+/* ── ヒーロー（SkyHero）── */
+.sky-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 40vh;
+  color: #fff;
+}
+.sky-hero__inner {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sky-hero__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.sky-hero__loc {
+  position: relative;
+  min-height: 44px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+.sky-hero__actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.sky-hero .sky-hero__btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: none;
+  box-shadow: none;
+  transition: background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.sky-hero .sky-hero__btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.28); }
+.sky-hero .sky-hero__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.sky-hero .sky-hero__btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.sky-hero__spin { animation: spin 1.2s linear infinite; }
+
+.sky-hero__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.sky-hero__temp {
+  font-size: clamp(72px, 22vw, 112px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.sky-hero__icon { display: inline-flex; flex-shrink: 0; }
+
+.sky-hero__meta {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.sky-hero__label { font-size: 1.1rem; font-weight: 500; }
+.sky-hero__range { margin-top: 0.15rem; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.sky-hero__range-sep, .sky-hero__range-min { color: rgba(255, 255, 255, 0.7); }
+.sky-hero__updated { font-size: 0.75rem; color: rgba(255, 255, 255, 0.7); white-space: nowrap; }
+.sky-hero__extra { margin-top: 0.75rem; font-size: 0.8rem; color: #fff; }
+
+@media (min-width: 768px) {
+  .sky-hero { min-height: 320px; }
+  .sky-hero__inner { padding: 0.5rem 2rem 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sky-hero__spin { animation-duration: 3s; }
+}

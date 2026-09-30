@@ -1,7 +1,9 @@
-import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, render } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import { SKY_WEATHERS } from '../../lib/sky';
 import { SkyParticles, particleCount } from './SkyParticles';
+
+afterEach(cleanup);
 
 describe('SkyParticles', () => {
   it('never exceeds 60 particles', () => {
