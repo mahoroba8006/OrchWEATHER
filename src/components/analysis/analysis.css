@@ -107,3 +107,12 @@
   background: rgba(224, 85, 90, 0.08);
   color: var(--ink-1);
 }
+
+/* 表示単位カード: PC は 単位 | 案内文 ・ズーム。モバイルは 単位 ・ズーム(右寄せ) の下に案内文 */
+.analysis-zoom { display: flex; gap: 4px; }
+.analysis-card--bar .analysis-hint { margin-left: auto; }
+@media (max-width: 700px) {
+  .analysis-card--bar { gap: 8px 12px; }
+  .analysis-card--bar .analysis-zoom { margin-left: auto; }
+  .analysis-card--bar .analysis-hint { order: 3; flex-basis: 100%; margin-left: 0; white-space: normal; }
+}

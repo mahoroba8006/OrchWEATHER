@@ -425,14 +425,14 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               {t.type === 'thin-bar' && <span style={{ display: 'inline-block', width: '6px', height: '12px', backgroundColor: mark, opacity: 0.55, borderRadius: '2px' }}></span>}
               {t.type === 'thick-bar' && <span style={{ display: 'inline-block', width: '16px', height: '12px', backgroundColor: mark, opacity: 0.3, borderRadius: '2px' }}></span>}
               {t.type === 'range-bar' && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '14px', width: '12px', position: 'relative', opacity: 0.55 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '14px', width: '12px', position: 'relative', opacity: 0.38 }}>
                   <span style={{ position: 'absolute', top: '0', bottom: '0', left: '50%', width: '1.5px', marginLeft: '-0.75px', backgroundColor: mark }}></span>
                   <span style={{ position: 'absolute', top: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: mark }}></span>
                   <span style={{ position: 'absolute', bottom: '0', left: '25%', right: '25%', height: '1.5px', backgroundColor: mark }}></span>
                 </span>
               )}
               {t.type === 'dashed-range-bar' && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '12px', height: '14px', opacity: 0.7 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '12px', height: '14px', opacity: 0.48 }}>
                   <svg width="12" height="14">
                     <line x1="6" y1="1" x2="6" y2="13" stroke={mark} strokeWidth="1.5" strokeDasharray="4 3" />
                     <line x1="3" y1="1" x2="9" y2="1" stroke={mark} strokeWidth="1.5" />
@@ -560,11 +560,11 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
             />
           </div>
           {!isMonthly && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <>
               <span className="analysis-hint">
                 ドラッグで移動・Ctrl/⌘＋ホイールで拡大縮小
               </span>
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div className="analysis-zoom">
                 <Button
                   variant="ghost"
                   className="analysis-icon-btn"
@@ -593,7 +593,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
                   <Maximize2 size={15} />
                 </Button>
               </div>
-            </div>
+          </>
           )}
         </div>
 

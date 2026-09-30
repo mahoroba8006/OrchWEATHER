@@ -28,7 +28,7 @@ export const CustomRangeBar = (props: any) => {
   const centerX = x + width / 2;
   const capWidth = 2; // キャップの幅を短く変更
   return (
-    <g opacity={0.55}>
+    <g opacity={0.38}>
       <line x1={centerX} y1={y} x2={centerX} y2={y + height} stroke={fill} strokeWidth={1.5} />
       <line x1={centerX - capWidth} y1={y} x2={centerX + capWidth} y2={y} stroke={fill} strokeWidth={1.5} />
       <line x1={centerX - capWidth} y1={y + height} x2={centerX + capWidth} y2={y + height} stroke={fill} strokeWidth={1.5} />
@@ -44,7 +44,7 @@ export const ForecastRangeBar = (props: any) => {
   const centerX = x + width / 2;
   const capWidth = 2;
   return (
-    <g opacity={0.7}>
+    <g opacity={0.48}>
       <line x1={centerX} y1={y} x2={centerX} y2={y + height} stroke={fill} strokeWidth={1.5} strokeDasharray="4 3" />
       <line x1={centerX - capWidth} y1={y} x2={centerX + capWidth} y2={y} stroke={fill} strokeWidth={1.5} />
       <line x1={centerX - capWidth} y1={y + height} x2={centerX + capWidth} y2={y + height} stroke={fill} strokeWidth={1.5} />
