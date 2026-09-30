@@ -1,6 +1,6 @@
 // src/components/weather/WeatherTab.tsx
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { RefreshCw, MapPin, Loader2, ChevronDown } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { Loader2, ChevronDown } from 'lucide-react';
 import { useAppStore, ALL_JMA_GROUPS, DEFAULT_AI_SECTIONS, warningNameToGroup } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
@@ -14,6 +14,11 @@ import { useAiCustomComment } from '../../hooks/useAiCustomComment';
 import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
 import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
+import { SkyHero } from '../sky/SkyHero';
+import { fallbackSky, useSkyStore, type SkyState, type SkySummary } from '../../skyStore';
+import {
+  classifyWeather, currentHourIndex, hhmmToMinutes, jstDateString, jstMinutesOfDay, skyPalette, timeOfDay,
+} from '../../lib/sky';
 
 export function WeatherTab() {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user, updateWeatherCodeMode, aiAllowed } = useAppStore();
@@ -116,6 +121,30 @@ export function WeatherTab() {
     }
   }, []);
 
+  // 今の空（予報の現在時刻の行と日の出・日の入りから算出。未取得時は fallbackSky）
+  const current = useMemo(() => {
+    const now = new Date();
+    if (!data || data.hourly.length === 0) return { sky: fallbackSky(now), hour: null, today: null };
+    const idx = currentHourIndex(data.hourly, now);
+    const hour = data.hourly[idx === -1 ? 0 : idx];
+    const today = data.daily.find(d => d.date === jstDateString(now)) ?? null;
+    const tod = today && today.sunrise && today.sunset
+      ? timeOfDay(jstMinutesOfDay(now), hhmmToMinutes(today.sunrise), hhmmToMinutes(today.sunset))
+      : fallbackSky(now).tod;
+    const weather = classifyWeather(hour.weatherCode);
+    const sky: SkyState = { tod, weather, ...skyPalette(tod, weather) };
+    return { sky, hour, today };
+  }, [data]);
+
+  // ヘッダー・他タブの空帯へ今の空を発行する
+  const locationName = location?.name ?? '現在地';
+  useEffect(() => {
+    const summary: SkySummary | null = current.hour
+      ? { temperature: current.hour.temperature, weatherCode: current.hour.weatherCode, locationName }
+      : null;
+    useSkyStore.getState().publish(current.sky, summary);
+  }, [current, locationName]);
+
   // 地点未登録かつ geo も未取得
   if (locations.length === 0 && !geoLocation) {
     const emptyStyle = {
@@ -155,79 +184,43 @@ export function WeatherTab() {
   const hourlyLastDate = filteredHourly.length > 0 ? filteredHourly[filteredHourly.length - 1].time.slice(0, 10) : undefined;
 
   return (
-    <div className="app-container">
+    <>
+      <SkyHero
+        sky={current.sky}
+        temperature={current.hour?.temperature ?? null}
+        weatherCode={current.hour?.weatherCode ?? null}
+        tempMax={current.today?.tempMax ?? null}
+        tempMin={current.today?.tempMin ?? null}
+        lastUpdated={timeStr}
+        loading={loading}
+        onLocate={handleGetCurrentLocation}
+        locating={buttonGeoLoading}
+        onRefresh={refresh}
+        locationSlot={(
+          <>
+            <span className="sky-hero__loc-name">{locationName}</span>
+            {user && <ChevronDown size={16} aria-hidden="true" style={{ flexShrink: 0, marginLeft: 2, opacity: 0.85 }} />}
+            {user && (
+              <select
+                className="sky-hero__select"
+                aria-label="地点"
+                value={location?.id ?? ''}
+                onChange={e => setSelectedLocationId(e.target.value)}
+              >
+                {geoLocation && <option value="__geo__">📍 現在地</option>}
+                {locations.map(loc => (
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
+                ))}
+              </select>
+            )}
+          </>
+        )}
+      >
+        {buttonGeoError && <span role="alert">⚠ {buttonGeoError}</span>}
+      </SkyHero>
+      {/* ヒーロー直後のコンテンツ: 最初のカードがヒーロー下端に24px重なる */}
+      <div className="app-container" style={{ position: 'relative', marginTop: -24, paddingTop: 0 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-      <div className="glass-panel" style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.6rem',
-        padding: '0.75rem 1.25rem',
-        borderRadius: 'var(--radius-md)',
-        flexWrap: 'wrap',
-      }}>
-        <button
-          onClick={handleGetCurrentLocation}
-          disabled={buttonGeoLoading}
-          style={{
-            padding: '0.4rem 0.8rem',
-            fontSize: '0.8rem',
-            background: 'rgba(13,148,136,0.12)',
-            color: 'var(--accent-color)',
-            border: '1px solid rgba(13,148,136,0.3)',
-            borderRadius: 'var(--radius-md, 6px)',
-            cursor: buttonGeoLoading ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            opacity: buttonGeoLoading ? 0.7 : 1,
-            flexShrink: 0,
-          }}
-        >
-          {buttonGeoLoading
-            ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />取得中…</>
-            : <><MapPin size={14} />現在地を表示</>}
-        </button>
-        {user && (
-          <select
-            value={location?.id ?? ''}
-            onChange={e => setSelectedLocationId(e.target.value)}
-            style={{ fontSize: '0.85rem', padding: '0.4rem 0.75rem' }}
-          >
-            {geoLocation && <option value="__geo__">📍 現在地</option>}
-            {locations.map(loc => (
-              <option key={loc.id} value={loc.id}>{loc.name}</option>
-            ))}
-          </select>
-        )}
-        {buttonGeoError && (
-          <span style={{ fontSize: '0.78rem', color: '#c62828', width: '100%' }}>
-            ⚠ {buttonGeoError}
-          </span>
-        )}
-        <span style={{ flex: 1 }} />
-        {timeStr && (
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500, marginRight: '0.5rem' }}>
-            最終更新: {timeStr}
-          </span>
-        )}
-        <button
-          onClick={refresh}
-          disabled={loading}
-          className="secondary"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.45rem 0.85rem',
-            fontSize: '0.8rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1,
-          }}
-        >
-          <RefreshCw size={13} style={{ animation: loading ? 'spin 1.5s linear infinite' : 'none' }} />
-          更新
-        </button>
-      </div>
 
       {error && (
         <div style={{ padding: '1rem', color: '#c0392b', fontSize: '0.85rem', textAlign: 'center', background: '#fff9f8', borderRadius: 'var(--radius-md)' }}>
@@ -367,5 +360,6 @@ export function WeatherTab() {
       </div>
       <Footer />
     </div>
+    </>
   );
 }

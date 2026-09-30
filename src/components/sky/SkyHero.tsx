@@ -73,6 +73,8 @@ export function SkyHero({
       introPlayed = true;
       return;
     }
+    // 最終値が一瞬見えないよう、描画前に 0 から始める（副作用の同期 setState は意図的）
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCounting(0);
     const controls = animate(0, temperature, {
       duration: 0.9,

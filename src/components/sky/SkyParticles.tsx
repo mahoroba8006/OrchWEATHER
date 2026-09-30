@@ -6,6 +6,7 @@ import './sky.css';
 
 type Kind = 'star' | 'cloud' | 'rain' | 'snow' | 'fog';
 
+// eslint-disable-next-line react-refresh/only-export-components -- 仕様上 export が必要（テストで使用）
 export function particleCount(weather: SkyWeather, isNight: boolean): number {
   switch (weather) {
     case 'clear': return isNight ? 24 : 0;
