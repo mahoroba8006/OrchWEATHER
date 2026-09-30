@@ -83,9 +83,15 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
   const yAxisLeft = { ...yAxisCommon, tick: yTick };
   const yAxisRight = { ...yAxisCommonRight, tick: yTick };
 
-  // 選択中のグラフ種別タブが画面外なら見える位置までスクロール
+  // 選択中のグラフ種別タブが横スクロールの外なら見える位置へ（ページの縦スクロールは動かさない）
   useEffect(() => {
-    document.getElementById(`analysis-chart-tab-${activeChart}`)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    const tab = document.getElementById(`analysis-chart-tab-${activeChart}`);
+    const scroller = tab?.closest<HTMLElement>('.analysis-tab-scroller');
+    if (!tab || !scroller) return;
+    const tabLeft = tab.getBoundingClientRect().left - scroller.getBoundingClientRect().left + scroller.scrollLeft;
+    const tabRight = tabLeft + tab.offsetWidth;
+    if (tabLeft < scroller.scrollLeft) scroller.scrollLeft = tabLeft;
+    else if (tabRight > scroller.scrollLeft + scroller.clientWidth) scroller.scrollLeft = tabRight - scroller.clientWidth;
   }, [activeChart]);
 
   const chartLoading = (

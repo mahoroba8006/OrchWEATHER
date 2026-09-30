@@ -392,7 +392,7 @@ button.secondary:hover {
   color: var(--ink-1);
 }
 
-.glass-table tbody tr:nth-child(even) td {
+.glass-table tbody tr:nth-child(even):not(:hover) td {
   background: rgba(23, 25, 28, 0.025);
 }
 
