@@ -45,7 +45,7 @@ describe('Sheet', () => {
 
     rerender(<MotionProvider><Sheet open={false} onClose={() => {}} title="設定">中身</Sheet></MotionProvider>);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(document.activeElement).toBe(launcher);
+    await waitFor(() => expect(document.activeElement).toBe(launcher));
     launcher.remove();
   });
 });
