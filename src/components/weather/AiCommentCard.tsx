@@ -5,10 +5,13 @@
 // カスタマイズタブはプロンプト未設定時にガイドメッセージを表示。
 
 import { useState, useEffect, useRef } from 'react';
-import { CloudSun, Droplets, Shovel, Sprout, Pencil } from 'lucide-react';
+import { AnimatePresence, m } from 'motion/react';
+import { Cloud, CloudSun, Droplets, Shovel, Sprout, Pencil } from 'lucide-react';
 import type { AiCommentData } from '../../api/aiComment';
 import type { AiSection } from '../../store';
-import { WeatherLoader } from './WeatherLoader';
+import { springs } from '../../lib/motion';
+import { SegmentedControl } from '../ui/SegmentedControl';
+import { Skeleton } from '../ui/Skeleton';
 
 interface Props {
   comment: AiCommentData | null;
@@ -34,10 +37,72 @@ const ALL_TABS: TabDef[] = [
 ];
 
 const FOOTNOTE = (
-  <div style={{ fontSize: '0.68rem', color: '#b8c0cf', marginTop: '0.6rem' }}>
+  <div style={{ fontSize: '0.68rem', color: 'var(--ink-3)', marginTop: '0.6rem' }}>
     ※気象庁・Open-Meteo の予報データに基づく解説です
   </div>
 );
+
+const BODY_STYLE: React.CSSProperties = {
+  margin: 0,
+  fontSize: '0.92rem',
+  lineHeight: 1.9,
+  color: 'var(--ink-1)',
+};
+
+/** 本文を行ごとに 0.05 秒ずつずらして浮かび上がらせる */
+function RevealLines({ text }: { text: string }) {
+  return (
+    <div>
+      {text.split('\n').map((line, i) => (
+        <m.p
+          key={i}
+          style={{ ...BODY_STYLE, minHeight: line === '' ? '1.9em' : undefined }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springs.enter, delay: Math.min(i, 12) * 0.05 }}
+        >
+          {line}
+        </m.p>
+      ))}
+    </div>
+  );
+}
+
+// 切替方向 d(1/-1) に応じて、入る側・出る側を逆向きに動かす
+const SLIDE = {
+  enter: (d: number) => ({ x: d * 40, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (d: number) => ({ x: -d * 40, opacity: 0 }),
+};
+
+const CLOUD_OFFSETS = [-1, 1, 0];
+
+/** 生成中: 三つの雲が左右から中央に寄って重なる（reduced-motion では静止） */
+function SkyLoader({ label = 'お天気を分析中' }: { label?: string }) {
+  return (
+    <div role="status">
+      <div style={{ position: 'relative', height: 40, width: 96, margin: '0 auto 0.7rem' }}>
+        {CLOUD_OFFSETS.map((dir, i) => (
+          <m.span
+            key={i}
+            style={{
+              position: 'absolute', left: '50%', top: 4, marginLeft: -16,
+              display: 'inline-flex', color: 'var(--accent)',
+            }}
+            initial={{ x: dir * 30, opacity: 0.35 }}
+            animate={{ x: dir * 4, opacity: 1 }}
+            transition={{ duration: 1.5, ease: 'easeInOut', repeat: Infinity, repeatType: 'reverse', delay: i * 0.1 }}
+          >
+            <Cloud size={32} fill="var(--accent-soft)" strokeWidth={1.5} aria-hidden="true" />
+          </m.span>
+        ))}
+      </div>
+      <div style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--ink-2)' }}>
+        {label}<span className="dot-pulse">…</span>
+      </div>
+    </div>
+  );
+}
 
 export function AiCommentCard({
   comment,
@@ -53,7 +118,8 @@ export function AiCommentCard({
     visibleTabs[0]?.key ?? 'weatherOverview'
   );
 
-  const slideDirection = useRef<'left' | 'right' | null>(null);
+  // 1: 次のタブ（右へ進む）, -1: 前のタブ
+  const [direction, setDirection] = useState<1 | -1>(1);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
@@ -73,7 +139,7 @@ export function AiCommentCard({
   const handleTabSelect = (key: AiSection) => {
     const currentIdx = visibleTabs.findIndex(t => t.key === activeTab);
     const nextIdx    = visibleTabs.findIndex(t => t.key === key);
-    slideDirection.current = nextIdx > currentIdx ? 'right' : 'left';
+    setDirection(nextIdx > currentIdx ? 1 : -1);
     setActiveTab(key);
   };
 
@@ -89,18 +155,18 @@ export function AiCommentCard({
     if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
     const currentIdx = visibleTabs.findIndex(t => t.key === activeTab);
     if (dx < 0 && currentIdx < visibleTabs.length - 1) {
-      slideDirection.current = 'right';
+      setDirection(1);
       setActiveTab(visibleTabs[currentIdx + 1].key);
     } else if (dx > 0 && currentIdx > 0) {
-      slideDirection.current = 'left';
+      setDirection(-1);
       setActiveTab(visibleTabs[currentIdx - 1].key);
     }
   };
 
   if (isStandardLoading) {
     return (
-      <section className="glass-panel" style={{ padding: '1.2rem 1rem' }}>
-        <WeatherLoader />
+      <section className="glass-panel" style={{ padding: '1.4rem 1rem' }}>
+        <SkyLoader />
       </section>
     );
   }
@@ -113,7 +179,7 @@ export function AiCommentCard({
     if (isCustomActive) {
       if (!hasCustomPrompt) {
         return (
-          <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.8, color: 'var(--text-secondary)' }}>
+          <p style={{ ...BODY_STYLE, fontSize: '0.85rem', lineHeight: 1.8, color: 'var(--ink-2)' }}>
             設定 → 気象コメント → じぶん好みのプロンプトを入力・保存してください。
           </p>
         );
@@ -121,45 +187,43 @@ export function AiCommentCard({
       // loading 中 または fetch 未完了・失敗（text=null）は同じスケルトンを表示
       if (customLoading || customText === null) {
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {[90, 75, 80].map((w, i) => (
-              <div key={i} style={{ height: 12, borderRadius: 6, background: 'rgba(13,148,136,0.10)', width: `${w}%` }} />
+              <Skeleton key={i} height={12} radius="6px" width={`${w}%`} />
             ))}
-            <div style={{ fontSize: '0.72rem', color: '#b8c0cf', marginTop: '0.2rem' }}>分析中…</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--ink-3)', marginTop: '0.2rem' }}>分析中…</div>
           </div>
         );
       }
-      return (
-        <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.8, color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-          {customText}
-        </p>
-      );
+      return <RevealLines text={customText} />;
     }
 
-    return (
-      <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.8, color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-        {standardContent || '—'}
-      </p>
-    );
+    return <RevealLines text={standardContent || '—'} />;
   };
 
   const content = getContent();
 
-  const slideClass =
-    slideDirection.current === 'right' ? 'slide-in-right' :
-    slideDirection.current === 'left'  ? 'slide-in-left'  : '';
-
   return (
     <section className="glass-panel" style={{ padding: '0.75rem 1rem' }}>
-      <TabBar tabs={visibleTabs} activeTab={activeTab} onSelect={handleTabSelect} disabled={false} />
+      <TabBar tabs={visibleTabs} activeTab={activeTab} onSelect={handleTabSelect} />
       <div
-        style={{ minHeight: '4.5rem', overflow: 'hidden' }}
+        style={{ position: 'relative', minHeight: '4.5rem', overflow: 'hidden' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div key={activeTab} className={slideClass}>
-          {content}
-        </div>
+        <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+          <m.div
+            key={activeTab}
+            custom={direction}
+            variants={SLIDE}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={springs.move}
+          >
+            {content}
+          </m.div>
+        </AnimatePresence>
       </div>
       {FOOTNOTE}
     </section>
@@ -170,16 +234,15 @@ interface TabBarProps {
   tabs: TabDef[];
   activeTab: AiSection;
   onSelect: (key: AiSection) => void;
-  disabled: boolean;
 }
 
-function TabBar({ tabs, activeTab, onSelect, disabled }: TabBarProps) {
+function TabBar({ tabs, activeTab, onSelect }: TabBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
-    const activeBtn = container.querySelector('[data-active="true"]') as HTMLElement | null;
+    const activeBtn = container.querySelector('[aria-selected="true"]') as HTMLElement | null;
     if (!activeBtn) return;
     // scrollIntoView はページ縦スクロールを引き起こすため使わず、
     // タブバーコンテナの scrollLeft のみ操作する
@@ -195,44 +258,19 @@ function TabBar({ tabs, activeTab, onSelect, disabled }: TabBarProps) {
   }, [activeTab]);
 
   return (
-    <div
-      ref={scrollRef}
-      className="ai-tab-bar"
-      style={{ display: 'flex', gap: '0', marginBottom: '0.8rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}
-    >
-      {tabs.map(({ key, Icon, label }) => {
-        const isActive = activeTab === key;
-        return (
-          <button
-            key={key}
-            data-active={isActive}
-            onClick={() => !disabled && onSelect(key)}
-            style={{
-              width: '6rem',
-              flexShrink: 0,
-              background: 'none',
-              border: 'none',
-              borderBottom: isActive ? '2px solid var(--accent-color)' : '2px solid transparent',
-              padding: '0.25rem 0.75rem 0.5rem',
-              fontSize: '0.72rem',
-              fontWeight: isActive ? 700 : 500,
-              color: isActive ? 'var(--accent-color)' : 'var(--text-secondary)',
-              cursor: disabled ? 'default' : 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '0.2rem',
-              transition: 'color 0.15s',
-              whiteSpace: 'nowrap',
-              opacity: disabled && !isActive ? 0.5 : 1,
-            }}
-          >
-            <Icon size={15} />
-            {label}
-          </button>
-        );
-      })}
+    <div ref={scrollRef} className="ai-tab-bar" style={{ marginBottom: '0.8rem' }}>
+      <SegmentedControl
+        variant="underline"
+        className="ai-seg"
+        ariaLabel="AIコメントのセクション"
+        layoutId="ai-section"
+        options={tabs.map(({ key, Icon, label }) => ({
+          value: key,
+          label: <><Icon size={15} />{label}</>,
+        }))}
+        value={activeTab}
+        onChange={onSelect}
+      />
     </div>
   );
 }
