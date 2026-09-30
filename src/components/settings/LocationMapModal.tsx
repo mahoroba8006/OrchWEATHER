@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import { X, MapPin, Loader2 } from 'lucide-react';
 import { resolveJmaAreaCode, getAreaName } from '../../lib/jmaAreaResolver';
@@ -151,7 +152,8 @@ export function LocationMapModal({
     maxHeight: 'calc(100vh - 2rem)',
   };
 
-  return (
+  // 設定シート（transform を持つ）の内側に閉じ込められないよう、body 直下へ描画する
+  return createPortal(
     <div
       ref={overlayRef}
       style={overlayStyle}
@@ -160,7 +162,10 @@ export function LocationMapModal({
         if (e.target === e.currentTarget) onClose();
       }}
       onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose();
+        if (e.key === 'Escape') {
+          e.stopPropagation(); // 背後の設定シートまで閉じさせない
+          onClose();
+        }
       }}
     >
       <div style={panelStyle}>
@@ -256,6 +261,7 @@ export function LocationMapModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

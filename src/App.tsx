@@ -20,6 +20,7 @@ import { HelpPage } from './components/HelpPage';
 import { AppHeader } from './components/shell/AppHeader';
 import { BottomNav } from './components/shell/BottomNav';
 import { tabIndex, type MainTab } from './components/shell/tabs';
+import { Sheet } from './components/ui/Sheet';
 import { SkyBand } from './components/sky/SkyBand';
 import { springs } from './lib/motion';
 import { EnvironmentGuidance } from './components/EnvironmentGuidance';
@@ -162,10 +163,13 @@ type ChartGesture = {
 
 function AppContent() {
   const { locations, user, authLoading, setUser, setAuthLoading, loadLocations, loadUserSettings, userSettings, geoLocation, setGeoLocation, setGeoStatus, loadAiAllowed, resetUserData, guestMode, setGuestMode } = useAppStore();
-  const [topTab, setTopTab] = useState<'weather' | 'history' | 'analysis' | 'settings' | 'help'>('weather');
+  const [topTab, setTopTab] = useState<MainTab>('weather');
+  /** 設定・ヘルプのシート（タブとは独立して重ねて出す） */
+  const [sheet, setSheet] = useState<'settings' | 'help' | null>(null);
+  /** シートを開いた時点のスクロール位置。背景の沈み込みの基点にして、見ている位置がずれないようにする */
+  const [sinkOriginY, setSinkOriginY] = useState(0);
   /** タブ切替のスライド方向（-1: 左へ戻る / 0: 初回 / 1: 右へ進む） */
   const [slideDir, setSlideDir] = useState(0);
-  const prevTopTab = useRef<MainTab>('weather');
   const currentYear = new Date().getFullYear();
   const [selectedBaseTempIndex, setSelectedBaseTempIndex] = useState<0 | 1>(0);
   const [chartViewMode, setChartViewMode] = useState<'daily' | 'monthly'>('daily');
@@ -1619,12 +1623,15 @@ function AppContent() {
     );
   }
 
-  const navTab: MainTab = topTab === 'settings' || topTab === 'help' ? prevTopTab.current : topTab;
   const handleTabChange = (t: MainTab) => {
-    setSlideDir(Math.sign(tabIndex(t) - tabIndex(navTab)));
-    prevTopTab.current = t;
+    setSlideDir(Math.sign(tabIndex(t) - tabIndex(topTab)));
     setTopTab(t);
   };
+  const openSheet = (target: 'settings' | 'help') => {
+    setSinkOriginY(window.scrollY);
+    setSheet(target);
+  };
+  const sinking = sheet !== null && isMobile;
 
   if (!user && !guestMode) {
     return <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />;
@@ -1632,18 +1639,21 @@ function AppContent() {
 
   return (
     <>
-      {topTab === 'settings' && (
-        <div aria-hidden="true" style={{ position: 'fixed', inset: 0, background: 'var(--settings-bg-gradient)', zIndex: -1 }} />
-      )}
+      {/* シートを開くとモバイルでは背景が少し沈む。ボトムナビは fixed のため、この変形する枠の外に置く */}
+      <m.div
+        animate={{ scale: sinking ? 0.94 : 1, borderRadius: sinking ? 16 : 0 }}
+        style={{ transformOrigin: `50% ${sinkOriginY}px`, overflow: sinking ? 'clip' : 'visible' }}
+        transition={springs.move}
+      >
       <AppHeader
-        tab={navTab}
+        tab={topTab}
         onTabChange={handleTabChange}
         isMobile={isMobile}
         user={user}
-        onLogin={() => setGuestMode(false)}
+        onLogin={() => { setSheet(null); setGuestMode(false); }}
         onLogout={() => signOut(auth)}
-        onOpenHelp={() => { prevTopTab.current = navTab; setTopTab('help'); }}
-        onOpenSettings={() => { prevTopTab.current = navTab; setTopTab('settings'); }}
+        onOpenHelp={() => openSheet('help')}
+        onOpenSettings={() => openSheet('settings')}
       />
 
       <div style={isMobile ? { paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' } : undefined}>
@@ -2512,8 +2522,14 @@ function AppContent() {
       </m.div>
       )}
 
-      {topTab === 'settings' && (isGuest ? (
-        <div className="app-container settings-theme">
+      </div>
+      </m.div>
+
+      {/* ── モバイル ボトムナビゲーション（fixed のため変形する親の外に置く） ── */}
+      {isMobile && <BottomNav tab={topTab} onTabChange={handleTabChange} />}
+
+      <Sheet open={sheet === 'settings'} onClose={() => setSheet(null)} title="設定" placement={isMobile ? 'bottom' : 'side'}>
+        {isGuest ? (
           <div className="glass-panel" style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
             <p style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>ログインが必要です</p>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1.2rem' }}>
@@ -2521,21 +2537,19 @@ function AppContent() {
             </p>
             <button
               className="secondary"
-              onClick={() => setGuestMode(false)}
+              onClick={() => { setSheet(null); setGuestMode(false); }}
               style={{ padding: '0.5rem 1.2rem', borderRadius: 'var(--radius-md)' }}
             >
               ログインする
             </button>
           </div>
-        </div>
-      ) : (
-        <SettingsTab />
-      ))}
-      {topTab === 'help' && <HelpPage onBack={() => setTopTab(prevTopTab.current)} />}
-      </div>
-
-      {/* ── モバイル ボトムナビゲーション（fixed のため変形する親の外に置く） ── */}
-      {isMobile && <BottomNav tab={navTab} onTabChange={handleTabChange} />}
+        ) : (
+          <SettingsTab />
+        )}
+      </Sheet>
+      <Sheet open={sheet === 'help'} onClose={() => setSheet(null)} title="使い方" placement={isMobile ? 'bottom' : 'side'}>
+        <HelpPage />
+      </Sheet>
   </>
   );
 }

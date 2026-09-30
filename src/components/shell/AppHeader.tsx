@@ -30,7 +30,7 @@ export function AppHeader({
   return (
     <header className="shell-header" style={{ backgroundColor: top }}>
       <div className={`shell-header__inner${isMobile ? '' : ' shell-header__inner--wide'}`}>
-        <div className="shell-header__left">
+        <div className={`shell-header__left${showSummary ? ' shell-header__left--summary' : ''}`}>
           <img src="/icon.png" alt="" aria-hidden="true" className="shell-header__logo" />
           <AnimatePresence>
             {showSummary && summary && (

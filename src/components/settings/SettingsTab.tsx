@@ -25,7 +25,7 @@ export function SettingsTab() {
   const [isMobile] = useState(() => window.innerWidth < 768);
 
   return (
-    <div className="app-container settings-theme">
+    <div className="app-container">
       {/* アカウントエリア（Mobile のみ） */}
       {isMobile && user && (
         <div style={{

@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
 interface Props {
-  onBack: () => void;
+  /** 未指定なら戻るボタンを出さない（シート内表示） */
+  onBack?: () => void;
 }
 
 const BACK_BTN_STYLE: CSSProperties = {
@@ -109,12 +110,14 @@ const TOC_LABEL_STYLE: CSSProperties = {
 export function HelpPage({ onBack }: Props) {
   return (
     <div className="app-container" style={{ paddingTop: 0, paddingBottom: '2rem' }}>
-      <div style={BACK_HEADER_STYLE}>
-        <button style={BACK_BTN_STYLE} onClick={onBack}>
-          <ChevronLeft size={16} strokeWidth={2.5} />
-          戻る
-        </button>
-      </div>
+      {onBack && (
+        <div style={BACK_HEADER_STYLE}>
+          <button style={BACK_BTN_STYLE} onClick={onBack}>
+            <ChevronLeft size={16} strokeWidth={2.5} />
+            戻る
+          </button>
+        </div>
+      )}
 
       <div className="glass-panel" style={{ padding: '1.5rem' }}>
         <h1 style={H1_STYLE}>アプリの使い方</h1>

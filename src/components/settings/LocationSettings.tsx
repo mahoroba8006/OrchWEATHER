@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { CSSProperties } from 'react';
 import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
@@ -445,7 +446,7 @@ export function LocationSettings() {
       )}
 
       {/* 削除確認ダイアログ */}
-      {confirmDeleteId && (
+      {confirmDeleteId && createPortal(
         <div
           style={{
             position: 'fixed',
@@ -475,7 +476,8 @@ export function LocationSettings() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

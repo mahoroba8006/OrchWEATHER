@@ -58,16 +58,6 @@
   --shadow-lg: var(--shadow-raised);
   --grid-color: rgba(23, 25, 28, 0.06);
 
-  /* 設定画面の識別色（第2段階のシート化で撤去） */
-  --settings-bg-gradient: linear-gradient(135deg, #f7f8fc 0%, #eef2ff 100%);
-  --settings-accent: #4f46e5;
-  --settings-accent-hover: #4338ca;
-  --settings-accent-light: rgba(79, 70, 229, 0.10);
-  --settings-accent-text: #4338ca;
-  --settings-shadow-sm: 0 2px 8px rgba(67, 56, 202, 0.04);
-  --settings-shadow-md: 0 8px 24px rgba(67, 56, 202, 0.07), 0 4px 12px rgba(79, 70, 229, 0.04);
-  --settings-shadow-lg: 0 16px 40px rgba(67, 56, 202, 0.09), 0 8px 20px rgba(79, 70, 229, 0.06);
-
   /* チャート用（第4段階で意味色へ再設計） */
   --chart-temp: #f43f5e;
   --chart-precip: #0ea5e9;
@@ -119,21 +109,8 @@ body {
   box-shadow: var(--shadow-raised);
 }
 
-/* 設定画面: アクセント・枠線・影をティール系→インディゴ系に上書き
-   （配下のコンポーネントは var(--accent-color) 等の共通変数を参照しているため、
-   ここで束ねて上書きするだけで設定画面全体に伝播する） */
-.settings-theme {
-  --accent-color: var(--settings-accent);
-  --accent-hover: var(--settings-accent-hover);
-  --accent-rgb: 79, 70, 229;
-  --accent-light: var(--settings-accent-light);
-  --card-border: rgba(79, 70, 229, 0.22);
-  --card-border-hover: rgba(67, 56, 202, 0.40);
-  --grid-color: rgba(79, 70, 229, 0.12);
-  --shadow-sm: var(--settings-shadow-sm);
-  --shadow-md: var(--settings-shadow-md);
-  --shadow-lg: var(--settings-shadow-lg);
-}
+/* シート内では外側の余白を詰める */
+.ui-sheet__body .app-container { padding: 0; max-width: none; }
 
 /* Layout */
 .app-container {

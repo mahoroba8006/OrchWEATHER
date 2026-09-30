@@ -32,7 +32,10 @@
   min-width: 0;
   flex: 1;
 }
-.shell-header__logo { width: 24px; height: 24px; flex-shrink: 0; pointer-events: none; }
+.shell-header__logo { width: 24px; height: 24px; flex-shrink: 0; pointer-events: none; border-radius: 6px; }
+/* モバイルは気温要約を出す間ロゴを畳んで幅を確保する */
+.shell-header__left--summary .shell-header__logo { display: none; }
+@media (min-width: 768px) { .shell-header__left--summary .shell-header__logo { display: block; } }
 .shell-header__summary {
   min-width: 0;
   overflow: hidden;
