@@ -1,0 +1,152 @@
+/* ── アプリの骨格（src/components/shell/）── */
+
+/* ヘッダー: 単色の空。ぼかし・グラデーションは使わない */
+.shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 56px;
+  color: #fff;
+  transition: background-color 0.6s ease;
+}
+.shell-header__inner {
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* PC: 左・中央ナビ・右 の3カラム（ナビを画面中央に置く） */
+.shell-header__inner--wide {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  padding: 0 2rem;
+}
+.shell-header__left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+.shell-header__logo { width: 24px; height: 24px; flex-shrink: 0; pointer-events: none; }
+.shell-header__summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.shell-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+/* PCナビ */
+.shell-header__tabs { display: inline-flex; gap: 2px; }
+.shell-header .shell-header__tab {
+  position: relative;
+  min-height: 40px;
+  padding: 0 1rem;
+  background: transparent;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+.shell-header .shell-header__tab:hover { background: transparent; }
+.shell-header .shell-header__tab.is-selected { color: var(--ink-1); font-weight: 600; }
+.shell-header .shell-header__tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.shell-header__thumb {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  border-radius: var(--radius-pill);
+}
+.shell-header__tab-label { position: relative; display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* 右側ボタン: 白15%の円、hoverで25% */
+.shell-header .shell-header__icon-btn,
+.shell-header .shell-header__text-btn {
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-pill);
+  transition: background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.shell-header .shell-header__icon-btn { width: 40px; }
+.shell-header .shell-header__text-btn { padding: 0 0.9rem; font-size: 0.8rem; font-weight: 600; gap: 0.35rem; white-space: nowrap; }
+.shell-header .shell-header__icon-btn:hover,
+.shell-header .shell-header__text-btn:hover { background: rgba(255, 255, 255, 0.25); }
+.shell-header .shell-header__icon-btn:focus-visible,
+.shell-header .shell-header__text-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.shell-header__avatar {
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+/* ボトムナビ: 白い面に、選択中だけ薄いアクセントの丸が滑る（fixed なので変形する親の外に置く） */
+.shell-bottomnav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: calc(64px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+  background: var(--surface-card);
+  border-top: 1px solid var(--line);
+}
+.shell-bottomnav__list { height: 64px; display: flex; align-items: stretch; }
+.shell-bottomnav .shell-bottomnav__item {
+  position: relative;
+  flex: 1;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-3);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+.shell-bottomnav .shell-bottomnav__item:hover { background: transparent; }
+.shell-bottomnav .shell-bottomnav__item.is-selected { color: var(--accent); font-weight: 600; }
+.shell-bottomnav .shell-bottomnav__item:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: var(--radius-lg); }
+.shell-bottomnav__thumb {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  width: 72px;
+  margin-left: -36px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-pill);
+}
+.shell-bottomnav__content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.shell-bottomnav__label { font-size: 0.68rem; line-height: 1; }
