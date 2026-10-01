@@ -122,7 +122,7 @@ export function SkyHero({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <SekkiArt index={sekkiIndex} variant="backdrop" size={288} />
+              <SekkiArt index={sekkiIndex} variant="backdrop" size={200} />
             </m.div>
           </div>
         )}
@@ -152,20 +152,20 @@ export function SkyHero({
         </m.div>
 
         <m.div className="sky-hero__meta" {...enter(2)}>
-          <div>
-            <div className="sky-hero__label">{weatherCode === null ? ' ' : codeToLabel(weatherCode)}</div>
-            <div className="sky-hero__range">
-              <span>{`最高 ${round(tempMax)}°`}</span>
-              <span className="sky-hero__range-sep"> / </span>
-              <span className="sky-hero__range-min">{`最低 ${round(tempMin)}°`}</span>
-            </div>
+          <div className="sky-hero__label">{weatherCode === null ? ' ' : codeToLabel(weatherCode)}</div>
+          <div className="sky-hero__range">
+            <span>{`最高 ${round(tempMax)}°`}</span>
+            <span className="sky-hero__range-sep"> / </span>
+            <span className="sky-hero__range-min">{`最低 ${round(tempMin)}°`}</span>
           </div>
-          {lastUpdated && <span className="sky-hero__updated">{`最終更新 ${lastUpdated}`}</span>}
         </m.div>
 
         {children && <m.div className="sky-hero__extra" {...enter(3)}>{children}</m.div>}
 
-        <div className="sky-hero__sekki"><SekkiBadge /></div>
+        <div className="sky-hero__foot">
+          {lastUpdated && <span className="sky-hero__updated">{`最終更新 ${lastUpdated}`}</span>}
+          <div className="sky-hero__sekki"><SekkiBadge /></div>
+        </div>
       </div>
     </section>
   );
