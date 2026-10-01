@@ -62,6 +62,8 @@ export function LocationSettings() {
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [showMapModal, setShowMapModal] = useState(false);
   const [showHeaderMapModal, setShowHeaderMapModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -183,12 +185,26 @@ export function LocationSettings() {
     setConfirmDeleteId(id);
   };
 
-  const handleConfirmDelete = () => {
-    if (confirmDeleteId) {
-      deleteLocation(confirmDeleteId);
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId || deleting) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteLocation(confirmDeleteId);
       if (editingId === confirmDeleteId) setEditingId(null);
       setConfirmDeleteId(null);
+    } catch (err: unknown) {
+      console.error('[LocationSettings] delete failed', err);
+      setDeleteError(err instanceof Error ? err.message : '削除に失敗しました');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const closeDeleteDialog = () => {
+    if (deleting) return;
+    setConfirmDeleteId(null);
+    setDeleteError('');
   };
 
   // 編集フォームの中身（既存地点の編集・新規追加で共用）
@@ -433,7 +449,7 @@ export function LocationSettings() {
 
       {/* 削除確認ダイアログ */}
       {confirmDeleteId && createPortal(
-        <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
+        <div className="modal-overlay" onClick={closeDeleteDialog}>
           <div
             className="modal-content set-confirm"
             role="dialog"
@@ -442,10 +458,11 @@ export function LocationSettings() {
           >
             <p className="set-confirm__title">登録地点の削除</p>
             <p className="set-confirm__text">本当に削除しますか？</p>
+            {deleteError && <p className="set-error" role="alert">⚠ 削除失敗: {deleteError}</p>}
             <div className="set-actions">
-              <Button variant="secondary" className="set-btn-sm" onClick={() => setConfirmDeleteId(null)}>キャンセル</Button>
-              <Button variant="primary" className="set-btn-sm set-btn-danger-solid" onClick={handleConfirmDelete}>
-                削除
+              <Button variant="secondary" className="set-btn-sm" onClick={closeDeleteDialog} disabled={deleting}>キャンセル</Button>
+              <Button variant="primary" className="set-btn-sm set-btn-danger-solid" onClick={handleConfirmDelete} disabled={deleting}>
+                {deleting ? '削除中…' : '削除'}
               </Button>
             </div>
           </div>
