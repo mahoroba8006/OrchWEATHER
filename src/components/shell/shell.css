@@ -133,7 +133,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .shell-bottomnav .shell-bottomnav__item:hover { background: transparent; }
-.shell-bottomnav .shell-bottomnav__item.is-selected { color: var(--accent); font-weight: 600; }
+.shell-bottomnav .shell-bottomnav__item.is-selected { color: var(--nav-sky-text, var(--accent)); font-weight: 600; transition: color 0.6s ease; }
 .shell-bottomnav .shell-bottomnav__item:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; border-radius: var(--radius-lg); }
 .shell-bottomnav__thumb {
   position: absolute;
@@ -142,7 +142,8 @@
   left: 50%;
   width: 72px;
   margin-left: -36px;
-  background: var(--accent-soft);
+  background: var(--nav-sky-soft, var(--accent-soft));
+  transition: background-color 0.6s ease;
   border-radius: var(--radius-pill);
 }
 .shell-bottomnav__content {
