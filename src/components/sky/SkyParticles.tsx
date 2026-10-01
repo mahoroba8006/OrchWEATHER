@@ -1,6 +1,6 @@
 // 天気別の粒子演出。描画は CSS アニメーション（transform / opacity のみ）で、JS は毎フレーム動かない。
 // 位置・遅延・周期はすべて添字から決まる値なので、再描画しても動かない。
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { SkyWeather } from '../../lib/sky';
 import './sky.css';
 
@@ -87,15 +87,18 @@ interface SkyParticlesProps {
   weather: SkyWeather;
   isNight: boolean;
   paused: boolean;
+  /** 呼吸の光の上・粒子の下に敷く背景（節気の絵など） */
+  backdrop?: ReactNode;
 }
 
-export function SkyParticles({ weather, isNight, paused }: SkyParticlesProps) {
+export function SkyParticles({ weather, isNight, paused, backdrop }: SkyParticlesProps) {
   const kind = kindOf(weather);
   const count = particleCount(weather, isNight);
   return (
     <div className={`sky-particles${paused ? ' sky-particles--paused' : ''}`} aria-hidden="true">
       <div className="sky-breath" />
       {weather === 'clear' && !isNight && <div className="sky-sun" />}
+      {backdrop}
       {Array.from({ length: count }, (_, i) => (
         <span key={i} className={`sky-particle sky-particle--${kind}`} style={particleStyle(kind, i)} />
       ))}

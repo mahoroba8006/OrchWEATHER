@@ -1,5 +1,5 @@
 // 空もようのヒーロー。「今の空」を背景に、地点・気温・天気・操作ボタンを白文字で載せる。
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { animate, m, useReducedMotion } from 'motion/react';
 import { Loader2, MapPin, RefreshCw } from 'lucide-react';
 import { springs } from '../../lib/motion';
@@ -8,6 +8,9 @@ import { useSkyStore, type SkyState } from '../../skyStore';
 import { WeatherIcon, codeToLabel } from '../weather/WeatherIcon';
 import { SkyParticles } from './SkyParticles';
 import { SekkiBadge } from './SekkiBadge';
+import { SekkiArt } from './sekkiArt';
+import { sekkiForDate } from '../../lib/sekki';
+import { jstDateString } from '../../lib/sky';
 import './sky.css';
 
 export interface SkyHeroProps {
@@ -40,6 +43,10 @@ export function SkyHero({
   const [offscreen, setOffscreen] = useState(false);
   const [tabHidden, setTabHidden] = useState(() => document.visibilityState === 'hidden');
   const [playIntro] = useState(() => !hasIntroPlayed());
+  const day = jstDateString(new Date());
+  // 日付が変わった次の再描画で更新される
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sekkiIndex = useMemo(() => sekkiForDate(new Date()).index, [day]);
   /** カウントアップ中の表示値。null のときは temperature をそのまま出す */
   const [counting, setCounting] = useState<number | null>(null);
 
@@ -103,7 +110,23 @@ export function SkyHero({
       className="sky-hero"
       style={{ background: `linear-gradient(180deg, ${sky.top} 0%, ${sky.bottom} 100%)` }}
     >
-      <SkyParticles weather={sky.weather} isNight={sky.isNight} paused={offscreen || tabHidden} />
+      <SkyParticles
+        weather={sky.weather}
+        isNight={sky.isNight}
+        paused={offscreen || tabHidden}
+        backdrop={(
+          <div className="sky-hero__art-frame" aria-hidden="true">
+            <m.div
+              className={`sky-hero__art${sky.isNight ? ' sky-hero__art--night' : ''}`}
+              initial={playIntro && !reduced ? { opacity: 0, scale: 1.02 } : false}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <SekkiArt index={sekkiIndex} variant="backdrop" size={288} />
+            </m.div>
+          </div>
+        )}
+      />
       <div className="sky-hero__inner">
         <m.div className="sky-hero__row" {...enter(0)}>
           <div className="sky-hero__loc">{locationSlot}</div>

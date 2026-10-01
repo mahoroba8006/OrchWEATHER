@@ -291,22 +291,27 @@ function expand(a: Art) {
   return { p, k, b };
 }
 
-export function SekkiArt({ index, size = 56, className }: { index: number; size?: number; className?: string }) {
+/** icon: 小さく見せる既定の描き方 / backdrop: 大きく淡く背景に敷く（揺らぎ弱め・にじみ強め） */
+export type SekkiArtVariant = 'icon' | 'backdrop';
+
+export function SekkiArt({ index, size = 56, className, variant = 'icon' }: { index: number; size?: number; className?: string; variant?: SekkiArtVariant }) {
   const uid = useId().replace(/[^\w-]/g, '');
   const a = ART[((index % 24) + 24) % 24];
   const { p, k, b } = useMemo(() => expand(a), [a]);
   const fb = `sk${uid}b`;
   const fw = `sk${uid}w`;
+  const soft = variant === 'backdrop';
   const ell = (e: N, i: number) => <ellipse key={i} cx={e[0]} cy={e[1]} rx={e[2]} ry={e[3]} opacity={e[4]} />;
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true" className={className}>
       <defs>
         <filter id={fb} filterUnits="userSpaceOnUse" x="-2" y="-2" width="68" height="68">
           <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n" />
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="1.2" xChannelSelector="R" yChannelSelector="G" />
+          <feDisplacementMap in="SourceGraphic" in2="n" scale={soft ? 0.5 : 1.2} xChannelSelector="R" yChannelSelector="G" result="d" />
+          {soft && <feGaussianBlur in="d" stdDeviation="0.6" />}
         </filter>
         <filter id={fw} filterUnits="userSpaceOnUse" x="-4" y="-4" width="72" height="72">
-          <feGaussianBlur stdDeviation="1.8" />
+          <feGaussianBlur stdDeviation={soft ? 2.8 : 1.8} />
         </filter>
       </defs>
       <g filter={`url(#${fw})`} fill={K}>
