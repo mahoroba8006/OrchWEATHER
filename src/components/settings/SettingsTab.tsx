@@ -7,6 +7,9 @@ import { LocationSettings } from './LocationSettings';
 import { JmaWarningSettings } from './JmaWarningSettings';
 import { AnalysisSettings } from './AnalysisSettings';
 import { AiCommentSettings } from './AiCommentSettings';
+import { Button } from '../ui/Button';
+import { SegmentedControl } from '../ui/SegmentedControl';
+import './settings.css';
 
 type SettingsSubTab = 'location' | 'weather' | 'ai' | 'analysis';
 
@@ -28,73 +31,37 @@ export function SettingsTab() {
     <div className="app-container">
       {/* アカウントエリア（Mobile のみ） */}
       {isMobile && user && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.9rem 1rem',
-          borderBottom: '1px solid var(--line)',
-          marginBottom: '0.5rem',
-        }}>
+        <div className="settings-account">
           {user.photoURL && (
             <img
               src={user.photoURL}
               alt={user.displayName ?? ''}
               width={36}
               height={36}
-              style={{ borderRadius: '50%', border: '1.5px solid var(--accent)', flexShrink: 0 }}
+              className="settings-account__avatar"
             />
           )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.displayName}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.email}
-            </div>
+          <div className="settings-account__text">
+            <div className="settings-account__name">{user.displayName}</div>
+            <div className="settings-account__email">{user.email}</div>
           </div>
-          <button
-            className="secondary"
-            onClick={() => signOut(auth)}
-            style={{ padding: '0.4rem 0.7rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}
-          >
-            <LogOut size={13} /> ログアウト
-          </button>
+          <Button variant="ghost" className="settings-account__logout" onClick={() => signOut(auth)}>
+            <LogOut size={14} /> ログアウト
+          </Button>
         </div>
       )}
 
       {/* サブタブナビゲーション（下線型） */}
-      <div style={{
-        display: 'flex',
-        borderBottom: '1px solid var(--line)',
-        marginBottom: '1.25rem',
-      }}>
-        {SUB_TABS.map((tab) => (
-          <button
-            key={tab}
-            className="settings-subtab-btn"
-            onClick={() => setSubTab(tab)}
-            style={{
-              // モバイルは等幅で画面幅に4タブを収め、折り返しを防ぐ
-              flex: isMobile ? 1 : undefined,
-              whiteSpace: 'nowrap',
-              textAlign: 'center',
-              padding: isMobile ? '0.6rem 0.1rem' : '0.65rem 1.2rem',
-              fontSize: isMobile ? '0.76rem' : '0.88rem',
-              fontWeight: subTab === tab ? 700 : 500,
-              color: subTab === tab ? 'var(--accent)' : 'var(--ink-2)',
-              background: 'transparent',
-              border: 'none',
-              borderBottom: subTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-              marginBottom: '-1px',
-              cursor: 'pointer',
-              boxShadow: 'none',
-              transition: 'color 0.2s, border-color 0.2s',
-            }}
-          >
-            {SUB_TAB_LABELS[tab]}
-          </button>
-        ))}
+      <div className="ai-tab-bar settings-subtabs">
+        <SegmentedControl
+          variant="underline"
+          layoutId="settings-subtab"
+          ariaLabel="設定の項目"
+          className="ai-seg"
+          options={SUB_TABS.map(tab => ({ value: tab, label: SUB_TAB_LABELS[tab] }))}
+          value={subTab}
+          onChange={setSubTab}
+        />
       </div>
 
       {/* サブタブコンテンツ */}

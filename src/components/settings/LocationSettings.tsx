@@ -1,11 +1,15 @@
 import { useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import type { CSSProperties } from 'react';
-import { MapPin, Plus, Save, Trash2, Loader2 } from 'lucide-react';
+import { AnimatePresence, m } from 'motion/react';
+import { MapPin, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useAppStore, type LocationInfo } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage, GEO_SUPPORTED } from '../../lib/geo';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { Skeleton } from '../ui/Skeleton';
+import { Button } from '../ui/Button';
+import { SaveButton } from '../ui/SaveButton';
+import { springs } from '../../lib/motion';
+import './settings.css';
 import { resolveJmaAreaCode, getAreaName } from '../../lib/jmaAreaResolver';
 
 // 地図（Leaflet 約40KB gzip）は地図を開いた時だけ読み込む
@@ -16,32 +20,6 @@ const makeLazyMapModal = () => lazy(() =>
 let LocationMapModal = makeLazyMapModal();
 
 type GeoStatus = 'idle' | 'loading' | 'error';
-
-const greenButtonStyle: CSSProperties = {
-  padding: '0.4rem 0.8rem',
-  fontSize: '0.8rem',
-  background: 'rgba(244,167,185,0.35)',
-  color: '#7a2840',
-  border: '1px solid rgba(244,167,185,0.6)',
-  borderRadius: 'var(--radius-md, 6px)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.3rem',
-};
-
-const pinkButtonStyle: CSSProperties = {
-  padding: '0.4rem 0.8rem',
-  fontSize: '0.8rem',
-  background: 'rgba(244,167,185,0.35)',
-  color: '#7a2840',
-  border: '1px solid rgba(244,167,185,0.6)',
-  borderRadius: 'var(--radius-md, 6px)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.3rem',
-};
 
 const MAP_LOAD_ERROR = '地図を読み込めませんでした。通信状況を確認して、もう一度お試しください。';
 
@@ -246,56 +224,29 @@ export function LocationSettings() {
           />
         </div>
       </div>
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        className="set-btn-xs"
+        style={{ alignSelf: 'flex-start' }}
         onClick={() => { setMapLoadError(false); setShowMapModal(true); }}
-        style={{
-          alignSelf: 'flex-start',
-          padding: '0.25rem 0.6rem',
-          fontSize: '0.75rem',
-          background: 'none',
-          color: 'var(--accent)',
-          border: '1px solid rgba(217,119,6,0.3)',
-          borderRadius: 'var(--radius-md, 6px)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.3rem',
-          opacity: 0.85,
-        }}
       >
         <MapPin size={13} />
         地図で修正
-      </button>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-        {saveStatus === 'saving' && (
-          <span style={{ fontSize: '0.78rem', color: 'var(--ink-2)', alignSelf: 'center' }}>保存中…</span>
-        )}
+      </Button>
+      <div className="set-actions">
         {saveStatus === 'error' && (
-          <span style={{ fontSize: '0.78rem', color: '#c62828', alignSelf: 'center' }}>⚠ {saveError}</span>
+          <span className="set-error">⚠ {saveError}</span>
         )}
-        <button className="secondary" onClick={() => setEditingId(null)}>
+        <Button variant="secondary" className="set-btn-sm" onClick={() => setEditingId(null)}>
           キャンセル
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saveStatus === 'saving'}
-          style={{
-            ...pinkButtonStyle,
-            padding: '0.5rem 1rem',
-            opacity: saveStatus === 'saving' ? 0.6 : 1,
-            cursor: saveStatus === 'saving' ? 'not-allowed' : 'pointer',
-          }}
-        >
-          <Save size={16} />
-          {saveStatus === 'saving' ? '保存中…' : '保存'}
-        </button>
+        </Button>
+        <SaveButton onClick={handleSave} saving={saveStatus === 'saving'} saved={false} />
       </div>
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="set-stack">
       {/* ヘッダー */}
       <div
         style={{
@@ -306,17 +257,14 @@ export function LocationSettings() {
           gap: '0.5rem',
         }}
       >
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>登録地点</h3>
+        <h3 className="set-title">登録地点</h3>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {/* 現在地で登録 */}
-          <button
+          <Button
+            variant="secondary"
+            className="set-btn-sm"
             onClick={handleGetCurrentLocation}
             disabled={!GEO_SUPPORTED || geoStatus === 'loading'}
-            style={{
-              ...greenButtonStyle,
-              opacity: !GEO_SUPPORTED ? 0.5 : 1,
-              cursor: !GEO_SUPPORTED || geoStatus === 'loading' ? 'not-allowed' : 'pointer',
-            }}
           >
             {geoStatus === 'loading' ? (
               <>
@@ -329,22 +277,23 @@ export function LocationSettings() {
                 現在地で登録
               </>
             )}
-          </button>
+          </Button>
 
           {/* マップから選ぶ */}
-          <button
+          <Button
+            variant="secondary"
+            className="set-btn-sm"
             onClick={() => { setEditingId(null); setMapLoadError(false); setShowHeaderMapModal(true); }}
-            style={greenButtonStyle}
           >
             <MapPin size={16} />
             マップから選ぶ
-          </button>
+          </Button>
 
           {/* 手動で追加 */}
-          <button onClick={handleAddNew} style={pinkButtonStyle}>
+          <Button variant="primary" className="set-btn-sm" onClick={handleAddNew}>
             <Plus size={16} />
             手動で追加
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -364,100 +313,87 @@ export function LocationSettings() {
         </div>
       )}
 
-      {/* 地点リスト */}
-      {locations.map((loc) => {
-        const isEditing = editingId === loc.id;
-
-        if (isEditing) {
-          // 編集モード：カード自体が編集フォームに変化
-          return (
-            <div
-              key={loc.id}
-              className="glass-panel"
-              style={{ padding: '1.5rem', border: '1px solid var(--accent-soft)' }}
-            >
-              <p style={{ margin: '0 0 1rem 0', fontSize: '0.82rem', color: 'var(--ink-2)' }}>
-                📍 {loc.name} を編集中
-              </p>
-              {renderEditForm()}
-            </div>
-          );
-        }
-
-        // 通常表示
-        return (
-          <div
-            key={loc.id}
-            className="glass-card"
-            style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{loc.name}</div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)', marginTop: '0.3rem' }}>
-                緯度: {loc.lat} / 経度: {loc.lon}
-              </div>
-              <div style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: loc.jmaAreaCode ? '#7cb8a8' : '#b8c0cf' }}>
-                {loc.jmaAreaCode
-                  ? `🏛 気象庁エリア: ${getAreaName(loc.jmaAreaCode) ?? loc.jmaAreaCode}`
-                  : '🏛 気象庁エリア: 未連携（地点を再保存してください）'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {defaultLocationId === loc.id ? (
-                <>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: 'var(--accent)',
-                    background: 'rgba(217,119,6,0.12)',
-                    border: '1px solid rgba(217,119,6,0.3)',
-                    borderRadius: '999px',
-                    padding: '0.2rem 0.6rem',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    ★ デフォルト
-                  </span>
-                  <button
-                    className="secondary"
-                    onClick={() => updateDefaultLocationId(null)}
-                    style={{ fontSize: '0.75rem' }}
-                  >
-                    解除
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="secondary"
-                  onClick={() => updateDefaultLocationId(loc.id)}
-                  style={{ fontSize: '0.75rem' }}
-                >
-                  デフォルトに設定
-                </button>
-              )}
-              <button className="secondary" onClick={() => handleEdit(loc)}>
-                編集
-              </button>
-              <button
-                className="secondary"
-                onClick={() => handleDelete(loc.id)}
-                style={{ color: 'var(--chart-temp)' }}
+      {/* 地点リスト（追加・削除・並び替えで行が滑らかに動く） */}
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <AnimatePresence initial={false}>
+          {locations.map((loc) => {
+            const isEditing = editingId === loc.id;
+            return (
+              <m.li
+                key={loc.id}
+                layout="position"
+                transition={springs.move}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                style={{ paddingBottom: '1rem' }}
               >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        );
-      })}
+                {isEditing ? (
+                  // 編集モード：カード自体が編集フォームに変化
+                  <div className="set-card set-card--editing">
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--ink-2)' }}>
+                      📍 {loc.name} を編集中
+                    </p>
+                    {renderEditForm()}
+                  </div>
+                ) : (
+                  // 通常表示
+                  <div className="loc-row">
+                    <div className="loc-row__main">
+                      <div className="loc-row__name">{loc.name}</div>
+                      <div className="loc-row__meta">
+                        緯度: {loc.lat} / 経度: {loc.lon}
+                      </div>
+                      <div className={loc.jmaAreaCode ? 'loc-row__area' : 'loc-row__area loc-row__area--none'}>
+                        {loc.jmaAreaCode
+                          ? `🏛 気象庁エリア: ${getAreaName(loc.jmaAreaCode) ?? loc.jmaAreaCode}`
+                          : '🏛 気象庁エリア: 未連携（地点を再保存してください）'}
+                      </div>
+                    </div>
+                    <div className="loc-row__actions">
+                      {defaultLocationId === loc.id ? (
+                        <>
+                          <span className="loc-default-badge">★ デフォルト</span>
+                          <Button variant="secondary" className="set-btn-xs" onClick={() => updateDefaultLocationId(null)}>
+                            解除
+                          </Button>
+                        </>
+                      ) : (
+                        <Button variant="secondary" className="set-btn-xs" onClick={() => updateDefaultLocationId(loc.id)}>
+                          デフォルトに設定
+                        </Button>
+                      )}
+                      <Button variant="secondary" className="set-btn-xs" onClick={() => handleEdit(loc)}>
+                        編集
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="set-btn-xs set-btn-danger"
+                        aria-label="削除"
+                        onClick={() => handleDelete(loc.id)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </m.li>
+            );
+          })}
+        </AnimatePresence>
+      </ul>
 
       {/* 新規追加フォーム（editingId === 'new' のときのみ・既存カードとは無関係） */}
       {editingId === 'new' && (
-        <div
-          className="glass-panel"
-          style={{ padding: '1.5rem', border: '1px solid var(--accent-soft)' }}
+        <m.div
+          className="set-card set-card--editing"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={springs.enter}
         >
-          <h3 style={{ margin: '0 0 1rem 0' }}>新規地点の追加</h3>
+          <h3 className="set-title">新規地点の追加</h3>
           {renderEditForm()}
-        </div>
+        </m.div>
       )}
 
       {showMapModal && editingId && (
@@ -497,33 +433,20 @@ export function LocationSettings() {
 
       {/* 削除確認ダイアログ */}
       {confirmDeleteId && createPortal(
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setConfirmDeleteId(null)}
-        >
+        <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
           <div
-            className="glass-card"
-            style={{ padding: '1.5rem', minWidth: '260px', maxWidth: '340px' }}
+            className="modal-content set-confirm"
+            role="dialog"
+            aria-modal="true"
             onClick={(e) => e.stopPropagation()}
           >
-            <p style={{ margin: '0 0 0.4rem 0', fontWeight: 700, fontSize: '1rem' }}>登録地点の削除</p>
-            <p style={{ margin: '0 0 1.2rem 0', fontSize: '0.9rem', color: 'var(--ink-2)' }}>本当に削除しますか？</p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="secondary" onClick={() => setConfirmDeleteId(null)}>キャンセル</button>
-              <button
-                onClick={handleConfirmDelete}
-                style={{ ...pinkButtonStyle, padding: '0.4rem 1rem' }}
-              >
+            <p className="set-confirm__title">登録地点の削除</p>
+            <p className="set-confirm__text">本当に削除しますか？</p>
+            <div className="set-actions">
+              <Button variant="secondary" className="set-btn-sm" onClick={() => setConfirmDeleteId(null)}>キャンセル</Button>
+              <Button variant="primary" className="set-btn-sm set-btn-danger-solid" onClick={handleConfirmDelete}>
                 削除
-              </button>
+              </Button>
             </div>
           </div>
         </div>,

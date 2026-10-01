@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import type { CSSProperties } from 'react';
-import { Save } from 'lucide-react';
 import {
   useAppStore,
   DEFAULT_ACCUM_START_DATES,
@@ -8,6 +6,9 @@ import {
   type AccumStartDates,
   type AccumDeltaThresholds,
 } from '../../store';
+import { Button } from '../ui/Button';
+import { SaveButton } from '../ui/SaveButton';
+import './settings.css';
 
 // 累積開始日のプリセット（萌芽期/田植え/定植期など実運用日付）
 const START_DATE_PRESETS: Array<{ label: string; mmdd: string }> = [
@@ -42,19 +43,6 @@ const lastDayOf = (mm: number): number => {
 };
 
 type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
-
-const SAVE_BTN: CSSProperties = {
-  background: 'rgba(244,167,185,0.35)',
-  color: '#7a2840',
-  border: '1px solid rgba(244,167,185,0.6)',
-  borderRadius: 'var(--radius-md, 6px)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.3rem',
-  padding: '0.4rem 0.9rem',
-  fontSize: '0.85rem',
-};
 
 export function AnalysisSettings() {
   const {
@@ -128,24 +116,15 @@ export function AnalysisSettings() {
   };
 
   const renderStatus = (status: SaveStatus) => {
-    if (status.kind === 'idle') return null;
-    const color =
-      status.kind === 'error' ? '#c62828'
-      : status.kind === 'saved' ? '#2e7d32'
-      : 'var(--ink-2)';
-    const text = status.kind === 'saving' ? '保存中…' : status.msg ?? '';
-    return (
-      <span style={{ marginRight: '0.6rem', fontSize: '0.78rem', color, alignSelf: 'center' }}>
-        {text}
-      </span>
-    );
+    if (status.kind !== 'error') return null;
+    return <span className="set-error">{status.msg}</span>;
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="set-stack">
       {/* 有効積算温度の設定 */}
-      <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>有効積算温度の設定</h3>
+      <div className="set-card">
+        <h3 className="set-title">有効積算温度の設定</h3>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           {([0, 1] as const).map((i) => (
             <div className="form-group" key={i} style={{ flex: 1, minWidth: '120px' }}>
@@ -163,25 +142,20 @@ export function AnalysisSettings() {
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <div className="set-actions">
           {renderStatus(baseTempStatus)}
-          <button
+          <SaveButton
             onClick={handleSaveBaseTempSettings}
-            disabled={baseTempStatus.kind === 'saving'}
-            style={{
-              ...SAVE_BTN,
-              cursor: baseTempStatus.kind === 'saving' ? 'not-allowed' : 'pointer',
-              opacity: baseTempStatus.kind === 'saving' ? 0.6 : 1,
-            }}
-          >
-            <Save size={14} /> 保存
-          </button>
+            saving={baseTempStatus.kind === 'saving'}
+            saved={baseTempStatus.kind === 'saved'}
+            savedLabel={baseTempStatus.msg}
+          />
         </div>
       </div>
 
       {/* 累積開始日・日数差ガード閾値の設定 */}
-      <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>累積の開始日・日数差 表示設定</h3>
+      <div className="set-card">
+        <h3 className="set-title">累積の開始日・日数差 表示設定</h3>
 
         {/* チャート毎の開始日 */}
         {ACCUM_CHART_ORDER.map((chart) => {
@@ -190,8 +164,8 @@ export function AnalysisSettings() {
           const safeDay = Math.min(dd, maxDay);
           return (
             <div key={chart} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>{ACCUM_CHART_LABELS[chart]} 累積開始日</label>
-              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label className="set-field-label">{ACCUM_CHART_LABELS[chart]} 累積開始日</label>
+              <div className="set-quick">
                 <select
                   value={mm}
                   onChange={(e) => {
@@ -199,7 +173,6 @@ export function AnalysisSettings() {
                     const newDd = Math.min(safeDay, lastDayOf(newMm));
                     updateAccumStart(chart, formatMMDD(newMm, newDd));
                   }}
-                  style={{ padding: '0.3rem 0.5rem' }}
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                     <option key={m} value={m}>{m}月</option>
@@ -208,37 +181,33 @@ export function AnalysisSettings() {
                 <select
                   value={safeDay}
                   onChange={(e) => updateAccumStart(chart, formatMMDD(mm, parseInt(e.target.value, 10)))}
-                  style={{ padding: '0.3rem 0.5rem' }}
                 >
                   {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
                     <option key={d} value={d}>{d}日</option>
                   ))}
                 </select>
-                <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--ink-2)' }}>クイック:</span>
-                {START_DATE_PRESETS.map((p) => (
-                  <button
-                    key={p.mmdd}
-                    onClick={() => updateAccumStart(chart, p.mmdd)}
-                    className="secondary"
-                    style={{
-                      padding: '0.2rem 0.5rem',
-                      fontSize: '0.75rem',
-                      background: accumStartForm[chart] === p.mmdd ? 'rgba(244,167,185,0.45)' : undefined,
-                      color: accumStartForm[chart] === p.mmdd ? '#7a2840' : undefined,
-                    }}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+                <div className="set-quick__group">
+                  <span className="set-quick__label">クイック:</span>
+                  {START_DATE_PRESETS.map((p) => (
+                    <Button
+                      key={p.mmdd}
+                      variant={accumStartForm[chart] === p.mmdd ? 'primary' : 'secondary'}
+                      className="set-btn-xs"
+                      onClick={() => updateAccumStart(chart, p.mmdd)}
+                    >
+                      {p.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           );
         })}
 
         {/* 日数差 ガード閾値 */}
-        <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>日数差 表示開始閾値</div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--ink-2)', lineHeight: 1.4 }}>
+        <div className="set-sep">
+          <div className="set-field-label">日数差 表示開始閾値</div>
+          <div className="set-hint">
             累積値がこの値未満の期間は日数差を非表示にします（序盤の不安定な状況における表示を抑制）。
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -252,7 +221,7 @@ export function AnalysisSettings() {
                 value={accumThresholdForm.gdd}
                 onChange={(e) => setAccumThresholdForm({ ...accumThresholdForm, gdd: parseInt(e.target.value, 10) || 1 })}
               />
-              <div style={{ fontSize: '0.7rem', color: 'var(--ink-2)', marginTop: '0.25rem' }}>範囲: 1〜500</div>
+              <div className="set-hint">範囲: 1〜500</div>
             </div>
             <div className="form-group" style={{ flex: 1, minWidth: '140px' }}>
               <label>累積日射量 (MJ/m²)</label>
@@ -264,24 +233,19 @@ export function AnalysisSettings() {
                 value={accumThresholdForm.radiation}
                 onChange={(e) => setAccumThresholdForm({ ...accumThresholdForm, radiation: parseInt(e.target.value, 10) || 1 })}
               />
-              <div style={{ fontSize: '0.7rem', color: 'var(--ink-2)', marginTop: '0.25rem' }}>範囲: 1〜2000</div>
+              <div className="set-hint">範囲: 1〜2000</div>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <div className="set-actions">
           {renderStatus(accumStatus)}
-          <button
+          <SaveButton
             onClick={handleSaveAccumSettings}
-            disabled={accumStatus.kind === 'saving'}
-            style={{
-              ...SAVE_BTN,
-              cursor: accumStatus.kind === 'saving' ? 'not-allowed' : 'pointer',
-              opacity: accumStatus.kind === 'saving' ? 0.6 : 1,
-            }}
-          >
-            <Save size={14} /> 保存
-          </button>
+            saving={accumStatus.kind === 'saving'}
+            saved={accumStatus.kind === 'saved'}
+            savedLabel={accumStatus.msg}
+          />
         </div>
       </div>
     </div>

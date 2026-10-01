@@ -438,13 +438,6 @@ button.secondary:hover {
   border-radius: var(--radius-pill) !important;
 }
 
-/* 設定画面のサブタブ（下線型）: デフォルトの button box-shadow/hover演出を打ち消す */
-.settings-subtab-btn,
-.settings-subtab-btn:hover {
-  box-shadow: none !important;
-  transform: none !important;
-}
-
 .premium-pill {
   flex-shrink: 0;
   padding: 0.4rem 1.1rem;

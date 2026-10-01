@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import type { CSSProperties } from 'react';
-import { Save } from 'lucide-react';
 import { useAppStore, DEFAULT_AI_SECTIONS, type AiSection } from '../../store';
 import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
+import { SaveButton } from '../ui/SaveButton';
+import { Toggle } from '../ui/Toggle';
+import './settings.css';
 
 type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
 
@@ -21,19 +22,6 @@ const SECTION_INFO: Record<AiSection, SectionMeta> = {
 const SECTION_ORDER: AiSection[] = [
   'weatherOverview', 'generalWorkAdvice', 'sprayingAdvice', 'fertilizingAdvice', 'custom',
 ];
-
-const SAVE_BTN: CSSProperties = {
-  background: 'rgba(244,167,185,0.35)',
-  color: '#7a2840',
-  border: '1px solid rgba(244,167,185,0.6)',
-  borderRadius: 'var(--radius-md, 6px)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.3rem',
-  padding: '0.4rem 0.9rem',
-  fontSize: '0.85rem',
-};
 
 export function AiCommentSettings() {
   const { userSettings, updateEnabledAiSections, updateAiCustomPrompt, aiAllowed } = useAppStore();
@@ -80,192 +68,94 @@ export function AiCommentSettings() {
   };
 
   const renderStatus = (status: SaveStatus) => {
-    if (status.kind === 'idle') return null;
-    const color =
-      status.kind === 'error' ? '#c62828' :
-      status.kind === 'saved' ? '#2e7d32' :
-      'var(--ink-2)';
+    if (status.kind !== 'error') return null;
+    return <span className="set-error">{status.msg}</span>;
+  };
+
+  const renderRowHead = (section: AiSection) => {
+    const info = SECTION_INFO[section];
+    const isChecked = enabledSections.includes(section);
     return (
-      <span style={{ marginRight: '0.6rem', fontSize: '0.78rem', color, alignSelf: 'center' }}>
-        {status.kind === 'saving' ? '保存中…' : status.msg}
-      </span>
+      <label className={locked ? 'set-row set-row--locked' : 'set-row'}>
+        <div className={isChecked ? 'set-row__body' : 'set-row__body set-row__body--off'}>
+          <div className="set-row__head">
+            <span className="set-row__title">{info.label}</span>
+          </div>
+          <p className="set-row__desc">{info.desc}</p>
+        </div>
+        <span className="set-row__toggle">
+          <Toggle
+            hideLabel
+            label={info.label}
+            checked={isChecked}
+            disabled={locked}
+            onChange={v => toggleSection(section, v)}
+          />
+        </span>
+      </label>
     );
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div>
-          <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>表示するタブ</h3>
-          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-2)' }}>
-            チェックを外したタブはAIコメントに表示されません。
-          </p>
+    <div className="set-card">
+      <div>
+        <h3 className="set-title">表示するタブ</h3>
+        <p className="set-desc">
+          チェックを外したタブはAIコメントに表示されません。
+        </p>
+      </div>
+
+      {locked && (
+        <div className="set-notice">
+          空のアドバイスは近日提供予定の機能です。提供開始までは設定を変更できません。
         </div>
+      )}
 
-        {locked && (
-          <div style={{
-            padding: '0.7rem 0.9rem',
-            borderRadius: 'var(--radius-md, 8px)',
-            background: 'rgba(217,119,6,0.08)',
-            border: '1px solid rgba(217,119,6,0.25)',
-            fontSize: '0.8rem',
-            color: 'var(--ink-2)',
-            lineHeight: 1.7,
-          }}>
-            空のアドバイスは近日提供予定の機能です。提供開始までは設定を変更できません。
-          </div>
-        )}
-
-        <div style={{
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius-md, 8px)',
-          overflow: 'hidden',
-          opacity: locked ? 0.55 : 1,
-        }}>
-          {SECTION_ORDER.map((section, idx) => {
-            const info = SECTION_INFO[section];
-            const isChecked = enabledSections.includes(section);
-            const isLast = idx === SECTION_ORDER.length - 1;
-
-            if (section === 'custom') {
-              // カスタマイズ行: プロンプト入力エリアをチェックボックス行の内部に展開
-              return (
-                <div
-                  key={section}
-                  style={{
-                    borderBottom: isLast ? 'none' : '1px solid var(--line)',
-                    background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  {/* チェックボックス + ラベル行 */}
-                  <label style={{
-                    display: 'flex',
-                    gap: '0.75rem',
-                    padding: '0.75rem 1rem 0.5rem',
-                    cursor: locked ? 'not-allowed' : 'pointer',
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      disabled={locked}
-                      onChange={e => toggleSection(section, e.target.checked)}
-                      style={{
-                        width: '1rem',
-                        height: '1rem',
-                        marginTop: '0.15rem',
-                        cursor: locked ? 'not-allowed' : 'pointer',
-                        flexShrink: 0,
-                        accentColor: 'var(--accent)',
-                      }}
-                    />
-                    <div style={{ flex: 1, opacity: isChecked ? 1 : 0.45, transition: 'opacity 0.15s' }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.2rem' }}>
-                        {info.label}
-                      </div>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
-                        {info.desc}
-                      </p>
-                    </div>
-                  </label>
-                  {/* プロンプト入力エリア: チェック状態でテキスト部分に揃えてインデント */}
+      <div className="set-list" style={{ opacity: locked ? 0.55 : 1 }}>
+        {SECTION_ORDER.map(section => {
+          if (section !== 'custom') {
+            return <div key={section} className="set-row-group">{renderRowHead(section)}</div>;
+          }
+          // カスタマイズ行: プロンプト入力エリアをトグル行の内部に展開
+          const isChecked = enabledSections.includes(section);
+          return (
+            <div key={section} className="set-row-group">
+              {renderRowHead(section)}
+              <div className={isChecked ? 'set-row-group__extra' : 'set-row-group__extra set-row__body--off'}>
+                <div style={{ position: 'relative' }}>
+                  <textarea
+                    className="set-textarea"
+                    value={customPrompt}
+                    onChange={e => setCustomPrompt(e.target.value.slice(0, MAX_CUSTOM_PROMPT))}
+                    disabled={!isChecked || locked}
+                    placeholder={DEFAULT_AI_CUSTOM_PROMPT}
+                    rows={6}
+                  />
                   <div style={{
-                    padding: '0 1rem 0.75rem 2.75rem',
-                    opacity: isChecked ? 1 : 0.45,
-                    transition: 'opacity 0.15s',
+                    position: 'absolute',
+                    bottom: '0.5rem',
+                    right: '0.75rem',
+                    fontSize: '0.72rem',
+                    color: customPrompt.length >= MAX_CUSTOM_PROMPT ? '#c62828' : 'var(--ink-3)',
+                    pointerEvents: 'none',
                   }}>
-                    <div style={{ position: 'relative' }}>
-                      <textarea
-                        value={customPrompt}
-                        onChange={e => setCustomPrompt(e.target.value.slice(0, MAX_CUSTOM_PROMPT))}
-                        disabled={!isChecked || locked}
-                        placeholder={DEFAULT_AI_CUSTOM_PROMPT}
-                        rows={6}
-                        style={{
-                          width: '100%',
-                          boxSizing: 'border-box',
-                          padding: '0.75rem',
-                          fontSize: '0.85rem',
-                          lineHeight: 1.7,
-                          borderRadius: 'var(--radius-md, 6px)',
-                          border: '1px solid var(--line)',
-                          background: isChecked ? 'var(--bg-primary)' : 'rgba(0,0,0,0.04)',
-                          color: 'var(--ink-1)',
-                          resize: 'vertical',
-                          fontFamily: 'inherit',
-                          cursor: isChecked ? 'text' : 'default',
-                        }}
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '0.5rem',
-                        right: '0.75rem',
-                        fontSize: '0.72rem',
-                        color: customPrompt.length >= MAX_CUSTOM_PROMPT ? '#c62828' : 'var(--ink-2)',
-                        pointerEvents: 'none',
-                      }}>
-                        {customPrompt.length} / {MAX_CUSTOM_PROMPT}
-                      </div>
-                    </div>
+                    {customPrompt.length} / {MAX_CUSTOM_PROMPT}
                   </div>
                 </div>
-              );
-            }
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-            return (
-              <label
-                key={section}
-                style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  padding: '0.75rem 1rem',
-                  borderBottom: isLast ? 'none' : '1px solid var(--line)',
-                  cursor: locked ? 'not-allowed' : 'pointer',
-                  background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
-                  transition: 'background 0.15s',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  disabled={locked}
-                  onChange={e => toggleSection(section, e.target.checked)}
-                  style={{
-                    width: '1rem',
-                    height: '1rem',
-                    marginTop: '0.15rem',
-                    cursor: locked ? 'not-allowed' : 'pointer',
-                    flexShrink: 0,
-                    accentColor: 'var(--accent)',
-                  }}
-                />
-                <div style={{ flex: 1, opacity: isChecked ? 1 : 0.45, transition: 'opacity 0.15s' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.2rem' }}>
-                    {info.label}
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
-                    {info.desc}
-                  </p>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingTop: '0.25rem' }}>
-          {renderStatus(saveStatus)}
-          <button
-            onClick={handleSave}
-            disabled={saveStatus.kind === 'saving' || locked}
-            style={{
-              ...SAVE_BTN,
-              cursor: (saveStatus.kind === 'saving' || locked) ? 'not-allowed' : 'pointer',
-              opacity: (saveStatus.kind === 'saving' || locked) ? 0.6 : 1,
-            }}
-          >
-            <Save size={14} /> 保存
-          </button>
-        </div>
+      <div className="set-actions">
+        {renderStatus(saveStatus)}
+        <SaveButton
+          onClick={handleSave}
+          saving={saveStatus.kind === 'saving'}
+          saved={saveStatus.kind === 'saved'}
+          disabled={locked}
+        />
       </div>
     </div>
   );

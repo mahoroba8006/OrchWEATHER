@@ -1,0 +1,166 @@
+/* 設定シート内の共通様式 */
+
+/* アカウント行（モバイル） */
+.settings-account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+.settings-account__avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; object-fit: cover; }
+.settings-account__text { flex: 1; min-width: 0; }
+.settings-account__name { font-size: 0.9rem; font-weight: 600; color: var(--ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-account__email { font-size: 0.75rem; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-account__logout { min-height: 36px; padding: 0 0.8rem; font-size: 0.8rem; flex-shrink: 0; }
+
+.settings-subtabs { margin-bottom: 0.25rem; }
+
+/* 画面の縦並び */
+.set-stack { display: flex; flex-direction: column; gap: 1rem; }
+
+/* セクションのカード */
+.set-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.25rem;
+  background: var(--surface-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.set-card--editing { border-color: rgba(var(--accent-rgb), 0.35); }
+.set-title { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--ink-1); }
+.set-desc { margin: 0.3rem 0 0; font-size: 0.8rem; line-height: 1.6; color: var(--ink-3); }
+.set-subhead {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+
+/* 操作列 */
+.set-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+.set-actions--split { justify-content: space-between; }
+.set-actions__right { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; justify-content: flex-end; }
+.ui-btn.set-btn-sm { min-height: 36px; padding: 0 1rem; font-size: 0.85rem; }
+.ui-btn.set-btn-xs { min-height: 32px; padding: 0 0.8rem; font-size: 0.78rem; }
+.ui-btn.set-btn-danger { color: #b3261e; }
+.ui-btn.set-btn-danger:hover:not(:disabled) { background: rgba(179, 38, 30, 0.08); color: #b3261e; }
+.ui-btn.set-btn-danger-solid { background: #b3261e; color: #fff; }
+.ui-btn.set-btn-danger-solid:hover:not(:disabled) { background: #8f1f19; }
+
+.set-error { font-size: 0.78rem; color: #c62828; }
+.set-status { font-size: 0.78rem; color: var(--ink-2); }
+.set-notice {
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+/* 行リスト（トグル行など） */
+.set-list { border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.set-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.set-row:last-child { border-bottom: none; }
+.set-row--locked { cursor: not-allowed; }
+.set-row__body { flex: 1; min-width: 0; transition: opacity 0.15s ease; }
+.set-row__body--off { opacity: 0.5; }
+.set-row__head { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.25rem; }
+.set-row__title { font-size: 0.9rem; font-weight: 600; color: var(--ink-1); }
+.set-row__desc { margin: 0; font-size: 0.78rem; line-height: 1.6; color: var(--ink-3); }
+.set-row__toggle { flex-shrink: 0; padding-top: 1px; }
+.set-chip {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.set-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--ink-1);
+  background: var(--surface-card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  resize: vertical;
+}
+.set-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18); }
+.set-textarea:disabled { background: var(--surface-sunken); }
+
+/* 地点リストの行 */
+.loc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.1rem;
+  background: var(--surface-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.loc-row__main { flex: 1 1 14rem; min-width: 0; }
+.loc-row__name { font-size: 1rem; font-weight: 600; color: var(--ink-1); }
+.loc-row__meta { margin-top: 0.25rem; font-size: 0.8rem; color: var(--ink-3); }
+.loc-row__area { margin-top: 0.2rem; font-size: 0.78rem; color: var(--accent); }
+.loc-row__area--none { color: var(--ink-3); }
+.loc-row__actions { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.loc-default-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--radius-pill);
+  padding: 0.25rem 0.65rem;
+  white-space: nowrap;
+}
+
+/* 削除確認ダイアログ（ポータル） */
+.modal-content.set-confirm { max-width: 340px; padding: 1.5rem; }
+.set-confirm__title { margin: 0 0 0.4rem; font-size: 1rem; font-weight: 700; color: var(--ink-1); }
+.set-confirm__text { margin: 0 0 1.2rem; font-size: 0.9rem; color: var(--ink-2); }
+
+/* 累積開始日のクイック選択 */
+.set-quick { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.set-quick__group { display: flex; align-items: center; gap: 0.4rem; }
+.set-quick__label { margin-right: 0.1rem; font-size: 0.75rem; color: var(--ink-3); }
+.set-hint { font-size: 0.72rem; color: var(--ink-3); line-height: 1.4; }
+.set-sep { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.set-field-label { font-size: 0.85rem; font-weight: 600; color: var(--ink-1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .set-row__body { transition: none; }
+}
+
+.set-stack > ul > li:last-child { padding-bottom: 0 !important; }
+
+.set-row-group { border-bottom: 1px solid var(--line); }
+.set-row-group:last-child { border-bottom: none; }
+.set-row-group .set-row { border-bottom: none; }
+.set-row-group__extra { padding: 0 1rem 0.9rem; transition: opacity 0.15s ease; }
+
+/* 4タブを狭い画面でも横スクロールなしで収める */
+@media (max-width: 480px) {
+  .settings-subtabs .ui-seg__item { padding: 0 0.45rem; font-size: 0.78rem; }
+}

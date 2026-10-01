@@ -15,8 +15,10 @@ interface ToggleProps {
 
 /** つまみが滑って切り替わるスイッチ（ラベルのクリックでも切替） */
 export function Toggle({ checked, onChange, label, disabled, describedBy, hideLabel }: ToggleProps) {
+  // hideLabel 時は親の行（<label>）がクリックを受けるため、ここでは label を重ねない
+  const Root = hideLabel ? 'span' : 'label';
   return (
-    <label className={['ui-toggle', disabled ? 'ui-toggle--disabled' : ''].filter(Boolean).join(' ')}>
+    <Root className={['ui-toggle', disabled ? 'ui-toggle--disabled' : ''].filter(Boolean).join(' ')}>
       <button
         type="button"
         role="switch"
@@ -31,6 +33,6 @@ export function Toggle({ checked, onChange, label, disabled, describedBy, hideLa
         <m.span layout transition={springs.press} className="ui-toggle__thumb" />
       </button>
       {!hideLabel && <span className="ui-toggle__label">{label}</span>}
-    </label>
+    </Root>
   );
 }
