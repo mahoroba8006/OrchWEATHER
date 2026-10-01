@@ -33,7 +33,7 @@ export function SettingsTab() {
           alignItems: 'center',
           gap: '0.75rem',
           padding: '0.9rem 1rem',
-          borderBottom: '1px solid var(--card-border)',
+          borderBottom: '1px solid var(--line)',
           marginBottom: '0.5rem',
         }}>
           {user.photoURL && (
@@ -42,14 +42,14 @@ export function SettingsTab() {
               alt={user.displayName ?? ''}
               width={36}
               height={36}
-              style={{ borderRadius: '50%', border: '1.5px solid var(--accent-color)', flexShrink: 0 }}
+              style={{ borderRadius: '50%', border: '1.5px solid var(--accent)', flexShrink: 0 }}
             />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.displayName}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.email}
             </div>
           </div>
@@ -66,7 +66,7 @@ export function SettingsTab() {
       {/* サブタブナビゲーション（下線型） */}
       <div style={{
         display: 'flex',
-        borderBottom: '1px solid var(--card-border)',
+        borderBottom: '1px solid var(--line)',
         marginBottom: '1.25rem',
       }}>
         {SUB_TABS.map((tab) => (
@@ -82,10 +82,10 @@ export function SettingsTab() {
               padding: isMobile ? '0.6rem 0.1rem' : '0.65rem 1.2rem',
               fontSize: isMobile ? '0.76rem' : '0.88rem',
               fontWeight: subTab === tab ? 700 : 500,
-              color: subTab === tab ? 'var(--accent-color)' : 'var(--text-secondary)',
+              color: subTab === tab ? 'var(--accent)' : 'var(--ink-2)',
               background: 'transparent',
               border: 'none',
-              borderBottom: subTab === tab ? '2px solid var(--accent-color)' : '2px solid transparent',
+              borderBottom: subTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
               marginBottom: '-1px',
               cursor: 'pointer',
               boxShadow: 'none',

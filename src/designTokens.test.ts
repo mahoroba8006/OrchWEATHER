@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { contrastRatio } from './lib/contrast';
 
@@ -33,14 +33,6 @@ describe('design tokens', () => {
     expect(token('--accent-press')).toBe('#0A5550');
   });
 
-  it('keeps legacy variable names as aliases to the new tokens', () => {
-    expect(token('--accent-color')).toBe('var(--accent)');
-    expect(token('--text-primary')).toBe('var(--ink-1)');
-    expect(token('--text-secondary')).toBe('var(--ink-2)');
-    expect(token('--text-tertiary')).toBe('var(--ink-3)');
-    expect(token('--card-bg')).toBe('var(--surface-card)');
-    expect(token('--bg-gradient')).toBe('var(--surface-ground)');
-  });
 
   it('uses IBM Plex Sans JP as the app font', () => {
     expect(css).toContain('family=IBM+Plex+Sans+JP');
@@ -77,5 +69,31 @@ describe('AI-look removal', () => {
   it('global button hover has zero specificity so class-styled buttons keep their background', () => {
     expect(css).toContain(':where(button:hover) {');
     expect(css.split(String.fromCharCode(10)).some(line => line.startsWith('button:hover {'))).toBe(false);
+  });
+});
+
+describe('legacy token aliases are gone', () => {
+  it('no source file references a legacy variable name', () => {
+    const LEGACY = [
+      '--accent-color', '--accent-hover', '--accent-light', '--text-primary', '--text-secondary',
+      '--text-tertiary', '--card-bg', '--card-bg-solid', '--card-border', '--card-border-hover',
+      '--card-border-sub', '--bg-gradient', '--bg-color', '--shadow-sm', '--shadow-md', '--shadow-lg',
+    ];
+
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap(name => {
+        const p = join(dir, name);
+        return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|css)$/.test(name) ? [p] : [];
+      });
+
+    const offenders: string[] = [];
+    for (const file of walk(resolve(process.cwd(), 'src'))) {
+      if (file.endsWith('designTokens.test.ts')) continue;
+      const text = readFileSync(file, 'utf8');
+      for (const name of LEGACY) {
+        if (new RegExp(`${name}(?![-\\w])`).test(text)) offenders.push(`${file}: ${name}`);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });

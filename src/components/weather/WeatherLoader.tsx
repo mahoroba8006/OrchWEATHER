@@ -23,7 +23,7 @@ export function WeatherLoader({ label = 'お天気を分析中', iconSize = 28 }
             key={i}
             style={{
               display: 'inline-flex',
-              color: 'var(--accent-color)',
+              color: 'var(--accent)',
               animation: 'iconWaveBounce 1.2s ease-in-out infinite',
               animationDelay: `${i * 0.2}s`,
             }}
@@ -32,7 +32,7 @@ export function WeatherLoader({ label = 'お天気を分析中', iconSize = 28 }
           </span>
         ))}
       </div>
-      <div style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--accent-color)' }}>
+      <div style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--accent)' }}>
         {label}<span className="dot-pulse">…</span>
       </div>
     </div>

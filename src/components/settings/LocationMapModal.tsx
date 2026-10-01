@@ -190,7 +190,7 @@ export function LocationMapModal({
               gap: '0.4rem',
             }}
           >
-            <MapPin size={18} style={{ color: 'var(--accent-color)' }} />
+            <MapPin size={18} style={{ color: 'var(--accent)' }} />
             マップから地点を選択
           </span>
           <button
@@ -201,7 +201,7 @@ export function LocationMapModal({
               border: 'none',
               cursor: 'pointer',
               padding: '0.2rem',
-              color: 'var(--text-secondary)',
+              color: 'var(--ink-2)',
             }}
           >
             <X size={20} />
@@ -227,7 +227,7 @@ export function LocationMapModal({
             flexWrap: 'wrap',
           }}
         >
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: '0.82rem', color: 'var(--ink-2)' }}>
             緯度: {markerPos[0]} / 経度: {markerPos[1]}
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>

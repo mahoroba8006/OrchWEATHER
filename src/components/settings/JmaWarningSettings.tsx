@@ -156,7 +156,7 @@ export function JmaWarningSettings() {
     const color =
       status.kind === 'error' ? '#c62828' :
       status.kind === 'saved' ? '#2e7d32' :
-      'var(--text-secondary)';
+      'var(--ink-2)';
     return (
       <span style={{ marginRight: '0.6rem', fontSize: '0.78rem', color, alignSelf: 'center' }}>
         {status.kind === 'saving' ? '保存中…' : status.msg}
@@ -171,7 +171,7 @@ export function JmaWarningSettings() {
     >
       <div>
         <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>注意報・警報の表示設定</h3>
-        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-2)' }}>
           チェックを外した種別は天気情報タブに表示されません。特別警報は常に表示されます。
         </p>
       </div>
@@ -181,7 +181,7 @@ export function JmaWarningSettings() {
           <div style={{
             fontSize: '0.72rem',
             fontWeight: 700,
-            color: 'var(--text-secondary)',
+            color: 'var(--ink-2)',
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
             marginBottom: '0.25rem',
@@ -190,7 +190,7 @@ export function JmaWarningSettings() {
           </div>
 
           <div style={{
-            border: '1px solid var(--card-border)',
+            border: '1px solid var(--line)',
             borderRadius: 'var(--radius-md, 8px)',
             overflow: 'hidden',
           }}>
@@ -207,7 +207,7 @@ export function JmaWarningSettings() {
                     display: 'flex',
                     gap: '0.75rem',
                     padding: '0.75rem 1rem',
-                    borderBottom: isLast ? 'none' : '1px solid var(--card-border)',
+                    borderBottom: isLast ? 'none' : '1px solid var(--line)',
                     cursor: 'pointer',
                     background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
                     transition: 'background 0.15s',
@@ -223,7 +223,7 @@ export function JmaWarningSettings() {
                       marginTop: '0.15rem',
                       cursor: 'pointer',
                       flexShrink: 0,
-                      accentColor: 'var(--accent-color)',
+                      accentColor: 'var(--accent)',
                     }}
                   />
                   <div style={{ flex: 1, opacity: isChecked ? 1 : 0.45, transition: 'opacity 0.15s' }}>
@@ -246,7 +246,7 @@ export function JmaWarningSettings() {
                     <p style={{
                       margin: 0,
                       fontSize: '0.78rem',
-                      color: 'var(--text-secondary)',
+                      color: 'var(--ink-2)',
                       lineHeight: 1.6,
                     }}>
                       {info.desc}

@@ -79,7 +79,7 @@ export function LoginScreen() {
         gap: '1.5rem',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Leaf size={32} color="var(--accent-color)" />
+          <Leaf size={32} color="var(--accent)" />
           <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>Orch.Weather</h1>
         </div>
 
@@ -101,19 +101,19 @@ export function LoginScreen() {
         </div>
 
         <div style={{
-          background: 'rgba(13,148,136,0.07)',
-          border: '1px solid rgba(13,148,136,0.2)',
+          background: 'rgba(var(--accent-rgb),0.07)',
+          border: '1px solid rgba(var(--accent-rgb),0.2)',
           borderRadius: 'var(--radius-md)',
           padding: '1.25rem 1.5rem',
           maxWidth: '340px',
           width: '100%',
         }}>
-          <p style={{ margin: '0 0 0.85rem 0', fontWeight: 700, fontSize: '0.88rem', color: 'var(--accent-color)' }}>
+          <p style={{ margin: '0 0 0.85rem 0', fontWeight: 700, fontSize: '0.88rem', color: 'var(--accent)' }}>
             {ios ? 'Safariで開く手順' : '外部ブラウザで開く手順'}
           </p>
           <ol style={{ margin: 0, paddingLeft: '1.4rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {steps.map((step, i) => (
-              <li key={i} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <li key={i} style={{ fontSize: '0.85rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
                 {step}
               </li>
             ))}
@@ -121,7 +121,7 @@ export function LoginScreen() {
         </div>
 
         <div style={{ maxWidth: '340px', width: '100%' }}>
-          <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>
+          <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', color: 'var(--ink-3)', textAlign: 'center' }}>
             または、URLをコピーしてブラウザに貼り付け
           </p>
           <button
@@ -135,9 +135,9 @@ export function LoginScreen() {
               padding: '0.65rem 1rem',
               fontSize: '0.88rem',
               fontWeight: 600,
-              background: copied ? 'rgba(13,148,136,0.12)' : 'rgba(255,255,255,0.7)',
-              color: copied ? 'var(--accent-color)' : 'var(--text-secondary)',
-              border: '1px solid rgba(13,148,136,0.25)',
+              background: copied ? 'rgba(var(--accent-rgb),0.12)' : 'rgba(255,255,255,0.7)',
+              color: copied ? 'var(--accent)' : 'var(--ink-2)',
+              border: '1px solid rgba(var(--accent-rgb),0.25)',
               borderRadius: 'var(--radius-md)',
               cursor: 'pointer',
               transition: 'all 0.2s',
@@ -162,11 +162,11 @@ export function LoginScreen() {
       padding: '2rem',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Leaf size={36} color="var(--accent-color)" />
+        <Leaf size={36} color="var(--accent)" />
         <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Orch.Weather</h1>
       </div>
 
-      <p style={{ color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '320px', margin: 0 }}>
+      <p style={{ color: 'var(--ink-2)', textAlign: 'center', maxWidth: '320px', margin: 0 }}>
         Googleアカウントでログインすると、複数のデバイスから地点データを共有できます。
       </p>
 

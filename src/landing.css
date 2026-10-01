@@ -7,7 +7,7 @@
   position: relative;
   min-height: 100vh;
   min-height: 100svh; /* iOS Safari アドレスバー対策（対応ブラウザで上書き） */
-  color: var(--text-primary);
+  color: var(--ink-1);
   font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
@@ -49,7 +49,7 @@
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.78);
-  border-bottom: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--line);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   opacity: 0;
@@ -101,17 +101,17 @@
 }
 
 .lp-lead {
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-size: clamp(0.95rem, 2.5vw, 1.05rem);
   line-height: 1.95;
   margin: 0;
 }
 
 .lp-glass {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  background: var(--surface-card);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
@@ -139,8 +139,8 @@
 .lp-cta--small { padding: 0.5rem 1.1rem; font-size: 0.85rem; }
 .lp-cta--ghost {
   background: #ffffff;
-  color: var(--accent-color);
-  border: 1.5px solid var(--accent-color);
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
   box-shadow: 0 4px 14px rgba(13, 148, 136, 0.12);
 }
 .lp-cta--ghost:hover { box-shadow: 0 8px 20px rgba(13, 148, 136, 0.2); }
@@ -238,7 +238,7 @@
   border-radius: 40px;
   border: 9px solid #11403a;
   background: #11403a;
-  box-shadow: var(--shadow-lg), 0 28px 64px rgba(13, 148, 136, 0.2);
+  box-shadow: var(--shadow-raised), 0 28px 64px rgba(13, 148, 136, 0.2);
   overflow: hidden;
 }
 .lp-phone img { display: block; width: 100%; height: auto; }
@@ -278,9 +278,9 @@
   width: 100%;
   height: auto;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--card-border);
-  box-shadow: var(--shadow-lg);
-  background: var(--card-bg-solid);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-raised);
+  background: var(--surface-card);
 }
 
 /* 比較表（モバイルは横スクロール） */
@@ -294,7 +294,7 @@
 .lp-comp th, .lp-comp td {
   padding: 0.7rem 0.6rem;
   text-align: center;
-  border-bottom: 1px solid var(--card-border-sub);
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
 .lp-comp th { font-weight: 700; }
@@ -305,7 +305,7 @@
   display: block;
   font-size: 0.72rem;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--ink-3);
   margin-top: 0.2rem;
   line-height: 1.5;
 }

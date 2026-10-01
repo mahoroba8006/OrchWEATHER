@@ -132,7 +132,7 @@ export function AnalysisSettings() {
     const color =
       status.kind === 'error' ? '#c62828'
       : status.kind === 'saved' ? '#2e7d32'
-      : 'var(--text-secondary)';
+      : 'var(--ink-2)';
     const text = status.kind === 'saving' ? '保存中…' : status.msg ?? '';
     return (
       <span style={{ marginRight: '0.6rem', fontSize: '0.78rem', color, alignSelf: 'center' }}>
@@ -214,7 +214,7 @@ export function AnalysisSettings() {
                     <option key={d} value={d}>{d}日</option>
                   ))}
                 </select>
-                <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>クイック:</span>
+                <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--ink-2)' }}>クイック:</span>
                 {START_DATE_PRESETS.map((p) => (
                   <button
                     key={p.mmdd}
@@ -238,7 +238,7 @@ export function AnalysisSettings() {
         {/* 日数差 ガード閾値 */}
         <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>日数差 表示開始閾値</div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--ink-2)', lineHeight: 1.4 }}>
             累積値がこの値未満の期間は日数差を非表示にします（序盤の不安定な状況における表示を抑制）。
           </div>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -252,7 +252,7 @@ export function AnalysisSettings() {
                 value={accumThresholdForm.gdd}
                 onChange={(e) => setAccumThresholdForm({ ...accumThresholdForm, gdd: parseInt(e.target.value, 10) || 1 })}
               />
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>範囲: 1〜500</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--ink-2)', marginTop: '0.25rem' }}>範囲: 1〜500</div>
             </div>
             <div className="form-group" style={{ flex: 1, minWidth: '140px' }}>
               <label>累積日射量 (MJ/m²)</label>
@@ -264,7 +264,7 @@ export function AnalysisSettings() {
                 value={accumThresholdForm.radiation}
                 onChange={(e) => setAccumThresholdForm({ ...accumThresholdForm, radiation: parseInt(e.target.value, 10) || 1 })}
               />
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>範囲: 1〜2000</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--ink-2)', marginTop: '0.25rem' }}>範囲: 1〜2000</div>
             </div>
           </div>
         </div>

@@ -84,7 +84,7 @@ export function AiCommentSettings() {
     const color =
       status.kind === 'error' ? '#c62828' :
       status.kind === 'saved' ? '#2e7d32' :
-      'var(--text-secondary)';
+      'var(--ink-2)';
     return (
       <span style={{ marginRight: '0.6rem', fontSize: '0.78rem', color, alignSelf: 'center' }}>
         {status.kind === 'saving' ? '保存中…' : status.msg}
@@ -97,7 +97,7 @@ export function AiCommentSettings() {
       <div className="glass-panel" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
           <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>表示するタブ</h3>
-          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-2)' }}>
             チェックを外したタブはAIコメントに表示されません。
           </p>
         </div>
@@ -109,7 +109,7 @@ export function AiCommentSettings() {
             background: 'rgba(217,119,6,0.08)',
             border: '1px solid rgba(217,119,6,0.25)',
             fontSize: '0.8rem',
-            color: 'var(--text-secondary)',
+            color: 'var(--ink-2)',
             lineHeight: 1.7,
           }}>
             空のアドバイスは近日提供予定の機能です。提供開始までは設定を変更できません。
@@ -117,7 +117,7 @@ export function AiCommentSettings() {
         )}
 
         <div style={{
-          border: '1px solid var(--card-border)',
+          border: '1px solid var(--line)',
           borderRadius: 'var(--radius-md, 8px)',
           overflow: 'hidden',
           opacity: locked ? 0.55 : 1,
@@ -133,7 +133,7 @@ export function AiCommentSettings() {
                 <div
                   key={section}
                   style={{
-                    borderBottom: isLast ? 'none' : '1px solid var(--card-border)',
+                    borderBottom: isLast ? 'none' : '1px solid var(--line)',
                     background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
                     transition: 'background 0.15s',
                   }}
@@ -156,14 +156,14 @@ export function AiCommentSettings() {
                         marginTop: '0.15rem',
                         cursor: locked ? 'not-allowed' : 'pointer',
                         flexShrink: 0,
-                        accentColor: 'var(--accent-color)',
+                        accentColor: 'var(--accent)',
                       }}
                     />
                     <div style={{ flex: 1, opacity: isChecked ? 1 : 0.45, transition: 'opacity 0.15s' }}>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.2rem' }}>
                         {info.label}
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
                         {info.desc}
                       </p>
                     </div>
@@ -188,9 +188,9 @@ export function AiCommentSettings() {
                           fontSize: '0.85rem',
                           lineHeight: 1.7,
                           borderRadius: 'var(--radius-md, 6px)',
-                          border: '1px solid var(--card-border)',
+                          border: '1px solid var(--line)',
                           background: isChecked ? 'var(--bg-primary)' : 'rgba(0,0,0,0.04)',
-                          color: 'var(--text-primary)',
+                          color: 'var(--ink-1)',
                           resize: 'vertical',
                           fontFamily: 'inherit',
                           cursor: isChecked ? 'text' : 'default',
@@ -201,7 +201,7 @@ export function AiCommentSettings() {
                         bottom: '0.5rem',
                         right: '0.75rem',
                         fontSize: '0.72rem',
-                        color: customPrompt.length >= MAX_CUSTOM_PROMPT ? '#c62828' : 'var(--text-secondary)',
+                        color: customPrompt.length >= MAX_CUSTOM_PROMPT ? '#c62828' : 'var(--ink-2)',
                         pointerEvents: 'none',
                       }}>
                         {customPrompt.length} / {MAX_CUSTOM_PROMPT}
@@ -219,7 +219,7 @@ export function AiCommentSettings() {
                   display: 'flex',
                   gap: '0.75rem',
                   padding: '0.75rem 1rem',
-                  borderBottom: isLast ? 'none' : '1px solid var(--card-border)',
+                  borderBottom: isLast ? 'none' : '1px solid var(--line)',
                   cursor: locked ? 'not-allowed' : 'pointer',
                   background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
                   transition: 'background 0.15s',
@@ -236,14 +236,14 @@ export function AiCommentSettings() {
                     marginTop: '0.15rem',
                     cursor: locked ? 'not-allowed' : 'pointer',
                     flexShrink: 0,
-                    accentColor: 'var(--accent-color)',
+                    accentColor: 'var(--accent)',
                   }}
                 />
                 <div style={{ flex: 1, opacity: isChecked ? 1 : 0.45, transition: 'opacity 0.15s' }}>
                   <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.2rem' }}>
                     {info.label}
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--ink-2)', lineHeight: 1.6 }}>
                     {info.desc}
                   </p>
                 </div>

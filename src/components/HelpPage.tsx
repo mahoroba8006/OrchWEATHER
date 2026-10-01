@@ -13,7 +13,7 @@ const BACK_BTN_STYLE: CSSProperties = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  color: 'var(--accent-color)',
+  color: 'var(--accent)',
   fontSize: '0.88rem',
   fontWeight: 600,
   padding: '0.5rem 0',
@@ -23,7 +23,7 @@ const BACK_HEADER_STYLE: CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 10,
-  background: 'var(--bg-color)',
+  background: 'var(--surface-ground)',
   paddingTop: '1rem',
   paddingBottom: '0.25rem',
 };
@@ -31,31 +31,31 @@ const BACK_HEADER_STYLE: CSSProperties = {
 const H1_STYLE: CSSProperties = {
   fontSize: '1.25rem',
   fontWeight: 800,
-  color: 'var(--text-primary)',
+  color: 'var(--ink-1)',
   marginBottom: '1rem',
 };
 
 const H2_STYLE: CSSProperties = {
   fontSize: '1rem',
   fontWeight: 700,
-  color: 'var(--text-primary)',
+  color: 'var(--ink-1)',
   marginTop: '2rem',
   marginBottom: '0.6rem',
   paddingBottom: '0.3rem',
-  borderBottom: '1px solid var(--card-border)',
+  borderBottom: '1px solid var(--line)',
 };
 
 const H3_STYLE: CSSProperties = {
   fontSize: '0.9rem',
   fontWeight: 700,
-  color: 'var(--accent-color)',
+  color: 'var(--accent)',
   marginTop: '1.1rem',
   marginBottom: '0.4rem',
 };
 
 const P_STYLE: CSSProperties = {
   fontSize: '0.875rem',
-  color: 'var(--text-secondary)',
+  color: 'var(--ink-2)',
   lineHeight: 1.7,
   marginBottom: '0.5rem',
 };
@@ -83,8 +83,8 @@ const NOTE_BOX: CSSProperties = {
 };
 
 const TOC_STYLE: CSSProperties = {
-  background: 'rgba(13, 148, 136, 0.06)',
-  border: '1px solid rgba(13, 148, 136, 0.2)',
+  background: 'rgba(var(--accent-rgb), 0.06)',
+  border: '1px solid rgba(var(--accent-rgb), 0.2)',
   borderRadius: 'var(--radius-md)',
   padding: '0.75rem 1.25rem',
   marginBottom: '0.5rem',
@@ -93,7 +93,7 @@ const TOC_STYLE: CSSProperties = {
 const TOC_ITEM_STYLE: CSSProperties = {
   display: 'block',
   fontSize: '0.875rem',
-  color: 'var(--accent-color)',
+  color: 'var(--accent)',
   textDecoration: 'none',
   padding: '0.2rem 0',
   fontWeight: 500,
@@ -102,7 +102,7 @@ const TOC_ITEM_STYLE: CSSProperties = {
 const TOC_LABEL_STYLE: CSSProperties = {
   fontSize: '0.75rem',
   fontWeight: 700,
-  color: 'var(--text-secondary)',
+  color: 'var(--ink-2)',
   marginBottom: '0.4rem',
   letterSpacing: '0.05em',
 };

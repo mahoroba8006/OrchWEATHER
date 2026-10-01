@@ -254,7 +254,7 @@ export function LocationSettings() {
           padding: '0.25rem 0.6rem',
           fontSize: '0.75rem',
           background: 'none',
-          color: 'var(--accent-color)',
+          color: 'var(--accent)',
           border: '1px solid rgba(217,119,6,0.3)',
           borderRadius: 'var(--radius-md, 6px)',
           cursor: 'pointer',
@@ -269,7 +269,7 @@ export function LocationSettings() {
       </button>
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
         {saveStatus === 'saving' && (
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', alignSelf: 'center' }}>保存中…</span>
+          <span style={{ fontSize: '0.78rem', color: 'var(--ink-2)', alignSelf: 'center' }}>保存中…</span>
         )}
         {saveStatus === 'error' && (
           <span style={{ fontSize: '0.78rem', color: '#c62828', alignSelf: 'center' }}>⚠ {saveError}</span>
@@ -374,9 +374,9 @@ export function LocationSettings() {
             <div
               key={loc.id}
               className="glass-panel"
-              style={{ padding: '1.5rem', border: '1px solid var(--accent-light)' }}
+              style={{ padding: '1.5rem', border: '1px solid var(--accent-soft)' }}
             >
-              <p style={{ margin: '0 0 1rem 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.82rem', color: 'var(--ink-2)' }}>
                 📍 {loc.name} を編集中
               </p>
               {renderEditForm()}
@@ -393,7 +393,7 @@ export function LocationSettings() {
           >
             <div>
               <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{loc.name}</div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)', marginTop: '0.3rem' }}>
                 緯度: {loc.lat} / 経度: {loc.lon}
               </div>
               <div style={{ fontSize: '0.78rem', marginTop: '0.2rem', color: loc.jmaAreaCode ? '#7cb8a8' : '#b8c0cf' }}>
@@ -408,7 +408,7 @@ export function LocationSettings() {
                   <span style={{
                     fontSize: '0.75rem',
                     fontWeight: 700,
-                    color: 'var(--accent-color)',
+                    color: 'var(--accent)',
                     background: 'rgba(217,119,6,0.12)',
                     border: '1px solid rgba(217,119,6,0.3)',
                     borderRadius: '999px',
@@ -453,7 +453,7 @@ export function LocationSettings() {
       {editingId === 'new' && (
         <div
           className="glass-panel"
-          style={{ padding: '1.5rem', border: '1px solid var(--accent-light)' }}
+          style={{ padding: '1.5rem', border: '1px solid var(--accent-soft)' }}
         >
           <h3 style={{ margin: '0 0 1rem 0' }}>新規地点の追加</h3>
           {renderEditForm()}
@@ -515,7 +515,7 @@ export function LocationSettings() {
             onClick={(e) => e.stopPropagation()}
           >
             <p style={{ margin: '0 0 0.4rem 0', fontWeight: 700, fontSize: '1rem' }}>登録地点の削除</p>
-            <p style={{ margin: '0 0 1.2rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>本当に削除しますか？</p>
+            <p style={{ margin: '0 0 1.2rem 0', fontSize: '0.9rem', color: 'var(--ink-2)' }}>本当に削除しますか？</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button className="secondary" onClick={() => setConfirmDeleteId(null)}>キャンセル</button>
               <button

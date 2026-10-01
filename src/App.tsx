@@ -172,7 +172,7 @@ function AppContent() {
         {isGuest ? (
           <div className="glass-panel" style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
             <p style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>ログインが必要です</p>
-            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1.2rem' }}>
+            <p style={{ fontSize: '0.86rem', color: 'var(--ink-2)', lineHeight: 1.8, marginBottom: '1.2rem' }}>
               地点の登録や各種設定は、ログインすると利用できます。<br />未ログインでは現在地の天気のみご覧いただけます。
             </p>
             <button

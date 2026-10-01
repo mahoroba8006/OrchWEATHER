@@ -296,10 +296,10 @@ function TabBadge({ icon: Icon, name }: { icon: typeof CloudSun; name: string })
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
       padding: '0.45rem 1rem',
-      background: 'var(--accent-light)',
+      background: 'var(--accent-soft)',
       border: '1px solid rgba(13,148,136,0.3)',
       borderRadius: 999,
-      color: 'var(--accent-color)',
+      color: 'var(--accent)',
       fontWeight: 800,
       fontSize: '0.9rem',
       marginBottom: '1.6rem',
@@ -328,7 +328,7 @@ function Nav({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
       <div className="lp-nav-glass" aria-hidden="true" />
       <div className="lp-nav-inner">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Leaf size={20} color="var(--accent-color)" />
+          <Leaf size={20} color="var(--accent)" />
           <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Orch.Weather</span>
         </div>
         <button className="lp-cta lp-cta--small" onClick={onLogin} disabled={loading}>
@@ -365,7 +365,7 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
         <Reveal style={{ flex: '1 1 400px', minWidth: 0 }}>
           <p style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-            background: 'var(--accent-light)', color: 'var(--accent-color)',
+            background: 'var(--accent-soft)', color: 'var(--accent)',
             fontWeight: 700, fontSize: '0.8rem', borderRadius: 999,
             padding: '0.35rem 0.9rem', margin: '0 0 1.1rem',
           }}>
@@ -391,7 +391,7 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
               <ArrowRight size={17} />
             </button>
           </div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: '0.7rem 0 0' }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--ink-3)', margin: '0.7rem 0 0' }}>
             登録30秒・いまは完全無料
           </p>
           {error && <p style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '0.6rem' }}>{error}</p>}
@@ -436,12 +436,12 @@ function BridgeSection() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 0.75rem',
                 }}>
-                  <Icon size={20} color="var(--accent-color)" />
+                  <Icon size={20} color="var(--accent)" />
                 </div>
                 <p style={{ fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.4rem', letterSpacing: '0.02em' }}>
                   {tab.name}
                 </p>
-                <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.75 }}>
+                <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--ink-2)', lineHeight: 1.75 }}>
                   {tab.tagline}
                 </p>
               </div>
@@ -463,13 +463,13 @@ function SoraMoyoSection() {
           <div className="lp-glass" style={{
             padding: '1.2rem 1.4rem',
             marginBottom: '2.5rem',
-            borderLeft: '3px solid var(--accent-color)',
+            borderLeft: '3px solid var(--accent)',
           }}>
-            <Quote size={16} color="var(--accent-color)" style={{ marginBottom: '0.4rem' }} />
+            <Quote size={16} color="var(--accent)" style={{ marginBottom: '0.4rem' }} />
             <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
               今日できるか、毎朝頭の中で計算している
             </p>
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
+            <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.85 }}>
               防除、散布、施肥…。今日できるか明日できるか、気温・降水確率・風速を一つずつ確認しながら考えている。
             </p>
           </div>
@@ -495,7 +495,7 @@ function SoraMoyoSection() {
           <div style={{ marginBottom: '1.3rem' }}>
             <p style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
               margin: '0 0 0.7rem',
             }}>
               <CloudSun size={16} /> 日別の表示
@@ -525,12 +525,12 @@ function SoraMoyoSection() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: '0.85rem',
               }}>
-                <Clock size={17} color="var(--accent-color)" />
+                <Clock size={17} color="var(--accent)" />
               </div>
               <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
                 作業時間に合わせた1日3分割
               </p>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+              <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
                 1日を畑仕事の時間帯で3つに分割（<strong>午前4〜12時</strong>・<strong>午後12〜20時</strong>・<strong>夜間20〜翌4時</strong>）。「晴れのち雨」が午前のうちなのか、午後から崩れるのか——天気が変わるタイミングが一目でわかります。
               </p>
             </div>
@@ -543,12 +543,12 @@ function SoraMoyoSection() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: '0.85rem',
               }}>
-                <CloudSun size={17} color="var(--accent-color)" />
+                <CloudSun size={17} color="var(--accent)" />
               </div>
               <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
                 「リスク」と「概況」で切り替え
               </p>
-              <p style={{ margin: '0 0 0.9rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+              <p style={{ margin: '0 0 0.9rem', color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
                 知りたいのは、雨が降るリスクだけではありません。晴れ間を逃すリスクも。その日の作業に合わせて見方を切り替えられます。
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
@@ -561,7 +561,7 @@ function SoraMoyoSection() {
                   }}>
                     リスクでみる
                   </div>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.75 }}>
+                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
                     その時間帯のいちばん悪い天気を表示。散布・播種など一発勝負の作業に。
                   </p>
                 </div>
@@ -574,7 +574,7 @@ function SoraMoyoSection() {
                   }}>
                     概況でみる
                   </div>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.75 }}>
+                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
                     その時間帯のいちばん長い天気を表示。雨の合間を活かしたい日に。
                   </p>
                 </div>
@@ -587,7 +587,7 @@ function SoraMoyoSection() {
           <Reveal variant="fade-left">
             <p style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
               margin: '0 0 0.7rem',
             }}>
               <Clock size={16} /> 時間別の表示
@@ -629,7 +629,7 @@ function SoraMoyoSection() {
               <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
                 降水量は「カッパが要るか」で
               </p>
-              <p style={{ margin: '0 0 0.9rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+              <p style={{ margin: '0 0 0.9rem', color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
                 知りたいのは雨が降るかだけでなく、「カッパを着るか着ないか」。通常の予報で「小雨」とまとめられる3mmまでの雨を、現場の体感で3段階に分けて表示します。
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
@@ -642,7 +642,7 @@ function SoraMoyoSection() {
                   }}>
                     ぽつぽつ
                   </div>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.75 }}>
+                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
                     ぽつりと当たる程度。カッパなしで作業できる。
                   </p>
                 </div>
@@ -655,7 +655,7 @@ function SoraMoyoSection() {
                   }}>
                     カッパ？
                   </div>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.75 }}>
+                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
                     濡れ始める境目。短時間ならカッパなしでも。
                   </p>
                 </div>
@@ -668,7 +668,7 @@ function SoraMoyoSection() {
                   }}>
                     カッパ！
                   </div>
-                  <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.75 }}>
+                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
                     しっかり濡れる。カッパが必要。
                   </p>
                 </div>
@@ -688,7 +688,7 @@ function SoraMoyoSection() {
               <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
                 農業に効く専門データを時間別に
               </p>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+              <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
                 露点温度（霜害リスク）、飽差（水分管理）、0℃層高度（雹リスク）、大気安定度（落雷リスク）、紫外線指数——気温と降水確率だけでは見えない判断材料を、時間別に一覧表示します。
               </p>
             </div>
@@ -709,13 +709,13 @@ function SoraKurabeSection() {
           <div className="lp-glass" style={{
             padding: '1.2rem 1.4rem',
             marginBottom: '2.5rem',
-            borderLeft: '3px solid var(--accent-color)',
+            borderLeft: '3px solid var(--accent)',
           }}>
-            <Quote size={16} color="var(--accent-color)" style={{ marginBottom: '0.4rem' }} />
+            <Quote size={16} color="var(--accent)" style={{ marginBottom: '0.4rem' }} />
             <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
               「今年は去年より暖かい気がする」けど、実際どうなのかわからない
             </p>
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
+            <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.85 }}>
               去年と比べてどれくらい違うのか、何日進んでいるか——感覚ではなく数字で把握したい。
             </p>
           </div>
@@ -725,7 +725,7 @@ function SoraKurabeSection() {
           <Reveal variant="fade-left">
             <p style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
               margin: '0 0 0.7rem',
             }}>
               <BarChart2 size={16} /> 前年比較・積算
@@ -756,21 +756,21 @@ function SoraKurabeSection() {
             </p>
             <Reveal stagger={90} style={{ display: 'flex', flexDirection: 'column', gap: '0.95rem' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-color)', flexShrink: 0, marginTop: '0.5rem' }} />
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: '0.5rem' }} />
                 <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
-                  <strong>毎日の数値を自動で積算してグラフ表示。</strong><span style={{ color: 'var(--text-secondary)' }}>降水量・日照時間・日射量・積算温度の4つを、毎日の値から自動で積み上げて見える化します。</span>
+                  <strong>毎日の数値を自動で積算してグラフ表示。</strong><span style={{ color: 'var(--ink-2)' }}>降水量・日照時間・日射量・積算温度の4つを、毎日の値から自動で積み上げて見える化します。</span>
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-color)', flexShrink: 0, marginTop: '0.5rem' }} />
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: '0.5rem' }} />
                 <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
-                  <strong>積算の開始日は、生育状況に合わせて自由に設定。</strong><span style={{ color: 'var(--text-secondary)' }}>萌芽や定植のタイミングなど、いつから積み上げるかを自分で決められます。</span>
+                  <strong>積算の開始日は、生育状況に合わせて自由に設定。</strong><span style={{ color: 'var(--ink-2)' }}>萌芽や定植のタイミングなど、いつから積み上げるかを自分で決められます。</span>
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-color)', flexShrink: 0, marginTop: '0.5rem' }} />
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: '0.5rem' }} />
                 <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
-                  <strong>積算温度は、基準温度を2種類まで登録。</strong><span style={{ color: 'var(--text-secondary)' }}>作物や用途に合わせた基準温度を2つ持てるので、ねらいの異なる積算を並べて確認できます。</span>
+                  <strong>積算温度は、基準温度を2種類まで登録。</strong><span style={{ color: 'var(--ink-2)' }}>作物や用途に合わせた基準温度を2つ持てるので、ねらいの異なる積算を並べて確認できます。</span>
                 </p>
               </div>
             </Reveal>
@@ -833,7 +833,7 @@ function AiAdviceSection() {
             <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
               気象データを読み解く手間を、AIにまかせる。
             </p>
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.85 }}>
+            <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.85 }}>
               AIが気象データから作業できる時間帯と残るリスクを提案する機能を準備中です。
             </p>
           </div>
@@ -844,7 +844,7 @@ function AiAdviceSection() {
           <Reveal variant="fade-left">
             <p style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
               margin: '0 0 0.7rem',
             }}>
               <Sparkles size={16} /> AI農作業アドバイス
@@ -869,7 +869,7 @@ function AiAdviceSection() {
           <div>
             <p style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.82rem',
+              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
               margin: '0 0 0.7rem',
             }}>
               <SlidersHorizontal size={16} /> じぶん好みAI
@@ -892,7 +892,7 @@ function AiAdviceSection() {
 
 /* ── 比較表 ── */
 function MarkCell({ mark, ours = false }: { mark: CompMark; ours?: boolean }) {
-  const color = (mark.m === '✓' || mark.m === '○' || mark.m === '◎') ? 'var(--accent-color)' : mark.m === '△' ? '#d97706' : '#b3bcc9';
+  const color = (mark.m === '✓' || mark.m === '○' || mark.m === '◎') ? 'var(--accent)' : mark.m === '△' ? '#d97706' : '#b3bcc9';
   return (
     <td className={ours ? 'lp-comp-ours' : undefined}>
       <span style={{ color, fontWeight: 800, fontSize: '1rem' }}>{mark.m}</span>
@@ -915,7 +915,7 @@ function ComparisonSection() {
                 <thead>
                   <tr>
                     <th></th>
-                    <th style={{ color: 'var(--accent-color)' }}>Orch.Weather</th>
+                    <th style={{ color: 'var(--accent)' }}>Orch.Weather</th>
                     <th>一般天気アプリ</th>
                     <th>気象庁HP</th>
                   </tr>
@@ -979,7 +979,7 @@ function TierComparisonSection() {
                     <th colSpan={2}></th>
                     <th>ログインなし</th>
                     <th>ログイン<br />（無料）</th>
-                    <th style={{ color: 'var(--accent-color)' }}>ログイン<br />（有料）<span style={{ fontSize: '0.68rem', fontWeight: 600 }}>※予定</span></th>
+                    <th style={{ color: 'var(--accent)' }}>ログイン<br />（有料）<span style={{ fontSize: '0.68rem', fontWeight: 600 }}>※予定</span></th>
                   </tr>
                 </thead>
                 <RevealTbody>
@@ -988,7 +988,7 @@ function TierComparisonSection() {
                       {i === 0 && (
                         <td
                           rowSpan={g.rows.length}
-                          style={{ textAlign: 'left', fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap', borderRight: '1px solid var(--card-border-sub)' }}
+                          style={{ textAlign: 'left', fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap', borderRight: '1px solid var(--line)' }}
                         >
                           {g.group}
                         </td>
@@ -1005,7 +1005,7 @@ function TierComparisonSection() {
           </div>
         </Reveal>
         <Reveal delay={0.15}>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.85, margin: '1rem 0 0' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--ink-2)', lineHeight: 1.85, margin: '1rem 0 0' }}>
 いまはお試し期間として、多くの機能を無料でお使いいただけます。ご利用いただける機能の範囲は、お試し期間の終了やサービスの状況により、今後変更となる場合があります。あらかじめご了承ください。
           </p>
         </Reveal>
@@ -1023,9 +1023,9 @@ function MakerNote() {
           <div className="lp-glass" style={{
             padding: 'clamp(1.6rem, 4vw, 2.4rem)',
             textAlign: 'center',
-            borderTop: '3px solid var(--accent-color)',
+            borderTop: '3px solid var(--accent)',
           }}>
-            <Sprout size={26} color="var(--accent-color)" style={{ marginBottom: '0.8rem' }} />
+            <Sprout size={26} color="var(--accent)" style={{ marginBottom: '0.8rem' }} />
             <h2 className="lp-h2" style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.6rem)' }}>
               作ったのは、同じ悩みを持つ農家です。
             </h2>
@@ -1037,7 +1037,7 @@ function MakerNote() {
               marginTop: '1rem',
               fontSize: 'clamp(0.85rem, 2.2vw, 0.92rem)',
               lineHeight: 1.9,
-              color: 'var(--text-secondary)',
+              color: 'var(--ink-2)',
             }}>
               積算温度を自動で計算し、昨年と何日違うかを並べて表示。天気は「概況」と「リスク」を切り替えて確認でき、1日は畑に出る時間に合わせて午前・午後・夜間に分割。カッパが要るかどうかまで一目でわかります。こうした機能は、机の上ではなく、現場で使いながら磨いてきたものばかりです。
             </p>
@@ -1079,7 +1079,7 @@ function StepsSection() {
                 {s.num}
               </div>
               <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.98rem' }}>{s.title}</p>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.86rem', lineHeight: 1.8 }}>{s.body}</p>
+              <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.8 }}>{s.body}</p>
             </div>
           ))}
         </Reveal>
@@ -1103,7 +1103,7 @@ function FinalCta({ loading, onLogin }: { loading: boolean; onLogin: () => void 
             className="lp-cta"
             onClick={onLogin}
             disabled={loading}
-            style={{ background: '#fff', color: 'var(--accent-color)', boxShadow: '0 10px 26px rgba(0,0,0,0.18)' }}
+            style={{ background: '#fff', color: 'var(--accent)', boxShadow: '0 10px 26px rgba(0,0,0,0.18)' }}
           >
             <GoogleIcon />
             {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
@@ -1137,7 +1137,7 @@ function LpFooter() {
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <Leaf size={16} color="var(--accent-color)" />
+            <Leaf size={16} color="var(--accent)" />
             <span style={{ fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>Orch.Weather</span>
           </div>
           <p style={{ margin: '0 0 0.5rem' }}>
