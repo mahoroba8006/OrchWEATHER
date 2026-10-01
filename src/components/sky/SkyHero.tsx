@@ -98,6 +98,8 @@ export function SkyHero({
   }, [temperature, reduced]);
 
   const shown = counting ?? temperature;
+  // 4文字以上（"-12°" など）の気温は中央のアイコンと重なるため、狭い幅ではアイコンを右へ退避させる
+  const wideTemp = temperature !== null && `${Math.round(temperature)}°`.length >= 4;
   const enter = (i: number) => ({
     initial: playIntro ? { opacity: 0, y: 12 } : false,
     animate: { opacity: 1, y: 0 },
@@ -145,7 +147,7 @@ export function SkyHero({
         <m.div className="sky-hero__main" {...enter(1)}>
           <span className="sky-hero__temp">{`${shown === null ? '—' : Math.round(shown)}°`}</span>
           {weatherCode !== null && (
-            <span aria-hidden="true" className="sky-hero__icon">
+            <span aria-hidden="true" className={`sky-hero__icon${wideTemp ? ' sky-hero__icon--wide-temp' : ''}`}>
               <WeatherIcon code={weatherCode} isNight={sky.isNight} size={88} />
             </span>
           )}

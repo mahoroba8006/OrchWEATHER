@@ -44,6 +44,17 @@ describe('SkyHero', () => {
     expect(screen.getByText(/最低 18°/)).toBeTruthy();
     expect(screen.getByText('最終更新 23:15')).toBeTruthy();
   });
+  it('marks the icon when the temperature has 4+ characters', () => {
+    setup({ temperature: -12 });
+    const container = document;
+    expect(container.querySelector('.sky-hero__icon--wide-temp')).not.toBeNull();
+  });
+  it('does not mark the icon for short temperatures', () => {
+    setup({ temperature: 23 });
+    const container = document;
+    expect(container.querySelector('.sky-hero__icon')).not.toBeNull();
+    expect(container.querySelector('.sky-hero__icon--wide-temp')).toBeNull();
+  });
   it('fires onLocate and onRefresh', () => {
     const p = setup();
     fireEvent.click(screen.getByRole('button', { name: '現在地を表示' }));

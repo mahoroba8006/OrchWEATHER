@@ -248,7 +248,13 @@
   height: 64px;
 }
 .sky-hero__icon > * { width: 100%; height: 100%; }
-@media (min-width: 400px) { .sky-hero__icon { width: 88px; height: 88px; } }
+/* 狭い幅で気温が4文字以上のときは、中央ではなく行の右端へ（数字に重ねない） */
+.sky-hero__icon--wide-temp { left: auto; right: 0; transform: translateY(-50%); }
+@media (min-width: 400px) {
+  .sky-hero__icon { width: 88px; height: 88px; }
+  .sky-hero__icon--wide-temp { left: 50%; right: auto; transform: translate(-50%, -50%); }
+}
+@media (min-width: 768px) { .sky-hero__icon { width: 128px; height: 128px; } }
 
 .sky-hero__meta { margin-top: 0.5rem; }
 .sky-hero__label { font-size: 1.1rem; font-weight: 500; }
