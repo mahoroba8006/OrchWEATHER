@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import type { CSSProperties } from 'react';
-import { Save, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useAppStore, ALL_JMA_GROUPS, type JmaWarningGroup } from '../../store';
+import { Button } from '../ui/Button';
+import { SaveButton } from '../ui/SaveButton';
+import { Toggle } from '../ui/Toggle';
+import './settings.css';
 
 type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
 type LevelTag = 'advisory' | 'warning' | 'special';
@@ -98,19 +101,6 @@ const GROUP_SECTIONS: { label: string; groups: JmaWarningGroup[] }[] = [
   { label: '沿岸',      groups: ['波浪', '高潮'] },
 ];
 
-const SAVE_BTN: CSSProperties = {
-  background: 'rgba(244,167,185,0.35)',
-  color: '#7a2840',
-  border: '1px solid rgba(244,167,185,0.6)',
-  borderRadius: 'var(--radius-md, 6px)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.3rem',
-  padding: '0.4rem 0.9rem',
-  fontSize: '0.85rem',
-};
-
 export function JmaWarningSettings() {
   const { userSettings, updateEnabledJmaGroups } = useAppStore();
   const [enabled, setEnabled] = useState<JmaWarningGroup[]>(
@@ -152,106 +142,51 @@ export function JmaWarningSettings() {
   };
 
   const renderStatus = () => {
-    if (status.kind === 'idle') return null;
-    const color =
-      status.kind === 'error' ? '#c62828' :
-      status.kind === 'saved' ? '#2e7d32' :
-      'var(--text-secondary)';
-    return (
-      <span style={{ marginRight: '0.6rem', fontSize: '0.78rem', color, alignSelf: 'center' }}>
-        {status.kind === 'saving' ? '保存中…' : status.msg}
-      </span>
-    );
+    if (status.kind !== 'error') return null;
+    return <span className="set-error">{status.msg}</span>;
   };
 
   return (
-    <div
-      className="glass-panel"
-      style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
-    >
+    <div className="set-card">
       <div>
-        <h3 style={{ margin: '0 0 0.35rem', fontSize: '1rem' }}>注意報・警報の表示設定</h3>
-        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+        <h3 className="set-title">注意報・警報の表示設定</h3>
+        <p className="set-desc">
           チェックを外した種別は天気情報タブに表示されません。特別警報は常に表示されます。
         </p>
       </div>
 
       {GROUP_SECTIONS.map(section => (
         <div key={section.label}>
-          <div style={{
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            marginBottom: '0.25rem',
-          }}>
-            {section.label}
-          </div>
+          <div className="set-subhead">{section.label}</div>
 
-          <div style={{
-            border: '1px solid var(--card-border)',
-            borderRadius: 'var(--radius-md, 8px)',
-            overflow: 'hidden',
-          }}>
-            {section.groups.map((group, idx) => {
+          <div className="set-list">
+            {section.groups.map(group => {
               const info = GROUP_INFO[group];
               const isChecked = enabled.includes(group);
               const lvStyle = LEVEL_STYLE[info.level];
-              const isLast = idx === section.groups.length - 1;
 
               return (
-                <label
-                  key={group}
-                  style={{
-                    display: 'flex',
-                    gap: '0.75rem',
-                    padding: '0.75rem 1rem',
-                    borderBottom: isLast ? 'none' : '1px solid var(--card-border)',
-                    cursor: 'pointer',
-                    background: isChecked ? 'transparent' : 'rgba(0,0,0,0.02)',
-                    transition: 'background 0.15s',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={e => toggle(group, e.target.checked)}
-                    style={{
-                      width: '1rem',
-                      height: '1rem',
-                      marginTop: '0.15rem',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      accentColor: 'var(--accent-color)',
-                    }}
-                  />
-                  <div style={{ flex: 1, opacity: isChecked ? 1 : 0.45, transition: 'opacity 0.15s' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{group}</span>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontWeight: 600,
-                        color: lvStyle.color,
-                        background: lvStyle.bg,
-                        border: `1px solid ${lvStyle.border}`,
-                        borderRadius: '999px',
-                        padding: '0.1rem 0.5rem',
-                        lineHeight: 1.6,
-                        whiteSpace: 'nowrap',
-                      }}>
+                <label key={group} className="set-row">
+                  <div className={isChecked ? 'set-row__body' : 'set-row__body set-row__body--off'}>
+                    <div className="set-row__head">
+                      <span className="set-row__title">{group}</span>
+                      <span
+                        className="set-chip"
+                        style={{ color: lvStyle.color, background: lvStyle.bg, border: `1px solid ${lvStyle.border}` }}
+                      >
                         {LEVEL_LABEL[info.level]}
                       </span>
                     </div>
-                    <p style={{
-                      margin: 0,
-                      fontSize: '0.78rem',
-                      color: 'var(--text-secondary)',
-                      lineHeight: 1.6,
-                    }}>
-                      {info.desc}
-                    </p>
+                    <p className="set-row__desc">{info.desc}</p>
                   </div>
+                  <span className="set-row__toggle">
+                    <Toggle
+                      hideLabel
+                      label={group}
+                      checked={isChecked}
+                      onChange={v => toggle(group, v)}
+                    />
+                  </span>
                 </label>
               );
             })}
@@ -259,39 +194,22 @@ export function JmaWarningSettings() {
         </div>
       ))}
 
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingTop: '0.5rem',
-        borderTop: '1px solid rgba(0,0,0,0.06)',
-      }}>
-        <button
+      <div className="set-actions set-actions--split">
+        <Button
+          variant="secondary"
+          className="set-btn-sm"
           onClick={handleReset}
           disabled={status.kind === 'saving'}
-          className="secondary"
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.3rem',
-            fontSize: '0.82rem', padding: '0.4rem 0.75rem',
-            opacity: status.kind === 'saving' ? 0.6 : 1,
-            cursor: status.kind === 'saving' ? 'not-allowed' : 'pointer',
-          }}
         >
           <RotateCcw size={13} /> すべて表示に戻す
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        </Button>
+        <div className="set-actions__right">
           {renderStatus()}
-          <button
+          <SaveButton
             onClick={() => handleSave(enabled)}
-            disabled={status.kind === 'saving'}
-            style={{
-              ...SAVE_BTN,
-              cursor: status.kind === 'saving' ? 'not-allowed' : 'pointer',
-              opacity: status.kind === 'saving' ? 0.6 : 1,
-            }}
-          >
-            <Save size={14} /> 保存
-          </button>
+            saving={status.kind === 'saving'}
+            saved={status.kind === 'saved'}
+          />
         </div>
       </div>
     </div>

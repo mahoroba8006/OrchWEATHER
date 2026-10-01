@@ -13,7 +13,7 @@ const BACK_BTN_STYLE: CSSProperties = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  color: 'var(--accent-color)',
+  color: 'var(--accent)',
   fontSize: '0.88rem',
   fontWeight: 600,
   padding: '0.5rem 0',
@@ -23,7 +23,7 @@ const BACK_HEADER_STYLE: CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 10,
-  background: 'var(--bg-color)',
+  background: 'var(--surface-ground)',
   paddingTop: '1rem',
   paddingBottom: '0.25rem',
 };
@@ -31,32 +31,32 @@ const BACK_HEADER_STYLE: CSSProperties = {
 const H1_STYLE: CSSProperties = {
   fontSize: '1.25rem',
   fontWeight: 800,
-  color: 'var(--text-primary)',
+  color: 'var(--ink-1)',
   marginBottom: '1rem',
 };
 
 const H2_STYLE: CSSProperties = {
-  fontSize: '1rem',
+  fontSize: '1.05rem',
   fontWeight: 700,
-  color: 'var(--text-primary)',
-  marginTop: '2rem',
+  color: 'var(--ink-1)',
+  marginTop: '24px',
   marginBottom: '0.6rem',
   paddingBottom: '0.3rem',
-  borderBottom: '1px solid var(--card-border)',
+  borderBottom: '1px solid var(--line)',
 };
 
 const H3_STYLE: CSSProperties = {
-  fontSize: '0.9rem',
-  fontWeight: 700,
-  color: 'var(--accent-color)',
+  fontSize: '0.92rem',
+  fontWeight: 600,
+  color: 'var(--ink-1)',
   marginTop: '1.1rem',
   marginBottom: '0.4rem',
 };
 
 const P_STYLE: CSSProperties = {
-  fontSize: '0.875rem',
-  color: 'var(--text-secondary)',
-  lineHeight: 1.7,
+  fontSize: '0.88rem',
+  color: 'var(--ink-2)',
+  lineHeight: 1.8,
   marginBottom: '0.5rem',
 };
 
@@ -83,8 +83,8 @@ const NOTE_BOX: CSSProperties = {
 };
 
 const TOC_STYLE: CSSProperties = {
-  background: 'rgba(13, 148, 136, 0.06)',
-  border: '1px solid rgba(13, 148, 136, 0.2)',
+  background: 'rgba(var(--accent-rgb), 0.06)',
+  border: '1px solid rgba(var(--accent-rgb), 0.2)',
   borderRadius: 'var(--radius-md)',
   padding: '0.75rem 1.25rem',
   marginBottom: '0.5rem',
@@ -93,7 +93,7 @@ const TOC_STYLE: CSSProperties = {
 const TOC_ITEM_STYLE: CSSProperties = {
   display: 'block',
   fontSize: '0.875rem',
-  color: 'var(--accent-color)',
+  color: 'var(--accent)',
   textDecoration: 'none',
   padding: '0.2rem 0',
   fontWeight: 500,
@@ -102,7 +102,7 @@ const TOC_ITEM_STYLE: CSSProperties = {
 const TOC_LABEL_STYLE: CSSProperties = {
   fontSize: '0.75rem',
   fontWeight: 700,
-  color: 'var(--text-secondary)',
+  color: 'var(--ink-2)',
   marginBottom: '0.4rem',
   letterSpacing: '0.05em',
 };
@@ -135,7 +135,7 @@ export function HelpPage({ onBack }: Props) {
         <section id="location">
           <h2 style={H2_STYLE}>1. 地点登録の方法</h2>
           <p style={P_STYLE}>
-            設定画面の「地点管理」から地点を登録します。以下の3つの方法が使えます。
+            設定画面の「地点設定」から地点を登録します。以下の3つの方法が使えます。
           </p>
           <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%' }}>
             <thead>
@@ -146,15 +146,15 @@ export function HelpPage({ onBack }: Props) {
             </thead>
             <tbody>
               <tr>
-                <td style={{ fontWeight: 600 }}>現在地から取得</td>
+                <td style={{ fontWeight: 600 }}>現在地で登録</td>
                 <td>ブラウザの位置情報を使って自動取得します。初回は許可ダイアログが表示されます。</td>
               </tr>
               <tr>
-                <td style={{ fontWeight: 600 }}>マップから選択</td>
+                <td style={{ fontWeight: 600 }}>マップから選ぶ</td>
                 <td>地図上をタップ／クリックして任意の地点を登録します。</td>
               </tr>
               <tr>
-                <td style={{ fontWeight: 600 }}>手動入力</td>
+                <td style={{ fontWeight: 600 }}>手動で追加</td>
                 <td>地点名・緯度・経度を直接入力して登録します。</td>
               </tr>
             </tbody>

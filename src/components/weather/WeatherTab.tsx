@@ -277,11 +277,11 @@ export function WeatherTab() {
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                 padding: '0.5rem 0.85rem',
                 background: 'rgba(255,255,255,0.75)',
-                border: '1px solid var(--card-border)',
+                border: '1px solid var(--line)',
                 borderRadius: 'var(--radius-md)',
-                fontSize: '0.8rem', color: 'var(--text-secondary)',
+                fontSize: '0.8rem', color: 'var(--ink-2)',
               }}>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)', flexShrink: 0 }} />
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent)', flexShrink: 0 }} />
                 空のようすを みています…
               </div>
             ) : aiComment ? (
@@ -297,9 +297,9 @@ export function WeatherTab() {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '0.5rem 0.85rem',
                   background: '#ffffff',
-                  border: '1px solid rgba(13,148,136,0.3)',
+                  border: '1px solid rgba(var(--accent-rgb),0.3)',
                   borderRadius: 'var(--radius-md)',
-                  fontSize: '0.8rem', color: 'var(--accent-color)',
+                  fontSize: '0.8rem', color: 'var(--accent)',
                   cursor: 'pointer',
                   userSelect: 'none',
                 }}
@@ -348,7 +348,7 @@ export function WeatherTab() {
           </section>
           </Reveal>
 
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textAlign: 'right', margin: '0.1rem 0.5rem' }}>
+          <p style={{ fontSize: '0.7rem', color: 'var(--ink-3)', textAlign: 'right', margin: '0.1rem 0.5rem' }}>
             午前：4〜12時　　午後：12〜20時　　夜間：20〜翌4時
           </p>
 

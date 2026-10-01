@@ -430,7 +430,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 const altMode         = weatherCodeMode === 'severity' ? 'frequency' : 'severity';
                 const altModeLabel    = altMode === 'frequency' ? '概況' : 'リスク';
                 const altModeTagStyle: CSSProperties = altMode === 'frequency'
-                  ? { background: 'white', color: 'var(--accent)', border: '1px solid rgba(13,148,136,0.3)' }
+                  ? { background: 'white', color: 'var(--accent)', border: '1px solid rgba(var(--accent-rgb),0.3)' }
                   : { background: 'white', color: '#7a2840',       border: '1px solid rgba(244,167,185,0.6)' };
                 // height: 160 = text(12) + gap(2) + icon(84) + gap(2) + mini label(14) + gap(2) + mini icon(42) + 2
                 const iconContainer: CSSProperties = {

@@ -189,3 +189,60 @@
 
 /* 中身のない Reveal は間隔(gap)を作らない */
 [data-reveal]:empty { display: none; }
+
+/* Toggle */
+.ui-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ui-toggle--disabled { cursor: not-allowed; }
+.ui-toggle__track {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 44px;
+  height: 28px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.ui-toggle__track:hover:not(:disabled) { background: var(--surface-sunken); }
+.ui-toggle__track:active { transform: none; }
+.ui-toggle__track[data-checked='true'] { background: var(--accent); border-color: var(--accent); justify-content: flex-end; }
+.ui-toggle__track[data-checked='true']:hover:not(:disabled) { background: var(--accent-press); border-color: var(--accent-press); }
+.ui-toggle__track:disabled { opacity: 0.45; cursor: not-allowed; }
+.ui-toggle__thumb {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(23, 25, 28, 0.25);
+}
+.ui-toggle__label { font-size: 0.9rem; color: var(--ink-1); }
+
+/* SaveButton */
+.ui-savebtn { min-width: 6.5rem; }
+.ui-savebtn__inner { display: inline-flex; align-items: center; gap: 0.4rem; }
+.ui-savebtn__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ui-savebtn-pulse 1s ease-in-out infinite;
+}
+@keyframes ui-savebtn-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-savebtn__pulse { animation: none; opacity: 0.6; }
+}

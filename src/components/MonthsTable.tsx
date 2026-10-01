@@ -35,7 +35,7 @@ export function MonthsTable({ rowsDef, targets, stats, getYearColor, getLocation
                       {rowDef.label}
                     </td>
                   )}
-                  <td style={{ color: getYearColor(idx, 'var(--text-primary)'), fontWeight: 500, textAlign: 'center', lineHeight: '1.4' }}>
+                  <td style={{ color: getYearColor(idx, 'var(--ink-1)'), fontWeight: 500, textAlign: 'center', lineHeight: '1.4' }}>
                     {getLocationName(target.locationId)} <br/><span style={{fontSize: '0.85em', opacity: 0.8}}>{target.year}年</span>
                   </td>
                   {Array.from({ length: 12 }, (_, m) => {

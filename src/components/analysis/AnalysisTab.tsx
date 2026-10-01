@@ -128,7 +128,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
   const getYearColor = (index: number, _baseColor: string) => {
     const targetColors = [
-      'var(--accent-color)', // 1つ目: グリーン系
+      'var(--accent)', // 1つ目: グリーン系
       '#9b66d9',             // 2つ目: パープル系
       'var(--chart-precip)', // 3つ目: ブルー系
     ];

@@ -1,5 +1,5 @@
-/* アプリ本体: IBM Plex Sans JP ／ LP（landing.css）: Outfit + Inter（LPは第5段階で統一するまで据え置き） */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+/* フォント: アプリ本体・LPとも IBM Plex Sans JP に統一 */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* ── 面（不透明3段） ── */
@@ -36,26 +36,10 @@
   --radius-xl: 24px;
   --radius-pill: 999px;
 
-  /* ── 互換エイリアス（既存コンポーネント用・第5段階で撤去） ── */
-  --bg-gradient: var(--surface-ground);
-  --bg-color: var(--surface-ground);
-  --card-bg: var(--surface-card);
-  --card-bg-solid: var(--surface-card);
-  --card-border: var(--line);
-  --card-border-hover: var(--line-strong);
-  --card-border-sub: var(--line);
-  --text-primary: var(--ink-1);
-  --text-secondary: var(--ink-2);
-  --text-tertiary: var(--ink-3);
-  --accent-color: var(--accent);
-  --accent-hover: var(--accent-press);
-  --accent-light: var(--accent-soft);
+  /* ── 補助色（情報・グリッド） ── */
   --accent-blue: #0369A1;
   --accent-blue-hover: #075985;
   --accent-blue-light: rgba(3, 105, 161, 0.06);
-  --shadow-sm: var(--shadow-card);
-  --shadow-md: var(--shadow-card);
-  --shadow-lg: var(--shadow-raised);
   --grid-color: rgba(23, 25, 28, 0.06);
 
   /* チャート用の意味色（系列＝比較対象の識別色とは別。識別色は AnalysisTab の getYearColor） */
@@ -127,7 +111,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 1.25rem;
-  border-bottom: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--line);
 }
 
 .title {
@@ -170,7 +154,7 @@ body {
 
 .stat-label {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -180,7 +164,7 @@ body {
 .stat-value {
   font-size: 2.25rem;
   font-weight: 800;
-  color: var(--text-primary);
+  color: var(--ink-1);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
@@ -196,7 +180,7 @@ body {
   font-size: 1.05rem;
   font-weight: 700;
   margin-bottom: 1.25rem;
-  color: var(--text-primary);
+  color: var(--ink-1);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -218,7 +202,7 @@ body {
 
 .form-group label {
   font-size: 0.78rem;
-  color: var(--text-secondary);
+  color: var(--ink-2);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -244,7 +228,7 @@ select:focus, input:focus {
 
 option {
   background-color: #ffffff;
-  color: var(--text-primary);
+  color: var(--ink-1);
 }
 
 button {
@@ -357,8 +341,8 @@ button.secondary:hover {
   overflow-y: hidden;
   margin-top: 1.25rem;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--card-border-sub);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--line);
   transform: translateZ(0);
 }
 
@@ -452,13 +436,6 @@ button.secondary:hover {
 
 .premium-segmented-tab button {
   border-radius: var(--radius-pill) !important;
-}
-
-/* 設定画面のサブタブ（下線型）: デフォルトの button box-shadow/hover演出を打ち消す */
-.settings-subtab-btn,
-.settings-subtab-btn:hover {
-  box-shadow: none !important;
-  transform: none !important;
 }
 
 .premium-pill {

@@ -211,8 +211,8 @@ export function HistoricalWeatherTab() {
 
       {loading && !data && (
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 200, gap: '0.9rem' }}>
-          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-color)' }} />
-          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent)' }} />
+          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--ink-2)' }}>
             {loadingStatus || '気象データを取得中...'}
           </span>
         </div>

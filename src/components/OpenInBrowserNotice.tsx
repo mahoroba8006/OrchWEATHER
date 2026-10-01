@@ -41,15 +41,15 @@ export function OpenInBrowserNotice({ app, onDismiss }: OpenInBrowserNoticeProps
     <div className="modal-overlay guidance-modal-overlay" role="presentation">
       <section ref={dialogRef} className="modal-content guidance-modal-content" role="dialog" aria-modal="true" aria-labelledby="open-in-browser-title" tabIndex={-1}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-          <div><p style={{ margin: 0, color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 800 }}>表示についてのお知らせ</p><h2 id="open-in-browser-title" style={{ margin: '0.25rem 0 0', fontSize: '1.35rem' }}>ブラウザで開くお願い</h2></div>
+          <div><p style={{ margin: 0, color: 'var(--accent)', fontSize: '0.8rem', fontWeight: 800 }}>表示についてのお知らせ</p><h2 id="open-in-browser-title" style={{ margin: '0.25rem 0 0', fontSize: '1.35rem' }}>ブラウザで開くお願い</h2></div>
           <button ref={closeButtonRef} type="button" className="secondary" aria-label="閉じる" onClick={onDismiss} style={{ minWidth: 36, padding: '0.4rem' }}><X size={18} /></button>
         </div>
-        <p style={{ lineHeight: 1.7, color: 'var(--text-secondary)', margin: '1rem 0' }}>{app}のアプリ内ブラウザでは、一部の機能が正しく動かないことがあります。アドレス欄付近のメニューを開き、「ブラウザで開く」を選んでください。表示がない場合は、下のURLをコピーしてChromeやSafariなどのブラウザで開いてください。</p>
+        <p style={{ lineHeight: 1.7, color: 'var(--ink-2)', margin: '1rem 0' }}>{app}のアプリ内ブラウザでは、一部の機能が正しく動かないことがあります。アドレス欄付近のメニューを開き、「ブラウザで開く」を選んでください。表示がない場合は、下のURLをコピーしてChromeやSafariなどのブラウザで開いてください。</p>
         <OpenInBrowserDiagram app={app} />
-        <p style={{ margin: '1rem 0 0.35rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>このページのURL</p>
-        <div style={{ padding: '0.65rem', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', overflowWrap: 'anywhere', background: '#fff', color: 'var(--text-secondary)' }}>{url}</div>
+        <p style={{ margin: '1rem 0 0.35rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--ink-2)' }}>このページのURL</p>
+        <div style={{ padding: '0.65rem', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: '0.78rem', overflowWrap: 'anywhere', background: '#fff', color: 'var(--ink-2)' }}>{url}</div>
         <button type="button" onClick={handleCopy} style={{ width: '100%', marginTop: '0.65rem' }}>{copyState === 'copied' ? <Check size={17} /> : <Copy size={17} />}{copyState === 'copied' ? 'コピーしました' : 'URLをコピー'}</button>
-        <p style={{ margin: '0.65rem 0 0', fontSize: '0.78rem', color: copyState === 'failed' ? '#b91c1c' : 'var(--text-tertiary)', lineHeight: 1.55 }}>{copyState === 'failed' ? 'コピーできませんでした。上のURLを長押ししてコピーしてください。' : 'コピーできない場合は、URLを長押ししてコピーしてください。'}</p>
+        <p style={{ margin: '0.65rem 0 0', fontSize: '0.78rem', color: copyState === 'failed' ? '#b91c1c' : 'var(--ink-3)', lineHeight: 1.55 }}>{copyState === 'failed' ? 'コピーできませんでした。上のURLを長押ししてコピーしてください。' : 'コピーできない場合は、URLを長押ししてコピーしてください。'}</p>
         <button type="button" className="secondary" onClick={onDismiss} style={{ width: '100%', marginTop: '1rem' }}>あとで</button>
       </section>
     </div>
