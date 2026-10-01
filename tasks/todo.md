@@ -1,5 +1,7 @@
 # アプリ全面リニューアル「空が主役」（2026-09-30〜）
 
+**2026-10-01 main 反映済み（`6e1c22f..2efd2f3`、ユーザー指示）**
+
 仕様書: [docs/superpowers/specs/2026-09-30-app-visual-redesign-design.md](../docs/superpowers/specs/2026-09-30-app-visual-redesign-design.md)
 
 - [x] 設計合意（A空が主役／ヒーロー型／Motion導入／設定はシート）
