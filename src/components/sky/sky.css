@@ -225,10 +225,9 @@
 .sky-hero__spin { animation: spin 1.2s linear infinite; }
 
 .sky-hero__main {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   margin-top: 0.5rem;
 }
 .sky-hero__temp {
@@ -238,22 +237,33 @@
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
-.sky-hero__icon { display: inline-flex; flex-shrink: 0; }
-
-.sky-hero__meta {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 0.5rem;
+.sky-hero__icon {
+  /* ヒーローの水平中央に置く（気温と同じ帯）。狭い幅では気温の数字に重ならないよう小さくする */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  width: 64px;
+  height: 64px;
 }
+.sky-hero__icon > * { width: 100%; height: 100%; }
+/* 狭い幅で気温が4文字以上のときは、中央ではなく行の右端へ（数字に重ねない） */
+.sky-hero__icon--wide-temp { left: auto; right: 0; transform: translateY(-50%); }
+@media (min-width: 400px) {
+  .sky-hero__icon { width: 88px; height: 88px; }
+  .sky-hero__icon--wide-temp { left: 50%; right: auto; transform: translate(-50%, -50%); }
+}
+@media (min-width: 768px) { .sky-hero__icon { width: 128px; height: 128px; } }
+
+.sky-hero__meta { margin-top: 0.5rem; }
 .sky-hero__label { font-size: 1.1rem; font-weight: 500; }
 .sky-hero__range { margin-top: 0.15rem; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 .sky-hero__range-sep, .sky-hero__range-min { color: rgba(255, 255, 255, 0.7); }
-.sky-hero__updated { font-size: 0.75rem; color: rgba(255, 255, 255, 0.78); white-space: nowrap; text-shadow: 0 0 6px rgba(20, 40, 80, 0.35); }
+.sky-hero__updated { flex-shrink: 0; line-height: 1.3; font-size: 0.75rem; color: rgba(255, 255, 255, 0.78); white-space: nowrap; text-shadow: 0 0 6px rgba(20, 40, 80, 0.35); }
 .sky-hero__extra { margin-top: 0.75rem; font-size: 0.8rem; color: #fff; }
 
-/* 節気の絵: 呼吸の光の上・粒子の下に敷く背景。ヒーロー内側の枠（最大1200px）の右下に寄せ、右へ少し裾を切らす。 */
+/* 節気の絵: 呼吸の光の上・粒子の下に敷く背景。ヒーロー内側の枠（最大1200px）の右下に、はみ出さず収める。 */
 .sky-hero__art-frame {
   position: absolute;
   inset: 0;
@@ -263,10 +273,10 @@
 }
 .sky-hero__art {
   position: absolute;
-  right: -56px;
+  right: 1rem; /* ヒーローの左右パディングに揃え、はみ出さない */
   bottom: 40px; /* カードの重なり24pxの手前に収める */
-  width: 224px;
-  height: 224px;
+  width: 200px;
+  height: 200px;
   opacity: 0.3;
   line-height: 0;
   pointer-events: none;
@@ -274,19 +284,24 @@
 .sky-hero__art--night { opacity: 0.22; }
 .sky-hero__art svg { width: 100%; height: 100%; display: block; }
 
-/* 二十四節気・七十二候: 本文の後ろに流れで置き、margin-top:auto でヒーロー下部の空きに沈める。
+/* 最下段: 左に最終更新、右に二十四節気・七十二候（右寄せ）。margin-top:auto でヒーロー下部に沈める。
    背の高い画面では 40vh の最小高が吸収して高さは増えない。下端パディング40px＋カード重なり24pxの手前に置く。 */
-.sky-hero__sekki {
+.sky-hero__foot {
   margin-top: auto;
   padding-top: 8px; /* 親の gap 4px と合わせて最小 12px */
-  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
-.sekki-badge { display: flex; align-items: center; gap: 0.6rem; }
-.sekki-badge__text { min-width: 0; display: flex; flex-direction: column; }
-.sekki-badge__sekki { font-size: 0.85rem; font-weight: 500; color: rgba(255, 255, 255, 0.85); line-height: 1.3; }
-.sekki-badge__kou { font-size: 0.72rem; color: rgba(255, 255, 255, 0.7); line-height: 1.35; }
+.sky-hero__sekki { min-width: 0; margin-left: auto; pointer-events: none; }
+.sekki-badge { display: flex; justify-content: flex-end; }
+.sekki-badge__text { min-width: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+.sekki-badge__sekki { font-size: 0.95rem; font-weight: 500; color: rgba(255, 255, 255, 0.85); line-height: 1.3; }
+.sekki-badge__kou { font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); line-height: 1.35; }
 .sekki-badge__reading {
-  font-size: 0.62rem;
+  max-width: 100%;
+  font-size: 0.68rem;
   color: rgba(255, 255, 255, 0.55);
   line-height: 1.35;
   white-space: nowrap;
@@ -301,7 +316,7 @@
 
 @media (min-width: 768px) {
   .sky-hero { min-height: 320px; }
-  .sky-hero__art { width: 288px; height: 288px; right: -40px; bottom: 56px; }
+  .sky-hero__art { width: 280px; height: 280px; right: 2rem; bottom: 48px; }
   .sky-hero__inner { padding: 0.5rem 2rem 48px; }
 }
 @media (prefers-reduced-motion: reduce) {

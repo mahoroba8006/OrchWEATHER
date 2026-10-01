@@ -98,6 +98,8 @@ export function SkyHero({
   }, [temperature, reduced]);
 
   const shown = counting ?? temperature;
+  // 4文字以上（"-12°" など）の気温は中央のアイコンと重なるため、狭い幅ではアイコンを右へ退避させる
+  const wideTemp = temperature !== null && `${Math.round(temperature)}°`.length >= 4;
   const enter = (i: number) => ({
     initial: playIntro ? { opacity: 0, y: 12 } : false,
     animate: { opacity: 1, y: 0 },
@@ -122,7 +124,7 @@ export function SkyHero({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <SekkiArt index={sekkiIndex} variant="backdrop" size={288} />
+              <SekkiArt index={sekkiIndex} variant="backdrop" size={200} />
             </m.div>
           </div>
         )}
@@ -145,27 +147,27 @@ export function SkyHero({
         <m.div className="sky-hero__main" {...enter(1)}>
           <span className="sky-hero__temp">{`${shown === null ? '—' : Math.round(shown)}°`}</span>
           {weatherCode !== null && (
-            <span aria-hidden="true" className="sky-hero__icon">
+            <span aria-hidden="true" className={`sky-hero__icon${wideTemp ? ' sky-hero__icon--wide-temp' : ''}`}>
               <WeatherIcon code={weatherCode} isNight={sky.isNight} size={88} />
             </span>
           )}
         </m.div>
 
         <m.div className="sky-hero__meta" {...enter(2)}>
-          <div>
-            <div className="sky-hero__label">{weatherCode === null ? ' ' : codeToLabel(weatherCode)}</div>
-            <div className="sky-hero__range">
-              <span>{`最高 ${round(tempMax)}°`}</span>
-              <span className="sky-hero__range-sep"> / </span>
-              <span className="sky-hero__range-min">{`最低 ${round(tempMin)}°`}</span>
-            </div>
+          <div className="sky-hero__label">{weatherCode === null ? ' ' : codeToLabel(weatherCode)}</div>
+          <div className="sky-hero__range">
+            <span>{`最高 ${round(tempMax)}°`}</span>
+            <span className="sky-hero__range-sep"> / </span>
+            <span className="sky-hero__range-min">{`最低 ${round(tempMin)}°`}</span>
           </div>
-          {lastUpdated && <span className="sky-hero__updated">{`最終更新 ${lastUpdated}`}</span>}
         </m.div>
 
         {children && <m.div className="sky-hero__extra" {...enter(3)}>{children}</m.div>}
 
-        <div className="sky-hero__sekki"><SekkiBadge /></div>
+        <div className="sky-hero__foot">
+          {lastUpdated && <span className="sky-hero__updated">{`最終更新 ${lastUpdated}`}</span>}
+          <div className="sky-hero__sekki"><SekkiBadge /></div>
+        </div>
       </div>
     </section>
   );
