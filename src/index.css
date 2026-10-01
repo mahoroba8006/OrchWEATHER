@@ -1,5 +1,5 @@
-/* アプリ本体: IBM Plex Sans JP ／ LP（landing.css）: Outfit + Inter（LPは第5段階で統一するまで据え置き） */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+/* フォント: アプリ本体・LPとも IBM Plex Sans JP に統一 */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;600;700&display=swap');
 
 :root {
   /* ── 面（不透明3段） ── */

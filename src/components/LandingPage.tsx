@@ -297,7 +297,7 @@ function TabBadge({ icon: Icon, name }: { icon: typeof CloudSun; name: string })
       display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
       padding: '0.45rem 1rem',
       background: 'var(--accent-soft)',
-      border: '1px solid rgba(13,148,136,0.3)',
+      border: '1px solid rgba(var(--accent-rgb),0.3)',
       borderRadius: 999,
       color: 'var(--accent)',
       fontWeight: 800,
@@ -372,7 +372,7 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
             <Sprout size={14} /> 農家が現場で作った気象データ活用ツール
           </p>
           <h1 style={{
-            fontSize: 'clamp(1.7rem, 5.2vw, 2.7rem)', fontWeight: 800,
+            fontSize: 'clamp(1.4rem, 5.2vw, 2.2rem)', fontWeight: 800,
             lineHeight: 1.42, letterSpacing: '0.01em', margin: '0 0 1.1rem',
           }}>
             今日できるか、すぐわかる。<br />去年と比べて、数字で見える。
@@ -432,7 +432,7 @@ function BridgeSection() {
               <div key={tab.name} className="lp-glass" style={{ padding: '1.4rem 1.2rem', textAlign: 'center', height: '100%', boxSizing: 'border-box' }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 12,
-                  background: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(13,148,136,0.28))',
+                  background: 'linear-gradient(135deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.28))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 0.75rem',
                 }}>
@@ -521,7 +521,7 @@ function SoraMoyoSection() {
             <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(13,148,136,0.28))',
+                background: 'linear-gradient(135deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.28))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: '0.85rem',
               }}>
@@ -539,7 +539,7 @@ function SoraMoyoSection() {
             <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, rgba(13,148,136,0.12), rgba(13,148,136,0.28))',
+                background: 'linear-gradient(135deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.28))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 marginBottom: '0.85rem',
               }}>
@@ -567,9 +567,9 @@ function SoraMoyoSection() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
                   <div style={{
-                    background: 'rgba(13,148,136,0.1)', border: '1px solid #0d9488',
+                    background: 'rgba(var(--accent-rgb),0.1)', border: '1px solid var(--accent)',
                     borderRadius: 5, padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem', fontWeight: 700, color: '#0f766e',
+                    fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-press)',
                     whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
                   }}>
                     概況でみる
@@ -635,9 +635,9 @@ function SoraMoyoSection() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
                   <div style={{
-                    background: 'rgba(13,148,136,0.1)', border: '1px solid #0d9488',
+                    background: 'rgba(var(--accent-rgb),0.1)', border: '1px solid var(--accent)',
                     borderRadius: 5, padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem', fontWeight: 700, color: '#0f766e',
+                    fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-press)',
                     whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
                   }}>
                     ぽつぽつ
@@ -1071,7 +1071,7 @@ function StepsSection() {
             <div key={s.num} className="lp-glass" style={{ padding: '1.5rem 1.3rem', height: '100%', boxSizing: 'border-box', textAlign: 'center' }}>
               <div style={{
                 width: 40, height: 40, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-press) 100%)',
                 color: '#fff', fontWeight: 800, fontSize: '1.05rem',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 0.9rem',
