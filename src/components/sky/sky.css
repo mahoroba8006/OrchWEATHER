@@ -154,9 +154,14 @@
   overflow: hidden;
   min-height: 40vh;
   color: #fff;
+  display: flex;
+  flex-direction: column;
 }
 .sky-hero__inner {
   position: relative;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0.5rem 1rem 40px;
@@ -248,8 +253,40 @@
 .sky-hero__updated { font-size: 0.75rem; color: rgba(255, 255, 255, 0.7); white-space: nowrap; }
 .sky-hero__extra { margin-top: 0.75rem; font-size: 0.8rem; color: #fff; }
 
+/* 二十四節気・七十二候: ヒーロー下部の空き領域に絶対配置（高さを変えない・主役を押し下げない）。
+   下端のカード重なり（24px）の上に置く。*/
+.sky-hero__sekki {
+  position: absolute;
+  left: 1rem;
+  bottom: 32px;
+  right: 1rem;
+  pointer-events: none;
+}
+.sekki-badge { display: flex; align-items: center; gap: 0.6rem; }
+.sekki-badge__art { flex-shrink: 0; display: inline-flex; line-height: 0; }
+.sekki-badge__text { min-width: 0; display: flex; flex-direction: column; }
+.sekki-badge__sekki { font-size: 0.85rem; font-weight: 500; color: rgba(255, 255, 255, 0.85); line-height: 1.3; }
+.sekki-badge__kou { font-size: 0.72rem; color: rgba(255, 255, 255, 0.7); line-height: 1.35; }
+.sekki-badge__reading {
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* 幅が足りない時は省略（測定のため要素自体は残す） */
+.sekki-badge__reading--clipped { height: 0; visibility: hidden; }
+/* 空きは「ヒーロー高 − カード重なり24px − 本文」。モバイルは 40vh が 300px を超える（画面高 770px 以上）
+   ときだけ 56px 分の空きができる。それ未満では空きが無いので、高さを変えないよう丸ごと省略する。 */
+@media (max-width: 767px) and (max-height: 769px) {
+  .sky-hero__sekki { display: none; }
+}
+
 @media (min-width: 768px) {
   .sky-hero { min-height: 320px; }
+  /* PC は本文下の空きが約58pxなので、絵を44pxにして収める */
+  .sky-hero__sekki { left: 2rem; right: 2rem; }
+  .sekki-badge__art svg { width: 44px; height: 44px; }
   .sky-hero__inner { padding: 0.5rem 2rem 48px; }
 }
 @media (prefers-reduced-motion: reduce) {

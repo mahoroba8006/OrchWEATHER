@@ -7,6 +7,7 @@ import { hasIntroPlayed, markIntroPlayed } from '../../lib/intro';
 import { useSkyStore, type SkyState } from '../../skyStore';
 import { WeatherIcon, codeToLabel } from '../weather/WeatherIcon';
 import { SkyParticles } from './SkyParticles';
+import { SekkiBadge } from './SekkiBadge';
 import './sky.css';
 
 export interface SkyHeroProps {
@@ -140,6 +141,8 @@ export function SkyHero({
         </m.div>
 
         {children && <m.div className="sky-hero__extra" {...enter(3)}>{children}</m.div>}
+
+        <div className="sky-hero__sekki"><SekkiBadge /></div>
       </div>
     </section>
   );
