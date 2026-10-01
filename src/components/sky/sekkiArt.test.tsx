@@ -61,4 +61,23 @@ describe('SekkiArt', () => {
     const { container } = render(<SekkiArt index={24} />);
     expect(container.querySelector('svg')).not.toBeNull();
   });
+
+  it('backdrop variant renders with unique filter ids and only white / kinari', () => {
+    const { container } = render(<><SekkiArt index={3} variant="backdrop" size={300} /><SekkiArt index={3} variant="backdrop" /></>);
+    const [a, b] = container.querySelectorAll('svg');
+    expect(a.getAttribute('width')).toBe('300');
+    expect(a.querySelectorAll('path, circle, ellipse').length).toBeGreaterThanOrEqual(3);
+    const ids = (s: Element) => [...s.querySelectorAll('filter')].map((f) => f.id);
+    for (const id of ids(a)) expect(ids(b)).not.toContain(id);
+    for (const el of a.querySelectorAll('*')) {
+      for (const attr of COLOR_ATTRS) {
+        const v = el.getAttribute(attr);
+        if (v !== null) expect(v, `${el.tagName}[${attr}]`).toMatch(ALLOWED);
+      }
+    }
+    // icon より揺らぎが弱い
+    const scale = (s: Element) => Number(s.querySelector('feDisplacementMap')!.getAttribute('scale'));
+    const icon = render(<SekkiArt index={3} />).container.querySelector('svg')!;
+    expect(scale(a)).toBeLessThan(scale(icon));
+  });
 });

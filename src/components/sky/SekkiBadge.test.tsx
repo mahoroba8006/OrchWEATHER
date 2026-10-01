@@ -24,10 +24,8 @@ describe('SekkiBadge', () => {
     ).toBeTruthy();
   });
 
-  it('絵を1つ描画する（装飾）', () => {
+  it('絵は描画しない（文字のみ。絵はヒーロー背景）', () => {
     const { container } = renderWithMotion(<SekkiBadge date={date} />);
-    const svgs = container.querySelectorAll('svg');
-    expect(svgs.length).toBe(1);
-    expect(svgs[0].getAttribute('aria-hidden')).toBe('true');
+    expect(container.querySelector('svg')).toBeNull();
   });
 });
