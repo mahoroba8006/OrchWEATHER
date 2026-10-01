@@ -325,7 +325,7 @@ export function LocationSettings() {
                 transition={springs.move}
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
+                exit={{ opacity: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}
                 style={{ paddingBottom: '1rem' }}
               >
                 {isEditing ? (
