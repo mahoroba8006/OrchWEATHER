@@ -1,10 +1,56 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { Leaf, Copy, Check } from 'lucide-react';
+import { m } from 'motion/react';
 import { auth } from '../lib/firebase';
 import { logLogin } from '../lib/analytics';
+import { springs } from '../lib/motion';
+import { skyPalette } from '../lib/sky';
+import { SkyParticles } from './sky/SkyParticles';
+import { Button } from './ui/Button';
 
 const provider = new GoogleAuthProvider();
+
+// 夜明けの空（上→下）。画面全体の背景にする
+const DAWN = skyPalette('dawn', 'clear');
+
+/** 夜明けの空の上に、白いカードを浮かべる共通の枠 */
+function LoginShell({ children }: { children: ReactNode }) {
+  return (
+    <div style={{
+      position: 'relative',
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem 0',
+      overflow: 'hidden',
+      background: `linear-gradient(180deg, ${DAWN.top} 0%, ${DAWN.bottom} 100%)`,
+    }}>
+      <SkyParticles weather="clear" isNight={false} paused={false} />
+      <m.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={springs.enter}
+        style={{
+          position: 'relative',
+          width: 'min(400px, calc(100% - 32px))',
+          boxSizing: 'border-box',
+          background: 'var(--surface-card)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: 'var(--shadow-raised)',
+          padding: '2rem 1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.5rem',
+        }}
+      >
+        {children}
+      </m.div>
+    </div>
+  );
+}
 
 const isIOSStandalone = () =>
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -69,15 +115,7 @@ export function LoginScreen() {
         ];
 
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-        gap: '1.5rem',
-      }}>
+      <LoginShell>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Leaf size={32} color="var(--accent)" />
           <h1 style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0 }}>Orch.Weather</h1>
@@ -87,8 +125,8 @@ export function LoginScreen() {
           background: 'rgba(251, 191, 36, 0.12)',
           border: '1px solid rgba(251, 191, 36, 0.4)',
           borderRadius: 'var(--radius-md)',
-          padding: '1.25rem 1.5rem',
-          maxWidth: '340px',
+          padding: '1.25rem 1.25rem',
+          boxSizing: 'border-box',
           width: '100%',
         }}>
           <p style={{ margin: '0 0 0.5rem 0', fontWeight: 700, fontSize: '0.95rem', color: '#92400e' }}>
@@ -104,8 +142,8 @@ export function LoginScreen() {
           background: 'rgba(var(--accent-rgb),0.07)',
           border: '1px solid rgba(var(--accent-rgb),0.2)',
           borderRadius: 'var(--radius-md)',
-          padding: '1.25rem 1.5rem',
-          maxWidth: '340px',
+          padding: '1.25rem 1.25rem',
+          boxSizing: 'border-box',
           width: '100%',
         }}>
           <p style={{ margin: '0 0 0.85rem 0', fontWeight: 700, fontSize: '0.88rem', color: 'var(--accent)' }}>
@@ -120,7 +158,7 @@ export function LoginScreen() {
           </ol>
         </div>
 
-        <div style={{ maxWidth: '340px', width: '100%' }}>
+        <div style={{ width: '100%' }}>
           <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.78rem', color: 'var(--ink-3)', textAlign: 'center' }}>
             または、URLをコピーしてブラウザに貼り付け
           </p>
@@ -147,20 +185,12 @@ export function LoginScreen() {
             {copied ? 'コピーしました！' : 'URLをコピー'}
           </button>
         </div>
-      </div>
+      </LoginShell>
     );
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '2rem',
-      padding: '2rem',
-    }}>
+    <LoginShell>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <Leaf size={36} color="var(--accent)" />
         <h1 style={{ fontSize: '2rem', fontWeight: 700, margin: 0 }}>Orch.Weather</h1>
@@ -170,19 +200,11 @@ export function LoginScreen() {
         Googleアカウントでログインすると、複数のデバイスから地点データを共有できます。
       </p>
 
-      <button
+      <Button
+        variant="secondary"
         onClick={handleLogin}
         disabled={loading}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.75rem 1.5rem',
-          fontSize: '1rem',
-          fontWeight: 600,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          opacity: loading ? 0.7 : 1,
-        }}
+        style={{ gap: '0.75rem', fontSize: '1rem', padding: '0 1.5rem', minHeight: 48 }}
       >
         <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
           <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
@@ -191,11 +213,11 @@ export function LoginScreen() {
           <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
         </svg>
         {loading ? 'ログイン中...' : 'Googleでログイン'}
-      </button>
+      </Button>
 
       {error && (
-        <p style={{ color: 'var(--chart-temp)', fontSize: '0.875rem' }}>{error}</p>
+        <p className="ui-shake" style={{ color: 'var(--chart-temp)', fontSize: '0.875rem', margin: 0 }}>{error}</p>
       )}
-    </div>
+    </LoginShell>
   );
 }
