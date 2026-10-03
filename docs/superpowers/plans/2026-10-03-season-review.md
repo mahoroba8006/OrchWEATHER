@@ -21,6 +21,9 @@
 | `src/lib/seasonReview.ts` | 新規 | 純粋関数（節気範囲・データ結合・集計・比較文言・見出し・積算ペース） |
 | `src/lib/seasonReview.test.ts` | 新規 | 上記の単体テスト |
 | `src/lib/analytics.ts` | 変更 | `logSeasonCardView` / `logSeasonCardOpen` 追加 |
+| `src/api/weather.ts` | 変更 | 当年分のメモリキャッシュを6時間で失効 |
+| `src/api/weather.test.ts` | 新規 | キャッシュ失効のテスト |
+| `src/api/forecast.ts` | 変更 | 予報データに取得地点 `lat/lon` を付与 |
 | `src/hooks/useSeasonReview.ts` | 新規 | 必要年の取得→計算。状態 idle/loading/hidden/ready |
 | `src/hooks/useSeasonReview.test.ts` | 新規 | フックのテスト |
 | `src/components/season/YearPaceStrip.tsx` | 新規 | 一行比較の帯（骨組み→本体） |
@@ -626,6 +629,24 @@ describe('積算気温のペース', () => {
     });
   });
 
+  it('0℃未満の日は0として積算する（積算値を減らさない）', () => {
+    const map = pastYears();
+    fill(map, '2026-01-01', '2026-01-31', { tempMean: -5 });
+    fill(map, '2026-02-01', '2026-10-02', { tempMean: 11 });
+    // 244日×11 = 2684 → 過去年は 269日目（通し番号268）で到達 → 268-274 = 6日遅い
+    expect(computeYearPace(map, '2026-10-03')).toEqual({ kind: 'accum', vsLastYear: -6, vsAvg: -6 });
+  });
+
+  it('1/1 は前年分を「今年」として数えず、直近30日に切り替える', () => {
+    const p = computeYearPace(pastYears(), '2026-01-01')!;
+    expect(p.kind).toBe('recent');
+    expect(formatYearPace(p).text).toBe('平均気温 去年より±0.0℃・5年平均より±0.0℃');
+  });
+
+  it('当年データが未着の 1/2 も前年を「今年」として数えない', () => {
+    expect(computeYearPace(pastYears(), '2026-01-02')!.kind).toBe('recent');
+  });
+
   it('データが無ければ null', () => {
     expect(computeYearPace(new Map(), '2026-10-03')).toBeNull();
   });
@@ -677,14 +698,14 @@ function latestDate(map: DayMap, onOrBefore: string): string | null {
   return best;
 }
 
-/** その年の 1/1 から end までの日ごとの積算気温（0℃基準）。欠けがあれば null */
+/** その年の 1/1 から end までの日ごとの有効積算気温（0℃基準＝0℃未満の日は0）。欠けがあれば null */
 function cumulative(map: DayMap, year: number, end: string): number[] | null {
   const out: number[] = [];
   let sum = 0;
   for (let d = `${year}-01-01`; d <= end; d = addDays(d, 1)) {
     const r = map.get(d);
     if (!r) return null;
-    sum += r.tempMean;
+    sum += Math.max(0, r.tempMean);
     out.push(sum);
   }
   return out;
@@ -693,8 +714,9 @@ function cumulative(map: DayMap, year: number, end: string): number[] | null {
 export function computeYearPace(map: DayMap, today: string): YearPace | null {
   const last = latestDate(map, addDays(today, -1));
   if (!last) return null;
-  const y = yearOf(last);
-  const cur = cumulative(map, y, last);
+  // 「今年」は today の暦年で固定する。最新実績が前年（1/1・当年データ未着）なら積算は使わない
+  const y = yearOf(today);
+  const cur = yearOf(last) === y ? cumulative(map, y, last) : null;
 
   if (cur && cur.length > 0 && cur[cur.length - 1] >= PACE_MIN_ACCUM) {
     const target = cur[cur.length - 1];
@@ -780,13 +802,13 @@ git commit -m "feat: 積算気温のペース（去年・5年平均比）を追�
 - [ ] **Step 1: 実装**（firebase 依存のため単体テストは書かない。既存関数と同じ形）
 
 ```ts
-// season_card_view はセッション中に一度だけ撃つ（タブ往復で膨らませない）。
+// season_card_view はセッション中に一度だけ撃つ（タブ往復・帯下とシートの両方で膨らませない）。
 let seasonCardViewLogged = false;
-/** 節気ふりかえりカードが空もように表示された。1セッション1回のみ実発火。 */
-export function logSeasonCardView(): void {
+/** 節気ふりかえりカード本体が画面に入った。1セッション1回のみ実発火。source は最初に見た場所。 */
+export function logSeasonCardView(source: 'inline' | 'sheet'): void {
   if (seasonCardViewLogged) return;
   seasonCardViewLogged = true;
-  track('season_card_view');
+  track('season_card_view', { source });
 }
 
 /** ヒーローの節気名からふりかえりカードを開いた。 */
@@ -809,7 +831,134 @@ git commit -m "feat: ふりかえりカードの計測イベントを追加"
 
 ---
 
-### Task 5: useSeasonReview フック
+### Task 5: 当年キャッシュの失効と、予報データへの取得地点の付与
+
+**Files:**
+- Modify: `src/api/weather.ts:4,69-74,145`
+- Modify: `src/api/forecast.ts:71-77,255`
+- Test: `src/api/weather.test.ts`（新規）
+
+理由: `fetchWeatherData` は当年分も無期限にメモリキャッシュするため、開いたまま日をまたぐと直近の実績が伸びず、予報 `pastDaily`（過去7日）の補完範囲を超えた欠けが残る。また、フックが「今の地点の予報が届いた」ことを確かめられるよう、予報データに取得地点を持たせる。
+
+- [ ] **Step 1: 失敗するテストを書く**
+
+`src/api/weather.test.ts`:
+
+```ts
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../lib/weatherFetch', () => ({ weatherFetch: vi.fn() }));
+import { weatherFetch } from '../lib/weatherFetch';
+import { fetchWeatherData } from './weather';
+
+const body = {
+  daily: {
+    time: ['2026-01-01'],
+    temperature_2m_mean: [5], temperature_2m_max: [9], temperature_2m_min: [1],
+    precipitation_sum: [0],
+    relative_humidity_2m_mean: [60], relative_humidity_2m_max: [80], relative_humidity_2m_min: [40],
+    shortwave_radiation_sum: [10], sunshine_duration: [3600],
+  },
+};
+const HOUR = 60 * 60 * 1000;
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-10-03T03:00:00Z'));
+  vi.mocked(weatherFetch).mockReset();
+  vi.mocked(weatherFetch).mockImplementation(async () => new Response(JSON.stringify(body)));
+  // 年境界の月平均（素の fetch）は失敗させて null 扱いにする
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 500 })));
+});
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+
+// キャッシュはモジュール共有のため、テストごとに別の地点を使う
+describe('fetchWeatherData のキャッシュ', () => {
+  it('当年分は6時間で取り直す', async () => {
+    await fetchWeatherData(35.1, 139.1, 2026);
+    await fetchWeatherData(35.1, 139.1, 2026);
+    expect(weatherFetch).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(new Date(Date.now() + 6 * HOUR + 1));
+    await fetchWeatherData(35.1, 139.1, 2026);
+    expect(weatherFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('過去年は確定値なので取り直さない', async () => {
+    await fetchWeatherData(35.2, 139.2, 2025);
+    vi.setSystemTime(new Date(Date.now() + 7 * HOUR));
+    await fetchWeatherData(35.2, 139.2, 2025);
+    expect(weatherFetch).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+- [ ] **Step 2: 失敗を確認**
+
+Run: `npx vitest run src/api/weather.test.ts`
+Expected: 「当年分は6時間で取り直す」が FAIL（呼び出し1回のまま）
+
+- [ ] **Step 3: 実装（weather.ts）**
+
+4行目 `const weatherCache = new Map<string, WeatherData>();` を置き換え:
+
+```ts
+/** 当年分は日々データが伸びるため、この時間で取り直す（過去年は確定値なので無期限） */
+const CURRENT_YEAR_TTL_MS = 6 * 60 * 60 * 1000;
+const weatherCache = new Map<string, { data: WeatherData; fetchedAt: number }>();
+```
+
+`fetchWeatherData` の冒頭（キャッシュ確認〜`isCurrentYear` 定義）を置き換え:
+
+```ts
+export async function fetchWeatherData(lat: number, lon: number, year: number): Promise<WeatherData> {
+  const key = buildCacheKey(lat, lon, year);
+  const currentYear = new Date().getFullYear();
+  const isCurrentYear = year === currentYear;
+
+  const cached = weatherCache.get(key);
+  if (cached && (!isCurrentYear || Date.now() - cached.fetchedAt < CURRENT_YEAR_TTL_MS)) return cached.data;
+```
+
+末尾の `weatherCache.set(key, result);` を置き換え:
+
+```ts
+  weatherCache.set(key, { data: result, fetchedAt: Date.now() });
+```
+
+- [ ] **Step 4: 実装（forecast.ts）**
+
+`ForecastData` の `availability?` の行の後に追加:
+
+```ts
+  /** 取得した地点（fetchForecast のみ設定）。表示中の地点の予報かを照合するために使う */
+  lat?: number;
+  lon?: number;
+```
+
+`fetchForecast` の return（255行目）を置き換え:
+
+```ts
+  return { hourly: hourly.slice(0, 20 + 240), daily: futureDaily, pastDaily, fetchedAt: Date.now(), lat, lon };
+```
+
+- [ ] **Step 5: 成功・回帰を確認**
+
+Run: `npx vitest run src/api && npx tsc -b`
+Expected: PASS・型エラーなし（空くらべは `fetchWeatherData` の戻り値の形が変わらないので影響なし）
+
+- [ ] **Step 6: コミット**
+
+```bash
+git add src/api/weather.ts src/api/weather.test.ts src/api/forecast.ts
+git commit -m "feat: 当年の実績キャッシュを6時間で失効し、予報に取得地点を持たせる"
+```
+
+---
+
+### Task 6: useSeasonReview フック
 
 **Files:**
 - Create: `src/hooks/useSeasonReview.ts`
@@ -817,8 +966,8 @@ git commit -m "feat: ふりかえりカードの計測イベントを追加"
 
 設計メモ（実装者向け）:
 - effect 内で同期的に setState しない。結果は `{ key, view }` で保持し、状態は描画時に key 比較で導出する（地点切替時に古い結果を出さない）。
-- key に `forecast.fetchedAt` を含める。地点切替直後の1レンダーは「新しい lat/lon＋古い予報」になるが、その結果は新予報到着後の key と一致しないので使われない。
-- 手動更新でも key が変わり一瞬骨組みに戻るが、archive はメモリキャッシュ済みで即時に戻るため許容する。
+- 地点切替直後の数レンダーは「新しい lat/lon＋旧地点の予報」になる（useForecast のリセットは effect 内のため）。予報の `lat/lon`（Task 5 で付与）が今の地点と一致するまで**取得を始めず** loading を返す。これで予報より先に年別取得が走ることも、新予報到着後に同じ年を重複取得することも防ぐ。
+- key に `forecast.fetchedAt` を含めるため、手動更新でも key が変わり一瞬骨組みに戻る。archive はメモリキャッシュ済みで即時に戻るため許容する。
 
 - [ ] **Step 1: 失敗するテストを書く**
 
@@ -839,7 +988,7 @@ import { fetchWeatherData } from '../api/weather';
 import { computeSeasonView } from '../lib/seasonReview';
 import { useSeasonReview } from './useSeasonReview';
 
-const forecast = { hourly: [], daily: [], pastDaily: [], fetchedAt: 1 } as unknown as ForecastData;
+const forecast = { hourly: [], daily: [], pastDaily: [], fetchedAt: 1, lat: 35, lon: 139 } as unknown as ForecastData;
 const view = { pace: { label: 'L', text: 'T' }, review: null, showCard: false };
 
 beforeEach(() => {
@@ -851,6 +1000,12 @@ describe('useSeasonReview', () => {
   it('予報が無ければ idle（取得しない）', () => {
     const { result } = renderHook(() => useSeasonReview(35, 139, null));
     expect(result.current.status).toBe('idle');
+    expect(fetchWeatherData).not.toHaveBeenCalled();
+  });
+
+  it('予報が別地点のもの（地点切替直後）なら loading のまま取得しない', () => {
+    const { result } = renderHook(() => useSeasonReview(36, 140, forecast));
+    expect(result.current.status).toBe('loading');
     expect(fetchWeatherData).not.toHaveBeenCalled();
   });
 
@@ -894,8 +1049,8 @@ Expected: FAIL（`./useSeasonReview` が存在しない）
 // 非ブロッキング: 失敗・計算不能は hidden（エラー表示しない）。
 //
 // 状態は「どの key の結果か」を持ち、描画時に key 比較で導出する（effect 内で同期 setState しない）。
-// key に予報の fetchedAt を含めるのは、地点切替直後の「新しい地点＋古い予報」の組み合わせで
-// 計算した結果を採用しないため。
+// 地点切替直後は useForecast がまだ旧地点の予報を返すため、予報の取得地点が今の地点と一致するまで
+// 取得を始めない（予報より先に走らせない・新予報の到着後に同じ年を重複取得しない）。
 import { useEffect, useRef, useState } from 'react';
 import { fetchWeatherData } from '../api/weather';
 import type { ForecastData } from '../api/forecast';
@@ -912,7 +1067,8 @@ export type SeasonState =
 
 export function useSeasonReview(lat: number | null, lon: number | null, forecast: ForecastData | null): SeasonState {
   const today = jstDateString(new Date());
-  const key = lat !== null && lon !== null && forecast ? `${lat},${lon},${today},${forecast.fetchedAt}` : null;
+  const forecastMatches = forecast !== null && lat !== null && lon !== null && forecast.lat === lat && forecast.lon === lon;
+  const key = forecast && forecastMatches ? `${lat},${lon},${today},${forecast.fetchedAt}` : null;
   const [result, setResult] = useState<{ key: string; view: SeasonView | null } | null>(null);
 
   // 最新の予報を ref で読む（参照は毎回変わりうるため effect の依存には key だけを使う）
@@ -937,8 +1093,9 @@ export function useSeasonReview(lat: number | null, lon: number | null, forecast
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  if (key === null) return { status: 'idle' };
-  if (!result || result.key !== key) return { status: 'loading' };
+  if (lat === null || lon === null || !forecast) return { status: 'idle' };
+  // 予報が今の地点に追いつくまで（key === null）と、取得中は骨組み
+  if (key === null || !result || result.key !== key) return { status: 'loading' };
   return result.view ? { status: 'ready', view: result.view } : { status: 'hidden' };
 }
 ```
@@ -948,7 +1105,7 @@ export function useSeasonReview(lat: number | null, lon: number | null, forecast
 - [ ] **Step 4: 成功を確認**
 
 Run: `npx vitest run src/hooks/useSeasonReview.test.ts`
-Expected: PASS（4件）
+Expected: PASS（5件）
 
 - [ ] **Step 5: コミット**
 
@@ -959,7 +1116,7 @@ git commit -m "feat: 今年のあゆみ・ふりかえりの取得フックを�
 
 ---
 
-### Task 6: 帯とカードの部品
+### Task 7: 帯とカードの部品
 
 **Files:**
 - Create: `src/components/season/YearPaceStrip.tsx`
@@ -972,8 +1129,8 @@ git commit -m "feat: 今年のあゆみ・ふりかえりの取得フックを�
 `src/components/season/season.test.tsx`:
 
 ```tsx
-import { cleanup, screen } from '@testing-library/react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, screen } from '@testing-library/react';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { SeasonReview } from '../../lib/seasonReview';
 
@@ -1020,7 +1177,7 @@ describe('YearPaceStrip', () => {
 
 describe('SeasonReviewCard', () => {
   it('期間・見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
-    renderWithMotion(<SeasonReviewCard review={review} />);
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     expect(screen.getByText('ふりかえり ─ 白露 9/7〜9/22（16日間）')).toBeTruthy();
     expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
     expect(screen.getByText('38mm')).toBeTruthy();
@@ -1030,9 +1187,40 @@ describe('SeasonReviewCard', () => {
     expect(screen.getByText('なし')).toBeTruthy();
     expect(screen.getByText(/5年平均は2021〜2025年/)).toBeTruthy();
   });
-  it('帯下表示はカード表示を1回計測する', () => {
+});
+
+describe('カード閲覧の計測', () => {
+  // jsdom には IntersectionObserver が無いので、コールバックを手で呼べる偽物を入れる
+  let fire: (isIntersecting: boolean) => void = () => {};
+  beforeEach(() => {
+    vi.mocked(logSeasonCardView).mockClear();
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+        fire = (isIntersecting) => cb([{ isIntersecting }]);
+      }
+      observe() {}
+      disconnect() {}
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('マウントだけでは計測せず、画面に入ったら場所つきで計測する', () => {
     renderWithMotion(<SeasonInlineCard review={review} />);
-    expect(logSeasonCardView).toHaveBeenCalledTimes(1);
+    expect(logSeasonCardView).not.toHaveBeenCalled();
+    act(() => fire(true));
+    expect(logSeasonCardView).toHaveBeenCalledWith('inline');
+  });
+
+  it('シート内のカードも計測する', () => {
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    act(() => fire(true));
+    expect(logSeasonCardView).toHaveBeenCalledWith('sheet');
+  });
+
+  it('IntersectionObserver が無い環境でも落ちない', () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(logSeasonCardView).not.toHaveBeenCalled();
   });
 });
 ```
@@ -1076,7 +1264,8 @@ export function YearPaceStrip({ state }: { state: SeasonState }) {
 
 ```tsx
 // 節気ふりかえりカード。帯の下（節気の変わり目3日間）とシート内で共用する。
-import { useEffect } from 'react';
+// 閲覧の計測は「本体の半分以上が画面に入った」時点（マウント＝閲覧ではない）。重複除去は analytics 側。
+import { useEffect, useRef } from 'react';
 import { m } from 'motion/react';
 import { SekkiArt } from '../sky/sekkiArt';
 import { springs } from '../../lib/motion';
@@ -1088,11 +1277,25 @@ function Cell({ c }: { c: CompareCell }) {
   return <td className={`season-card__cmp season-card__cmp--${c.tone}`}>{c.text}</td>;
 }
 
-export function SeasonReviewCard({ review }: { review: SeasonReview }) {
+export function SeasonReviewCard({ review, source }: { review: SeasonReview; source: 'inline' | 'sheet' }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        logSeasonCardView(source);
+        io.disconnect();
+      }
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [source]);
+
   const maxRain = Math.max(1, ...review.rain.map(r => r.value));
   const { hottest, coolestMorning, heavyRain } = review.records;
   return (
-    <article className="season-card" aria-label={`${review.range.name}のふりかえり`}>
+    <article ref={ref} className="season-card" aria-label={`${review.range.name}のふりかえり`}>
       <header className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         <div className="season-card__heading">
@@ -1148,7 +1351,6 @@ export function SeasonReviewCard({ review }: { review: SeasonReview }) {
 
 /** 帯の下に、高さを滑らかに広げて登場させる（reduced-motion は MotionProvider 側で即時化） */
 export function SeasonInlineCard({ review }: { review: SeasonReview }) {
-  useEffect(() => { logSeasonCardView(); }, []);
   return (
     <m.div
       initial={{ height: 0, opacity: 0 }}
@@ -1156,7 +1358,7 @@ export function SeasonInlineCard({ review }: { review: SeasonReview }) {
       transition={springs.enter}
       style={{ overflow: 'hidden' }}
     >
-      <SeasonReviewCard review={review} />
+      <SeasonReviewCard review={review} source="inline" />
     </m.div>
   );
 }
@@ -1222,7 +1424,7 @@ export function SeasonInlineCard({ review }: { review: SeasonReview }) {
 - [ ] **Step 4: 成功を確認**
 
 Run: `npx vitest run src/components/season/season.test.tsx`
-Expected: PASS（6件）
+Expected: PASS（8件）
 
 - [ ] **Step 5: コミット**
 
@@ -1233,7 +1435,7 @@ git commit -m "feat: 今年のあゆみの帯と節気ふりかえりカード�
 
 ---
 
-### Task 7: 節気名をタップでふりかえりを開く
+### Task 8: 節気名をタップでふりかえりを開く
 
 **Files:**
 - Modify: `src/components/sky/SekkiBadge.tsx`
@@ -1351,7 +1553,7 @@ git commit -m "feat: ヒーローの節気名からふりかえりを開ける�
 
 ---
 
-### Task 8: 空もようタブへの配置
+### Task 9: 空もようタブへの配置
 
 **Files:**
 - Modify: `src/components/weather/WeatherTab.tsx`
@@ -1398,7 +1600,7 @@ import { logSeasonCardOpen } from '../../lib/analytics';
         onClose={() => setSeasonOpen(false)}
         title={seasonReview ? `${seasonReview.range.name}のふりかえり` : 'ふりかえり'}
       >
-        {seasonReview && <SeasonReviewCard review={seasonReview} />}
+        {seasonReview && <SeasonReviewCard review={seasonReview} source="sheet" />}
       </Sheet>
 ```
 
@@ -1416,7 +1618,7 @@ git commit -m "feat: 空もようにあゆみの帯とふりかえりカード�
 
 ---
 
-### Task 9: 検証
+### Task 10: 検証
 
 - [ ] **Step 1: ビルドとバンドル増分**
 
@@ -1430,7 +1632,10 @@ Run: `npm run dev` → ブラウザで空もようを開き、以下を確認（
 2. 帯の文言が「積算気温 去年より◯日早い/遅い・5年平均より◯日…」
 3. 節気名に「›」が付き、タップでシートにカード（白露のふりかえり）が出る。数値が空くらべの同期間と矛盾しない
 4. 375px 幅で帯・カードが折り返して崩れない
-5. 今日（10/3）はカードの帯下表示は出ない（秋分 9/23 から4日目以降）。帯下表示の確認は、`useSeasonReview` の `today` を一時的に `'2026-09-24'` に書き換えて目視し、**確認後に必ず戻す**
+5. 今日はカードの帯下表示は出ない（秋分 9/23 から4日目以降）。帯下表示の確認は、`useSeasonReview` の `today` を一時的に `'2026-09-24'` に書き換えて目視し、**確認後に必ず戻す**
+6. 地点切替（ログイン時）: DevTools の Network で、`api.open-meteo.com`（予報）の応答が返るまで `archive-api` への要求が出ないこと、同じ年の archive 要求が重複しないこと
+7. 帯下カード・シート内カードのどちらを先に見ても、`season_card_view` が1回だけ（DevTools で `analytics` の `track` 呼び出しをブレークポイント、または GA4 DebugView）
+8. 年初の表示: `today` を一時的に `'2026-01-01'` / `'2026-01-02'` に書き換え、帯が「この30日」になり前年を「今年のあゆみ」と出さないこと（**確認後に必ず戻す**）
 
 - [ ] **Step 3: todo 更新とコミット**
 
