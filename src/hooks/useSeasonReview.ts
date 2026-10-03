@@ -1,14 +1,15 @@
 // src/hooks/useSeasonReview.ts
 //
-// 今年のあゆみ＋節気ふりかえりのデータ。予報の取得完了後に必要年の実績を並列取得する
-// （予報と通信を取り合わない）。年単位の実績は fetchWeatherData のメモリキャッシュを空くらべと共有。
+// 今年のあゆみ＋節気ふりかえりのデータ。予報の取得完了後に、必要な年の実績を1リクエストで取得する
+// （予報と通信を取り合わない。archive API は同時接続数に上限があり、年ごとの並列取得は 429 になる）。
 // 非ブロッキング: 失敗・計算不能は hidden（エラー表示しない）。
 //
 // 状態は「どの key の結果か」を持ち、描画時に key 比較で導出する（effect 内で同期 setState しない）。
 // 地点切替直後は useForecast がまだ旧地点の予報を返すため、予報の取得地点が今の地点と一致するまで
-// 取得を始めない（予報より先に走らせない・新予報の到着後に同じ年を重複取得しない）。
+// 取得を始めない（予報より先に走らせない・新予報の到着後に重複取得しない）。
 import { useEffect, useRef, useState } from 'react';
-import { fetchWeatherData } from '../api/weather';
+import { fetchDailyActuals } from '../api/weather';
+import { addDays } from '../lib/dateUtils';
 import type { ForecastData } from '../api/forecast';
 import {
   buildDayMap, computeSeasonView, fromArchive, fromForecastPast, requiredYears, type SeasonView,
@@ -35,10 +36,10 @@ export function useSeasonReview(lat: number | null, lon: number | null, forecast
     if (key === null || lat === null || lon === null) return;
     const fill = fromForecastPast(forecastRef.current?.pastDaily ?? []);
     let cancelled = false;
-    Promise.all(requiredYears(today).map(y => fetchWeatherData(lat, lon, y)))
-      .then(years => {
+    fetchDailyActuals(lat, lon, `${requiredYears(today)[0]}-01-01`, addDays(today, -1))
+      .then(days => {
         if (cancelled) return;
-        const map = buildDayMap(years.flatMap(w => fromArchive(w.daily)), fill);
+        const map = buildDayMap(fromArchive(days), fill);
         setResult({ key, view: computeSeasonView(map, today) });
       })
       .catch(() => {

@@ -1,7 +1,7 @@
 // 今年のあゆみ（積算気温の早い・遅い）と、節気ふりかえりカードの計算。
 // 過去の実績値の集計・比較のみを扱う（将来の見通しは出さない＝予報業務に当たらない）。
 // 日付はすべて "YYYY-MM-DD"（JST 暦日）。加減算は dateUtils.addDays（UTC 基準）を使う。
-import type { DailyWeather } from '../api/weather';
+import type { DailyActual } from '../api/weather';
 import type { DailyForecastData } from '../api/forecast';
 import { addDays } from './dateUtils';
 import { SEKKI, sekkiForDate } from './sekki';
@@ -92,7 +92,7 @@ export interface DayRecord {
 }
 export type DayMap = Map<string, DayRecord>;
 
-export function fromArchive(days: DailyWeather[]): DayRecord[] {
+export function fromArchive(days: DailyActual[]): DayRecord[] {
   return days.map(d => ({
     date: d.date, tempMean: d.tempMean, tempMax: d.tempMax, tempMin: d.tempMin,
     precip: d.precipSum ?? 0, sunshine: d.sunshineDuration,

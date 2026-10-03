@@ -305,6 +305,8 @@
   color: inherit;
   cursor: pointer;
   border-radius: var(--radius-sm, 6px);
+  /* 親 .sky-hero__sekki は表示専用で pointer-events:none。ボタンのときだけタップを受ける */
+  pointer-events: auto;
 }
 .sekki-badge--button:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.85); outline-offset: 3px; }
 .sekki-badge__chev { margin-left: 0.25em; opacity: 0.75; }

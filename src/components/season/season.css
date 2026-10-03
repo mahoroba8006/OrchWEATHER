@@ -24,10 +24,11 @@
   color: var(--ink-1);
 }
 .season-card__head { display: flex; gap: 0.75rem; align-items: center; }
-.season-card__art { flex-shrink: 0; }
+/* 節気の絵は夜空のヒーロー用（淡い白の筆致）なので、白いカード上では夜空色の台に載せる */
+.season-card__art { flex-shrink: 0; padding: 4px; border-radius: 14px; background: linear-gradient(180deg, #26324d, #1a2236); }
 .season-card__heading { min-width: 0; }
 .season-card__period { margin: 0; font-size: 0.72rem; color: var(--ink-3); }
-.season-card__title { margin: 0.15rem 0 0; font-size: 1rem; font-weight: 700; line-height: 1.4; }
+.season-card__title { margin: 0.15rem 0 0; font-size: 1rem; font-weight: 700; line-height: 1.4; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
 
 .season-card__table { width: 100%; margin-top: 0.7rem; border-collapse: collapse; font-size: 0.8rem; }
 .season-card__table th, .season-card__table td { padding: 0.35rem 0.25rem; text-align: right; font-variant-numeric: tabular-nums; }
