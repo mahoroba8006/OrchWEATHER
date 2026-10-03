@@ -37,3 +37,6 @@ screenshots/
 *.njsproj
 *.sln
 *.sw?
+
+# brainstorming visual companion
+.superpowers/
