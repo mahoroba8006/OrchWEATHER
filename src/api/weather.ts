@@ -1,7 +1,9 @@
 import { format } from 'date-fns';
 import { weatherFetch } from '../lib/weatherFetch';
 
-const weatherCache = new Map<string, WeatherData>();
+/** 当年分は日々データが伸びるため、この時間で取り直す（過去年は確定値なので無期限） */
+const CURRENT_YEAR_TTL_MS = 6 * 60 * 60 * 1000;
+const weatherCache = new Map<string, { data: WeatherData; fetchedAt: number }>();
 
 const JMA_START_YEAR = 2016;
 
@@ -68,10 +70,11 @@ async function fetchBoundaryMonthMeans(
 
 export async function fetchWeatherData(lat: number, lon: number, year: number): Promise<WeatherData> {
   const key = buildCacheKey(lat, lon, year);
-  if (weatherCache.has(key)) return weatherCache.get(key)!;
-
   const currentYear = new Date().getFullYear();
   const isCurrentYear = year === currentYear;
+
+  const cached = weatherCache.get(key);
+  if (cached && (!isCurrentYear || Date.now() - cached.fetchedAt < CURRENT_YEAR_TTL_MS)) return cached.data;
 
   const startDate = `${year}-01-01`;
   let endDate = `${year}-12-31`;
@@ -142,6 +145,6 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     prevDecMeans: prevDecMeans ?? undefined,
     nextJanMeans: nextJanMeans ?? undefined,
   };
-  weatherCache.set(key, result);
+  weatherCache.set(key, { data: result, fetchedAt: Date.now() });
   return result;
 }
