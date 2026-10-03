@@ -28,6 +28,8 @@ export interface SkyHeroProps {
   onLocate: () => void;
   locating: boolean;
   onRefresh: () => void;
+  /** 節気名タップでふりかえりを開く（未指定ならタップ不可の表示のみ） */
+  onSekkiOpen?: () => void;
   /** エラー文言などをヒーロー下部に出す */
   children?: ReactNode;
 }
@@ -36,7 +38,7 @@ const round = (v: number | null) => (v === null ? '—' : String(Math.round(v)))
 
 export function SkyHero({
   sky, temperature, weatherCode, tempMax, tempMin, lastUpdated, loading,
-  locationSlot, onLocate, locating, onRefresh, children,
+  locationSlot, onLocate, locating, onRefresh, onSekkiOpen, children,
 }: SkyHeroProps) {
   const reduced = useReducedMotion();
   const rootRef = useRef<HTMLElement>(null);
@@ -166,7 +168,7 @@ export function SkyHero({
 
         <div className="sky-hero__foot">
           {lastUpdated && <span className="sky-hero__updated">{`最終更新 ${lastUpdated}`}</span>}
-          <div className="sky-hero__sekki"><SekkiBadge /></div>
+          <div className="sky-hero__sekki"><SekkiBadge onOpen={onSekkiOpen} /></div>
         </div>
       </div>
     </section>
