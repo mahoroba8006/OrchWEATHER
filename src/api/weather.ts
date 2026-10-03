@@ -175,7 +175,7 @@ export async function fetchDailyActuals(lat: number, lon: number, startDate: str
   const data: DailyActual[] = [];
   (d.time as string[]).forEach((date, i) => {
     // archive の直近は未確定で null のことがある（その日は予報の過去日で補う）
-    if (d.temperature_2m_mean[i] === null) return;
+    if (d.temperature_2m_mean[i] === null || d.temperature_2m_max[i] === null || d.temperature_2m_min[i] === null) return;
     data.push({
       date,
       tempMean: d.temperature_2m_mean[i],

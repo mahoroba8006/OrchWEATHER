@@ -54,3 +54,15 @@ describe('useSeasonReview', () => {
     await waitFor(() => expect(result.current.status).toBe('hidden'));
   });
 });
+
+describe('useSeasonReview（手動更新）', () => {
+  it('予報を取り直しても（fetchedAt が変わっても）骨組みに戻らず、再取得もしない', async () => {
+    vi.mocked(fetchDailyActuals).mockResolvedValue([]);
+    vi.mocked(computeSeasonView).mockReturnValue(view);
+    const { result, rerender } = renderHook(({ f }) => useSeasonReview(35, 139, f), { initialProps: { f: forecast } });
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    rerender({ f: { ...forecast, fetchedAt: 2 } as ForecastData });
+    expect(result.current.status).toBe('ready');
+    expect(fetchDailyActuals).toHaveBeenCalledTimes(1);
+  });
+});

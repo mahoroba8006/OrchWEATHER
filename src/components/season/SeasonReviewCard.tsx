@@ -1,5 +1,6 @@
 // 節気ふりかえりカード。帯の下（節気の変わり目3日間）とシート内で共用する。
-// 閲覧の計測は「本体の半分以上が画面に入った」時点（マウント＝閲覧ではない）。重複除去は analytics 側。
+// 閲覧の計測は「見出し部の半分以上が画面に入った」時点（マウント＝閲覧ではない。カード全体を基準にすると
+// 背の低い画面のシートでは半分が入らず計測されないため、見出し部で判定する）。重複除去は analytics 側。
 import { useEffect, useRef } from 'react';
 import { m } from 'motion/react';
 import { SekkiArt } from '../sky/sekkiArt';
@@ -30,8 +31,8 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
   const maxRain = Math.max(1, ...review.rain.map(r => r.value));
   const { hottest, coolestMorning, heavyRain } = review.records;
   return (
-    <article ref={ref} className="season-card" aria-label={`${review.range.name}のふりかえり`}>
-      <header className="season-card__head">
+    <article className="season-card" aria-label={`${review.range.name}のふりかえり`}>
+      <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         <div className="season-card__heading">
           <p className="season-card__period">{`ふりかえり ─ ${review.periodLabel}`}</p>
@@ -42,7 +43,7 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
       <table className="season-card__table">
         <thead>
           <tr>
-            <td aria-hidden="true" />
+            <th scope="col"><span className="season-card__sr">項目</span></th>
             <th scope="col">今年</th>
             <th scope="col">去年比</th>
             <th scope="col">5年平均比</th>
@@ -88,10 +89,10 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
 export function SeasonInlineCard({ review }: { review: SeasonReview }) {
   return (
     <m.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: 'auto', opacity: 1 }}
+      initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+      // 開き終えたら overflow を戻し、カードの影が切れないようにする
+      animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
       transition={springs.enter}
-      style={{ overflow: 'hidden' }}
     >
       <SeasonReviewCard review={review} source="inline" />
     </m.div>

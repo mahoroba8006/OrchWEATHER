@@ -25,7 +25,9 @@ export type SeasonState =
 export function useSeasonReview(lat: number | null, lon: number | null, forecast: ForecastData | null): SeasonState {
   const today = jstDateString(new Date());
   const forecastMatches = forecast !== null && lat !== null && lon !== null && forecast.lat === lat && forecast.lon === lon;
-  const key = forecast && forecastMatches ? `${lat},${lon},${today},${forecast.fetchedAt}` : null;
+  // key は地点と日付だけ。予報の手動更新（fetchedAt の変化）では取り直さない
+  // （実績は fetchDailyActuals が6時間キャッシュ。骨組みに戻すとシートも閉じてしまう）
+  const key = forecastMatches ? `${lat},${lon},${today}` : null;
   const [result, setResult] = useState<{ key: string; view: SeasonView | null } | null>(null);
 
   // 最新の予報を ref で読む（参照は毎回変わりうるため effect の依存には key だけを使う）
