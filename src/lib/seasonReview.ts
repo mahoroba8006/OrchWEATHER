@@ -1,6 +1,8 @@
 // 今年のあゆみ（積算気温の早い・遅い）と、節気ふりかえりカードの計算。
 // 過去の実績値の集計・比較のみを扱う（将来の見通しは出さない＝予報業務に当たらない）。
 // 日付はすべて "YYYY-MM-DD"（JST 暦日）。加減算は dateUtils.addDays（UTC 基準）を使う。
+import type { DailyWeather } from '../api/weather';
+import type { DailyForecastData } from '../api/forecast';
 import { addDays } from './dateUtils';
 import { SEKKI, sekkiForDate } from './sekki';
 
@@ -10,6 +12,10 @@ export const AVG_YEARS = 5;
 export const RECENT_DAYS = 30;
 /** カードを帯の下に出す日数（新しい節気の初日を含む） */
 export const CARD_WINDOW_DAYS = 3;
+/** 雨を割合で比べるための最小基準（mm）。未満は mm 差で表す（0除算・誤解の防止） */
+export const RAIN_RATIO_MIN_BASE = 5;
+/** 「まとまった雨」とみなす日降水量（mm） */
+export const HEAVY_RAIN_MM = 10;
 
 const yearOf = (date: string) => Number(date.slice(0, 4));
 const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
@@ -70,4 +76,198 @@ export function requiredYears(today: string): number[] {
     yearOf(addDays(yesterday, -(RECENT_DAYS - 1))),
   ) - AVG_YEARS;
   return Array.from({ length: last - earliest + 1 }, (_, i) => earliest + i);
+}
+
+// ---- 日別データ ----
+
+export interface DayRecord {
+  date: string;
+  tempMean: number;
+  tempMax: number;
+  tempMin: number;
+  precip: number;
+  sunshine: number;
+}
+export type DayMap = Map<string, DayRecord>;
+
+export function fromArchive(days: DailyWeather[]): DayRecord[] {
+  return days.map(d => ({
+    date: d.date, tempMean: d.tempMean, tempMax: d.tempMax, tempMin: d.tempMin,
+    precip: d.precipSum ?? 0, sunshine: d.sunshineDuration,
+  }));
+}
+
+/** 予報の過去日（archive の直近欠けの補完用）。日平均気温は無いので (最高+最低)/2 で代用 */
+export function fromForecastPast(days: DailyForecastData[]): DayRecord[] {
+  return days.filter(d => !d.isPlaceholder).map(d => ({
+    date: d.date, tempMean: (d.tempMax + d.tempMin) / 2, tempMax: d.tempMax, tempMin: d.tempMin,
+    precip: d.precipSum, sunshine: d.sunshineDuration,
+  }));
+}
+
+/** archive を優先し、archive に無い日だけ fill で補う */
+export function buildDayMap(archive: DayRecord[], fill: DayRecord[]): DayMap {
+  const map: DayMap = new Map();
+  for (const d of archive) map.set(d.date, d);
+  for (const d of fill) if (!map.has(d.date)) map.set(d.date, d);
+  return map;
+}
+
+// ---- 範囲集計 ----
+
+export interface RangeStats { meanTemp: number; precip: number; sunshine: number }
+
+/** start〜end の集計。1日でも欠けがあれば null（欠けた合計を誤って見せない） */
+export function rangeStats(map: DayMap, start: string, end: string): RangeStats | null {
+  let n = 0, t = 0, p = 0, s = 0;
+  for (let d = start; d <= end; d = addDays(d, 1)) {
+    const r = map.get(d);
+    if (!r) return null;
+    n++; t += r.tempMean; p += r.precip; s += r.sunshine;
+  }
+  return n ? { meanTemp: t / n, precip: p, sunshine: s } : null;
+}
+
+/** 同じ月日範囲の去年と5年平均（去年〜5年前） */
+export function comparisonStats(map: DayMap, start: string, end: string): { lastYear: RangeStats; avg: RangeStats } | null {
+  const per: RangeStats[] = [];
+  for (let k = 1; k <= AVG_YEARS; k++) {
+    const s = rangeStats(map, shiftYear(start, -k), shiftYear(end, -k));
+    if (!s) return null;
+    per.push(s);
+  }
+  const mean = (f: (s: RangeStats) => number) => per.reduce((a, s) => a + f(s), 0) / per.length;
+  return {
+    lastYear: per[0],
+    avg: { meanTemp: mean(s => s.meanTemp), precip: mean(s => s.precip), sunshine: mean(s => s.sunshine) },
+  };
+}
+
+function rangeDays(map: DayMap, start: string, end: string): DayRecord[] {
+  const out: DayRecord[] = [];
+  for (let d = start; d <= end; d = addDays(d, 1)) {
+    const r = map.get(d);
+    if (r) out.push(r);
+  }
+  return out;
+}
+
+// ---- 比較文言 ----
+
+export type Tone = 'more' | 'less' | 'same';
+export interface CompareCell { text: string; tone: Tone }
+export interface CompareRow { label: string; value: string; vsLastYear: CompareCell; vsAvg: CompareCell }
+
+const toneOf = (v: number): Tone => (v > 0 ? 'more' : v < 0 ? 'less' : 'same');
+
+/** 丸め済みの値に符号を付ける（+1.0 / −1.5 / ±0.0）。マイナスは U+2212 */
+function signed(v: number, digits: number): string {
+  if (v > 0) return `+${v.toFixed(digits)}`;
+  if (v < 0) return `−${Math.abs(v).toFixed(digits)}`;
+  return `±${(0).toFixed(digits)}`;
+}
+
+export function tempCell(cur: number, base: number): CompareCell {
+  const d = Number((cur - base).toFixed(1));
+  return { text: `${signed(d, 1)}℃`, tone: toneOf(d) };
+}
+
+export function sunCell(cur: number, base: number): CompareCell {
+  const d = Math.round(cur - base);
+  return { text: `${signed(d, 0)}h`, tone: toneOf(d) };
+}
+
+export function rainCell(cur: number, base: number): CompareCell {
+  if (base < RAIN_RATIO_MIN_BASE) {
+    const d = Math.round(cur - base);
+    return { text: `${signed(d, 0)}mm`, tone: toneOf(d) };
+  }
+  const r = Math.round((cur / base) * 10) / 10;
+  if (r === 1) return { text: '同じくらい', tone: 'same' };
+  if (r < 1) return { text: `${Math.round(r * 10)}割`, tone: 'less' };
+  return { text: `${r.toFixed(1)}倍`, tone: 'more' };
+}
+
+// ---- 見出し ----
+
+interface Trait { score: number; connective: string; attributive: string }
+
+/** 5年平均とのずれから、ずれの大きい順に最大2項目で一文を作る（score はしきい値で正規化、1以上で該当） */
+export function headline(cur: RangeStats, avg: RangeStats): string {
+  const traits: Trait[] = [];
+  const dt = cur.meanTemp - avg.meanTemp;
+  if (dt > 1) traits.push({ score: dt, connective: '暑く', attributive: '暑い' });
+  else if (dt < -1) traits.push({ score: -dt, connective: '涼しく', attributive: '涼しい' });
+  if (avg.precip >= RAIN_RATIO_MIN_BASE) {
+    const r = cur.precip / avg.precip;
+    if (r < 0.7) traits.push({ score: 0.7 / Math.max(r, 0.07), connective: '雨が少なく', attributive: '雨の少ない' });
+    else if (r > 1.3) traits.push({ score: r / 1.3, connective: '雨が多く', attributive: '雨の多い' });
+  }
+  if (avg.sunshine > 0) {
+    const s = cur.sunshine / avg.sunshine - 1;
+    if (s > 0.15) traits.push({ score: s / 0.15, connective: '日差しが多く', attributive: '日差しの多い' });
+    else if (s < -0.15) traits.push({ score: -s / 0.15, connective: '日差しが少なく', attributive: '日差しの少ない' });
+  }
+  if (traits.length === 0) return '平年並みの穏やかな半月でした';
+  traits.sort((a, b) => b.score - a.score);
+  const [first, second] = traits;
+  return second ? `${first.connective}、${second.attributive}半月でした` : `${first.attributive}半月でした`;
+}
+
+// ---- 記録 ----
+
+export interface DayValue { date: string; value: number }
+export interface SeasonRecords { hottest: DayValue; coolestMorning: DayValue; heavyRain: DayValue | null }
+
+export function records(days: DayRecord[]): SeasonRecords {
+  let hot = days[0];
+  let cool = days[0];
+  let rain: DayRecord | null = null;
+  for (const d of days) {
+    if (d.tempMax > hot.tempMax) hot = d;
+    if (d.tempMin < cool.tempMin) cool = d;
+    if (d.precip >= HEAVY_RAIN_MM && (!rain || d.precip > rain.precip)) rain = d;
+  }
+  return {
+    hottest: { date: hot.date, value: hot.tempMax },
+    coolestMorning: { date: cool.date, value: cool.tempMin },
+    heavyRain: rain ? { date: rain.date, value: rain.precip } : null,
+  };
+}
+
+// ---- カード ----
+
+export interface SeasonReview {
+  range: SekkiRange;
+  /** "白露 9/7〜9/22（16日間）" */
+  periodLabel: string;
+  headline: string;
+  rows: CompareRow[];
+  /** 期間の日ごとの雨 */
+  rain: DayValue[];
+  records: SeasonRecords;
+  /** "2021〜2025年" */
+  avgYears: string;
+}
+
+export function buildSeasonReview(map: DayMap, today: string): SeasonReview | null {
+  const range = previousSekkiRange(today);
+  const cur = rangeStats(map, range.start, range.end);
+  const cmp = comparisonStats(map, range.start, range.end);
+  if (!cur || !cmp) return null;
+  const days = rangeDays(map, range.start, range.end);
+  const y = yearOf(range.start);
+  return {
+    range,
+    periodLabel: `${range.name} ${monthDay(range.start)}〜${monthDay(range.end)}（${range.days}日間）`,
+    headline: headline(cur, cmp.avg),
+    rows: [
+      { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: tempCell(cur.meanTemp, cmp.lastYear.meanTemp), vsAvg: tempCell(cur.meanTemp, cmp.avg.meanTemp) },
+      { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: rainCell(cur.precip, cmp.lastYear.precip), vsAvg: rainCell(cur.precip, cmp.avg.precip) },
+      { label: '日照', value: `${Math.round(cur.sunshine)}h`, vsLastYear: sunCell(cur.sunshine, cmp.lastYear.sunshine), vsAvg: sunCell(cur.sunshine, cmp.avg.sunshine) },
+    ],
+    rain: days.map(d => ({ date: d.date, value: d.precip })),
+    records: records(days),
+    avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
+  };
 }
