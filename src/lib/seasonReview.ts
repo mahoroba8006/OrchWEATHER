@@ -16,6 +16,8 @@ export const CARD_WINDOW_DAYS = 3;
 export const RAIN_RATIO_MIN_BASE = 5;
 /** 「まとまった雨」とみなす日降水量（mm） */
 export const HEAVY_RAIN_MM = 10;
+/** 積算気温が小さい時期（主に1月）は日数差がぶれるため、直近30日の平均に切り替えるしきい値（℃・日） */
+export const PACE_MIN_ACCUM = 200;
 
 const yearOf = (date: string) => Number(date.slice(0, 4));
 const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
@@ -270,4 +272,100 @@ export function buildSeasonReview(map: DayMap, today: string): SeasonReview | nu
     records: records(days),
     avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
   };
+}
+
+// ---- 今年のあゆみ ----
+
+/** 正 = 何日早い、負 = 何日遅い、'ahead' = 比較年が年末までに届かない（今年がかなり早い） */
+export type PaceDiff = number | 'ahead';
+export type YearPace =
+  | { kind: 'accum'; vsLastYear: PaceDiff; vsAvg: PaceDiff }
+  | { kind: 'recent'; vsLastYear: number; vsAvg: number };
+
+/** onOrBefore 以前でデータがある最新日 */
+function latestDate(map: DayMap, onOrBefore: string): string | null {
+  let best: string | null = null;
+  for (const d of map.keys()) if (d <= onOrBefore && (best === null || d > best)) best = d;
+  return best;
+}
+
+/** その年の 1/1 から end までの日ごとの有効積算気温（0℃基準＝0℃未満の日は0）。欠けがあれば null */
+function cumulative(map: DayMap, year: number, end: string): number[] | null {
+  const out: number[] = [];
+  let sum = 0;
+  for (let d = `${year}-01-01`; d <= end; d = addDays(d, 1)) {
+    const r = map.get(d);
+    if (!r) return null;
+    sum += Math.max(0, r.tempMean);
+    out.push(sum);
+  }
+  return out;
+}
+
+export function computeYearPace(map: DayMap, today: string): YearPace | null {
+  const last = latestDate(map, addDays(today, -1));
+  if (!last) return null;
+  // 「今年」は today の暦年で固定する。最新実績が前年（1/1・当年データ未着）なら積算は使わない
+  const y = yearOf(today);
+  const cur = yearOf(last) === y ? cumulative(map, y, last) : null;
+
+  if (cur && cur.length > 0 && cur[cur.length - 1] >= PACE_MIN_ACCUM) {
+    const target = cur[cur.length - 1];
+    const idx = cur.length - 1;
+    const series: number[][] = [];
+    for (let k = 1; k <= AVG_YEARS; k++) {
+      const s = cumulative(map, y - k, `${y - k}-12-31`);
+      if (!s) return null;
+      series.push(s);
+    }
+    // 5年平均は「1/1 からの通し日数」ごとの積算値の平均（閏年は短い方に揃える）
+    const len = Math.min(...series.map(s => s.length));
+    const avg = Array.from({ length: len }, (_, i) => series.reduce((a, s) => a + s[i], 0) / series.length);
+    const diff = (s: number[]): PaceDiff => {
+      const j = s.findIndex(v => v >= target);
+      return j === -1 ? 'ahead' : j - idx;
+    };
+    return { kind: 'accum', vsLastYear: diff(series[0]), vsAvg: diff(avg) };
+  }
+
+  const start = addDays(last, -(RECENT_DAYS - 1));
+  const c = rangeStats(map, start, last);
+  const cmp = comparisonStats(map, start, last);
+  if (!c || !cmp) return null;
+  return { kind: 'recent', vsLastYear: c.meanTemp - cmp.lastYear.meanTemp, vsAvg: c.meanTemp - cmp.avg.meanTemp };
+}
+
+export interface PaceView { label: string; text: string }
+
+function paceClause(subject: string, d: PaceDiff): string {
+  if (d === 'ahead') return `${subject}より早いペース`;
+  if (d === 0) return `${subject}と同じペース`;
+  return d > 0 ? `${subject}より${d}日早い` : `${subject}より${-d}日遅い`;
+}
+
+export function formatYearPace(p: YearPace): PaceView {
+  if (p.kind === 'accum') {
+    return {
+      label: '今年のあゆみ（1月1日から）',
+      text: `積算気温 ${paceClause('去年', p.vsLastYear)}・${paceClause('5年平均', p.vsAvg)}`,
+    };
+  }
+  const t = (d: number) => tempCell(d, 0).text;
+  return { label: `この${RECENT_DAYS}日`, text: `平均気温 去年より${t(p.vsLastYear)}・5年平均より${t(p.vsAvg)}` };
+}
+
+// ---- 画面用ビュー ----
+
+export interface SeasonView {
+  pace: PaceView | null;
+  review: SeasonReview | null;
+  /** カードを帯の下に出すか（節気の変わり目 CARD_WINDOW_DAYS 日間） */
+  showCard: boolean;
+}
+
+export function computeSeasonView(map: DayMap, today: string): SeasonView | null {
+  const pace = computeYearPace(map, today);
+  const review = buildSeasonReview(map, today);
+  if (!pace && !review) return null;
+  return { pace: pace ? formatYearPace(pace) : null, review, showCard: !!review && isInCardWindow(today) };
 }
