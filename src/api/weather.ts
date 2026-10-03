@@ -1,7 +1,9 @@
 import { format } from 'date-fns';
 import { weatherFetch } from '../lib/weatherFetch';
 
-const weatherCache = new Map<string, WeatherData>();
+/** 当年分は日々データが伸びるため、この時間で取り直す（過去年は確定値なので無期限） */
+const CURRENT_YEAR_TTL_MS = 6 * 60 * 60 * 1000;
+const weatherCache = new Map<string, { data: WeatherData; fetchedAt: number }>();
 
 const JMA_START_YEAR = 2016;
 
@@ -68,10 +70,11 @@ async function fetchBoundaryMonthMeans(
 
 export async function fetchWeatherData(lat: number, lon: number, year: number): Promise<WeatherData> {
   const key = buildCacheKey(lat, lon, year);
-  if (weatherCache.has(key)) return weatherCache.get(key)!;
-
   const currentYear = new Date().getFullYear();
   const isCurrentYear = year === currentYear;
+
+  const cached = weatherCache.get(key);
+  if (cached && (!isCurrentYear || Date.now() - cached.fetchedAt < CURRENT_YEAR_TTL_MS)) return cached.data;
 
   const startDate = `${year}-01-01`;
   let endDate = `${year}-12-31`;
@@ -142,6 +145,46 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     prevDecMeans: prevDecMeans ?? undefined,
     nextJanMeans: nextJanMeans ?? undefined,
   };
-  weatherCache.set(key, result);
+  weatherCache.set(key, { data: result, fetchedAt: Date.now() });
   return result;
+}
+
+/** 今年のあゆみ・節気ふりかえりで使う日別実績（DailyWeather の一部） */
+export type DailyActual = Pick<DailyWeather, 'date' | 'tempMean' | 'tempMax' | 'tempMin' | 'precipSum' | 'sunshineDuration'>;
+
+const actualsCache = new Map<string, { data: DailyActual[]; fetchedAt: number }>();
+
+/**
+ * startDate〜endDate の日別実績を1リクエストで取得する。
+ * archive API は同時接続数に上限があり（超えると 429 "Too many concurrent requests"）、
+ * 年ごとの並列取得では一部が拒否されるため、複数年をまとめて取る。
+ * 期間の終わりは日々伸びる直近を含むので、当年分と同じく6時間で取り直す。
+ * 期間は jma_msm の提供開始（2016年）以降を前提とする。
+ */
+export async function fetchDailyActuals(lat: number, lon: number, startDate: string, endDate: string): Promise<DailyActual[]> {
+  const key = `${lat},${lon},${startDate},${endDate}`;
+  const cached = actualsCache.get(key);
+  if (cached && Date.now() - cached.fetchedAt < CURRENT_YEAR_TTL_MS) return cached.data;
+
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}`
+    + `&start_date=${startDate}&end_date=${endDate}`
+    + '&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration'
+    + '&timezone=Asia%2FTokyo&models=jma_msm';
+  const raw = await (await weatherFetch(url)).json();
+  const d = raw.daily;
+  const data: DailyActual[] = [];
+  (d.time as string[]).forEach((date, i) => {
+    // archive の直近は未確定で null のことがある（その日は予報の過去日で補う）
+    if (d.temperature_2m_mean[i] === null || d.temperature_2m_max[i] === null || d.temperature_2m_min[i] === null) return;
+    data.push({
+      date,
+      tempMean: d.temperature_2m_mean[i],
+      tempMax: d.temperature_2m_max[i],
+      tempMin: d.temperature_2m_min[i],
+      precipSum: d.precipitation_sum[i] ?? 0,
+      sunshineDuration: (d.sunshine_duration[i] ?? 0) / 3600,
+    });
+  });
+  actualsCache.set(key, { data, fetchedAt: Date.now() });
+  return data;
 }

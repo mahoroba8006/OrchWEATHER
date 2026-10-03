@@ -19,6 +19,12 @@ import { HourlyTable } from './HourlyTable';
 import { Footer } from '../Footer';
 import { SkyHero } from '../sky/SkyHero';
 import { fallbackSky, useSkyStore, type SkyState, type SkySummary } from '../../skyStore';
+import { Sheet } from '../ui/Sheet';
+import { useSeasonReview } from '../../hooks/useSeasonReview';
+import { YearPaceStrip } from '../season/YearPaceStrip';
+import { SeasonInlineCard, SeasonReviewCard } from '../season/SeasonReviewCard';
+import type { SeasonReview } from '../../lib/seasonReview';
+import { logSeasonCardOpen } from '../../lib/analytics';
 import {
   classifyWeather, currentHourIndex, hhmmToMinutes, jstDateString, jstMinutesOfDay, skyPalette, timeOfDay,
 } from '../../lib/sky';
@@ -77,6 +83,12 @@ export function WeatherTab() {
     location?.lat ?? null,
     location?.lon ?? null,
   );
+
+  // 今年のあゆみ・節気ふりかえり（予報の取得完了後に非同期で集計。予報表示は待たせない）
+  const season = useSeasonReview(location?.lat ?? null, location?.lon ?? null, data);
+  const seasonReview = season.status === 'ready' ? season.view.review : null;
+  // 開いたときのふりかえりを覚える。地点切替などで別のふりかえりになったら閉じ、戻っても勝手に開き直さない
+  const [openedReview, setOpenedReview] = useState<SeasonReview | null>(null);
 
   // 気象庁注意報・警報（jmaAreaCode が設定済みの登録地点のみ有効）
   const { data: jmaWarning, loading: jmaLoading } = useJmaWarning(location?.jmaAreaCode);
@@ -211,6 +223,7 @@ export function WeatherTab() {
         onLocate={handleGetCurrentLocation}
         locating={buttonGeoLoading}
         onRefresh={refresh}
+        onSekkiOpen={seasonReview ? () => { setOpenedReview(seasonReview); logSeasonCardOpen(); } : undefined}
         locationSlot={(
           <>
             <span className="sky-hero__loc-name">{locationName}</span>
@@ -269,6 +282,10 @@ export function WeatherTab() {
 
       {data && (
         <>
+          <YearPaceStrip state={season} />
+          {season.status === 'ready' && season.view.showCard && season.view.review && (
+            <SeasonInlineCard review={season.view.review} />
+          )}
 
           {/* AI ステータスバー */}
           {enabledAiSections.some(s => s !== 'custom') && (
@@ -378,6 +395,13 @@ export function WeatherTab() {
         </>
       )}
       </div>
+      <Sheet
+        open={openedReview !== null && openedReview === seasonReview}
+        onClose={() => setOpenedReview(null)}
+        title={seasonReview ? `${seasonReview.range.name}のふりかえり` : 'ふりかえり'}
+      >
+        {seasonReview && <SeasonReviewCard review={seasonReview} source="sheet" />}
+      </Sheet>
       <Footer />
     </div>
     </>

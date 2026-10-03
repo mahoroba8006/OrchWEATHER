@@ -74,6 +74,9 @@ export interface ForecastData {
   pastDaily: DailyForecastData[];  // 過去7日分
   fetchedAt: number;               // Date.now()
   availability?: FieldAvailability; // 過去API用。未指定は全項目利用可（通常予報）
+  /** 取得した地点（fetchForecast のみ設定）。表示中の地点の予報かを照合するために使う */
+  lat?: number;
+  lon?: number;
 }
 
 export async function fetchForecast(lat: number, lon: number): Promise<ForecastData> {
@@ -252,5 +255,5 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   const futureDaily = daily.filter(d => d.date >= todayJst);
 
   // HourlyTable 用は past_hours(20) + 240h（今日含め10日分）のみ返す（dayAmPm は全384h で構築済み）
-  return { hourly: hourly.slice(0, 20 + 240), daily: futureDaily, pastDaily, fetchedAt: Date.now() };
+  return { hourly: hourly.slice(0, 20 + 240), daily: futureDaily, pastDaily, fetchedAt: Date.now(), lat, lon };
 }

@@ -44,3 +44,17 @@ export function logWeatherView(): void {
   weatherViewLogged = true;
   track('weather_view');
 }
+
+// season_card_view はセッション中に一度だけ撃つ（タブ往復・帯下とシートの両方で膨らませない）。
+let seasonCardViewLogged = false;
+/** 節気ふりかえりカード本体が画面に入った。1セッション1回のみ実発火。source は最初に見た場所。 */
+export function logSeasonCardView(source: 'inline' | 'sheet'): void {
+  if (seasonCardViewLogged) return;
+  seasonCardViewLogged = true;
+  track('season_card_view', { source });
+}
+
+/** ヒーローの節気名からふりかえりカードを開いた。 */
+export function logSeasonCardOpen(): void {
+  track('season_card_open');
+}

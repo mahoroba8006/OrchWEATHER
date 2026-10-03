@@ -296,6 +296,20 @@
 }
 .sky-hero__sekki { min-width: 0; margin-left: auto; pointer-events: none; }
 .sekki-badge { display: flex; justify-content: flex-end; }
+.sekki-badge--button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm, 6px);
+  /* 親 .sky-hero__sekki は表示専用で pointer-events:none。ボタンのときだけタップを受ける */
+  pointer-events: auto;
+}
+.sekki-badge--button:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.85); outline-offset: 3px; }
+.sekki-badge__chev { margin-left: 0.25em; opacity: 0.75; }
 .sekki-badge__text { min-width: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
 .sekki-badge__sekki { font-size: 0.95rem; font-weight: 500; color: rgba(255, 255, 255, 0.85); line-height: 1.3; }
 .sekki-badge__kou { font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); line-height: 1.35; }
