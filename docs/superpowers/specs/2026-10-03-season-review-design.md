@@ -13,7 +13,7 @@
 
 | 用途 | 取得元 |
 |---|---|
-| 日別実績（今年・過去年） | 既存 `fetchWeatherData(lat, lon, year)`（[src/api/weather.ts](../../../src/api/weather.ts)、年単位・メモリキャッシュを空くらべと共有） |
+| 日別実績（今年・過去年） | `fetchDailyActuals(lat, lon, start, end)`（[src/api/weather.ts](../../../src/api/weather.ts)）で必要期間（約6〜7年）を**1リクエスト**で取得。※当初は年単位 `fetchWeatherData` の並列取得だったが、archive API の同時接続上限で 429 "Too many concurrent requests" になったため変更（2026-10-04 実画面検証で判明） |
 | archive の直近欠け | 既存予報データの `pastDaily`（過去7日）で補完。日平均気温は (最高+最低)/2 で代用 |
 
 - 比較年: 今年 Y、去年 Y-1、5年平均 = Y-1〜Y-5 の平均（去年を含む）。
