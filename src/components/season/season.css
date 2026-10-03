@@ -1,0 +1,52 @@
+/* 今年のあゆみの帯・節気ふりかえりカード */
+.season-strip {
+  box-sizing: border-box;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0.45rem 0.85rem;
+  background: var(--surface-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+.season-strip__label { font-size: 0.7rem; color: var(--ink-3); line-height: 1.3; }
+.season-strip__text { font-size: 0.85rem; font-weight: 600; color: var(--ink-1); line-height: 1.4; }
+
+.season-card {
+  padding: 0.85rem 1rem 0.9rem;
+  background: var(--surface-card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  color: var(--ink-1);
+}
+.season-card__head { display: flex; gap: 0.75rem; align-items: center; }
+.season-card__art { flex-shrink: 0; }
+.season-card__heading { min-width: 0; }
+.season-card__period { margin: 0; font-size: 0.72rem; color: var(--ink-3); }
+.season-card__title { margin: 0.15rem 0 0; font-size: 1rem; font-weight: 700; line-height: 1.4; }
+
+.season-card__table { width: 100%; margin-top: 0.7rem; border-collapse: collapse; font-size: 0.8rem; }
+.season-card__table th, .season-card__table td { padding: 0.35rem 0.25rem; text-align: right; font-variant-numeric: tabular-nums; }
+.season-card__table thead th { font-size: 0.68rem; font-weight: 500; color: var(--ink-3); }
+.season-card__table tbody tr { border-top: 1px solid var(--line); }
+.season-card__table tbody th { text-align: left; font-weight: 500; color: var(--ink-2); }
+.season-card__value { font-weight: 700; }
+.season-card__cmp--more { color: #c0502a; }
+.season-card__cmp--less { color: #2a6fb0; }
+.season-card__cmp--same { color: var(--ink-3); }
+
+.season-card__rain { margin-top: 0.6rem; }
+.season-card__bars { display: flex; align-items: flex-end; gap: 2px; height: 36px; }
+.season-card__bars i { flex: 1; min-height: 1px; background: rgba(var(--accent-rgb), 0.55); border-radius: 2px 2px 0 0; }
+.season-card__axis { display: flex; justify-content: space-between; margin-top: 2px; font-size: 0.65rem; color: var(--ink-3); }
+
+.season-card__records { margin: 0.6rem 0 0; display: grid; gap: 0.2rem; font-size: 0.78rem; }
+.season-card__records div { display: flex; justify-content: space-between; gap: 0.5rem; }
+.season-card__records dt { color: var(--ink-2); }
+.season-card__records dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.season-card__note { margin: 0.6rem 0 0; font-size: 0.65rem; color: var(--ink-3); line-height: 1.5; }

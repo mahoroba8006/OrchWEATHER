@@ -1,0 +1,94 @@
+import { act, cleanup, screen } from '@testing-library/react';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
+import type { SeasonReview } from '../../lib/seasonReview';
+
+vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn() }));
+import { logSeasonCardView } from '../../lib/analytics';
+import { YearPaceStrip } from './YearPaceStrip';
+import { SeasonInlineCard, SeasonReviewCard } from './SeasonReviewCard';
+
+beforeAll(setupMotionTestEnv);
+afterEach(cleanup);
+
+const review: SeasonReview = {
+  range: { index: 14, name: '白露', start: '2026-09-07', end: '2026-09-22', days: 16 },
+  periodLabel: '白露 9/7〜9/22（16日間）',
+  headline: '日差しが多く、雨の少ない半月でした',
+  rows: [
+    { label: '平均気温', value: '24.0℃', vsLastYear: { text: '+1.0℃', tone: 'more' }, vsAvg: { text: '+1.0℃', tone: 'more' } },
+    { label: '雨の量', value: '38mm', vsLastYear: { text: '6割', tone: 'less' }, vsAvg: { text: '6割', tone: 'less' } },
+    { label: '日照', value: '96h', vsLastYear: { text: '+16h', tone: 'more' }, vsAvg: { text: '+16h', tone: 'more' } },
+  ],
+  rain: [{ date: '2026-09-07', value: 0 }, { date: '2026-09-08', value: 22 }],
+  records: {
+    hottest: { date: '2026-09-09', value: 33.2 },
+    coolestMorning: { date: '2026-09-21', value: 15.8 },
+    heavyRain: null,
+  },
+  avgYears: '2021〜2025年',
+};
+
+describe('YearPaceStrip', () => {
+  it('loading は骨組み', () => {
+    renderWithMotion(<YearPaceStrip state={{ status: 'loading' }} />);
+    expect(screen.getByRole('status', { name: '今年のあゆみを集計中' })).toBeTruthy();
+  });
+  it('ready は文言', () => {
+    renderWithMotion(<YearPaceStrip state={{ status: 'ready', view: { pace: { label: '今年のあゆみ（1月1日から）', text: '積算気温 去年より4日早い・5年平均より2日早い' }, review: null, showCard: false } }} />);
+    expect(screen.getByText('積算気温 去年より4日早い・5年平均より2日早い')).toBeTruthy();
+  });
+  it('hidden・idle は何も描かない', () => {
+    const { container } = renderWithMotion(<YearPaceStrip state={{ status: 'hidden' }} />);
+    expect(container.textContent).toBe('');
+  });
+});
+
+describe('SeasonReviewCard', () => {
+  it('期間・見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(screen.getByText('ふりかえり ─ 白露 9/7〜9/22（16日間）')).toBeTruthy();
+    expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
+    expect(screen.getByText('38mm')).toBeTruthy();
+    expect(screen.getAllByText('6割')).toHaveLength(2);
+    expect(screen.getByText('9/9 33.2℃')).toBeTruthy();
+    expect(screen.getByText('9/21 15.8℃')).toBeTruthy();
+    expect(screen.getByText('なし')).toBeTruthy();
+    expect(screen.getByText(/5年平均は2021〜2025年/)).toBeTruthy();
+  });
+});
+
+describe('カード閲覧の計測', () => {
+  // jsdom には IntersectionObserver が無いので、コールバックを手で呼べる偽物を入れる
+  let fire: (isIntersecting: boolean) => void = () => {};
+  beforeEach(() => {
+    vi.mocked(logSeasonCardView).mockClear();
+    vi.stubGlobal('IntersectionObserver', class {
+      constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+        fire = (isIntersecting) => cb([{ isIntersecting }]);
+      }
+      observe() {}
+      disconnect() {}
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('マウントだけでは計測せず、画面に入ったら場所つきで計測する', () => {
+    renderWithMotion(<SeasonInlineCard review={review} />);
+    expect(logSeasonCardView).not.toHaveBeenCalled();
+    act(() => fire(true));
+    expect(logSeasonCardView).toHaveBeenCalledWith('inline');
+  });
+
+  it('シート内のカードも計測する', () => {
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    act(() => fire(true));
+    expect(logSeasonCardView).toHaveBeenCalledWith('sheet');
+  });
+
+  it('IntersectionObserver が無い環境でも落ちない', () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(logSeasonCardView).not.toHaveBeenCalled();
+  });
+});
