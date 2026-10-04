@@ -7,42 +7,16 @@ import { SekkiArt } from '../sky/sekkiArt';
 import { WeatherIcon } from '../weather/WeatherIcon';
 import { springs } from '../../lib/motion';
 import { logSeasonCardView } from '../../lib/analytics';
-import { monthDay, type CompareCell, type SeasonReview } from '../../lib/seasonReview';
+import { HEAVY_RAIN_MM, monthDay, type CompareCell, type SeasonReview } from '../../lib/seasonReview';
 import './season.css';
 
-// 気温線の色（天気タブの日別グラフ DailyForecast と同じ）
+// 気温の色（天気タブの日別グラフ DailyForecast と同じ）。平年より高い/低い部分だけ色を付け、残りは灰色
 const TEMP_MAX_COLOR = '#fb7185';
 const TEMP_MIN_COLOR = '#7dd3fc';
-const CHART_H = 100; // viewBox の高さ（横は日数×10）
-const RAIN_AREA = 0.45; // 雨の棒が使う高さの上限（下側）。上側は気温線のために空ける
-
-// 純関数でテストするため export（Fast refresh はこのファイルでは不要）
-/** 点列を単調3次補間で滑らかにつないだ SVG パス（両端の点を必ず通り、値を行き過ぎない） */
-// eslint-disable-next-line react-refresh/only-export-components
-export function smoothPath(pts: [number, number][]): string {
-  // 単調3次補間（Fritsch–Carlson）。山と谷を行き過ぎず、実際の値より高く/低く見せない
-  const n = pts.length;
-  if (n === 0) return '';
-  const f = (v: number) => +v.toFixed(2);
-  if (n === 1) return `M${f(pts[0][0])} ${f(pts[0][1])}`;
-  const slope = pts.slice(0, -1).map((p, i) => (pts[i + 1][1] - p[1]) / (pts[i + 1][0] - p[0]));
-  const tan = pts.map((_, i) => {
-    if (i === 0) return slope[0];
-    if (i === n - 1) return slope[n - 2];
-    return slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
-  });
-  for (let i = 0; i < n - 1; i++) {
-    if (slope[i] === 0) { tan[i] = 0; tan[i + 1] = 0; continue; }
-    const a = tan[i] / slope[i], b = tan[i + 1] / slope[i], h = a * a + b * b;
-    if (h > 9) { const t = 3 / Math.sqrt(h); tan[i] = t * a * slope[i]; tan[i + 1] = t * b * slope[i]; }
-  }
-  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
-  for (let i = 0; i < n - 1; i++) {
-    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], h = (x1 - x0) / 3;
-    d += ` C${f(x0 + h)} ${f(y0 + tan[i] * h)} ${f(x1 - h)} ${f(y1 - tan[i + 1] * h)} ${f(x1)} ${f(y1)}`;
-  }
-  return d;
-}
+const TEMP_BASE_COLOR = '#9aa6b8';
+const BAND_COLOR = 'rgba(120, 130, 150, 0.16)';
+const TEMP_H = 100; // 気温の段の viewBox の高さ（横は日数×10）
+const RAIN_H = 100; // 雨の段の viewBox の高さ
 
 function Cell({ c }: { c: CompareCell }) {
   return <td className={`season-card__cmp season-card__cmp--${c.tone}`}>{c.text}</td>;
@@ -64,12 +38,18 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
   }, [source]);
 
   const { daily } = review;
+  const n = daily.length;
   const maxRain = Math.max(1, ...daily.map(r => r.precip));
-  // 気温目盛は期間の（最低−1）〜（最高+1）。右端ラベルもこの上端・下端の値
-  const tHi = Math.max(...daily.map(r => r.tempMax)) + 1;
-  const tLo = Math.min(...daily.map(r => r.tempMin)) - 1;
-  const ty = (t: number) => ((tHi - t) / (tHi - tLo)) * CHART_H;
-  const line = (pick: (r: (typeof daily)[number]) => number) => smoothPath(daily.map((r, i) => [i * 10 + 5, ty(pick(r))]));
+  // 気温目盛は今年・5年平均を合わせた期間の（最低−1）〜（最高+1）。右端ラベルもこの上端・下端の値
+  const tHi = Math.ceil(Math.max(...daily.map(r => Math.max(r.tempMax, r.avgMax)))) + 1;
+  const tLo = Math.floor(Math.min(...daily.map(r => Math.min(r.tempMin, r.avgMin)))) - 1;
+  const ty = (t: number) => ((tHi - t) / (tHi - tLo)) * TEMP_H;
+  const cx = (i: number) => i * 10 + 5;
+  const band = [
+    ...daily.map((r, i) => `${i === 0 ? 'M' : 'L'}${cx(i)} ${ty(r.avgMax).toFixed(2)}`),
+    ...daily.map((r, i) => `L${cx(i)} ${ty(r.avgMin).toFixed(2)}`).reverse(),
+    'Z',
+  ].join(' ');
   const range = `${monthDay(review.range.start)}〜${monthDay(review.range.end)}`;
   const { hottest, coolestMorning, heavyRain } = review.records;
   return (
@@ -104,17 +84,38 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
       </table>
 
       <div className="season-card__rain">
-        <div className="season-card__chart" role="img" aria-label={`日ごとの雨と気温（${range}）`}>
-          <svg viewBox={`0 0 ${daily.length * 10} ${CHART_H}`} preserveAspectRatio="none" aria-hidden="true">
+        <div className="season-card__chart" role="img" aria-label={`日ごとの最高・最低気温と5年平均（${range}）`}>
+          <svg viewBox={`0 0 ${n * 10} ${TEMP_H}`} preserveAspectRatio="none" aria-hidden="true">
+            <path data-testid="normal-band" d={band} fill={BAND_COLOR} />
             {daily.map((r, i) => {
-              const h = (r.precip / maxRain) * CHART_H * RAIN_AREA;
-              return <rect key={r.date} x={i * 10 + 2} y={CHART_H - h} width={6} height={h} fill="rgba(var(--accent-rgb), 0.55)" />;
+              const y1 = ty(r.tempMax), y2 = ty(r.tempMin);
+              const hotH = Math.max(0, ty(Math.max(r.avgMax, r.tempMin)) - y1); // 平年の最高より上の部分
+              const coldTop = ty(Math.min(r.avgMin, r.tempMax));
+              const coldH = Math.max(0, y2 - coldTop); // 平年の最低より下の部分
+              return (
+                <g key={r.date}>
+                  <rect data-testid="temp-bar" x={i * 10 + 3} y={y1} width={4} height={y2 - y1} rx={2} fill={TEMP_BASE_COLOR} />
+                  {hotH > 0 && <rect data-testid="temp-hot" x={i * 10 + 3} y={y1} width={4} height={hotH} rx={2} fill={TEMP_MAX_COLOR} />}
+                  {coldH > 0 && <rect data-testid="temp-cold" x={i * 10 + 3} y={coldTop} width={4} height={coldH} rx={2} fill={TEMP_MIN_COLOR} />}
+                </g>
+              );
             })}
-            <path d={line(r => r.tempMin)} fill="none" stroke={TEMP_MIN_COLOR} strokeWidth={1.75} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-            <path d={line(r => r.tempMax)} fill="none" stroke={TEMP_MAX_COLOR} strokeWidth={1.75} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           </svg>
-          <span className="season-card__tick season-card__tick--hi" aria-hidden="true">{`${Math.round(tHi)}°`}</span>
-          <span className="season-card__tick season-card__tick--lo" aria-hidden="true">{`${Math.round(tLo)}°`}</span>
+          <span className="season-card__tick season-card__tick--hi" aria-hidden="true">{`${tHi}°`}</span>
+          <span className="season-card__tick season-card__tick--lo" aria-hidden="true">{`${tLo}°`}</span>
+        </div>
+        <div className="season-card__raincol" role="img" aria-label={`日ごとの雨（${range}）`}>
+          <div className="season-card__rainbars">
+            <svg viewBox={`0 0 ${n * 10} ${RAIN_H}`} preserveAspectRatio="none" aria-hidden="true">
+              {daily.map((r, i) => {
+                const h = (r.precip / maxRain) * RAIN_H;
+                return <rect key={r.date} x={i * 10 + 2} y={RAIN_H - h} width={6} height={h} fill="rgba(var(--accent-rgb), 0.55)" />;
+              })}
+            </svg>
+            {daily.map((r, i) => r.precip >= HEAVY_RAIN_MM && (
+              <span key={r.date} className="season-card__rain-label" style={{ left: `${((i + 0.5) / n) * 100}%` }} aria-hidden="true">{Math.round(r.precip)}</span>
+            ))}
+          </div>
         </div>
         <div className="season-card__icons" aria-hidden="true">
           {daily.map(r => (
@@ -123,11 +124,14 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
         </div>
         <div className="season-card__axis" aria-hidden="true">
           <span>{monthDay(review.range.start)}</span>
-          <span>日ごとの雨・気温・天気</span>
+          <span>日ごとの気温・雨・天気</span>
           <span>{monthDay(review.range.end)}</span>
         </div>
         <p className="season-card__legend" aria-hidden="true">
-          <span style={{ color: TEMP_MAX_COLOR }}>●</span> 最高気温{'　'}<span style={{ color: TEMP_MIN_COLOR }}>●</span> 最低気温{'　'}<span style={{ color: 'rgba(var(--accent-rgb), 0.8)' }}>▮</span> 雨
+          <span><i style={{ background: BAND_COLOR }} />5年平均の範囲</span>
+          <span><i style={{ background: TEMP_MAX_COLOR }} />平年より高い</span>
+          <span><i style={{ background: TEMP_MIN_COLOR }} />平年より低い</span>
+          <span><i style={{ background: 'rgba(var(--accent-rgb), 0.55)' }} />雨</span>
         </p>
       </div>
 

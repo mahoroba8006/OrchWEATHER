@@ -252,8 +252,20 @@ export function records(days: DayRecord[]): SeasonRecords {
 
 // ---- カード ----
 
-/** カードのグラフ用の1日分。code は雨量と日照から推定した天気（WMO コード） */
-export interface ReviewDay { date: string; precip: number; tempMax: number; tempMin: number; code: number }
+/** カードのグラフ用の1日分。code は雨量と日照から推定した天気（WMO コード）、avgMax/avgMin は同じ月日の5年平均 */
+export interface ReviewDay { date: string; precip: number; tempMax: number; tempMin: number; code: number; avgMax: number; avgMin: number }
+
+/** 同じ月日の過去5年の最高・最低気温の平均（欠けた年は除く。全年欠けなら今年の値） */
+function avgMaxMin(map: DayMap, d: DayRecord): { avgMax: number; avgMin: number } {
+  const past: DayRecord[] = [];
+  for (let k = 1; k <= AVG_YEARS; k++) {
+    const r = map.get(shiftYear(d.date, -k));
+    if (r) past.push(r);
+  }
+  if (past.length === 0) return { avgMax: d.tempMax, avgMin: d.tempMin };
+  const mean = (f: (r: DayRecord) => number) => past.reduce((a, r) => a + f(r), 0) / past.length;
+  return { avgMax: mean(r => r.tempMax), avgMin: mean(r => r.tempMin) };
+}
 
 /**
  * 雨量と日照時間からその日の天気の目安を WMO コードで返す（観測した天気そのものではない）。
@@ -302,7 +314,9 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonRevie
       { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: rainCell(cur.precip, cmp.lastYear.precip), vsAvg: rainCell(cur.precip, cmp.avg.precip) },
       { label: '日照', value: `${Math.round(cur.sunshine)}h`, vsLastYear: sunCell(cur.sunshine, cmp.lastYear.sunshine), vsAvg: sunCell(cur.sunshine, cmp.avg.sunshine) },
     ],
-    daily: days.map(d => ({ date: d.date, precip: d.precip, tempMax: d.tempMax, tempMin: d.tempMin, code: estimateSkyCode(d) })),
+    daily: days.map(d => ({
+      date: d.date, precip: d.precip, tempMax: d.tempMax, tempMin: d.tempMin, code: estimateSkyCode(d), ...avgMaxMin(map, d),
+    })),
     records: records(days),
     avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
   };
