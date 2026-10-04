@@ -7,12 +7,13 @@
 // 状態は「どの key の結果か」を持ち、描画時に key 比較で導出する（effect 内で同期 setState しない）。
 // 地点切替直後は useForecast がまだ旧地点の予報を返すため、予報の取得地点が今の地点と一致するまで
 // 取得を始めない（予報より先に走らせない・新予報の到着後に重複取得しない）。
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchDailyActuals } from '../api/weather';
 import { addDays } from '../lib/dateUtils';
 import type { ForecastData } from '../api/forecast';
 import {
-  buildDayMap, computeSeasonView, fromArchive, fromForecastPast, requiredYears, type SeasonView,
+  buildDayMap, computeSeasonView, fromArchive, fromForecastPast, requiredYears,
+  type DayMap, type PaceOptions, type SeasonView,
 } from '../lib/seasonReview';
 import { jstDateString } from '../lib/sky';
 
@@ -22,13 +23,19 @@ export type SeasonState =
   | { status: 'hidden' }
   | { status: 'ready'; view: SeasonView };
 
-export function useSeasonReview(lat: number | null, lon: number | null, forecast: ForecastData | null): SeasonState {
+export function useSeasonReview(
+  lat: number | null,
+  lon: number | null,
+  forecast: ForecastData | null,
+  opts: PaceOptions,
+): SeasonState {
   const today = jstDateString(new Date());
   const forecastMatches = forecast !== null && lat !== null && lon !== null && forecast.lat === lat && forecast.lon === lon;
   // key は地点と日付だけ。予報の手動更新（fetchedAt の変化）では取り直さない
   // （実績は fetchDailyActuals が6時間キャッシュ。骨組みに戻すとシートも閉じてしまう）
   const key = forecastMatches ? `${lat},${lon},${today}` : null;
-  const [result, setResult] = useState<{ key: string; view: SeasonView | null } | null>(null);
+  // 取得した実績（失敗時は null）。比べ方の設定が変わっても取り直さず、表示だけ計算し直す
+  const [result, setResult] = useState<{ key: string; map: DayMap | null } | null>(null);
 
   // 最新の予報を ref で読む（参照は毎回変わりうるため effect の依存には key だけを使う）
   const forecastRef = useRef(forecast);
@@ -40,20 +47,25 @@ export function useSeasonReview(lat: number | null, lon: number | null, forecast
     let cancelled = false;
     fetchDailyActuals(lat, lon, `${requiredYears(today)[0]}-01-01`, addDays(today, -1))
       .then(days => {
-        if (cancelled) return;
-        const map = buildDayMap(fromArchive(days), fill);
-        setResult({ key, view: computeSeasonView(map, today) });
+        if (!cancelled) setResult({ key, map: buildDayMap(fromArchive(days), fill) });
       })
       .catch(() => {
-        if (!cancelled) setResult({ key, view: null });
+        if (!cancelled) setResult({ key, map: null });
       });
     return () => { cancelled = true; };
-    // key に lat・lon・today・予報の取得時刻が含まれる
+    // key に lat・lon・today が含まれる
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+
+  const { mode, baseTemp, gddDaysMin, startDates: { precip, sunshine, gdd } } = opts;
+  const map = result && result.key === key ? result.map : null;
+  const view = useMemo(
+    () => (map ? computeSeasonView(map, today, { mode, baseTemp, gddDaysMin, startDates: { precip, sunshine, gdd } }) : null),
+    [map, today, mode, baseTemp, gddDaysMin, precip, sunshine, gdd],
+  );
 
   if (lat === null || lon === null || !forecast) return { status: 'idle' };
   // 予報が今の地点に追いつくまで（key === null）と、取得中は骨組み
   if (key === null || !result || result.key !== key) return { status: 'loading' };
-  return result.view ? { status: 'ready', view: result.view } : { status: 'hidden' };
+  return view ? { status: 'ready', view } : { status: 'hidden' };
 }
