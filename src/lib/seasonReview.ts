@@ -178,7 +178,8 @@ function rangeDays(map: DayMap, start: string, end: string): DayRecord[] {
 
 export type Tone = 'more' | 'less' | 'same';
 export interface CompareCell { text: string; tone: Tone }
-export interface CompareRow { label: string; value: string; vsLastYear: CompareCell; vsAvg: CompareCell }
+/** 途中経過カードでは比較しない（積み上げの雨・日照は前半だと比べる意味が薄い）ので null */
+export interface CompareRow { label: string; value: string; vsLastYear: CompareCell | null; vsAvg: CompareCell | null }
 
 const toneOf = (v: number): Tone => (v > 0 ? 'more' : v < 0 ? 'less' : 'same');
 
@@ -313,6 +314,8 @@ export interface SeasonReview {
   avgYears: string;
   /** 記録の見出し（季節に合わせた「いちばん暑い日」「いちばん寒い日」など） */
   recordLabels: { warm: string; cold: string };
+  /** 今の節気の途中経過なら、今日が何日目か／全日数（昨日までの値で作る）。終わった節気は null */
+  progress: { day: number; total: number } | null;
 }
 
 export function buildSeasonReview(map: DayMap, today: string): SeasonReview | null {
@@ -344,6 +347,48 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonRevie
     records: records(days),
     avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
     recordLabels: { warm: words.warmRecord, cold: words.coldRecord },
+    progress: null,
+  };
+}
+
+/** today が属する節気の範囲（初日〜最終日） */
+export function currentSekkiRange(today: string): SekkiRange {
+  const start = currentSekkiStart(today);
+  const index = sekkiIndexOf(today);
+  let end = today;
+  while (sekkiIndexOf(addDays(end, 1)) === index) end = addDays(end, 1);
+  return { index, name: SEKKI[index].name, start, end, days: daysBetween(start, end) };
+}
+
+/**
+ * 今の節気の途中経過（初日〜昨日）。比較とコメントは出さない。
+ * 初日は昨日が前の節気なので集計が0日 → null（節気が変わった日は、終わった節気の完成したふりかえりを見せる）
+ */
+export function buildProgressForRange(map: DayMap, range: SekkiRange, today: string): SeasonReview | null {
+  const yesterday = addDays(today, -1);
+  if (yesterday < range.start) return null;
+  const end = yesterday < range.end ? yesterday : range.end;
+  const cur = rangeStats(map, range.start, end);
+  if (!cur) return null;
+  const days = rangeDays(map, range.start, end);
+  const words = seasonWords(days.reduce((a, d) => a + d.tempMax, 0) / days.length);
+  const y = yearOf(range.start);
+  return {
+    range,
+    periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}（${days.length + 1}日目／${range.days}日間）`,
+    headline: '',
+    rows: [
+      { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: null, vsAvg: null },
+      { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: null, vsAvg: null },
+      { label: '日照', value: `${Math.round(cur.sunshine)}h`, vsLastYear: null, vsAvg: null },
+    ],
+    daily: days.map(d => ({
+      date: d.date, precip: d.precip, tempMax: d.tempMax, tempMin: d.tempMin, code: estimateSkyCode(d), ...avgMaxMin(map, d),
+    })),
+    records: records(days),
+    avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
+    recordLabels: { warm: words.warmRecord, cold: words.coldRecord },
+    progress: { day: days.length + 1, total: range.days },
   };
 }
 
@@ -553,5 +598,8 @@ export function computeSeasonView(map: DayMap, today: string, opts: PaceOptions)
   const latest = reviews.at(-1);
   const review = latest && latest.range.end === previousSekkiRange(today).end ? latest : null;
   if (paceItems.length === 0 && !review) return null;
-  return { paceItems, review, reviews, showCard: !!review && isInCardWindow(today) };
+  // 今の節気の途中経過を一番右（最新）に加える。帯の下のカードは終わった節気（review）のまま
+  // 5年平均が揃う前（去年分だけの段階）は、帯が去年だけで描かれて誤解を招くので出さない
+  const progress = reviews.length > 0 ? buildProgressForRange(map, currentSekkiRange(today), today) : null;
+  return { paceItems, review, reviews: progress ? [...reviews, progress] : reviews, showCard: !!review && isInCardWindow(today) };
 }
