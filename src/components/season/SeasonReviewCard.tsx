@@ -113,10 +113,14 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
                 return <rect key={r.date} x={i * 10 + 2} y={RAIN_H - h} width={6} height={h} fill={RAIN_COLOR} />;
               })}
             </svg>
+          </div>
+          {/* まとまった雨の日の数値は、棒の下（天気アイコンの上）の段に。単位は右端の余白に */}
+          <div className="season-card__rainvals" aria-hidden="true">
             {daily.map((r, i) => r.precip >= HEAVY_RAIN_MM && (
-              <span key={r.date} className="season-card__rain-label" style={{ left: `${((i + 0.5) / n) * 100}%` }} aria-hidden="true">{Math.round(r.precip)}</span>
+              <span key={r.date} className="season-card__rain-label" style={{ left: `${((i + 0.5) / n) * 100}%` }}>{Math.round(r.precip)}</span>
             ))}
           </div>
+          <span className="season-card__rain-unit" aria-hidden="true">mm</span>
         </div>
         <div className="season-card__icons" aria-hidden="true">
           {daily.map(r => (
