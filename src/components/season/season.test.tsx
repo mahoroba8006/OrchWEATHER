@@ -7,6 +7,7 @@ vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn() }));
 import { logSeasonCardView } from '../../lib/analytics';
 import { SeasonPaceTicker } from './SeasonPaceTicker';
 import type { PaceItem } from '../../lib/seasonReview';
+import type { SeasonState } from '../../hooks/useSeasonReview';
 import { SeasonInlineCard, SeasonReviewCard } from './SeasonReviewCard';
 
 beforeAll(setupMotionTestEnv);
@@ -40,8 +41,8 @@ const shown = (el: Element) => {
   expect(nodes).toHaveLength(1);
   return nodes[0].textContent;
 };
-const readyState = (items: PaceItem[]) =>
-  ({ status: 'ready', view: { paceItems: items, review: null, showCard: false } }) as const;
+const readyState = (items: PaceItem[]): SeasonState =>
+  ({ status: 'ready', view: { paceItems: items, review: null, reviews: [], showCard: false } });
 
 describe('SeasonPaceTicker', () => {
   it('loading は骨組み', () => {
@@ -151,7 +152,7 @@ describe('カード閲覧の計測', () => {
 
 describe('SeasonPaceTicker の表示', () => {
   it('本文の先頭に項目名、見出しに期間を出す', () => {
-    renderWithMotion(<SeasonPaceTicker state={{ status: 'ready', view: { paceItems: [{ kind: 'precip', name: '降水量', period: '1月1日から', text: '去年の1.8倍・5年平均の1.4倍' }], review: null, showCard: false } }} />);
+    renderWithMotion(<SeasonPaceTicker state={{ status: 'ready', view: { paceItems: [{ kind: 'precip', name: '降水量', period: '1月1日から', text: '去年の1.8倍・5年平均の1.4倍' }], review: null, reviews: [], showCard: false } }} />);
     expect(document.querySelector('.season-strip__name')?.textContent).toBe('降水量');
     expect(document.querySelector('.season-strip__label')?.textContent).toBe('季節のあしどり（1月1日から）');
   });

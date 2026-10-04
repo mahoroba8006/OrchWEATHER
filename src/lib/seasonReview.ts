@@ -67,12 +67,27 @@ export function isInCardWindow(today: string): boolean {
   return daysBetween(currentSekkiStart(today), today) <= CARD_WINDOW_DAYS;
 }
 
+/** シートで左右に見られる過去の節気のふりかえりの数（約3か月） */
+export const REVIEW_COUNT = 6;
+
+/** 直前の節気から n 個の範囲（古い順・連続） */
+export function recentSekkiRanges(today: string, n: number): SekkiRange[] {
+  const out: SekkiRange[] = [];
+  let d = today;
+  for (let i = 0; i < n; i++) {
+    const r = previousSekkiRange(d);
+    out.unshift(r);
+    d = r.start;
+  }
+  return out;
+}
+
 /** 計算に必要な年（昇順）。実績は昨日までなので、上限は昨日の年 */
 export function requiredYears(today: string): number[] {
   const yesterday = addDays(today, -1);
   const last = yearOf(yesterday);
   const earliest = Math.min(
-    yearOf(previousSekkiRange(today).start),
+    yearOf(recentSekkiRanges(today, REVIEW_COUNT)[0].start),
     yearOf(addDays(yesterday, -(RECENT_DAYS - 1))),
   ) - AVG_YEARS;
   return Array.from({ length: last - earliest + 1 }, (_, i) => earliest + i);
@@ -251,7 +266,11 @@ export interface SeasonReview {
 }
 
 export function buildSeasonReview(map: DayMap, today: string): SeasonReview | null {
-  const range = previousSekkiRange(today);
+  return buildReviewForRange(map, previousSekkiRange(today));
+}
+
+/** 指定した節気の範囲のふりかえり。今年・比較年に欠けがあれば null */
+export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonReview | null {
   const cur = rangeStats(map, range.start, range.end);
   const cmp = comparisonStats(map, range.start, range.end);
   if (!cur || !cmp) return null;
@@ -457,14 +476,21 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
 export interface SeasonView {
   /** 季節のあしどりの項目（帯で順番に切り替えて見せる） */
   paceItems: PaceItem[];
+  /** 直前の節気のふりかえり（帯の下・節気名タップの既定表示） */
   review: SeasonReview | null;
+  /** シートで左右に見るふりかえり（古い順。計算できない節気は除く。最後は review と同じ） */
+  reviews: SeasonReview[];
   /** カードを帯の下に出すか（節気の変わり目 CARD_WINDOW_DAYS 日間） */
   showCard: boolean;
 }
 
 export function computeSeasonView(map: DayMap, today: string, opts: PaceOptions): SeasonView | null {
   const paceItems = computePaceItems(map, today, opts);
-  const review = buildSeasonReview(map, today);
+  const reviews = recentSekkiRanges(today, REVIEW_COUNT)
+    .map(r => buildReviewForRange(map, r))
+    .filter((r): r is SeasonReview => r !== null);
+  const latest = reviews.at(-1);
+  const review = latest && latest.range.end === previousSekkiRange(today).end ? latest : null;
   if (paceItems.length === 0 && !review) return null;
-  return { paceItems, review, showCard: !!review && isInCardWindow(today) };
+  return { paceItems, review, reviews, showCard: !!review && isInCardWindow(today) };
 }
