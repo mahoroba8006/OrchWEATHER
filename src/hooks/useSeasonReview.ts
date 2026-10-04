@@ -57,11 +57,17 @@ export function useSeasonReview(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const { mode, baseTemp, gddDaysMin, startDates: { precip, sunshine, gdd } } = opts;
+  const { baseTemp, gddDaysMin, startDates: { precip, sunshine, gdd } } = opts;
+  const { precip: precipMode, gdd: gddMode, sunshine: sunshineMode } = opts.modes;
   const map = result && result.key === key ? result.map : null;
   const view = useMemo(
-    () => (map ? computeSeasonView(map, today, { mode, baseTemp, gddDaysMin, startDates: { precip, sunshine, gdd } }) : null),
-    [map, today, mode, baseTemp, gddDaysMin, precip, sunshine, gdd],
+    () => (map
+      ? computeSeasonView(map, today, {
+        modes: { precip: precipMode, gdd: gddMode, sunshine: sunshineMode },
+        baseTemp, gddDaysMin, startDates: { precip, sunshine, gdd },
+      })
+      : null),
+    [map, today, precipMode, gddMode, sunshineMode, baseTemp, gddDaysMin, precip, sunshine, gdd],
   );
 
   if (lat === null || lon === null || !forecast) return { status: 'idle' };

@@ -185,10 +185,11 @@ describe('季節のあしどり（computePaceItems）', () => {
     expect(gdd.text).toBe('去年より早いペース・5年平均より早いペース');
   });
 
-  it('積算が日数差のしきい値未満なら、同じ日数時点の差（℃日）で示す', () => {
-    // 基準10.5℃: 過去年は0、今年は0.5×275日=137.5
-    const gdd = computePaceItems(warmYear(), '2026-10-03', opts({ baseTemp: 10.5, gddDaysMin: 200 })).find(i => i.kind === 'gdd')!;
-    expect(gdd.text).toBe('去年より+138℃日・5年平均より+138℃日');
+  it('累積の積算が日数差のしきい値未満の時期は、積算温度の項目を出さない', () => {
+    // 基準10.5℃: 過去年は0、今年は0.5×275日=137.5 < 200
+    const items = computePaceItems(warmYear(), '2026-10-03', opts({ baseTemp: 10.5, gddDaysMin: 200 }));
+    expect(items.find(i => i.kind === 'gdd')).toBeUndefined();
+    expect(items.map(i => i.kind)).toEqual(['temp', 'precip', 'sunshine']);
   });
 
   it('0℃未満の日は0として積算する', () => {
@@ -205,14 +206,25 @@ describe('季節のあしどり（computePaceItems）', () => {
     expect(items.find(i => i.kind === 'sunshine')).toBeUndefined();
   });
 
-  it('直近30日: 降水量・積算温度・日照時間も30日で比べ、積算温度は差（℃日）', () => {
-    const items = computePaceItems(warmYear(), '2026-10-03', opts({ mode: 'recent' }));
+  it('直近30日: 降水量・積算温度・日照時間も30日で比べ、積算温度の差は℃で示す', () => {
+    const items = computePaceItems(warmYear(), '2026-10-03', opts({ modes: { precip: 'recent', gdd: 'recent', sunshine: 'recent' } }));
     expect(items.map(i => [i.kind, i.name, i.period, i.text])).toEqual([
       ['temp', '気温', 'この30日', '去年より+1.0℃・5年平均より+1.0℃'],
       ['precip', '降水量', 'この30日', '去年の1.5倍・5年平均の1.5倍'],
-      ['gdd', '積算温度', 'この30日・0℃基準', '去年より+30℃日・5年平均より+30℃日'],
+      ['gdd', '積算温度', 'この30日・0℃基準', '去年より+30℃・5年平均より+30℃'],
       ['sunshine', '日照時間', 'この30日', '去年より+30h・5年平均より+30h'],
     ]);
+  });
+
+  it('項目ごとに累積か直近30日かを選べる', () => {
+    const items = computePaceItems(warmYear(), '2026-10-03', opts({ modes: { precip: 'recent', gdd: 'analysis', sunshine: 'recent' } }));
+    expect(items.map(i => [i.kind, i.period])).toEqual([
+      ['temp', 'この30日'],
+      ['precip', 'この30日'],
+      ['gdd', '1月1日から・0℃基準'],
+      ['sunshine', 'この30日'],
+    ]);
+    expect(items.find(i => i.kind === 'gdd')?.text).toBe('去年より28日早い・5年平均より28日早い');
   });
 
   it('1/1 は前年分を「今年」として数えず、気温（30日）だけになる', () => {

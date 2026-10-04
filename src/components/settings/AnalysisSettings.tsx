@@ -9,7 +9,7 @@ import {
 import { Button } from '../ui/Button';
 import { SaveButton } from '../ui/SaveButton';
 import { SegmentedControl } from '../ui/SegmentedControl';
-import type { SeasonPaceMode } from '../../lib/seasonReview';
+import { DEFAULT_PACE_OPTIONS, type PaceMetric, type SeasonPaceMode } from '../../lib/seasonReview';
 import './settings.css';
 
 // 累積開始日のプリセット（萌芽期/田植え/定植期など実運用日付）
@@ -44,6 +44,13 @@ const lastDayOf = (mm: number): number => {
   return days[mm - 1] || 31;
 };
 
+// 季節のあしどりで比べ方を選べる項目（気温は常に直近30日）
+const PACE_METRICS: Array<{ metric: PaceMetric; label: string }> = [
+  { metric: 'precip', label: '降水量' },
+  { metric: 'gdd', label: '積算温度' },
+  { metric: 'sunshine', label: '日照時間' },
+];
+
 type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
 
 export function AnalysisSettings() {
@@ -52,7 +59,7 @@ export function AnalysisSettings() {
     updateBaseTempSettings,
     updateAccumStartDates,
     updateAccumDeltaThresholds,
-    updateSeasonPaceMode,
+    updateSeasonPaceModes,
   } = useAppStore();
 
   const [baseTempForm, setBaseTempForm] = useState<[number, number]>(
@@ -70,7 +77,7 @@ export function AnalysisSettings() {
   const [baseTempStatus, setBaseTempStatus] = useState<SaveStatus>({ kind: 'idle' });
   const [accumStatus, setAccumStatus] = useState<SaveStatus>({ kind: 'idle' });
   const [paceStatus, setPaceStatus] = useState<SaveStatus>({ kind: 'idle' });
-  const seasonPaceMode: SeasonPaceMode = userSettings?.seasonPaceMode ?? 'analysis';
+  const seasonPaceModes = userSettings?.seasonPaceModes ?? DEFAULT_PACE_OPTIONS.modes;
 
   useEffect(() => {
     if (userSettings) {
@@ -117,10 +124,10 @@ export function AnalysisSettings() {
   };
 
   // 選択はストアの値をそのまま表示するので、保存に失敗しても元の選択のまま残る
-  const handleChangePaceMode = async (mode: SeasonPaceMode) => {
+  const handleChangePaceMode = async (metric: PaceMetric, mode: SeasonPaceMode) => {
     setPaceStatus({ kind: 'saving' });
     try {
-      await updateSeasonPaceMode(mode);
+      await updateSeasonPaceModes({ ...seasonPaceModes, [metric]: mode });
       setPaceStatus({ kind: 'saved', msg: '比べ方を保存しました' });
       setTimeout(() => setPaceStatus({ kind: 'idle' }), 2500);
     } catch (err: unknown) {
@@ -273,23 +280,25 @@ export function AnalysisSettings() {
       <div className="set-card">
         <h3 className="set-title">季節のあしどりの比べ方</h3>
         <div className="set-hint">
-          空もようの「季節のあしどり」で、去年・5年平均と比べる期間を選びます。気温はどちらも直近30日です。
+          空もようの「季節のあしどり」で、去年・5年平均と比べる期間を項目ごとに選びます。
+          累積は上の開始日から（積算温度は基準温度1）、直近30日は昨日までの30日間です。
         </div>
-        <SegmentedControl<SeasonPaceMode>
-          options={[
-            { value: 'analysis', label: '空くらべに合わせる' },
-            { value: 'recent', label: '直近30日' },
-          ]}
-          value={seasonPaceMode}
-          onChange={handleChangePaceMode}
-          ariaLabel="季節のあしどりの比べ方"
-          layoutId="settings-season-pace"
-        />
-        <div className="set-hint">
-          {seasonPaceMode === 'analysis'
-            ? '降水量・積算温度・日照時間は、上の開始日と基準温度1で比べます。'
-            : '降水量・積算温度・日照時間も、直近30日で比べます。'}
-        </div>
+        {PACE_METRICS.map(({ metric, label }) => (
+          <div key={metric} className="set-pace-row">
+            <span className="set-field-label">{label}</span>
+            <SegmentedControl<SeasonPaceMode>
+              options={[
+                { value: 'analysis', label: '累積' },
+                { value: 'recent', label: '直近30日' },
+              ]}
+              value={seasonPaceModes[metric]}
+              onChange={(mode) => handleChangePaceMode(metric, mode)}
+              ariaLabel={`季節のあしどり ${label}の比べ方`}
+              layoutId={`settings-season-pace-${metric}`}
+            />
+          </div>
+        ))}
+        <div className="set-hint">気温は、いつも直近30日の平均で比べます。</div>
         <div className="set-actions">
           {renderStatus(paceStatus)}
           {paceStatus.kind === 'saved' && <span className="set-hint">{paceStatus.msg}</span>}
