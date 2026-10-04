@@ -141,6 +141,14 @@
   box-shadow: none;
 }
 .ui-sheet__close:hover { background: var(--line-strong); color: var(--ink-1); }
+/* 中身の幅を抑えたシート：見出しと本文を同じ幅で中央に揃える（見出しは左右の余白ぶん広い） */
+.ui-sheet--narrow .ui-sheet__header {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: calc(var(--sheet-content-w) + 32px);
+  margin-inline: auto;
+}
+.ui-sheet__inner { max-width: var(--sheet-content-w); margin-inline: auto; }
 .ui-sheet__body {
   flex: 1;
   min-height: 0;

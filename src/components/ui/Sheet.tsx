@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { AnimatePresence, m, useDragControls, type PanInfo } from 'motion/react';
 import { X } from 'lucide-react';
 import { springs } from '../../lib/motion';
@@ -11,6 +11,8 @@ interface SheetProps {
   title: string;
   /** bottom: モバイルの下から出るシート / side: PCの右から出るパネル */
   placement?: 'bottom' | 'side';
+  /** 中身（見出し・本文）の最大幅(px)。広い画面で横に間延びさせたくないときに指定し、中央に寄せる */
+  contentMaxWidth?: number;
   children: ReactNode;
 }
 
@@ -18,7 +20,7 @@ interface SheetProps {
 const DISMISS_OFFSET = 120;
 const DISMISS_VELOCITY = 500;
 
-function SheetPanel({ onClose, title, placement, children }: Omit<SheetProps, 'open'> & { placement: 'bottom' | 'side' }) {
+function SheetPanel({ onClose, title, placement, contentMaxWidth, children }: Omit<SheetProps, 'open'> & { placement: 'bottom' | 'side' }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const initialFocusRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -64,7 +66,8 @@ function SheetPanel({ onClose, title, placement, children }: Omit<SheetProps, 'o
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`ui-sheet ui-sheet--${placement}`}
+        className={`ui-sheet ui-sheet--${placement}${contentMaxWidth ? ' ui-sheet--narrow' : ''}`}
+        style={contentMaxWidth ? ({ '--sheet-content-w': `${contentMaxWidth}px` } as CSSProperties) : undefined}
         initial={hidden}
         animate={shown}
         exit={hidden}
@@ -83,7 +86,9 @@ function SheetPanel({ onClose, title, placement, children }: Omit<SheetProps, 'o
             <X size={18} strokeWidth={1.5} />
           </button>
         </div>
-        <div className="ui-sheet__body">{children}</div>
+        <div className="ui-sheet__body">
+          {contentMaxWidth ? <div className="ui-sheet__inner">{children}</div> : children}
+        </div>
       </m.div>
     </>
   );

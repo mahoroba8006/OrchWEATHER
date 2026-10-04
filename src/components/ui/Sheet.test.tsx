@@ -29,6 +29,17 @@ describe('Sheet', () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
+  it('contentMaxWidth で中身の最大幅を指定でき、未指定なら従来どおり', () => {
+    const { unmount } = renderWithMotion(<Sheet open onClose={() => {}} title="ふりかえり" contentMaxWidth={528}>中身</Sheet>);
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.className).toContain('ui-sheet--narrow');
+    expect(dialog.style.getPropertyValue('--sheet-content-w')).toBe('528px');
+    expect(screen.getByText('中身').className).toBe('ui-sheet__inner');
+    unmount();
+    renderWithMotion(<Sheet open onClose={() => {}} title="設定">中身</Sheet>);
+    expect(screen.getByRole('dialog').className).not.toContain('ui-sheet--narrow');
+  });
+
   it('uses the side placement class', () => {
     renderWithMotion(<Sheet open onClose={() => {}} title="ヘルプ" placement="side">中身</Sheet>);
     expect(screen.getByRole('dialog').className).toContain('ui-sheet--side');
