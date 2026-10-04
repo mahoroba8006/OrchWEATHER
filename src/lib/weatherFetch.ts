@@ -4,16 +4,19 @@
 // fetch の失敗は原因によって意味が異なるが、ブラウザからは「サーバーが落ちている」のか
 // 「ユーザー自身がオフライン」なのかを完全には区別できない（fetch reject はどちらも同じ
 // TypeError "Failed to fetch" になる）。確実に判定できるのは次の2ケースのみ:
-//   - サーバーがエラー応答した（5xx/429）            → 取得元（Open-Meteo）側の問題で確定
+//   - サーバーがエラー応答した（5xx）                → 取得元（Open-Meteo）側の問題で確定
+//   - 429（利用回数の上限・同時接続の上限）          → アクセス集中による一時的な制限で確定
 //   - navigator.onLine === false（端末がオフライン）  → ユーザー側の問題で確定
 // それ以外（オンラインなのに到達不能＝グレーゾーン）は「取得元側の可能性が高い」に寄せる
 // （オフラインは先に捕捉済みのため）。
 
-export type WeatherFetchErrorKind = 'offline' | 'upstream' | 'data';
+export type WeatherFetchErrorKind = 'offline' | 'upstream' | 'busy' | 'data';
 
 const MESSAGES: Record<WeatherFetchErrorKind, string> = {
   offline: 'インターネット接続が確認できません。接続を確認して ↻ で再試行してください。',
   upstream: '気象データの取得元がメンテナンス中、または現在使用できません。数時間後に再試行してください。',
+  // Open-Meteo 無料枠は IP ごとに1分・1時間・1日の上限があり、超えると 429 を返す（共有回線では他の人の利用も合算）
+  busy: '気象データの取得元へのアクセスが集中しているため、一時的に制限されています。しばらくしてから ↻ で再試行してください。',
   data: 'データを取得できませんでした。↻ で再試行してください。',
 };
 
@@ -45,10 +48,9 @@ export async function weatherFetch(url: string): Promise<Response> {
     throw new WeatherFetchError(isDefinitelyOffline() ? 'offline' : 'upstream');
   }
   if (!res.ok) {
-    // サーバーが応答した上でのエラー。5xx/429 は取得元側の不調で確定。
-    if (res.status >= 500 || res.status === 429) {
-      throw new WeatherFetchError('upstream');
-    }
+    // サーバーが応答した上でのエラー。429 は利用上限による一時制限、5xx は取得元側の不調で確定。
+    if (res.status === 429) throw new WeatherFetchError('busy');
+    if (res.status >= 500) throw new WeatherFetchError('upstream');
     // 4xx 等（想定外のリクエスト不備など）は汎用メッセージへ。
     throw new WeatherFetchError('data');
   }
