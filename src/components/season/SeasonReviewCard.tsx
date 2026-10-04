@@ -17,15 +17,29 @@ const CHART_H = 100; // viewBox の高さ（横は日数×10）
 const RAIN_AREA = 0.45; // 雨の棒が使う高さの上限（下側）。上側は気温線のために空ける
 
 // 純関数でテストするため export（Fast refresh はこのファイルでは不要）
-/** 点列を Catmull-Rom → 3次ベジェで滑らかにつないだ SVG パス（両端の点を必ず通る） */
+/** 点列を単調3次補間で滑らかにつないだ SVG パス（両端の点を必ず通り、値を行き過ぎない） */
 // eslint-disable-next-line react-refresh/only-export-components
 export function smoothPath(pts: [number, number][]): string {
-  if (pts.length === 0) return '';
-  const f = (n: number) => +n.toFixed(2);
+  // 単調3次補間（Fritsch–Carlson）。山と谷を行き過ぎず、実際の値より高く/低く見せない
+  const n = pts.length;
+  if (n === 0) return '';
+  const f = (v: number) => +v.toFixed(2);
+  if (n === 1) return `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  const slope = pts.slice(0, -1).map((p, i) => (pts[i + 1][1] - p[1]) / (pts[i + 1][0] - p[0]));
+  const tan = pts.map((_, i) => {
+    if (i === 0) return slope[0];
+    if (i === n - 1) return slope[n - 2];
+    return slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  });
+  for (let i = 0; i < n - 1; i++) {
+    if (slope[i] === 0) { tan[i] = 0; tan[i + 1] = 0; continue; }
+    const a = tan[i] / slope[i], b = tan[i + 1] / slope[i], h = a * a + b * b;
+    if (h > 9) { const t = 3 / Math.sqrt(h); tan[i] = t * a * slope[i]; tan[i + 1] = t * b * slope[i]; }
+  }
   let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-    d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], h = (x1 - x0) / 3;
+    d += ` C${f(x0 + h)} ${f(y0 + tan[i] * h)} ${f(x1 - h)} ${f(y1 - tan[i + 1] * h)} ${f(x1)} ${f(y1)}`;
   }
   return d;
 }

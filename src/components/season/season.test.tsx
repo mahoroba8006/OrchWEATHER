@@ -252,3 +252,11 @@ describe('SeasonReviewCarousel', () => {
     expect(screen.queryByRole('region')).toBeNull();
   });
 });
+
+describe('smoothPath（単調補間）', () => {
+  it('谷の手前後で値を行き過ぎない（制御点が隣の点の範囲内）', () => {
+    const d = smoothPath([[0, 10], [10, 90], [20, 90], [30, 10]]);
+    const ys = [...d.matchAll(/C([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+)/g)].flatMap(m => [Number(m[2]), Number(m[4])]);
+    for (const y of ys) { expect(y).toBeGreaterThanOrEqual(10); expect(y).toBeLessThanOrEqual(90); }
+  });
+});

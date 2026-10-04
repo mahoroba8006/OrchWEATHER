@@ -73,7 +73,11 @@
 .season-card__tick--hi { top: 0; }
 .season-card__tick--lo { bottom: 0; }
 .season-card__icons { display: flex; margin-top: 2px; }
+/* 右端に気温の目盛りの余白を取り、線と重ねない（アイコン列も同じ幅に揃える） */
+.season-card__chart, .season-card__icons { padding-right: 24px; }
 .season-card__icons span { flex: 1; display: flex; justify-content: center; min-width: 0; }
+/* 16日分が狭い画面で並ぶので、アイコンは列幅まで縮める（縮めないとカードが横にはみ出し、横スライドの位置がずれる） */
+.season-card__icons img { width: 100%; max-width: 18px; height: auto; }
 .season-card__legend { margin: 2px 0 0; font-size: 0.6rem; color: var(--ink-3); }
 .season-card__axis { display: flex; justify-content: space-between; margin-top: 2px; font-size: 0.65rem; color: var(--ink-3); }
 
