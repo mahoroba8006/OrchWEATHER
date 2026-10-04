@@ -208,11 +208,21 @@ export function rainCell(cur: number, base: number): CompareCell {
 interface Trait { score: number; connective: string; attributive: string }
 
 /** 5年平均とのずれから、ずれの大きい順に最大2項目で一文を作る（score はしきい値で正規化、1以上で該当） */
-export function headline(cur: RangeStats, avg: RangeStats): string {
+/** 季節に合った気温の言葉。暦ではなく期間の最高気温の平均で選ぶ（地域差に合わせる。25℃は気象庁の「夏日」） */
+export interface SeasonWords { warm: string; cold: string; warmRecord: string; coldRecord: string }
+export function seasonWords(meanTempMax: number): SeasonWords {
+  const [warm, cold] = meanTempMax >= 25 ? ['暑い', '涼しい'] : meanTempMax >= 15 ? ['暖かい', '肌寒い'] : ['暖かい', '寒い'];
+  return { warm, cold, warmRecord: `いちばん${warm}日`, coldRecord: `いちばん${cold}日` };
+}
+
+/** 「暑い」→「暑く」（形容詞の連用形） */
+const connective = (adj: string) => `${adj.slice(0, -1)}く`;
+
+export function headline(cur: RangeStats, avg: RangeStats, words: SeasonWords = seasonWords(25)): string {
   const traits: Trait[] = [];
   const dt = cur.meanTemp - avg.meanTemp;
-  if (dt > 1) traits.push({ score: dt, connective: '暑く', attributive: '暑い' });
-  else if (dt < -1) traits.push({ score: -dt, connective: '涼しく', attributive: '涼しい' });
+  if (dt > 1) traits.push({ score: dt, connective: connective(words.warm), attributive: words.warm });
+  else if (dt < -1) traits.push({ score: -dt, connective: connective(words.cold), attributive: words.cold });
   if (avg.precip >= RAIN_RATIO_MIN_BASE) {
     const r = cur.precip / avg.precip;
     if (r < 0.7) traits.push({ score: 0.7 / Math.max(r, 0.07), connective: '雨が少なく', attributive: '雨の少ない' });
@@ -232,7 +242,7 @@ export function headline(cur: RangeStats, avg: RangeStats): string {
 // ---- 記録 ----
 
 export interface DayValue { date: string; value: number }
-export interface SeasonRecords { hottest: DayValue; coolestMorning: DayValue; heavyRain: DayValue | null }
+export interface SeasonRecords { hottest: DayValue; coldest: DayValue; heavyRain: DayValue | null }
 
 export function records(days: DayRecord[]): SeasonRecords {
   let hot = days[0];
@@ -245,7 +255,7 @@ export function records(days: DayRecord[]): SeasonRecords {
   }
   return {
     hottest: { date: hot.date, value: hot.tempMax },
-    coolestMorning: { date: cool.date, value: cool.tempMin },
+    coldest: { date: cool.date, value: cool.tempMin },
     heavyRain: rain ? { date: rain.date, value: rain.precip } : null,
   };
 }
@@ -292,6 +302,8 @@ export interface SeasonReview {
   records: SeasonRecords;
   /** "2021〜2025年" */
   avgYears: string;
+  /** 記録の見出し（季節に合わせた「いちばん暑い日」「いちばん寒い日」など） */
+  recordLabels: { warm: string; cold: string };
 }
 
 export function buildSeasonReview(map: DayMap, today: string): SeasonReview | null {
@@ -304,11 +316,12 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonRevie
   const cmp = comparisonStats(map, range.start, range.end);
   if (!cur || !cmp) return null;
   const days = rangeDays(map, range.start, range.end);
+  const words = seasonWords(days.reduce((a, d) => a + d.tempMax, 0) / days.length);
   const y = yearOf(range.start);
   return {
     range,
     periodLabel: `${range.name} ${monthDay(range.start)}〜${monthDay(range.end)}（${range.days}日間）`,
-    headline: headline(cur, cmp.avg),
+    headline: headline(cur, cmp.avg, words),
     rows: [
       { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: tempCell(cur.meanTemp, cmp.lastYear.meanTemp), vsAvg: tempCell(cur.meanTemp, cmp.avg.meanTemp) },
       { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: rainCell(cur.precip, cmp.lastYear.precip), vsAvg: rainCell(cur.precip, cmp.avg.precip) },
@@ -319,6 +332,7 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonRevie
     })),
     records: records(days),
     avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
+    recordLabels: { warm: words.warmRecord, cold: words.coldRecord },
   };
 }
 

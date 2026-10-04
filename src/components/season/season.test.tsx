@@ -29,10 +29,11 @@ const review: SeasonReview = {
   ],
   records: {
     hottest: { date: '2026-09-09', value: 33.2 },
-    coolestMorning: { date: '2026-09-21', value: 15.8 },
+    coldest: { date: '2026-09-21', value: 15.8 },
     heavyRain: null,
   },
   avgYears: '2021〜2025年',
+  recordLabels: { warm: 'いちばん暑い日', cold: 'いちばん涼しい日' },
 };
 
 const paceItems: PaceItem[] = [
@@ -112,9 +113,10 @@ describe('SeasonReviewCard', () => {
     expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
     expect(screen.getByText('38mm')).toBeTruthy();
     expect(screen.getAllByText('6割')).toHaveLength(2);
-    expect(screen.getByText('9/9 33.2℃')).toBeTruthy();
-    expect(screen.getByText('9/21 15.8℃')).toBeTruthy();
+    expect(screen.getByText('9/9 最高 33.2℃')).toBeTruthy();
+    expect(screen.getByText('9/21 最低 15.8℃')).toBeTruthy();
     expect(screen.getByText('なし')).toBeTruthy();
+    expect(screen.getByText('いちばん涼しい日')).toBeTruthy();
     expect(screen.getByText(/5年平均は2021〜2025年/)).toBeTruthy();
   });
 

@@ -52,7 +52,7 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
     'Z',
   ].join(' ');
   const range = `${monthDay(review.range.start)}〜${monthDay(review.range.end)}`;
-  const { hottest, coolestMorning, heavyRain } = review.records;
+  const { hottest, coldest, heavyRain } = review.records;
   return (
     <article className="season-card" aria-label={`${review.range.name}のふりかえり`}>
       <header ref={ref} className="season-card__head">
@@ -141,8 +141,9 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
       </div>
 
       <dl className="season-card__records">
-        <div><dt>いちばん暑い日</dt><dd>{`${monthDay(hottest.date)} ${hottest.value.toFixed(1)}℃`}</dd></div>
-        <div><dt>いちばん涼しい朝</dt><dd>{`${monthDay(coolestMorning.date)} ${coolestMorning.value.toFixed(1)}℃`}</dd></div>
+        {/* 言葉は季節に合わせる（夏は暑い/涼しい、冬は暖かい/寒い）。比べているのは最高・最低気温なので値に添える */}
+        <div><dt>{review.recordLabels.warm}</dt><dd>{`${monthDay(hottest.date)} 最高 ${hottest.value.toFixed(1)}℃`}</dd></div>
+        <div><dt>{review.recordLabels.cold}</dt><dd>{`${monthDay(coldest.date)} 最低 ${coldest.value.toFixed(1)}℃`}</dd></div>
         <div><dt>まとまった雨</dt><dd>{heavyRain ? `${monthDay(heavyRain.date)} ${Math.round(heavyRain.value)}mm` : 'なし'}</dd></div>
       </dl>
 
