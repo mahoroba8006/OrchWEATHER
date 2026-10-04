@@ -17,7 +17,7 @@ afterEach(cleanup);
 const review: SeasonReview = {
   range: { index: 14, name: '白露', start: '2026-09-07', end: '2026-09-22', days: 16 },
   periodLabel: '白露 9/7〜9/22（16日間）',
-  headline: '日差しが多く、雨の少ない半月でした',
+  headline: '日差しが多く、雨が少ない',
   rows: [
     { label: '平均気温', value: '24.0℃', vsLastYear: { text: '+1.0℃', tone: 'more' }, vsAvg: { text: '+1.0℃', tone: 'more' } },
     { label: '雨の量', value: '38mm', vsLastYear: { text: '6割', tone: 'less' }, vsAvg: { text: '6割', tone: 'less' } },
@@ -114,7 +114,7 @@ describe('SeasonReviewCard', () => {
   it('期間・見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     expect(screen.getByText('白露 9/7〜9/22（16日間）')).toBeTruthy();
-    expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
+    expect(screen.getByText('日差しが多く、雨が少ない')).toBeTruthy();
     expect(screen.getByText('38mm')).toBeTruthy();
     expect(screen.getAllByText('6割')).toHaveLength(2);
     expect(screen.getByText('9/9 最高 33.2℃')).toBeTruthy();
@@ -269,7 +269,7 @@ describe('SeasonReviewCarousel', () => {
 
   it('1件ならカードだけ（点・矢印なし）', () => {
     renderWithMotion(<SeasonReviewCarousel reviews={reviews.slice(2)} />);
-    expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
+    expect(screen.getByText('日差しが多く、雨が少ない')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByRole('region')).toBeNull();
   });
