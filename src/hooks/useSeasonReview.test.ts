@@ -13,7 +13,7 @@ import { computeSeasonView, DEFAULT_PACE_OPTIONS } from '../lib/seasonReview';
 import { useSeasonReview } from './useSeasonReview';
 
 const forecast = { hourly: [], daily: [], pastDaily: [], fetchedAt: 1, lat: 35, lon: 139 } as unknown as ForecastData;
-const view = { paceItems: [{ kind: 'temp' as const, name: '気温', period: 'この30日', text: 'T' }], review: null, showCard: false };
+const view = { paceItems: [{ kind: 'temp' as const, name: '気温', period: 'この30日', text: 'T' }], review: null, reviews: [], showCard: false };
 
 beforeEach(() => {
   vi.mocked(fetchDailyActuals).mockReset();

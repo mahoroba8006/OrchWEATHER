@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildDayMap, buildSeasonReview, computePaceItems, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
+  buildDayMap, buildSeasonReview, computePaceItems, recentSekkiRanges, REVIEW_COUNT, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
   isInCardWindow, previousSekkiRange, rainCell, requiredYears, shiftYear, tempCell,
   type DayMap, type DayRecord, type PaceOptions,
 } from './seasonReview';
@@ -54,6 +54,10 @@ describe('requiredYears', () => {
   });
   it('年をまたぐ節気・30日範囲では前年起点で5年前まで', () => {
     expect(requiredYears('2026-01-06')).toEqual([2020, 2021, 2022, 2023, 2024, 2025, 2026]);
+  });
+  it('ふりかえりを6節気さかのぼる年初は、その5年前まで含める', () => {
+    // 2026-02-10: 6節気前は前年の秋（霜降 2025-10-23 頃）→ 2020 年まで必要
+    expect(requiredYears('2026-02-10')[0]).toBe(2020);
   });
   it('1/1 は今年のデータが無いので今年を含めない', () => {
     expect(requiredYears('2026-01-01')).toEqual([2020, 2021, 2022, 2023, 2024, 2025]);
@@ -248,5 +252,22 @@ describe('computeSeasonView', () => {
     expect(v.showCard).toBe(false);
     expect(v.review?.range.name).toBe('白露');
     expect(v.paceItems.length).toBeGreaterThan(0);
+  });
+});
+
+describe('過去の節気のふりかえり（6節気分）', () => {
+  it('recentSekkiRanges は直前の節気から6つ、古い順に連続して返す', () => {
+    const r = recentSekkiRanges('2026-10-01', REVIEW_COUNT);
+    expect(r.map(x => x.name)).toEqual(['夏至', '小暑', '大暑', '立秋', '処暑', '白露']);
+    for (let i = 1; i < r.length; i++) expect(r[i].start).toBe(addDays(r[i - 1].end, 1));
+  });
+
+  it('computeSeasonView は計算できる節気のカードを古い順に並べ、最新は review と同じ', () => {
+    const map: DayMap = new Map();
+    for (let y = 2021; y <= 2026; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 10 });
+    map.delete('2026-08-01'); // 大暑（7/23〜8/6頃）の今年分に欠け → そのカードだけ除く
+    const v = computeSeasonView(map, '2026-10-03', DEFAULT_PACE_OPTIONS)!;
+    expect(v.reviews.map(r => r.range.name)).toEqual(['夏至', '小暑', '立秋', '処暑', '白露']);
+    expect(v.reviews.at(-1)).toEqual(v.review);
   });
 });
