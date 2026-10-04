@@ -10,6 +10,8 @@
   color: var(--ink-1);
   font-family: var(--font-sans);
   overflow-x: hidden;
+  /* clip は横のはみ出しを隠しつつスクロール容器にならないので、章の見出しの sticky が効く（未対応ブラウザは hidden のまま） */
+  overflow-x: clip;
 }
 
 /* コンテンツはスカイバックドロップの上に載せる */
@@ -394,6 +396,9 @@
 @media (min-width: 860px) {
   .lp-glance { grid-template-columns: 1fr 1fr; }
   .lp-glance--reverse > :first-child { order: 2; }
+  /* 写真が縦に長い章でも見出しが離れないよう、文章側は上揃えでスクロールに付いてくる */
+  .lp-glance { align-items: start; }
+  .lp-glance > :first-child { position: sticky; top: 96px; }
 }
 .lp-eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0 0 0.6rem; color: var(--accent); font-weight: 700; font-size: 0.85rem; }
 .lp-glance__title { margin-bottom: 0.4rem; text-align: left; }
