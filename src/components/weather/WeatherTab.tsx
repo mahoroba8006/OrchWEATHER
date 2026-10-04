@@ -421,7 +421,7 @@ export function WeatherTab() {
       <Sheet
         open={openedReview !== null && openedReview === seasonReview}
         onClose={() => { setOpenedReview(null); setSheetIndex(null); }}
-        title={shownReview ? `${shownReview.range.name}のふりかえり` : 'ふりかえり'}
+        title={shownReview ? (shownReview.progress ? shownReview.range.name : `${shownReview.range.name}のふりかえり`) : 'ふりかえり'}
       >
         {seasonReviews.length > 0 && <SeasonReviewCarousel reviews={seasonReviews} onIndexChange={setSheetIndex} />}
       </Sheet>

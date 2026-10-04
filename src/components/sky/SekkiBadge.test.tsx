@@ -29,10 +29,10 @@ describe('SekkiBadge', () => {
     expect(container.querySelector('svg')).toBeNull();
   });
 
-  it('onOpen があれば、直前の節気のふりかえりを開くボタンになる', () => {
+  it('onOpen があれば、今の節気のようすを開くボタンになる', () => {
     const onOpen = vi.fn();
     renderWithMotion(<SekkiBadge date={date} onOpen={onOpen} />);
-    const btn = screen.getByRole('button', { name: /白露のふりかえりを開く/ });
+    const btn = screen.getByRole('button', { name: /節気のようすを開く/ });
     fireEvent.click(btn);
     expect(onOpen).toHaveBeenCalledTimes(1);
   });

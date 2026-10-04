@@ -54,6 +54,7 @@
 .season-card__art { flex-shrink: 0; padding: 4px; border-radius: 14px; background: linear-gradient(180deg, #4f86c0, #2d5f96); }
 .season-card__heading { min-width: 0; }
 .season-card__period { margin: 0; font-size: 0.72rem; color: var(--ink-3); }
+.season-card__chip { display: inline-block; margin: 0 0 0.2rem; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.65rem; font-weight: 600; color: var(--ink-2); background: var(--line); }
 .season-card__title { margin: 0.15rem 0 0; font-size: 1rem; font-weight: 700; line-height: 1.4; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
 
 .season-card__table { width: 100%; margin-top: 0.7rem; border-collapse: collapse; font-size: 0.8rem; }
