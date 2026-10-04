@@ -8,6 +8,8 @@ import {
 } from '../../store';
 import { Button } from '../ui/Button';
 import { SaveButton } from '../ui/SaveButton';
+import { SegmentedControl } from '../ui/SegmentedControl';
+import type { SeasonPaceMode } from '../../lib/seasonReview';
 import './settings.css';
 
 // 累積開始日のプリセット（萌芽期/田植え/定植期など実運用日付）
@@ -50,6 +52,7 @@ export function AnalysisSettings() {
     updateBaseTempSettings,
     updateAccumStartDates,
     updateAccumDeltaThresholds,
+    updateSeasonPaceMode,
   } = useAppStore();
 
   const [baseTempForm, setBaseTempForm] = useState<[number, number]>(
@@ -66,6 +69,8 @@ export function AnalysisSettings() {
 
   const [baseTempStatus, setBaseTempStatus] = useState<SaveStatus>({ kind: 'idle' });
   const [accumStatus, setAccumStatus] = useState<SaveStatus>({ kind: 'idle' });
+  const [paceStatus, setPaceStatus] = useState<SaveStatus>({ kind: 'idle' });
+  const seasonPaceMode: SeasonPaceMode = userSettings?.seasonPaceMode ?? 'analysis';
 
   useEffect(() => {
     if (userSettings) {
@@ -111,6 +116,20 @@ export function AnalysisSettings() {
     }
   };
 
+  // 選択はストアの値をそのまま表示するので、保存に失敗しても元の選択のまま残る
+  const handleChangePaceMode = async (mode: SeasonPaceMode) => {
+    setPaceStatus({ kind: 'saving' });
+    try {
+      await updateSeasonPaceMode(mode);
+      setPaceStatus({ kind: 'saved', msg: '比べ方を保存しました' });
+      setTimeout(() => setPaceStatus({ kind: 'idle' }), 2500);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[AnalysisSettings] season pace mode save failed', err);
+      setPaceStatus({ kind: 'error', msg: `保存失敗: ${message}` });
+    }
+  };
+
   const updateAccumStart = (chart: keyof AccumStartDates, mmdd: string) => {
     setAccumStartForm((prev) => ({ ...prev, [chart]: mmdd }));
   };
@@ -128,7 +147,7 @@ export function AnalysisSettings() {
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           {([0, 1] as const).map((i) => (
             <div className="form-group" key={i} style={{ flex: 1, minWidth: '120px' }}>
-              <label>基準温度{i + 1} (℃)</label>
+              <label>基準温度{i + 1} (℃){i === 0 ? '・メイン' : ''}</label>
               <input
                 type="number"
                 step="0.1"
@@ -142,6 +161,7 @@ export function AnalysisSettings() {
             </div>
           ))}
         </div>
+        <div className="set-hint">基準温度1は空もようの「季節のあしどり」にも使います。</div>
         <div className="set-actions">
           {renderStatus(baseTempStatus)}
           <SaveButton
@@ -246,6 +266,33 @@ export function AnalysisSettings() {
             saved={accumStatus.kind === 'saved'}
             savedLabel={accumStatus.msg}
           />
+        </div>
+      </div>
+
+      {/* 空もようの季節のあしどりの比べ方 */}
+      <div className="set-card">
+        <h3 className="set-title">季節のあしどりの比べ方</h3>
+        <div className="set-hint">
+          空もようの「季節のあしどり」で、去年・5年平均と比べる期間を選びます。気温はどちらも直近30日です。
+        </div>
+        <SegmentedControl<SeasonPaceMode>
+          options={[
+            { value: 'analysis', label: '空くらべに合わせる' },
+            { value: 'recent', label: '直近30日' },
+          ]}
+          value={seasonPaceMode}
+          onChange={handleChangePaceMode}
+          ariaLabel="季節のあしどりの比べ方"
+          layoutId="settings-season-pace"
+        />
+        <div className="set-hint">
+          {seasonPaceMode === 'analysis'
+            ? '降水量・積算温度・日照時間は、上の開始日と基準温度1で比べます。'
+            : '降水量・積算温度・日照時間も、直近30日で比べます。'}
+        </div>
+        <div className="set-actions">
+          {renderStatus(paceStatus)}
+          {paceStatus.kind === 'saved' && <span className="set-hint">{paceStatus.msg}</span>}
         </div>
       </div>
     </div>

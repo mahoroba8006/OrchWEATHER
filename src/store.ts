@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { User } from 'firebase/auth';
 import type { WeatherCodeMode } from './lib/wmoSeverity';
+import type { SeasonPaceMode } from './lib/seasonReview';
 import { fetchAiAllowed } from './api/me';
 import {
   fetchLocations,
@@ -18,6 +19,7 @@ import {
   updateEnabledAiSections as updateEnabledAiSectionsRemote,
   updateAiCustomPrompt as updateAiCustomPromptRemote,
   updateWeatherCodeMode as updateWeatherCodeModeRemote,
+  updateSeasonPaceMode as updateSeasonPaceModeRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -105,6 +107,7 @@ export interface UserSettings {
   enabledAiSections:    AiSection[];
   aiCustomPrompt:       string;
   weatherCodeMode:      WeatherCodeMode;
+  seasonPaceMode:       SeasonPaceMode;
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -148,6 +151,7 @@ interface AppState {
   updateEnabledAiSections: (sections: AiSection[]) => Promise<void>;
   updateAiCustomPrompt: (prompt: string) => Promise<void>;
   updateWeatherCodeMode: (mode: WeatherCodeMode) => Promise<void>;
+  updateSeasonPaceMode: (mode: SeasonPaceMode) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -212,6 +216,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, accumStartDates: dates }
+        : null,
+    }));
+  },
+
+  updateSeasonPaceMode: async (mode) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateSeasonPaceModeRemote(uid, mode);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, seasonPaceMode: mode }
         : null,
     }));
   },
