@@ -5,6 +5,7 @@ import { WeatherIcon } from './WeatherIcon';
 import { currentHourIndex } from '../../lib/sky';
 import './hourly.css';
 import type { JmaWarningItem } from '../../api/jmaWarning';
+import type { HourlyRowKey } from '../../lib/hourlyRows';
 // ガントバー再表示時は以下2行のコメントを外す
 // import { computeWarningLanes } from '../../lib/warningGantt';
 // import { WarningBar } from './WarningBar';
@@ -215,7 +216,8 @@ function degreesToCompass(deg: number): string {
 }
 
 // ── Data rows (excluding date / time / weather handled inline) ──
-const DATA_ROWS: { key: string; label: string; unit?: string; fmt: (h: HourlyForecast) => string }[] = [
+// key は lib/hourlyRows の HOURLY_ROW_OPTIONS と同じ並び・同じキー
+const DATA_ROWS: { key: HourlyRowKey; label: string; unit?: string; fmt: (h: HourlyForecast) => string }[] = [
   { key: 'temperature',  label: '気温',     unit: '℃',     fmt: h => h.temperature.toFixed(1) },
   { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb) },
   { key: 'precip',       label: '降水量',    unit: 'mm',    fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1) },

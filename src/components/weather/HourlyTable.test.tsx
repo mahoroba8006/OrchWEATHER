@@ -62,3 +62,16 @@ describe('HourlyTable の「今」の示し方', () => {
     vi.useRealTimers();
   });
 });
+
+describe('HourlyTable の表示項目', () => {
+  it('hiddenRowKeys に入れた行は描かれず、それ以外は残る', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T10:20:00+09:00'));
+    const { queryByText } = renderWithMotion(
+      <HourlyTable hourly={hourly} daily={daily} hiddenRowKeys={new Set(['pressure', 'windSpeed'])} />,
+    );
+    expect(queryByText('気圧')).toBeNull();
+    expect(queryByText('風速')).toBeNull();
+    expect(queryByText('気温')).toBeTruthy();
+  });
+});

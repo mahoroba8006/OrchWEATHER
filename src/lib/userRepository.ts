@@ -3,6 +3,7 @@ import { db } from './firebase';
 import type { UserSettings, AccumStartDates, AccumDeltaThresholds, AiSection } from '../store';
 import type { WeatherCodeMode } from './wmoSeverity';
 import type { SeasonPaceMode, SeasonPaceModes } from './seasonReview';
+import { parseHiddenHourlyRows, type HourlyRowKey } from './hourlyRows';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
@@ -70,6 +71,7 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     baseTempSettings, accumStartDates, accumDeltaThresholds,
     defaultLocationId, enabledAiSections, aiCustomPrompt,
     weatherCodeMode, seasonPaceModes,
+    hiddenHourlyRows: parseHiddenHourlyRows(data?.hiddenHourlyRows),
   };
 }
 
@@ -127,4 +129,11 @@ export async function updateSeasonPaceModes(
   modes: SeasonPaceModes,
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { seasonPaceModes: modes }, { merge: true });
+}
+
+export async function updateHiddenHourlyRows(
+  uid: string,
+  rows: HourlyRowKey[],
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { hiddenHourlyRows: rows }, { merge: true });
 }
