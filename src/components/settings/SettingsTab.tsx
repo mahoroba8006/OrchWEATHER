@@ -7,6 +7,7 @@ import { LocationSettings } from './LocationSettings';
 import { AnalysisSettings } from './AnalysisSettings';
 import { AiCommentSettings } from './AiCommentSettings';
 import { HourlyRowsEditor } from '../weather/HourlyRowsEditor';
+import { SeasonPaceSettings } from './SeasonPaceSettings';
 import { Button } from '../ui/Button';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import './settings.css';
@@ -68,6 +69,7 @@ export function SettingsTab() {
       {subTab === 'location'  && <LocationSettings />}
       {subTab === 'weather' && (
         <div className="set-stack">
+          <SeasonPaceSettings />
           <div className="set-card">
             <h3 className="set-title">時間別の表示項目</h3>
             <HourlyRowsEditor />
