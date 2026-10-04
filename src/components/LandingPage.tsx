@@ -47,37 +47,6 @@ function useScrollProgress(onProgress: (p: number) => void, opts?: { forceActive
   }, [onProgress, opts?.forceActive]);
 }
 
-/** 要素がビューポート中心からどれだけ離れているかに応じた translate3d オフセットを返す（速度差でパララックス表現）。 */
-function useParallax<T extends HTMLElement>(speed: number) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    if (prefersReducedMotion()) return;
-    const el = ref.current;
-    if (!el) return;
-    let ticking = false;
-    const update = () => {
-      ticking = false;
-      const rect = el.getBoundingClientRect();
-      const center = rect.top + rect.height / 2 - window.innerHeight / 2;
-      el.style.transform = `translate3d(0, ${(-center * speed).toFixed(2)}px, 0)`;
-    };
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(update);
-      }
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, [speed]);
-  return ref;
-}
-
 /* ─────────────────────────────────────────
    スカイバックドロップ（スクロールで晴れていく空）
 ───────────────────────────────────────── */
@@ -260,7 +229,7 @@ function CtaPair({ loading, onLogin, onTryGuest, onDark = false }: { loading: bo
   const cls = onDark ? 'lp-cta lp-cta--pair lp-cta--on-dark' : 'lp-cta lp-cta--pair';
   return (
     <div className="lp-cta-pair">
-      <button className={cls} onClick={onTryGuest}>
+      <button className={cls} onClick={onTryGuest} disabled={loading}>
         <CloudSun size={18} /> ログインせずに試す
       </button>
       <button className={cls} onClick={onLogin} disabled={loading}>
@@ -286,8 +255,8 @@ function SekkiDivider({ index }: { index: number }) {
 }
 
 /** パッと見せる層の章（見出し一行＋添える一行＋写真） */
-function GlanceSection({ eyebrow, title, note, lead, children, reverse = false }: {
-  eyebrow: ReactNode; title: string; note?: string; lead: ReactNode; children: ReactNode; reverse?: boolean;
+function GlanceSection({ eyebrow, title, titleText, note, lead, children, reverse = false }: {
+  eyebrow: ReactNode; title: ReactNode; titleText: string; note?: string; lead: ReactNode; children: ReactNode; reverse?: boolean;
 }) {
   return (
     <section className="lp-section">
@@ -295,7 +264,7 @@ function GlanceSection({ eyebrow, title, note, lead, children, reverse = false }
         <div className={reverse ? 'lp-glance lp-glance--reverse' : 'lp-glance'}>
           <Reveal variant={reverse ? 'fade-right' : 'fade-left'}>
             <p className="lp-eyebrow">{eyebrow}</p>
-            <h2 className="lp-h2 lp-glance__title">{title}</h2>
+            <h2 className="lp-h2 lp-glance__title" aria-label={titleText}>{title}</h2>
             {note && <p className="lp-glance__note">{note}</p>}
             <div className="lp-glance__lead">{lead}</div>
           </Reveal>
@@ -353,24 +322,21 @@ function HeroSky() {
 }
 
 function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error: string | null; onLogin: () => void; onTryGuest: () => void }) {
-  const phoneParallaxRef = useParallax<HTMLDivElement>(0.06);
   return (
     <section className="lp-hero lp-section" style={{ paddingTop: 'clamp(2.5rem, 6vw, 4rem)' }}>
       <HeroSky />
       <div className="lp-container lp-hero__grid">
         <Reveal style={{ flex: '1 1 400px', minWidth: 0 }}>
           <p className="lp-hero__badge"><Sprout size={14} /> 農家が現場で作った天気アプリ</p>
-          <h1 className="lp-hero__title">『今年は遅い』が、数字で見える。</h1>
+          <h1 className="lp-hero__title" aria-label="『今年は遅い』が、数字で見える。"><span className="lp-phrase">『今年は遅い』が、</span><span className="lp-phrase">数字で見える。</span></h1>
           <p className="lp-lead lp-hero__lead">二十四節気ごとに、去年・5年平均と比べてふりかえる、農家のための天気アプリ。</p>
           <CtaPair loading={loading} onLogin={onLogin} onTryGuest={onTryGuest} />
           <p className="lp-cta-note">ログインなしでも現在地で試せます。Googleアカウントなら登録30秒・いまは無料。</p>
           {error && <p className="lp-error">{error}</p>}
         </Reveal>
         <Reveal variant="scale" delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
-          <div ref={phoneParallaxRef} className="lp-phone-parallax">
-            <div className="lp-hero__shot lp-phone--float">
-              <Shot src="/lp/review-card.webp" alt="節気のふりかえりカード — 去年・5年平均と比べた気温・雨・日照" width={780} height={1114} eager />
-            </div>
+          <div className="lp-hero__shot lp-phone--float">
+            <Shot src="/lp/review-card.webp" alt="節気のふりかえりカード — 去年・5年平均と比べた気温・雨・日照" width={780} height={1114} eager />
           </div>
         </Reveal>
       </div>
@@ -382,13 +348,14 @@ function SeasonSection() {
   return (
     <GlanceSection
       eyebrow={<><CalendarRange size={16} /> 季節のふりかえり</>}
-      title="二十四節気ごとに、今年の半月を一枚に。"
+      titleText="二十四節気ごとに、今年の半月を一枚に。"
+      title={<><span className="lp-phrase">二十四節気ごとに、</span><span className="lp-phrase">今年の半月を一枚に。</span></>}
       note="暦は、農の時計だった。"
       lead={<p className="lp-glance__big">積算温度、去年より18日遅い。<br />数字で、季節の進み具合がわかる。</p>}
     >
       <div className="lp-shot-stack">
         <Shot src="/lp/season-band.webp" alt="季節のあしどり — 気温・降水量・積算温度・日照を去年と比べる帯" width={780} height={106} />
-        <Shot src="/lp/review-card.webp" alt="節気のふりかえりカード" width={780} height={1114} />
+        <Shot src="/lp/review-card-2.webp" alt="節気のふりかえりカード（処暑）" width={780} height={1114} />
       </div>
     </GlanceSection>
   );
@@ -399,7 +366,8 @@ function KurabeSection() {
     <GlanceSection
       reverse
       eyebrow={<><BarChart2 size={16} /> 空くらべ</>}
-      title="去年と、あの場所と、並べて見える。"
+      titleText="去年と、あの場所と、並べて見える。"
+      title={<><span className="lp-phrase">去年と、あの場所と、</span><span className="lp-phrase">並べて見える。</span></>}
       lead={
         <ul className="lp-points">
           <li><CalendarRange size={18} /> 年をまたいで、重ねて比べる</li>
@@ -420,7 +388,8 @@ function MoyoSection() {
   return (
     <GlanceSection
       eyebrow={<><CloudSun size={16} /> 空もよう</>}
-      title="今日の作業、やるかやめるかすぐ決まる。"
+      titleText="今日の作業、やるかやめるかすぐ決まる。"
+      title={<><span className="lp-phrase">今日の作業、</span><span className="lp-phrase">やるかやめるか</span><span className="lp-phrase">すぐ決まる。</span></>}
       lead={
         <ul className="lp-points">
           <li>「リスクでみる」— その時間帯のいちばん悪い天気</li>
