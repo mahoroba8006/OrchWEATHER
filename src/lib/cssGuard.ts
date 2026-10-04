@@ -12,6 +12,29 @@ export function cssApplied(doc: Document = document): boolean {
   return getComputedStyle(doc.documentElement).getPropertyValue(PROBE_VAR).trim() !== '';
 }
 
+/**
+ * CSS の場所に HTML が保存されていたら消す（Service Worker のキャッシュ）。
+ * 原因: 更新直後の CSS 要求に、ホスティングが「存在しないパスにはトップの HTML を 200 で返す」動作で応じ、
+ * それが CSS として保存された（public/404.html を置いて再発は防いだ。既に保存された分をここで掃除する）
+ */
+async function purgePoisonedStylesheets(): Promise<number> {
+  if (!('caches' in window)) return 0;
+  let purged = 0;
+  const hrefs = [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map(l => l.href.split('?')[0]);
+  for (const name of await caches.keys()) {
+    const cache = await caches.open(name);
+    for (const req of await cache.keys()) {
+      if (!hrefs.some(h => req.url.split('?')[0] === h)) continue;
+      const res = await cache.match(req);
+      if (res && (res.headers.get('content-type') ?? '').includes('text/html')) {
+        await cache.delete(req);
+        purged++;
+      }
+    }
+  }
+  return purged;
+}
+
 /** 原因の手がかり（短い1行ずつ） */
 async function collectDiagnostics(): Promise<string[]> {
   const out: string[] = [];
@@ -63,11 +86,14 @@ export function startCssGuard(): void {
   const check = async () => {
     if (cssApplied()) return;
     const lines = await collectDiagnostics();
+    const purged = await purgePoisonedStylesheets().catch(() => 0);
+    lines.push(`誤って保存されたCSSの削除=${purged}件`);
     reloadStylesheets();
     await new Promise(r => setTimeout(r, 1500));
     const healed = cssApplied();
     logAppError(healed ? 'css-healed' : 'css-missing', new Error(lines.join(' | ')));
-    showPanel(lines, healed);
+    // 直せたときは利用者の画面に出さない（記録だけ残す）。直せなかったときだけ診断を見せる
+    if (!healed) showPanel(lines, healed);
   };
   const run = () => setTimeout(() => { void check(); }, 1000);
   if (document.readyState === 'complete') run();

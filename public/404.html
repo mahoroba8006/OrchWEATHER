@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>ページが見つかりません | Orch.Weather</title>
+  <!--
+    このファイルがあると Cloudflare Pages は「1画面アプリ向けの既定動作（存在しないパスにトップの HTML を 200 で返す）」をやめ、
+    存在しないファイルに 404 を返す。2026-10-04、更新直後の CSS 要求にトップの HTML が返り、それが CSS として
+    保存されて画面が崩れたため置いた（このアプリの画面はトップ1つだけなので、他のパスへの影響はない）。
+  -->
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #F4F3EF; color: #1a2e2c; font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+    main { text-align: center; padding: 2rem 1.25rem; }
+    h1 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+    p { margin: 0 0 1.25rem; font-size: 0.9rem; color: #3d5754; }
+    a { display: inline-block; padding: 0.6rem 1.2rem; border-radius: 999px; background: #0E6B65; color: #fff; text-decoration: none; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ページが見つかりません</h1>
+    <p>アドレスが変わったか、削除された可能性があります。</p>
+    <a href="/">Orch.Weather を開く</a>
+  </main>
+</body>
+</html>
