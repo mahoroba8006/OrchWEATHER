@@ -42,6 +42,10 @@
 .season-strip__text { font-size: 0.85rem; font-weight: 600; color: var(--ink-1); line-height: 1.4; }
 
 .season-card {
+  /* PC など広い画面でも間延びしないよう幅を抑えて中央に置く（スマホは画面幅いっぱいのまま） */
+  box-sizing: border-box;
+  max-width: 520px;
+  margin-inline: auto;
   padding: 0.85rem 1rem 0.9rem;
   background: var(--surface-card);
   border: 1px solid var(--line);
@@ -131,7 +135,7 @@
 .season-carousel__arrow:disabled { opacity: 0.35; cursor: default; }
 
 /* まだ描いていないカードの場所（スワイプ中に一瞬だけ見える） */
-.season-carousel__placeholder { min-height: 420px; border-radius: var(--radius-lg); background: var(--surface-card); border: 1px solid var(--line); }
+.season-carousel__placeholder { box-sizing: border-box; max-width: 520px; margin-inline: auto; min-height: 420px; border-radius: var(--radius-lg); background: var(--surface-card); border: 1px solid var(--line); }
 
 /* 集計中の帯（本体と同じ高さ。回転アイコンは AI コメントの読み込みと同じ動き） */
 .season-strip--loading { flex-direction: row; align-items: center; justify-content: flex-start; gap: 0.6rem; }
