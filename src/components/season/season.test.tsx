@@ -225,6 +225,16 @@ describe('SeasonReviewCarousel', () => {
     expect(onIndexChange).toHaveBeenCalledWith(2);
   });
 
+  it('最初に描くのは最新と1つ前だけで、遠くの点を押すと着く前に描く', () => {
+    HTMLElement.prototype.scrollTo = vi.fn() as unknown as typeof HTMLElement.prototype.scrollTo;
+    const { container } = renderWithMotion(<SeasonReviewCarousel reviews={reviews} />);
+    const cards = () => container.querySelectorAll('.season-carousel__slide article').length;
+    expect(cards()).toBe(2);
+    expect(container.querySelectorAll('.season-carousel__placeholder')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: '寒露のふりかえり（1/3）' }));
+    expect(cards()).toBe(3);
+  });
+
   it('点を押すとその位置へスクロールする', () => {
     const scrollTo = vi.fn();
     HTMLElement.prototype.scrollTo = scrollTo as unknown as typeof HTMLElement.prototype.scrollTo;

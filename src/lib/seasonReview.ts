@@ -67,8 +67,8 @@ export function isInCardWindow(today: string): boolean {
   return daysBetween(currentSekkiStart(today), today) <= CARD_WINDOW_DAYS;
 }
 
-/** シートで左右に見られる過去の節気のふりかえりの数（約3か月） */
-export const REVIEW_COUNT = 6;
+/** シートで左右に見られる過去の節気のふりかえりの数（約半年） */
+export const REVIEW_COUNT = 12;
 
 /** 直前の節気から n 個の範囲（古い順・連続） */
 export function recentSekkiRanges(today: string, n: number): SekkiRange[] {

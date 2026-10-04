@@ -18,6 +18,16 @@ export function SeasonReviewCarousel({ reviews, onIndexChange }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const [index, setIndex] = useState(n - 1);
+  // 描くのは表示中のカードと両隣だけ（12枚を一度に描くとシートが開くまで遅くなる）。一度描いたものは残す
+  const [rendered, setRendered] = useState<Set<number>>(() => new Set([n - 1, n - 2]));
+  const renderAround = useCallback((i: number) => {
+    setRendered(prev => {
+      if (prev.has(i - 1) && prev.has(i) && prev.has(i + 1)) return prev;
+      const next = new Set(prev);
+      [i - 1, i, i + 1].forEach(k => { if (k >= 0 && k < n) next.add(k); });
+      return next;
+    });
+  }, [n]);
 
   // 最新（右端）から始める。アニメーションなしで即座に置く
   useLayoutEffect(() => {
@@ -30,10 +40,11 @@ export function SeasonReviewCarousel({ reviews, onIndexChange }: Props) {
 
   const change = useCallback((next: number) => {
     setIndex(next);
+    renderAround(next);
     onIndexChange?.(next);
     const back = n - 1 - next;
     if (back > 0) logSeasonCardBrowse(back);
-  }, [n, onIndexChange]);
+  }, [n, onIndexChange, renderAround]);
 
   const handleScroll = () => {
     const track = trackRef.current;
@@ -45,6 +56,7 @@ export function SeasonReviewCarousel({ reviews, onIndexChange }: Props) {
   const goTo = (i: number) => {
     const track = trackRef.current;
     if (!track) return;
+    renderAround(i); // 点で遠くへ飛ぶときは、着く前に描いておく
     track.scrollTo({ left: i * track.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
   };
 
@@ -69,7 +81,9 @@ export function SeasonReviewCarousel({ reviews, onIndexChange }: Props) {
             aria-roledescription="スライド"
             aria-label={`${i + 1}/${n} ${r.range.name}`}
           >
-            <SeasonReviewCard review={r} source="sheet" />
+            {rendered.has(i)
+              ? <SeasonReviewCard review={r} source="sheet" />
+              : <div className="season-carousel__placeholder" aria-hidden="true" />}
           </div>
         ))}
       </div>
