@@ -59,6 +59,13 @@ describe('requiredYears', () => {
     // 2026-02-10: 6節気前は前年の秋（霜降 2025-10-23 頃）→ 2020 年まで必要
     expect(requiredYears('2026-02-10')[0]).toBe(2020);
   });
+  it('ふりかえりは12節気（約半年）さかのぼる。年の前半は前年の分の5年前まで含める', () => {
+    expect(REVIEW_COUNT).toBe(12);
+    const r = recentSekkiRanges('2026-10-01', REVIEW_COUNT);
+    expect(r[0].name).toBe('春分'); // 白露を含めて12節気（3月下旬〜）
+    // 2026-06-10: 12節気前は前年12月（大雪）→ 2020 年まで必要
+    expect(requiredYears('2026-06-10')[0]).toBe(2020);
+  });
   it('1/1 は今年のデータが無いので今年を含めない', () => {
     expect(requiredYears('2026-01-01')).toEqual([2020, 2021, 2022, 2023, 2024, 2025]);
   });
@@ -258,9 +265,9 @@ describe('computeSeasonView', () => {
   });
 });
 
-describe('過去の節気のふりかえり（6節気分）', () => {
+describe('過去の節気のふりかえり（複数節気）', () => {
   it('recentSekkiRanges は直前の節気から6つ、古い順に連続して返す', () => {
-    const r = recentSekkiRanges('2026-10-01', REVIEW_COUNT);
+    const r = recentSekkiRanges('2026-10-01', 6);
     expect(r.map(x => x.name)).toEqual(['夏至', '小暑', '大暑', '立秋', '処暑', '白露']);
     for (let i = 1; i < r.length; i++) expect(r[i].start).toBe(addDays(r[i - 1].end, 1));
   });
@@ -270,7 +277,10 @@ describe('過去の節気のふりかえり（6節気分）', () => {
     for (let y = 2021; y <= 2026; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 10 });
     map.delete('2026-08-01'); // 大暑（7/23〜8/6頃）の今年分に欠け → そのカードだけ除く
     const v = computeSeasonView(map, '2026-10-03', DEFAULT_PACE_OPTIONS)!;
-    expect(v.reviews.map(r => r.range.name)).toEqual(['夏至', '小暑', '立秋', '処暑', '白露']);
+    const names = v.reviews.map(r => r.range.name);
+    expect(names).toHaveLength(REVIEW_COUNT - 1);
+    expect(names).not.toContain('大暑');
+    expect(names.slice(-4)).toEqual(['小暑', '立秋', '処暑', '白露']); // 大暑だけが抜ける
     expect(v.reviews.at(-1)).toEqual(v.review);
   });
 });
