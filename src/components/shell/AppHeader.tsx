@@ -31,7 +31,7 @@ export function AppHeader({
     <header className="shell-header" style={{ backgroundColor: top }}>
       <div className={`shell-header__inner${isMobile ? '' : ' shell-header__inner--wide'}`}>
         <div className={`shell-header__left${showSummary ? ' shell-header__left--summary' : ''}`}>
-          <img src="/icon.png" alt="" aria-hidden="true" className="shell-header__logo" />
+          <img src="/icons/yamamatsu-mark-white.svg" alt="" aria-hidden="true" className="shell-header__logo" />
           <AnimatePresence>
             {showSummary && summary && (
               <m.div
