@@ -47,35 +47,63 @@ describe('fetchWeatherData のキャッシュ', () => {
   });
 });
 
-describe('fetchDailyActuals（複数年を1リクエストで取得）', () => {
-  const rangeBody = {
-    daily: {
-      time: ['2026-10-01', '2026-10-02', '2026-10-03'],
-      temperature_2m_mean: [20, null, 22], temperature_2m_max: [25, null, 27], temperature_2m_min: [15, null, 17],
-      precipitation_sum: [1, null, 0], sunshine_duration: [7200, null, 3600],
-    },
-  };
+describe('fetchDailyActuals（過去年は端末に保存し、今年分だけ取り直す）', () => {
+  // URL の start_date〜end_date に合わせて毎日 10℃・雨1mm・日照1h を返す。nullDate の日は未確定（null）
+  function archiveMock(nullDate?: string) {
+    vi.mocked(weatherFetch).mockImplementation(async (url: string) => {
+      const start = url.match(/start_date=([\d-]+)/)![1];
+      const end = url.match(/end_date=([\d-]+)/)![1];
+      const time: string[] = [];
+      for (let t = Date.parse(start); t <= Date.parse(end); t += 86400000) time.push(new Date(t).toISOString().slice(0, 10));
+      const v = (x: number) => time.map(d => (d === nullDate ? null : x));
+      return new Response(JSON.stringify({ daily: {
+        time, temperature_2m_mean: v(10), temperature_2m_max: v(15), temperature_2m_min: v(5),
+        precipitation_sum: v(1), sunshine_duration: v(3600),
+      } }));
+    });
+  }
+  const ranges = () => vi.mocked(weatherFetch).mock.calls.map(([u]) => `${u.match(/start_date=([\d-]+)/)![1]}..${u.match(/end_date=([\d-]+)/)![1]}`);
+  beforeEach(() => localStorage.clear());
 
-  it('期間を1回で取得し、値の無い日を除いて日照を時間に直す', async () => {
-    vi.mocked(weatherFetch).mockImplementation(async () => new Response(JSON.stringify(rangeBody)));
-    const days = await fetchDailyActuals(35.3, 139.3, '2020-01-01', '2026-10-03');
-    expect(weatherFetch).toHaveBeenCalledTimes(1);
-    const url = vi.mocked(weatherFetch).mock.calls[0][0];
-    expect(url).toContain('start_date=2020-01-01');
-    expect(url).toContain('end_date=2026-10-03');
-    expect(days).toEqual([
-      { date: '2026-10-01', tempMean: 20, tempMax: 25, tempMin: 15, precipSum: 1, sunshineDuration: 2 },
-      { date: '2026-10-03', tempMean: 22, tempMax: 27, tempMin: 17, precipSum: 0, sunshineDuration: 1 },
-    ]);
+  it('過去年と今年分の2回に分けて順に取得し、つなげて返す（日照は時間に直す）', async () => {
+    archiveMock();
+    const days = await fetchDailyActuals(35.31, 139.31, '2020-01-01', '2026-10-03');
+    expect(ranges()).toEqual(['2020-01-01..2025-12-31', '2026-01-01..2026-10-03']);
+    expect(days[0]).toEqual({ date: '2020-01-01', tempMean: 10, tempMax: 15, tempMin: 5, precipSum: 1, sunshineDuration: 1 });
+    expect(days.at(-1)?.date).toBe('2026-10-03');
+    expect(days).toHaveLength(2192 + 276); // 2020〜2025年（閏年2回）＋今年
   });
 
-  it('同じ期間は6時間キャッシュし、過ぎたら取り直す', async () => {
-    vi.mocked(weatherFetch).mockImplementation(async () => new Response(JSON.stringify(rangeBody)));
-    await fetchDailyActuals(35.4, 139.4, '2020-01-01', '2026-10-03');
-    await fetchDailyActuals(35.4, 139.4, '2020-01-01', '2026-10-03');
+  it('2回目（翌日など）は過去年を端末から読み、今年分だけ取得する', async () => {
+    archiveMock();
+    await fetchDailyActuals(35.32, 139.32, '2020-01-01', '2026-10-03');
+    const days = await fetchDailyActuals(35.32, 139.32, '2020-01-01', '2026-10-04');
+    expect(ranges()).toEqual(['2020-01-01..2025-12-31', '2026-01-01..2026-10-03', '2026-01-01..2026-10-04']);
+    expect(days.find(d => d.date === '2024-02-29')?.tempMean).toBe(10);
+    expect(days).toHaveLength(2192 + 277);
+  });
+
+  it('欠け（未確定の日）がある過去年は保存しない', async () => {
+    archiveMock('2025-12-31');
+    await fetchDailyActuals(35.33, 139.33, '2020-01-01', '2026-10-03');
+    // 同じセッション内はメモリのキャッシュが効くが、端末には保存されない（次回開いたときは取り直す）
+    expect(Object.keys(localStorage).filter(k => k.startsWith('pastActuals:'))).toHaveLength(0);
+  });
+
+  it('現在地の小さな揺れ（約1km未満）では取り直さない', async () => {
+    archiveMock();
+    await fetchDailyActuals(35.3401, 139.3401, '2020-01-01', '2026-10-03');
+    await fetchDailyActuals(35.3404, 139.3398, '2020-01-01', '2026-10-04');
+    expect(ranges().filter(r => r.startsWith('2020-01-01'))).toHaveLength(1);
+  });
+
+  it('同じ期間の今年分は6時間メモリにキャッシュし、過ぎたら取り直す', async () => {
+    archiveMock();
+    await fetchDailyActuals(35.35, 139.35, '2026-01-01', '2026-10-03');
+    await fetchDailyActuals(35.35, 139.35, '2026-01-01', '2026-10-03');
     expect(weatherFetch).toHaveBeenCalledTimes(1);
     vi.setSystemTime(new Date(Date.now() + 6 * HOUR + 1));
-    await fetchDailyActuals(35.4, 139.4, '2020-01-01', '2026-10-03');
+    await fetchDailyActuals(35.35, 139.35, '2026-01-01', '2026-10-03');
     expect(weatherFetch).toHaveBeenCalledTimes(2);
   });
 });

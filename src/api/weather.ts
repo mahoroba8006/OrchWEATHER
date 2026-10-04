@@ -149,19 +149,13 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
   return result;
 }
 
-/** 今年のあゆみ・節気ふりかえりで使う日別実績（DailyWeather の一部） */
+/** 季節のあしどり・節気ふりかえりで使う日別実績（DailyWeather の一部） */
 export type DailyActual = Pick<DailyWeather, 'date' | 'tempMean' | 'tempMax' | 'tempMin' | 'precipSum' | 'sunshineDuration'>;
 
 const actualsCache = new Map<string, { data: DailyActual[]; fetchedAt: number }>();
 
-/**
- * startDate〜endDate の日別実績を1リクエストで取得する。
- * archive API は同時接続数に上限があり（超えると 429 "Too many concurrent requests"）、
- * 年ごとの並列取得では一部が拒否されるため、複数年をまとめて取る。
- * 期間の終わりは日々伸びる直近を含むので、当年分と同じく6時間で取り直す。
- * 期間は jma_msm の提供開始（2016年）以降を前提とする。
- */
-export async function fetchDailyActuals(lat: number, lon: number, startDate: string, endDate: string): Promise<DailyActual[]> {
+/** startDate〜endDate を1リクエストで取得（メモリに6時間キャッシュ） */
+async function fetchActualsRange(lat: number, lon: number, startDate: string, endDate: string): Promise<DailyActual[]> {
   const key = `${lat},${lon},${startDate},${endDate}`;
   const cached = actualsCache.get(key);
   if (cached && Date.now() - cached.fetchedAt < CURRENT_YEAR_TTL_MS) return cached.data;
@@ -187,4 +181,88 @@ export async function fetchDailyActuals(lat: number, lon: number, startDate: str
   });
   actualsCache.set(key, { data, fetchedAt: Date.now() });
   return data;
+}
+
+// ---- 確定した過去年の端末保存 ----
+// Open-Meteo 無料枠は IP ごとに1分・1時間・1日の上限があり、長い期間の要求は2週間ごとに1回分として数える。
+// 約6年分を開くたびに取り直すと1回で90〜180回分を消費し上限に達する（予報まで 429 で拒否される）ため、
+// 変わらない過去年は端末に保存して2回目以降は今年分だけを取る。
+
+const PAST_KEY_PREFIX = 'pastActuals:v1:';
+/** 保存する地点数の上限（古いものから捨てる。1地点あたり約50KB） */
+const PAST_MAX_LOCATIONS = 5;
+
+/** 座標は 0.01°（約1km）に丸める。現在地の GPS の揺れで毎回取り直さないため（jma_msm の格子は約5km） */
+const pastKey = (lat: number, lon: number) => `${PAST_KEY_PREFIX}${lat.toFixed(2)},${lon.toFixed(2)}`;
+
+/** 列ごとの配列で保存（start から1日ずつ連続。欠けのある範囲は保存しない） */
+interface StoredPast { start: string; end: string; savedAt: number; t: number[]; mx: number[]; mn: number[]; p: number[]; s: number[] }
+
+const utcDay = (date: string) => {
+  const [y, m, d] = date.split('-').map(Number);
+  return Date.UTC(y, m - 1, d) / 86400000;
+};
+const dayCount = (start: string, end: string) => utcDay(end) - utcDay(start) + 1;
+
+function readPast(lat: number, lon: number, start: string, end: string): DailyActual[] | null {
+  try {
+    const raw = localStorage.getItem(pastKey(lat, lon));
+    if (!raw) return null;
+    const st = JSON.parse(raw) as StoredPast;
+    if (st.start > start || st.end < end) return null;
+    const from = utcDay(start) - utcDay(st.start);
+    const n = dayCount(start, end);
+    const out: DailyActual[] = [];
+    for (let i = from; i < from + n; i++) {
+      const date = new Date((utcDay(st.start) + i) * 86400000).toISOString().slice(0, 10);
+      out.push({ date, tempMean: st.t[i], tempMax: st.mx[i], tempMin: st.mn[i], precipSum: st.p[i], sunshineDuration: st.s[i] });
+    }
+    return out;
+  } catch {
+    return null; // 保存領域が使えない・壊れている場合は取り直す
+  }
+}
+
+function writePast(lat: number, lon: number, start: string, end: string, days: DailyActual[]): void {
+  if (days.length !== dayCount(start, end)) return; // 欠けがある（未確定の日を含む）範囲は保存しない
+  const st: StoredPast = {
+    start, end, savedAt: Date.now(),
+    t: days.map(d => d.tempMean), mx: days.map(d => d.tempMax), mn: days.map(d => d.tempMin),
+    p: days.map(d => d.precipSum), s: days.map(d => d.sunshineDuration),
+  };
+  try {
+    localStorage.setItem(pastKey(lat, lon), JSON.stringify(st));
+    // 地点数の上限を超えたら、保存が古いものから消す
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(PAST_KEY_PREFIX));
+    if (keys.length > PAST_MAX_LOCATIONS) {
+      const savedAt = (k: string) => { try { return (JSON.parse(localStorage.getItem(k) ?? '{}') as StoredPast).savedAt ?? 0; } catch { return 0; } };
+      keys.sort((a, b) => savedAt(a) - savedAt(b)).slice(0, keys.length - PAST_MAX_LOCATIONS).forEach(k => localStorage.removeItem(k));
+    }
+  } catch {
+    // 容量不足・プライベートモードなどで保存できなくても、表示は続ける（次回また取得するだけ）
+  }
+}
+
+/**
+ * startDate〜endDate の日別実績。archive API は同時接続数にも上限があり（超えると 429）、
+ * 年ごとの並列取得は避けて、過去年と今年分の最大2リクエストを順番に行う。
+ * 過去年（endDate の前年末まで）は端末に保存済みならそれを使う。期間は jma_msm の提供開始（2016年）以降が前提。
+ */
+export async function fetchDailyActuals(lat: number, lon: number, startDate: string, endDate: string): Promise<DailyActual[]> {
+  const y = Number(endDate.slice(0, 4));
+  const pastEnd = `${y - 1}-12-31`;
+  const currentStart = startDate > `${y}-01-01` ? startDate : `${y}-01-01`;
+
+  let past: DailyActual[] = [];
+  if (startDate <= pastEnd) {
+    const stored = readPast(lat, lon, startDate, pastEnd);
+    if (stored) {
+      past = stored;
+    } else {
+      past = await fetchActualsRange(lat, lon, startDate, pastEnd);
+      writePast(lat, lon, startDate, pastEnd, past);
+    }
+  }
+  const current = await fetchActualsRange(lat, lon, currentStart, endDate);
+  return [...past, ...current];
 }
