@@ -4,7 +4,7 @@
 // 取得中は同じ高さの骨組みで場所を確保し、予報が後から押し下げられないようにする。
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
-import { Skeleton } from '../ui/Skeleton';
+import { Loader2 } from 'lucide-react';
 import type { SeasonState } from '../../hooks/useSeasonReview';
 import './season.css';
 
@@ -54,8 +54,13 @@ export function SeasonPaceTicker({ state }: { state: SeasonState }) {
 
   if (state.status === 'loading') {
     return (
-      <div role="status" aria-label="季節のあしどりを集計中">
-        <Skeleton height={52} radius="var(--radius-md)" />
+      // 骨組みだけだと空白に見えるので、AIコメントの読み込みと同じ回転アイコンと文言で集計中を示す（高さは本体と同じ）
+      <div role="status" aria-label="季節のあしどりを集計中" className="season-strip season-strip--loading">
+        <Loader2 size={16} className="season-strip__spinner" aria-hidden="true" />
+        <span className="season-strip__loading-text">
+          <span>季節のあしどりを集計しています…</span>
+          <span className="season-strip__loading-sub">はじめての地点は少し時間がかかります</span>
+        </span>
       </div>
     );
   }
