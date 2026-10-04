@@ -35,16 +35,10 @@ const fixture = [
 ];
 
 describe('DailyForecast', () => {
-  it('renders one temperature range bar per non-placeholder day', () => {
+  it('日付の下に気温の横バーを出さない（分かりにくいため廃止。最高/最低の数字は残す）', () => {
     const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
-    expect(container.querySelectorAll('[data-testid="temp-range"]')).toHaveLength(2);
-  });
-
-  it('positions the range bar relative to the whole period', () => {
-    const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
-    const bars = container.querySelectorAll<HTMLElement>('[data-testid="temp-range"]');
-    expect(bars[1].style.left).toBe('25%');
-    expect(bars[1].style.width).toBe('50%');
+    expect(container.querySelectorAll('[data-testid="temp-range"]')).toHaveLength(0);
+    expect(screen.getAllByText('30').length).toBeGreaterThan(0);
   });
 
   it('calls onHalfDayClick with (date, am) and shows a single selection mark', () => {
