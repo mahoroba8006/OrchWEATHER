@@ -31,8 +31,8 @@ const review: SeasonReview = {
 };
 
 const paceItems: PaceItem[] = [
-  { kind: 'temp', label: '季節のあしどり・気温（直近30日）', text: '去年より1.0℃高い' },
-  { kind: 'gdd', label: '季節のあしどり・積算温度（1月1日から・10℃基準）', text: '去年より4日遅い' },
+  { kind: 'temp', name: '気温', period: 'この30日', text: '去年より+1.0℃・5年平均より+0.4℃' },
+  { kind: 'gdd', name: '積算温度', period: '1月1日から・10℃基準', text: '去年より4日遅い・5年平均と同じペース' },
 ];
 // 退場アニメーション中は旧項目が残りうるので、1つになる（切り替えが済む）まで待ってから読む
 const shown = (el: Element) => {
@@ -59,22 +59,22 @@ describe('SeasonPaceTicker', () => {
     renderWithMotion(<SeasonPaceTicker state={readyState(paceItems)} />);
     const btn = screen.getByRole('button', { name: '季節のあしどり 次の項目を表示' });
     const expectShown = (text: string) => waitFor(() => expect(shown(btn)).toBe(text));
-    await expectShown('去年より1.0℃高い');
+    await expectShown('気温去年より+1.0℃・5年平均より+0.4℃');
     act(() => btn.click());
-    await expectShown('去年より4日遅い');
+    await expectShown('積算温度去年より4日遅い・5年平均と同じペース');
     act(() => btn.click());
-    await expectShown('去年より1.0℃高い');
+    await expectShown('気温去年より+1.0℃・5年平均より+0.4℃');
   });
-  it('4秒ごとに自動で次へ進む', () => {
+  it('8秒ごとに自動で次へ進む（読み終える時間を確保）', () => {
     vi.useFakeTimers();
     try {
       renderWithMotion(<SeasonPaceTicker state={readyState(paceItems)} />);
       // フェイクタイマーでは退場の完了が進まないので、現在位置の点で判定する
       const dots = () => Array.from(document.querySelectorAll('.season-strip__dots i')).findIndex((d) => d.classList.contains('is-current'));
       expect(dots()).toBe(0);
-      act(() => { vi.advanceTimersByTime(4000); });
+      act(() => { vi.advanceTimersByTime(8000); });
       expect(dots()).toBe(1);
-      act(() => { vi.advanceTimersByTime(4000); });
+      act(() => { vi.advanceTimersByTime(8000); });
       expect(dots()).toBe(0);
     } finally {
       vi.useRealTimers();
@@ -84,8 +84,8 @@ describe('SeasonPaceTicker', () => {
     vi.useFakeTimers();
     try {
       renderWithMotion(<SeasonPaceTicker state={readyState(paceItems.slice(0, 1))} />);
-      act(() => { vi.advanceTimersByTime(12000); });
-      expect(shown(screen.getByRole('button'))).toBe('去年より1.0℃高い');
+      act(() => { vi.advanceTimersByTime(20000); });
+      expect(shown(screen.getByRole('button'))).toBe('気温去年より+1.0℃・5年平均より+0.4℃');
     } finally {
       vi.useRealTimers();
     }
@@ -94,8 +94,8 @@ describe('SeasonPaceTicker', () => {
     renderWithMotion(<SeasonPaceTicker state={readyState(paceItems)} />);
     const items = screen.getAllByRole('listitem', { hidden: true }).map((li) => li.textContent);
     expect(items).toEqual([
-      '季節のあしどり・気温（直近30日）：去年より1.0℃高い',
-      '季節のあしどり・積算温度（1月1日から・10℃基準）：去年より4日遅い',
+      '気温（この30日）：去年より+1.0℃・5年平均より+0.4℃',
+      '積算温度（1月1日から・10℃基準）：去年より4日遅い・5年平均と同じペース',
     ]);
   });
 });
@@ -146,5 +146,13 @@ describe('カード閲覧の計測', () => {
     vi.stubGlobal('IntersectionObserver', undefined);
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     expect(logSeasonCardView).not.toHaveBeenCalled();
+  });
+});
+
+describe('SeasonPaceTicker の表示', () => {
+  it('本文の先頭に項目名、見出しに期間を出す', () => {
+    renderWithMotion(<SeasonPaceTicker state={{ status: 'ready', view: { paceItems: [{ kind: 'precip', name: '降水量', period: '1月1日から', text: '去年の1.8倍・5年平均の1.4倍' }], review: null, showCard: false } }} />);
+    expect(document.querySelector('.season-strip__name')?.textContent).toBe('降水量');
+    expect(document.querySelector('.season-strip__label')?.textContent).toBe('季節のあしどり（1月1日から）');
   });
 });

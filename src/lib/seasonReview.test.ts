@@ -171,17 +171,17 @@ describe('季節のあしどり（computePaceItems）', () => {
 
   it('空くらべに合わせる: 気温（30日）・降水量・積算温度・日照時間の順', () => {
     expect(computePaceItems(warmYear(), '2026-10-03', opts())).toEqual([
-      { kind: 'temp', label: '季節のあしどり・気温（この30日）', text: '去年より+1.0℃・5年平均より+1.0℃' },
-      { kind: 'precip', label: '季節のあしどり・降水量（1月1日から）', text: '去年の1.5倍・5年平均の1.5倍' },
-      { kind: 'gdd', label: '季節のあしどり・積算温度（1月1日から・0℃基準）', text: '去年より28日早い・5年平均より28日早い' },
+      { kind: 'temp', name: '気温', period: 'この30日', text: '去年より+1.0℃・5年平均より+1.0℃' },
+      { kind: 'precip', name: '降水量', period: '1月1日から', text: '去年の1.5倍・5年平均の1.5倍' },
+      { kind: 'gdd', name: '積算温度', period: '1月1日から・0℃基準', text: '去年より28日早い・5年平均より28日早い' },
       // 5年平均には閏年 2024 を含む（1/1〜10/2 が1日多い）ため 1376h → +274h
-      { kind: 'sunshine', label: '季節のあしどり・日照時間（1月1日から）', text: '去年より+275h・5年平均より+274h' },
+      { kind: 'sunshine', name: '日照時間', period: '1月1日から', text: '去年より+275h・5年平均より+274h' },
     ]);
   });
 
   it('積算温度は基準温度を引いた分だけ積み、比較年が届かなければ「早いペース」', () => {
     const gdd = computePaceItems(warmYear(), '2026-10-03', opts({ baseTemp: 10 })).find(i => i.kind === 'gdd')!;
-    expect(gdd.label).toBe('季節のあしどり・積算温度（1月1日から・10℃基準）');
+    expect([gdd.name, gdd.period]).toEqual(['積算温度', '1月1日から・10℃基準']);
     expect(gdd.text).toBe('去年より早いペース・5年平均より早いペース');
   });
 
@@ -201,17 +201,17 @@ describe('季節のあしどり（computePaceItems）', () => {
 
   it('開始日は空くらべの設定に従い、まだ来ていない開始日の項目は出さない', () => {
     const items = computePaceItems(warmYear(), '2026-10-03', opts({ startDates: { precip: '04-01', sunshine: '11-01', gdd: '01-01' } }));
-    expect(items.find(i => i.kind === 'precip')?.label).toBe('季節のあしどり・降水量（4月1日から）');
+    expect(items.find(i => i.kind === 'precip')?.period).toBe('4月1日から');
     expect(items.find(i => i.kind === 'sunshine')).toBeUndefined();
   });
 
   it('直近30日: 降水量・積算温度・日照時間も30日で比べ、積算温度は差（℃日）', () => {
     const items = computePaceItems(warmYear(), '2026-10-03', opts({ mode: 'recent' }));
-    expect(items.map(i => [i.kind, i.label, i.text])).toEqual([
-      ['temp', '季節のあしどり・気温（この30日）', '去年より+1.0℃・5年平均より+1.0℃'],
-      ['precip', '季節のあしどり・降水量（この30日）', '去年の1.5倍・5年平均の1.5倍'],
-      ['gdd', '季節のあしどり・積算温度（この30日・0℃基準）', '去年より+30℃日・5年平均より+30℃日'],
-      ['sunshine', '季節のあしどり・日照時間（この30日）', '去年より+30h・5年平均より+30h'],
+    expect(items.map(i => [i.kind, i.name, i.period, i.text])).toEqual([
+      ['temp', '気温', 'この30日', '去年より+1.0℃・5年平均より+1.0℃'],
+      ['precip', '降水量', 'この30日', '去年の1.5倍・5年平均の1.5倍'],
+      ['gdd', '積算温度', 'この30日・0℃基準', '去年より+30℃日・5年平均より+30℃日'],
+      ['sunshine', '日照時間', 'この30日', '去年より+30h・5年平均より+30h'],
     ]);
   });
 
