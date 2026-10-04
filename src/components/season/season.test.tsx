@@ -18,6 +18,7 @@ const review: SeasonReview = {
   range: { index: 14, name: '白露', start: '2026-09-07', end: '2026-09-22', days: 16 },
   periodLabel: '白露 9/7〜9/22（16日間）',
   headline: '日差しが多く、雨が少ない',
+  progress: null,
   rows: [
     { label: '平均気温', value: '24.0℃', vsLastYear: { text: '+1.0℃', tone: 'more' }, vsAvg: { text: '+1.0℃', tone: 'more' } },
     { label: '雨の量', value: '38mm', vsLastYear: { text: '6割', tone: 'less' }, vsAvg: { text: '6割', tone: 'less' } },
@@ -34,6 +35,15 @@ const review: SeasonReview = {
   },
   avgYears: '2021〜2025年',
   recordLabels: { warm: 'いちばん暑い日', cold: 'いちばん涼しい日' },
+};
+
+const progressReview: SeasonReview = {
+  ...review,
+  progress: { day: 3, total: 16 },
+  headline: '',
+  periodLabel: '9/7〜9/22（3日目／16日間）',
+  rows: review.rows.map(r => ({ ...r, vsLastYear: null, vsAvg: null })),
+  daily: review.daily,
 };
 
 const paceItems: PaceItem[] = [
@@ -159,6 +169,42 @@ describe('SeasonReviewCard', () => {
   it('注記に天気が目安である旨を含む', () => {
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     expect(screen.getByText(/天気は雨量と日照からの目安です。/)).toBeTruthy();
+  });
+});
+
+describe('SeasonReviewCard 途中経過', () => {
+  it('「途中経過」と期間を出し、見出し・比較列は出さない', () => {
+    const { container } = renderWithMotion(<SeasonReviewCard review={progressReview} source="sheet" />);
+    expect(screen.getByText('途中経過')).toBeTruthy();
+    expect(screen.getByText('9/7〜9/22（3日目／16日間）')).toBeTruthy();
+    expect(screen.queryByText('去年比')).toBeNull();
+    expect(screen.queryByText('5年平均比')).toBeNull();
+    expect(container.querySelector('h3')).toBeNull();
+    expect(screen.getByText('今年')).toBeTruthy();
+    expect(screen.getByText('38mm')).toBeTruthy();
+  });
+
+  it('グラフは節気の全日数分の幅で、昨日までだけ描く', () => {
+    const { container } = renderWithMotion(<SeasonReviewCard review={progressReview} source="sheet" />);
+    const chart = screen.getByRole('img', { name: '日ごとの最高・最低気温と5年平均（9/7〜9/22）' });
+    expect(chart.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 160 100');
+    expect(chart.querySelectorAll('[data-testid="temp-bar"]')).toHaveLength(2);
+    const cells = container.querySelectorAll('.season-card__icons > span');
+    expect(cells).toHaveLength(16);
+    expect(Array.from(cells).filter(c => c.querySelector('img'))).toHaveLength(2);
+  });
+
+  it('注記は昨日までの実績である旨', () => {
+    renderWithMotion(<SeasonReviewCard review={progressReview} source="sheet" />);
+    expect(screen.getByText(/昨日までの実績です/)).toBeTruthy();
+    expect(screen.queryByText(/5年平均は2021/)).toBeNull();
+  });
+
+  it('完了カードは去年比と見出しを出し、「途中経過」は出さない', () => {
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(screen.getByText('去年比')).toBeTruthy();
+    expect(screen.getByText('日差しが多く、雨が少ない')).toBeTruthy();
+    expect(screen.queryByText('途中経過')).toBeNull();
   });
 });
 

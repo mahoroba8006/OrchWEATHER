@@ -19,7 +19,8 @@ const RAIN_COLOR = '#7cc8ee'; // 雨（水色）
 const TEMP_H = 100; // 気温の段の viewBox の高さ（横は日数×10）
 const RAIN_H = 100; // 雨の段の viewBox の高さ
 
-function Cell({ c }: { c: CompareCell }) {
+function Cell({ c }: { c: CompareCell | null }) {
+  if (!c) return null;
   return <td className={`season-card__cmp season-card__cmp--${c.tone}`}>{c.text}</td>;
 }
 
@@ -39,7 +40,9 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
   }, [source]);
 
   const { daily } = review;
-  const n = daily.length;
+  const { progress } = review;
+  // 途中経過は節気の全日数ぶんの横幅を取り、昨日までを左から描く（残りは空き）
+  const n = progress ? progress.total : daily.length;
   const maxRain = Math.max(1, ...daily.map(r => r.precip));
   // 気温目盛は今年・5年平均を合わせた期間の（最低−1）〜（最高+1）。右端ラベルもこの上端・下端の値
   const tHi = Math.ceil(Math.max(...daily.map(r => Math.max(r.tempMax, r.avgMax)))) + 1;
@@ -58,8 +61,9 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
       <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         <div className="season-card__heading">
+          {progress && <span className="season-card__chip">途中経過</span>}
           <p className="season-card__period">{review.periodLabel}</p>
-          <h3 className="season-card__title">{review.headline}</h3>
+          {!progress && <h3 className="season-card__title">{review.headline}</h3>}
         </div>
       </header>
 
@@ -68,8 +72,8 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
           <tr>
             <th scope="col"><span className="season-card__sr">項目</span></th>
             <th scope="col">今年</th>
-            <th scope="col">去年比</th>
-            <th scope="col">5年平均比</th>
+            {!progress && <th scope="col">去年比</th>}
+            {!progress && <th scope="col">5年平均比</th>}
           </tr>
         </thead>
         <tbody>
@@ -77,8 +81,8 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
             <tr key={r.label}>
               <th scope="row">{r.label}</th>
               <td className="season-card__value">{r.value}</td>
-              <Cell c={r.vsLastYear} />
-              <Cell c={r.vsAvg} />
+              {!progress && <Cell c={r.vsLastYear} />}
+              {!progress && <Cell c={r.vsAvg} />}
             </tr>
           ))}
         </tbody>
@@ -123,9 +127,10 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
           <span className="season-card__rain-unit" aria-hidden="true">mm</span>
         </div>
         <div className="season-card__icons" aria-hidden="true">
-          {daily.map(r => (
-            <span key={r.date}><WeatherIcon code={r.code} size={18} animated={false} /></span>
-          ))}
+          {Array.from({ length: n }, (_, i) => {
+            const r = daily[i];
+            return <span key={i}>{r && <WeatherIcon code={r.code} size={18} animated={false} />}</span>;
+          })}
         </div>
         <div className="season-card__axis" aria-hidden="true">
           <span>{monthDay(review.range.start)}</span>
@@ -147,7 +152,11 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
         <div><dt>まとまった雨</dt><dd>{heavyRain ? `${monthDay(heavyRain.date)} ${Math.round(heavyRain.value)}mm` : 'なし'}</dd></div>
       </dl>
 
-      <p className="season-card__note">{`比較は同じ月日の期間の実績。5年平均は${review.avgYears}の平均です。天気は雨量と日照からの目安です。`}</p>
+      <p className="season-card__note">
+        {progress
+          ? '昨日までの実績です。天気は雨量と日照からの目安です。'
+          : `比較は同じ月日の期間の実績。5年平均は${review.avgYears}の平均です。天気は雨量と日照からの目安です。`}
+      </p>
     </article>
   );
 }

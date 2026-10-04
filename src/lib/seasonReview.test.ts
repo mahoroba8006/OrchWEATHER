@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildDayMap, buildSeasonReview, computePaceItems, estimateSkyCode, seasonWords, recentSekkiRanges, REVIEW_COUNT, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
+  buildDayMap, buildSeasonReview, buildProgressForRange, computePaceItems, currentSekkiRange, estimateSkyCode, seasonWords, recentSekkiRanges, REVIEW_COUNT, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
   isInCardWindow, previousSekkiRange, rainCell, requiredYears, shiftYear, tempCell,
   type DayMap, type DayRecord, type PaceOptions,
 } from './seasonReview';
@@ -277,11 +277,13 @@ describe('過去の節気のふりかえり（複数節気）', () => {
     for (let y = 2021; y <= 2026; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 10 });
     map.delete('2026-08-01'); // 大暑（7/23〜8/6頃）の今年分に欠け → そのカードだけ除く
     const v = computeSeasonView(map, '2026-10-03', DEFAULT_PACE_OPTIONS)!;
-    const names = v.reviews.map(r => r.range.name);
+    // 一番右は今の節気（秋分）の途中経過。終わった節気は大暑だけが抜ける
+    expect(v.reviews.at(-1)?.progress).not.toBeNull();
+    const names = v.reviews.filter(r => !r.progress).map(r => r.range.name);
     expect(names).toHaveLength(REVIEW_COUNT - 1);
     expect(names).not.toContain('大暑');
     expect(names.slice(-4)).toEqual(['小暑', '立秋', '処暑', '白露']); // 大暑だけが抜ける
-    expect(v.reviews.at(-1)).toEqual(v.review);
+    expect(v.reviews.at(-2)).toEqual(v.review);
   });
 });
 
@@ -364,5 +366,52 @@ describe('見出しの言い切り（「半月でした」を付けない）', (
     expect(headline({ meanTemp: 18.8, precip: 64, sunshine: 50 }, avg, seasonWords(20))).toBe('日差しが少なく、肌寒い');
     expect(headline({ meanTemp: 22, precip: 64, sunshine: 60 }, avg, seasonWords(20))).toBe('暖かく、日差しが少ない');
     expect(headline({ meanTemp: 20, precip: 120, sunshine: 80 }, avg, seasonWords(20))).toBe('雨が多い');
+  });
+});
+
+describe('今の節気の途中経過カード', () => {
+  function yearsMap(): DayMap {
+    const map: DayMap = new Map();
+    for (let y = 2021; y <= 2026; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 20, tempMax: 25, tempMin: 15, precip: 1, sunshine: 5 });
+    return map;
+  }
+
+  it('currentSekkiRange は今の節気の初日〜最終日（秋分 9/23〜10/7）', () => {
+    expect(currentSekkiRange('2026-10-01')).toEqual({ index: 15, name: '秋分', start: '2026-09-23', end: '2026-10-07', days: 15 });
+  });
+
+  it('初日は集計がまだ0日なので出さない', () => {
+    expect(buildProgressForRange(yearsMap(), currentSekkiRange('2026-09-23'), '2026-09-23')).toBeNull();
+  });
+
+  it('昨日までの値で、比較なし・コメントなし', () => {
+    const p = buildProgressForRange(yearsMap(), currentSekkiRange('2026-10-01'), '2026-10-01')!;
+    expect(p.progress).toEqual({ day: 9, total: 15 });
+    expect(p.periodLabel).toBe('9/23〜10/7（9日目／15日間）');
+    expect(p.headline).toBe('');
+    expect(p.daily).toHaveLength(8); // 9/23〜9/30
+    expect(p.rows.map(r => [r.label, r.value, r.vsLastYear, r.vsAvg])).toEqual([
+      ['平均気温', '20.0℃', null, null],
+      ['雨の量', '8mm', null, null],
+      ['日照', '40h', null, null],
+    ]);
+  });
+
+  it('最終日も昨日まで、翌日（次の節気の初日）に完成したふりかえりになる', () => {
+    const last = buildProgressForRange(yearsMap(), currentSekkiRange('2026-10-07'), '2026-10-07')!;
+    expect(last.progress).toEqual({ day: 15, total: 15 });
+    expect(last.daily).toHaveLength(14);
+    const next = computeSeasonView(yearsMap(), '2026-10-08', DEFAULT_PACE_OPTIONS)!;
+    expect(next.reviews.at(-1)?.range.name).toBe('秋分');
+    expect(next.reviews.at(-1)?.progress).toBeNull();
+    expect(next.reviews.at(-1)?.daily).toHaveLength(15);
+  });
+
+  it('computeSeasonView は途中経過を一番右に加え、帯の下のカード（review）は終わった節気のまま', () => {
+    const v = computeSeasonView(yearsMap(), '2026-10-01', DEFAULT_PACE_OPTIONS)!;
+    expect(v.reviews.at(-1)?.range.name).toBe('秋分');
+    expect(v.reviews.at(-1)?.progress).not.toBeNull();
+    expect(v.reviews.at(-2)?.range.name).toBe('白露');
+    expect(v.review?.range.name).toBe('白露');
   });
 });

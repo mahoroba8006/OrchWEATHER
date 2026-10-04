@@ -1,6 +1,6 @@
 // ヒーロー下部の空き領域にそっと添える、今日の二十四節気・七十二候（文字のみ。絵はヒーロー背景）。
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { SEKKI, sekkiForDate } from '../../lib/sekki';
+import { sekkiForDate } from '../../lib/sekki';
 import { jstDateString } from '../../lib/sky';
 
 export function SekkiBadge({ date, onOpen }: { date?: Date; onOpen?: () => void }) {
@@ -41,9 +41,8 @@ export function SekkiBadge({ date, onOpen }: { date?: Date; onOpen?: () => void 
   );
 
   if (onOpen) {
-    const prevName = SEKKI[(s.index + 23) % 24].name;
     return (
-      <button type="button" className="sekki-badge sekki-badge--button" aria-label={`${label}。${prevName}のふりかえりを開く`} onClick={onOpen}>
+      <button type="button" className="sekki-badge sekki-badge--button" aria-label={`${label}。節気のようすを開く`} onClick={onOpen}>
         {text}
       </button>
     );
