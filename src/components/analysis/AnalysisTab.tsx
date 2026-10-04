@@ -10,7 +10,7 @@ import { GEO_OPTIONS } from '../../lib/geo';
 import { springs } from '../../lib/motion';
 import { Button } from '../ui/Button';
 import { SegmentedControl } from '../ui/SegmentedControl';
-import { CustomWideBar, CustomRangeBar, ForecastRangeBar } from './chartShapes';
+import { CustomWideBar, CustomRangeBar, ForecastRangeBar, EdgeAwareXTick } from './chartShapes';
 import type { ChartId, useAnalysisState } from './useAnalysisState';
 import './analysis.css';
 
@@ -31,7 +31,8 @@ const X_AXIS_PROPS = {
   axisLine: false,
   tickLine: false,
   tickMargin: 8,
-  tick: { fontSize: 11, fill: 'var(--ink-3)', style: TICK_STYLE },
+  tick: EdgeAwareXTick,
+  interval: 0,
 } as const;
 const CROSSHAIR = { stroke: 'var(--ink-2)', strokeWidth: 1, strokeOpacity: 0.35 } as const;
 const unitLabel = (value: string) => ({ value, position: 'top' as const, offset: 10, fill: 'var(--ink-3)', fontSize: 11 });

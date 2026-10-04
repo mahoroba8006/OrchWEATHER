@@ -51,3 +51,23 @@ export const ForecastRangeBar = (props: any) => {
     </g>
   );
 };
+
+/** 端からこの距離(px)以内の目盛りは、文字を中央揃えにすると半分はみ出すので内側に揃える（"01/01" の半分の幅ほど） */
+const X_TICK_EDGE = 16;
+
+/**
+ * 横軸の目盛りの文字。recharts は端からはみ出す目盛りを間引くため、左端の 1/1 が消えていた。
+ * 間引かずに（interval=0）、左右の端にかかる目盛りだけ文字を内側へ揃えてはみ出さないようにする。
+ * 横軸は左の余白0（縦軸は mirror でグラフに重ねている）なので、0〜width が描ける範囲
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function EdgeAwareXTick(props: any) {
+  const { x, y, width, payload, index, tickFormatter } = props;
+  const label = tickFormatter ? tickFormatter(payload.value, index) : payload.value;
+  const anchor = x < X_TICK_EDGE ? 'start' : x > width - X_TICK_EDGE ? 'end' : 'middle';
+  return (
+    <text x={x} y={y} dy="0.71em" textAnchor={anchor} fontSize={11} style={{ fill: 'var(--ink-3)', fontVariantNumeric: 'tabular-nums' }}>
+      {label}
+    </text>
+  );
+}
