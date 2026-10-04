@@ -136,8 +136,9 @@ describe('buildSeasonReview', () => {
       { label: '日照', value: '96h', vsLastYear: { text: '+16h', tone: 'more' }, vsAvg: { text: '+16h', tone: 'more' } },
     ]);
     expect(r.daily).toHaveLength(16);
-    expect(r.daily[4]).toEqual({ date: '2026-09-11', precip: 22, tempMax: 30, tempMin: 18, code: 63 });
-    expect(r.daily[0]).toEqual({ date: '2026-09-07', precip: 0, tempMax: 30, tempMin: 18, code: 2 });
+    // 5年平均の最高・最低は同じ月日の過去5年の平均（sampleMap の過去年は rec の既定値 15 / 5）
+    expect(r.daily[4]).toEqual({ date: '2026-09-11', precip: 22, tempMax: 30, tempMin: 18, code: 63, avgMax: 15, avgMin: 5 });
+    expect(r.daily[0]).toEqual({ date: '2026-09-07', precip: 0, tempMax: 30, tempMin: 18, code: 2, avgMax: 15, avgMin: 5 });
     expect(r.records).toEqual({
       hottest: { date: '2026-09-09', value: 33.2 },
       coolestMorning: { date: '2026-09-21', value: 15.8 },
