@@ -414,19 +414,12 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                             key={p}
                             data-now-period={isNow ? 'true' : undefined}
                             style={{
-                              position: 'relative', flex: 1, textAlign: 'center', fontSize: '0.7rem', fontWeight: isNow ? 600 : 500,
+                              flex: 1, textAlign: 'center', fontSize: '0.7rem', fontWeight: isNow ? 600 : 500,
                               color: isNow ? 'var(--accent)' : 'var(--ink-3)',
                               opacity: isPastPeriod(day.date, period) ? PAST_OPACITY : undefined,
                             }}
                           >
                             {p}
-                            {/* 今の時間帯の点（時間別の表の「今」の線の上端の点と同じ印） */}
-                            {isNow && (
-                              <span aria-hidden style={{
-                                position: 'absolute', left: '50%', bottom: -6, width: 4, height: 4, marginLeft: -2,
-                                borderRadius: '50%', background: 'var(--accent)',
-                              }} />
-                            )}
                           </div>
                         );
                       })}

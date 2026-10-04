@@ -1,7 +1,6 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { HourlyTable } from './HourlyTable';
-import { nowColumnPos } from '../../lib/sky';
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 
@@ -50,15 +49,16 @@ describe('HourlyTable', () => {
 });
 
 describe('HourlyTable の「今」の示し方', () => {
-  it('列を囲まず、今の時刻の位置に細い縦線を引く', () => {
+  it('列を囲まず線も引かず、今の時刻の下に栞を付ける', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-01T10:20:00+09:00'));
     const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} />);
     expect(container.querySelector('[data-testid="now-frame"]')).toBeNull();
-    const line = container.querySelector<HTMLElement>('[data-testid="now-line"]')!;
-    expect(line).toBeTruthy();
-    expect(line.style.width).toBe('1.5px');
-    // 時刻の上の「今」の文字は出さない（線と色で示す）
+    expect(container.querySelector('[data-testid="now-line"]')).toBeNull();
+    const cur = container.querySelector('[data-current="true"]')!;
+    expect(cur.querySelector('[data-testid="now-bookmark"]')).toBeTruthy();
+    expect(container.querySelectorAll('[data-testid="now-bookmark"]')).toHaveLength(1);
+    // 時刻の上の「今」の文字は出さない（栞と色で示す）
     expect(container.querySelector('[data-current="true"]')!.textContent).toBe('10');
     vi.useRealTimers();
   });
@@ -77,16 +77,3 @@ describe('HourlyTable の表示項目', () => {
   });
 });
 
-describe('nowColumnPos', () => {
-  const times = ['2026-10-01T10:00', '2026-10-01T11:00', '2026-10-01T11:30', '2026-10-01T12:00'];
-  it('列の中央をその時刻とし、次の列までを時刻で按分する（10:20 は10時の列の中央から1/3）', () => {
-    expect(nowColumnPos(times, new Date('2026-10-01T10:20'))).toBeCloseTo(0.5 + 1 / 3);
-  });
-  it('日の出・日の入りの列をまたいでも、その列の時刻で按分する', () => {
-    expect(nowColumnPos(times, new Date('2026-10-01T11:45'))).toBeCloseTo(2.5 + 0.5);
-  });
-  it('範囲外は null', () => {
-    expect(nowColumnPos(times, new Date('2026-10-01T09:59'))).toBeNull();
-    expect(nowColumnPos(times, new Date('2026-10-01T12:00'))).toBeNull();
-  });
-});

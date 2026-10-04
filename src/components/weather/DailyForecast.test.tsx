@@ -67,7 +67,7 @@ describe('DailyForecast の「今日」の示し方', () => {
     vi.useRealTimers();
   });
 
-  it('今の時間帯に点を付け、今日の過ぎた時間帯は薄くする（13時は午後・午前が過ぎた）', () => {
+  it('今の時間帯の文字をアクセント色にし、今日の過ぎた時間帯は薄くする（13時は午後・午前が過ぎた）', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-01T13:00:00+09:00'));
     const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
@@ -80,7 +80,7 @@ describe('DailyForecast の「今日」の示し方', () => {
     vi.useRealTimers();
   });
 
-  it('0〜4時は前日の夜間なので、今日の列に点を付けず薄くもしない', () => {
+  it('0〜4時は前日の夜間なので、今日の列の時間帯に印を付けず薄くもしない', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-01T02:00:00+09:00'));
     const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
