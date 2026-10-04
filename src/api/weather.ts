@@ -223,6 +223,28 @@ function readPast(lat: number, lon: number, start: string, end: string): DailyAc
   }
 }
 
+/** 保存済みの範囲（無ければ null） */
+function storedRange(lat: number, lon: number): { start: string; end: string } | null {
+  try {
+    const raw = localStorage.getItem(pastKey(lat, lon));
+    if (!raw) return null;
+    const st = JSON.parse(raw) as StoredPast;
+    return { start: st.start, end: st.end };
+  } catch {
+    return null;
+  }
+}
+
+const prevDay = (date: string) => new Date((utcDay(date) - 1) * 86400000).toISOString().slice(0, 10);
+
+/** startDate〜endDate の前年末までが端末に保存済みか（揃っていれば段階表示をせず一度に出すため） */
+export function hasStoredPast(lat: number, lon: number, startDate: string, endDate: string): boolean {
+  const pastEnd = `${Number(endDate.slice(0, 4)) - 1}-12-31`;
+  if (startDate > pastEnd) return true;
+  const r = storedRange(lat, lon);
+  return !!r && r.start <= startDate && r.end >= pastEnd;
+}
+
 function writePast(lat: number, lon: number, start: string, end: string, days: DailyActual[]): void {
   if (days.length !== dayCount(start, end)) return; // 欠けがある（未確定の日を含む）範囲は保存しない
   const st: StoredPast = {
@@ -256,8 +278,14 @@ export async function fetchDailyActuals(lat: number, lon: number, startDate: str
   let past: DailyActual[] = [];
   if (startDate <= pastEnd) {
     const stored = readPast(lat, lon, startDate, pastEnd);
+    const r = storedRange(lat, lon);
     if (stored) {
       past = stored;
+    } else if (r && r.end === pastEnd && r.start > startDate) {
+      // 保存済み（例: 去年分）より古い年が要る → 足りない年だけ取り寄せて保存分とつなぐ
+      const older = await fetchActualsRange(lat, lon, startDate, prevDay(r.start));
+      past = [...older, ...(readPast(lat, lon, r.start, pastEnd) ?? [])];
+      writePast(lat, lon, startDate, pastEnd, past);
     } else {
       past = await fetchActualsRange(lat, lon, startDate, pastEnd);
       writePast(lat, lon, startDate, pastEnd, past);

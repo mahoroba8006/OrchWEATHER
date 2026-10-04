@@ -2,13 +2,13 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ForecastData } from '../api/forecast';
 
-vi.mock('../api/weather', () => ({ fetchDailyActuals: vi.fn() }));
+vi.mock('../api/weather', () => ({ fetchDailyActuals: vi.fn(), hasStoredPast: vi.fn(() => true) }));
 vi.mock('../lib/seasonReview', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../lib/seasonReview')>();
   return { ...mod, computeSeasonView: vi.fn() };
 });
 
-import { fetchDailyActuals } from '../api/weather';
+import { fetchDailyActuals, hasStoredPast } from '../api/weather';
 import { computeSeasonView, DEFAULT_PACE_OPTIONS } from '../lib/seasonReview';
 import { useSeasonReview } from './useSeasonReview';
 
@@ -76,5 +76,43 @@ describe('useSeasonReview（比べ方の設定変更）', () => {
     rerender({ o: { ...DEFAULT_PACE_OPTIONS, modes: { ...DEFAULT_PACE_OPTIONS.modes, gdd: 'recent' } } });
     expect(fetchDailyActuals).toHaveBeenCalledTimes(1);
     expect(vi.mocked(computeSeasonView).mock.lastCall?.[2].modes.gdd).toBe('recent');
+  });
+});
+
+describe('useSeasonReview（はじめての地点は去年分を先に）', () => {
+  it('保存が無ければ、去年分→全部の順に取り寄せ、去年分の時点で表示する', async () => {
+    vi.mocked(hasStoredPast).mockReturnValue(false);
+    let resolveAll: (v: never[]) => void = () => {};
+    vi.mocked(fetchDailyActuals)
+      .mockResolvedValueOnce([])
+      .mockImplementationOnce(() => new Promise(r => { resolveAll = r as never; }));
+    vi.mocked(computeSeasonView).mockReturnValue(view);
+    const { result } = renderHook(() => useSeasonReview(35, 139, forecast, DEFAULT_PACE_OPTIONS));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    const calls = vi.mocked(fetchDailyActuals).mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(Number(calls[0][2].slice(0, 4))).toBeGreaterThan(Number(calls[1][2].slice(0, 4))); // 1回目の方が新しい年から
+    resolveAll([]);
+    await waitFor(() => expect(vi.mocked(computeSeasonView).mock.calls.length).toBeGreaterThan(1));
+    expect(result.current.status).toBe('ready');
+  });
+
+  it('全部の取り寄せに失敗しても、去年分の表示は残す', async () => {
+    vi.mocked(hasStoredPast).mockReturnValue(false);
+    vi.mocked(fetchDailyActuals).mockResolvedValueOnce([]).mockRejectedValueOnce(new Error('429'));
+    vi.mocked(computeSeasonView).mockReturnValue(view);
+    const { result } = renderHook(() => useSeasonReview(35, 139, forecast, DEFAULT_PACE_OPTIONS));
+    await waitFor(() => expect(vi.mocked(fetchDailyActuals).mock.calls).toHaveLength(2));
+    await new Promise(r => setTimeout(r, 0));
+    expect(result.current.status).toBe('ready');
+  });
+
+  it('保存が揃っていれば1回で取り寄せる', async () => {
+    vi.mocked(hasStoredPast).mockReturnValue(true);
+    vi.mocked(fetchDailyActuals).mockResolvedValue([]);
+    vi.mocked(computeSeasonView).mockReturnValue(view);
+    const { result } = renderHook(() => useSeasonReview(35, 139, forecast, DEFAULT_PACE_OPTIONS));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(fetchDailyActuals).toHaveBeenCalledTimes(1);
   });
 });

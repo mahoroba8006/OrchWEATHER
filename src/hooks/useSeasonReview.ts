@@ -1,6 +1,6 @@
 // src/hooks/useSeasonReview.ts
 //
-// 今年のあゆみ＋節気ふりかえりのデータ。予報の取得完了後に、必要な年の実績を1リクエストで取得する
+// 季節のあしどり＋節気ふりかえりのデータ。予報の取得完了後に、必要な年の実績を取得する
 // （予報と通信を取り合わない。archive API は同時接続数に上限があり、年ごとの並列取得は 429 になる）。
 // 非ブロッキング: 失敗・計算不能は hidden（エラー表示しない）。
 //
@@ -8,7 +8,7 @@
 // 地点切替直後は useForecast がまだ旧地点の予報を返すため、予報の取得地点が今の地点と一致するまで
 // 取得を始めない（予報より先に走らせない・新予報の到着後に重複取得しない）。
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchDailyActuals } from '../api/weather';
+import { fetchDailyActuals, hasStoredPast } from '../api/weather';
 import { addDays } from '../lib/dateUtils';
 import type { ForecastData } from '../api/forecast';
 import {
@@ -44,14 +44,27 @@ export function useSeasonReview(
   useEffect(() => {
     if (key === null || lat === null || lon === null) return;
     const fill = fromForecastPast(forecastRef.current?.pastDaily ?? []);
+    const build = (days: Awaited<ReturnType<typeof fetchDailyActuals>>) => buildDayMap(fromArchive(days), fill);
+    const end = addDays(today, -1);
+    const fullStart = `${requiredYears(today)[0]}-01-01`;
+    // はじめての地点（過去年が端末に無い）は、まず去年分だけ取り寄せて「去年より」を先に出し、
+    // 続けて残りの年を取り寄せて5年平均とふりかえりカードを加える（待ち時間を短く見せる）
+    const staged = !hasStoredPast(lat, lon, fullStart, end);
     let cancelled = false;
-    fetchDailyActuals(lat, lon, `${requiredYears(today)[0]}-01-01`, addDays(today, -1))
-      .then(days => {
-        if (!cancelled) setResult({ key, map: buildDayMap(fromArchive(days), fill) });
-      })
-      .catch(() => {
-        if (!cancelled) setResult({ key, map: null });
-      });
+    void (async () => {
+      try {
+        if (staged) {
+          const first = await fetchDailyActuals(lat, lon, `${requiredYears(today, 1)[0]}-01-01`, end);
+          if (cancelled) return;
+          setResult({ key, map: build(first) });
+        }
+        const all = await fetchDailyActuals(lat, lon, fullStart, end);
+        if (!cancelled) setResult({ key, map: build(all) });
+      } catch {
+        // 去年分まで出ていればそれを残し、何も無ければ隠す
+        if (!cancelled) setResult(prev => (prev && prev.key === key && prev.map ? prev : { key, map: null }));
+      }
+    })();
     return () => { cancelled = true; };
     // key に lat・lon・today が含まれる
     // eslint-disable-next-line react-hooks/exhaustive-deps

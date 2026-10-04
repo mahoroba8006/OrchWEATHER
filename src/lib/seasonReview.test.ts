@@ -318,3 +318,40 @@ describe('季節に合った言葉（seasonWords）', () => {
     expect(r.recordLabels).toEqual({ warm: 'いちばん暖かい日', cold: 'いちばん寒い日' });
   });
 });
+
+describe('去年分だけ届いた段階（5年平均はまだ）', () => {
+  // 去年（2025）だけ毎日 10℃・雨2mm・日照5h、今年は 11℃・3mm・6h
+  function lastYearOnly(): DayMap {
+    const map: DayMap = new Map();
+    fill(map, '2025-01-01', '2025-12-31', { tempMean: 10, precip: 2, sunshine: 5 });
+    fill(map, '2026-01-01', '2026-10-02', { tempMean: 11, precip: 3, sunshine: 6 });
+    return map;
+  }
+  const opts0 = { ...DEFAULT_PACE_OPTIONS, baseTemp: 0 };
+
+  it('季節のあしどりは「去年より」だけで出す', () => {
+    expect(computePaceItems(lastYearOnly(), '2026-10-03', opts0).map(i => [i.kind, i.text])).toEqual([
+      ['temp', '去年より+1.0℃'],
+      ['precip', '去年の1.5倍'],
+      ['gdd', '去年より28日早い'],
+      ['sunshine', '去年より+275h'],
+    ]);
+  });
+
+  it('直近30日の積算温度も「去年より」だけ', () => {
+    const items = computePaceItems(lastYearOnly(), '2026-10-03', { ...opts0, modes: { precip: 'recent', gdd: 'recent', sunshine: 'recent' } });
+    expect(items.find(i => i.kind === 'gdd')?.text).toBe('去年より+30℃');
+  });
+
+  it('ふりかえりカードは5年平均が揃うまで出さない', () => {
+    const v = computeSeasonView(lastYearOnly(), '2026-10-03', opts0)!;
+    expect(v.review).toBeNull();
+    expect(v.reviews).toEqual([]);
+    expect(v.paceItems.length).toBe(4);
+  });
+
+  it('requiredYears に何年さかのぼるかを渡せる（去年分だけの段階用）', () => {
+    expect(requiredYears('2026-10-03', 1)).toEqual([2025, 2026]);
+    expect(requiredYears('2026-06-10', 1)).toEqual([2024, 2025, 2026]);
+  });
+});
