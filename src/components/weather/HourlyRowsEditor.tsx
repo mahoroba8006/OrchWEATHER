@@ -42,7 +42,7 @@ export function HourlyRowsEditor() {
   return (
     <div className="set-stack">
       <div className="set-hint">
-        時間別の表に出す項目を選びます。紫外線指数より上の行はいつも表示します。
+        時間別の表に出す項目を選びます。日付・時刻・天気・気温/降水のグラフはいつも表示します。
       </div>
       <div className="set-list">
         {HOURLY_ROW_OPTIONS.map(({ key, label }) => {

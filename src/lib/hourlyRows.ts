@@ -1,6 +1,7 @@
 // 時間別の表（HourlyTable）で、ユーザーが出し入れできる行の定義（唯一の定義元）
 
 export const HOURLY_ROW_OPTIONS = [
+  { key: 'uv', label: '紫外線指数' },
   { key: 'temperature', label: '気温' },
   { key: 'precipProb', label: '降水確率' },
   { key: 'precip', label: '降水量' },
