@@ -101,6 +101,7 @@ export function WeatherTab() {
       gdd: userSettings?.accumStartDates?.gdd ?? '01-01',
     },
     gddDaysMin: userSettings?.accumDeltaThresholds?.gdd ?? 30,
+    reviewBase: userSettings?.seasonReviewBase ?? DEFAULT_PACE_OPTIONS.reviewBase,
   };
   const season = useSeasonReview(location?.lat ?? null, location?.lon ?? null, data, paceOptions);
   const seasonReview = season.status === 'ready' ? season.view.review : null;

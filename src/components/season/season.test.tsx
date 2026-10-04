@@ -18,6 +18,7 @@ const review: SeasonReview = {
   range: { index: 14, name: '白露', start: '2026-09-07', end: '2026-09-22', days: 16 },
   periodLabel: '9/7〜9/22（16日間）',
   headline: '日差しが多く、雨が少ない',
+  headlineBase: '5年平均',
   progress: null,
   rows: [
     { label: '平均気温', value: '24.0℃', vsLastYear: { text: '+1.0℃', tone: 'more' }, vsAvg: { text: '+1.0℃', tone: 'more' } },
@@ -41,6 +42,7 @@ const progressReview: SeasonReview = {
   ...review,
   progress: { day: 3, total: 16 },
   headline: '',
+  headlineBase: null,
   periodLabel: '9/7〜9/22（3日目／16日間）',
   rows: review.rows.map(r => ({ ...r, vsLastYear: null, vsAvg: null })),
   daily: review.daily,
@@ -185,6 +187,7 @@ describe('SeasonReviewCard 途中経過', () => {
     const { container } = renderWithMotion(<SeasonReviewCard review={progressReview} source="sheet" />);
     expect(screen.queryByText('途中経過')).toBeNull();
     expect(screen.getByText('9/7〜9/22（3日目／16日間）')).toBeTruthy();
+    expect(screen.queryByText(/に比べて/)).toBeNull();
     expect(screen.queryByText('去年比')).toBeNull();
     expect(screen.queryByText('5年平均比')).toBeNull();
     expect(container.querySelector('h3')).toBeNull();
@@ -212,6 +215,7 @@ describe('SeasonReviewCard 途中経過', () => {
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     expect(screen.getByText('去年比')).toBeTruthy();
     expect(screen.getByText('日差しが多く、雨が少ない')).toBeTruthy();
+    expect(screen.getByText('5年平均に比べて')).toBeTruthy();
     expect(screen.queryByText('途中経過')).toBeNull();
   });
 });

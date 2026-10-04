@@ -216,7 +216,7 @@ export function rainCell(cur: number, base: number): CompareCell {
 /** connective=つなぐ形（〜く）、predicative=言い切りの形（〜い） */
 interface Trait { score: number; connective: string; predicative: string }
 
-/** 5年平均とのずれから、ずれの大きい順に最大2項目で一文を作る（score はしきい値で正規化、1以上で該当） */
+/** 比べる相手（去年または5年平均）とのずれから、ずれの大きい順に最大2項目で一文を作る（score はしきい値で正規化、1以上で該当） */
 /** 季節に合った気温の言葉。暦ではなく期間の最高気温の平均で選ぶ（地域差に合わせる。25℃は気象庁の「夏日」） */
 export interface SeasonWords { warm: string; cold: string; warmRecord: string; coldRecord: string }
 export function seasonWords(meanTempMax: number): SeasonWords {
@@ -242,7 +242,8 @@ export function headline(cur: RangeStats, avg: RangeStats, words: SeasonWords = 
     if (s > 0.15) traits.push({ score: s / 0.15, connective: '日差しが多く', predicative: '日差しが多い' });
     else if (s < -0.15) traits.push({ score: -s / 0.15, connective: '日差しが少なく', predicative: '日差しが少ない' });
   }
-  if (traits.length === 0) return '平年並みで穏やか';
+  // 比べた相手（去年／5年平均）は期間の横に出すので、ここでは「平年」と言わない
+  if (traits.length === 0) return '大きな違いはない';
   traits.sort((a, b) => b.score - a.score);
   const [first, second] = traits;
   // 「〜半月でした」は付けず、言い切りで終える（例: 雨が少なく、日差しが多い）
@@ -306,6 +307,8 @@ export interface SeasonReview {
   /** "9/7〜9/22（16日間）"（節気名はシートの見出し・絵で示すので含めない） */
   periodLabel: string;
   headline: string;
+  /** 見出しの比べた相手（期間の横に「〜に比べて」と出す）。途中経過は見出しが無いので null */
+  headlineBase: '去年' | '5年平均' | null;
   rows: CompareRow[];
   /** 期間の日ごとの雨・最高/最低気温・天気の目安（グラフ用） */
   daily: ReviewDay[];
@@ -318,12 +321,12 @@ export interface SeasonReview {
   progress: { day: number; total: number } | null;
 }
 
-export function buildSeasonReview(map: DayMap, today: string): SeasonReview | null {
-  return buildReviewForRange(map, previousSekkiRange(today));
+export function buildSeasonReview(map: DayMap, today: string, base: ReviewBase = 'avg'): SeasonReview | null {
+  return buildReviewForRange(map, previousSekkiRange(today), base);
 }
 
 /** 指定した節気の範囲のふりかえり。今年・比較年に欠けがあれば null */
-export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonReview | null {
+export function buildReviewForRange(map: DayMap, range: SekkiRange, base: ReviewBase = 'avg'): SeasonReview | null {
   const cur = rangeStats(map, range.start, range.end);
   const cmp = comparisonStats(map, range.start, range.end);
   // カードは5年平均（帯・見出し）が要るので、揃うまで出さない
@@ -335,7 +338,8 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonRevie
   return {
     range,
     periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}（${range.days}日間）`,
-    headline: headline(cur, avg, words),
+    headline: headline(cur, base === 'lastYear' ? cmp.lastYear : avg, words),
+    headlineBase: base === 'lastYear' ? '去年' : '5年平均',
     rows: [
       { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: tempCell(cur.meanTemp, cmp.lastYear.meanTemp), vsAvg: tempCell(cur.meanTemp, avg.meanTemp) },
       { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: rainCell(cur.precip, cmp.lastYear.precip), vsAvg: rainCell(cur.precip, avg.precip) },
@@ -377,6 +381,7 @@ export function buildProgressForRange(map: DayMap, range: SekkiRange, today: str
     range,
     periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}（${days.length + 1}日目／${range.days}日間）`,
     headline: '',
+    headlineBase: null,
     rows: [
       { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: null, vsAvg: null },
       { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: null, vsAvg: null },
@@ -399,6 +404,8 @@ export type SeasonPaceMode = 'analysis' | 'recent';
 /** 比べ方を選べる項目（気温は常に直近30日） */
 export type PaceMetric = 'precip' | 'gdd' | 'sunshine';
 export type SeasonPaceModes = Record<PaceMetric, SeasonPaceMode>;
+/** ふりかえりカードの見出しをどちらと比べて作るか（表の去年比・5年平均比は両方出す） */
+export type ReviewBase = 'lastYear' | 'avg';
 
 export interface PaceOptions {
   /** 項目ごとの比べ方 */
@@ -409,6 +416,8 @@ export interface PaceOptions {
   startDates: { precip: string; sunshine: string; gdd: string };
   /** 累積の積算温度がこの値未満のうちは日数差が安定しないので出さない。空くらべの「日数差」ガードと共有 */
   gddDaysMin: number;
+  /** ふりかえりの見出しの比べる相手 */
+  reviewBase: ReviewBase;
 }
 
 export const DEFAULT_PACE_OPTIONS: PaceOptions = {
@@ -416,6 +425,7 @@ export const DEFAULT_PACE_OPTIONS: PaceOptions = {
   baseTemp: 10,
   startDates: { precip: '01-01', sunshine: '01-01', gdd: '01-01' },
   gddDaysMin: 30,
+  reviewBase: 'avg',
 };
 
 export type PaceItemKind = 'temp' | 'precip' | 'gdd' | 'sunshine';
@@ -593,7 +603,7 @@ export interface SeasonView {
 export function computeSeasonView(map: DayMap, today: string, opts: PaceOptions): SeasonView | null {
   const paceItems = computePaceItems(map, today, opts);
   const reviews = recentSekkiRanges(today, REVIEW_COUNT)
-    .map(r => buildReviewForRange(map, r))
+    .map(r => buildReviewForRange(map, r, opts.reviewBase))
     .filter((r): r is SeasonReview => r !== null);
   const latest = reviews.at(-1);
   const review = latest && latest.range.end === previousSekkiRange(today).end ? latest : null;

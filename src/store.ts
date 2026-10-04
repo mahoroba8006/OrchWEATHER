@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User } from 'firebase/auth';
 import type { WeatherCodeMode } from './lib/wmoSeverity';
-import type { SeasonPaceModes } from './lib/seasonReview';
+import type { ReviewBase, SeasonPaceModes } from './lib/seasonReview';
 import { loadGuestHiddenHourlyRows, saveGuestHiddenHourlyRows, DEFAULT_HIDDEN_HOURLY_ROWS, type HourlyRowKey } from './lib/hourlyRows';
 import { fetchAiAllowed } from './api/me';
 import {
@@ -20,6 +20,7 @@ import {
   updateAiCustomPrompt as updateAiCustomPromptRemote,
   updateWeatherCodeMode as updateWeatherCodeModeRemote,
   updateSeasonPaceModes as updateSeasonPaceModesRemote,
+  updateSeasonReviewBase as updateSeasonReviewBaseRemote,
   updateHiddenHourlyRows as updateHiddenHourlyRowsRemote,
 } from './lib/userRepository';
 
@@ -72,6 +73,7 @@ export interface UserSettings {
   aiCustomPrompt:       string;
   weatherCodeMode:      WeatherCodeMode;
   seasonPaceModes:      SeasonPaceModes;
+  seasonReviewBase:     ReviewBase;
   hiddenHourlyRows:     HourlyRowKey[];
 }
 
@@ -117,6 +119,7 @@ interface AppState {
   updateAiCustomPrompt: (prompt: string) => Promise<void>;
   updateWeatherCodeMode: (mode: WeatherCodeMode) => Promise<void>;
   updateSeasonPaceModes: (modes: SeasonPaceModes) => Promise<void>;
+  updateSeasonReviewBase: (base: ReviewBase) => Promise<void>;
   updateHiddenHourlyRows: (rows: HourlyRowKey[]) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
@@ -194,6 +197,17 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, seasonPaceModes: modes }
+        : null,
+    }));
+  },
+
+  updateSeasonReviewBase: async (base) => {
+    const uid = get().user?.uid;
+    if (!uid) return;
+    await updateSeasonReviewBaseRemote(uid, base);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, seasonReviewBase: base }
         : null,
     }));
   },

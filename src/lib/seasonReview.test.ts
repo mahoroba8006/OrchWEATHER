@@ -112,11 +112,11 @@ describe('headline', () => {
   it('1項目だけなら連体形で終える', () => {
     expect(headline({ meanTemp: 25, precip: 64, sunshine: 80 }, avg)).toBe('暑い');
   });
-  it('該当なしは平年並み', () => {
-    expect(headline({ meanTemp: 23.5, precip: 60, sunshine: 85 }, avg)).toBe('平年並みで穏やか');
+  it('該当なしは「大きな違いはない」（比べた相手は期間の横に出すので平年とは言わない）', () => {
+    expect(headline({ meanTemp: 23.5, precip: 60, sunshine: 85 }, avg)).toBe('大きな違いはない');
   });
   it('5年平均の雨が5mm未満なら雨は判定しない', () => {
-    expect(headline({ meanTemp: 23, precip: 20, sunshine: 80 }, { ...avg, precip: 2 })).toBe('平年並みで穏やか');
+    expect(headline({ meanTemp: 23, precip: 20, sunshine: 80 }, { ...avg, precip: 2 })).toBe('大きな違いはない');
   });
 });
 
@@ -133,10 +133,22 @@ describe('buildSeasonReview', () => {
     return map;
   }
 
+  it('比べる相手を去年にすると、見出しは去年とのずれで作る（表は両方のまま）', () => {
+    const map = sampleMap();
+    fill(map, '2025-09-01', '2025-09-30', { tempMean: 26, precip: 4, sunshine: 5 });
+    const r = buildSeasonReview(map, '2026-10-01', 'lastYear')!;
+    expect(r.headlineBase).toBe('去年');
+    // 去年(26℃)より2℃低い・日照は去年より2割多い。5年平均(23.6℃)とは1℃差未満
+    expect(r.headline).toBe('涼しく、日差しが多い');
+    expect(buildSeasonReview(map, '2026-10-01', 'avg')!.headline).toBe('日差しが多く、雨が少ない');
+    expect(r.rows[0].vsAvg).not.toBeNull();
+  });
+
   it('期間・見出し・3項目・雨の棒・記録を組み立てる', () => {
     const r = buildSeasonReview(sampleMap(), '2026-10-01')!;
     expect(r.periodLabel).toBe('9/7〜9/22（16日間）');
     expect(r.headline).toBe('日差しが多く、雨が少ない');
+    expect(r.headlineBase).toBe('5年平均');
     expect(r.rows).toEqual([
       { label: '平均気温', value: '24.0℃', vsLastYear: { text: '+1.0℃', tone: 'more' }, vsAvg: { text: '+1.0℃', tone: 'more' } },
       { label: '雨の量', value: '38mm', vsLastYear: { text: '6割', tone: 'less' }, vsAvg: { text: '6割', tone: 'less' } },

@@ -8,6 +8,7 @@ import { AnalysisSettings } from './AnalysisSettings';
 import { AiCommentSettings } from './AiCommentSettings';
 import { HourlyRowsEditor } from '../weather/HourlyRowsEditor';
 import { SeasonPaceSettings } from './SeasonPaceSettings';
+import { SeasonReviewBaseSettings } from './SeasonReviewBaseSettings';
 import { Button } from '../ui/Button';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import './settings.css';
@@ -70,6 +71,7 @@ export function SettingsTab() {
       {subTab === 'weather' && (
         <div className="set-stack">
           <SeasonPaceSettings />
+          <SeasonReviewBaseSettings />
           <div className="set-card">
             <h3 className="set-title">時間別の表示項目</h3>
             <HourlyRowsEditor />

@@ -62,7 +62,10 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         <div className="season-card__heading">
           {/* シートでは見出しに節気名があるので、帯の下のカードだけ名前を添える */}
-          <p className="season-card__period">{source === 'inline' && `${review.range.name} `}{review.periodLabel}</p>
+          <p className="season-card__period">
+            {source === 'inline' && `${review.range.name} `}{review.periodLabel}
+            {review.headlineBase && <span className="season-card__base">{`${review.headlineBase}に比べて`}</span>}
+          </p>
           {!progress && <h3 className="season-card__title">{review.headline}</h3>}
         </div>
       </header>

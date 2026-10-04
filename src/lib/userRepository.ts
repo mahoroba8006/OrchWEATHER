@@ -2,7 +2,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import type { UserSettings, AccumStartDates, AccumDeltaThresholds, AiSection } from '../store';
 import type { WeatherCodeMode } from './wmoSeverity';
-import type { SeasonPaceMode, SeasonPaceModes } from './seasonReview';
+import type { ReviewBase, SeasonPaceMode, SeasonPaceModes } from './seasonReview';
 import { parseHiddenHourlyRows, type HourlyRowKey } from './hourlyRows';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -67,10 +67,11 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     gdd: paceModeOf(data?.seasonPaceModes?.gdd),
     sunshine: paceModeOf(data?.seasonPaceModes?.sunshine),
   };
+  const seasonReviewBase: ReviewBase = data?.seasonReviewBase === 'lastYear' ? 'lastYear' : 'avg';
   return {
     baseTempSettings, accumStartDates, accumDeltaThresholds,
     defaultLocationId, enabledAiSections, aiCustomPrompt,
-    weatherCodeMode, seasonPaceModes,
+    weatherCodeMode, seasonPaceModes, seasonReviewBase,
     hiddenHourlyRows: parseHiddenHourlyRows(data?.hiddenHourlyRows),
   };
 }
@@ -129,6 +130,13 @@ export async function updateSeasonPaceModes(
   modes: SeasonPaceModes,
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { seasonPaceModes: modes }, { merge: true });
+}
+
+export async function updateSeasonReviewBase(
+  uid: string,
+  base: ReviewBase,
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { seasonReviewBase: base }, { merge: true });
 }
 
 export async function updateHiddenHourlyRows(
