@@ -47,3 +47,18 @@ describe('HourlyTable', () => {
     expect(cur[0].getAttribute('data-time')).toBe('2026-10-01T10:00');
   });
 });
+
+describe('HourlyTable の「今」の示し方', () => {
+  it('塗りではなく淡い太線の枠で囲む（くもりの絵が背景と被らない）', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T10:20:00+09:00'));
+    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} />);
+    const frame = container.querySelector<HTMLElement>('[data-testid="now-frame"]')!;
+    expect(frame).toBeTruthy();
+    expect(frame.style.border).toContain('2px solid');
+    expect(frame.style.background).toBe('');
+    // 時刻の上の「今」の文字は出さない（枠と色で示す）
+    expect(container.querySelector('[data-current="true"]')!.textContent).toBe('10');
+    vi.useRealTimers();
+  });
+});

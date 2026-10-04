@@ -60,3 +60,17 @@ describe('DailyForecast', () => {
     expect(screen.getAllByText('10/2(金)').length).toBeGreaterThan(0);
   });
 });
+
+describe('DailyForecast の「今日」の示し方', () => {
+  it('今日の列は塗らず、淡い太線の枠で囲む', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T10:00:00+09:00'));
+    const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
+    const painted = Array.from(container.querySelectorAll<HTMLElement>('td')).filter(td => td.style.background.includes('accent-soft'));
+    expect(painted).toHaveLength(0);
+    const frame = container.querySelector<HTMLElement>('[data-testid="today-frame"]')!;
+    expect(frame).toBeTruthy();
+    expect(frame.style.border).toContain('2px solid');
+    vi.useRealTimers();
+  });
+});

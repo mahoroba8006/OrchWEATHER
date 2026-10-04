@@ -361,11 +361,17 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
             ミニグラフSVG(W=列数×COL_W)が実列幅と食い違い、右へ行くほどバーがずれる。
             テーブル幅 = ラベル列 + 列数×COL_W に固定して各列を実寸 COL_W に揃える。 */}
         <div style={{ position: 'relative', width: LABEL_W + tl.length * COL_W }}>
-        {/* 現在時刻の縦帯：上端から下端まで（表より前面・操作は透過）。ラベル列(z-index:1)の下に潜る */}
+        {/* 現在時刻の列を淡い太線の枠で囲む：上端から下端まで（表より前面・操作は透過）。ラベル列(z-index:1)の下に潜る。
+            塗りにすると、くもりなど淡い色の天気の絵が背景に溶けて見えにくいため枠にする */}
         {currentTlIdx >= 0 && (
           <div
             aria-hidden
-            style={{ position: 'absolute', top: 0, bottom: 0, left: LABEL_W + currentTlIdx * COL_W, width: COL_W, background: 'var(--accent-soft)', pointerEvents: 'none' }}
+            data-testid="now-frame"
+            style={{
+              position: 'absolute', top: 0, bottom: 0, left: LABEL_W + currentTlIdx * COL_W, width: COL_W,
+              boxSizing: 'border-box', border: '2px solid rgba(var(--accent-rgb), 0.35)', borderRadius: 'var(--radius-sm)',
+              pointerEvents: 'none',
+            }}
           />
         )}
         <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap', tableLayout: 'fixed', width: LABEL_W + tl.length * COL_W, fontVariantNumeric: 'tabular-nums' }}>
@@ -435,9 +441,6 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                       opacity: faded ? FADED_OPACITY : undefined,
                     }}
                   >
-                    {isCurrent && (
-                      <span style={{ position: 'absolute', top: 2, left: 0, right: 0, fontSize: '0.5rem', lineHeight: 1, fontWeight: 600 }}>今</span>
-                    )}
                     {String(parseInt(t.slice(11, 13), 10))}
                   </td>
                 );

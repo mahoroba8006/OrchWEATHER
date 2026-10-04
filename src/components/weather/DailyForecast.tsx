@@ -306,12 +306,12 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   };
 
   const daySep = (i: number) => (i < daily.length - 1 ? '1px solid var(--line)' : undefined);
-  const todayBg = (day: DailyForecastData) => (day.date === today ? 'var(--accent-soft)' : undefined);
+  // 今日の列は塗らずに枠で囲む（塗ると、くもりなど淡い色の天気の絵が背景に溶けて見えにくい）
+  const todayIdx = daily.findIndex(d => d.date === today);
 
-  const cellStyle = (day: DailyForecastData, period: Period, i: number, extra?: CSSProperties): CSSProperties => ({
+  const cellStyle = (period: Period, i: number, extra?: CSSProperties): CSSProperties => ({
     width: PERIOD_W,
     minWidth: PERIOD_W,
-    background: todayBg(day),
     textAlign: 'center',
     padding: '0.15rem 0.1rem',
     verticalAlign: 'middle',
@@ -333,7 +333,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
         transition={springs.move}
         style={{
           position: 'absolute', inset: 2, borderRadius: 'var(--radius-sm)',
-          boxShadow: 'inset 0 0 0 1.5px var(--accent)', background: 'var(--accent-soft)',
+          boxShadow: 'inset 0 0 0 1.5px var(--accent)',
           pointerEvents: 'none',
         }}
       />
@@ -343,7 +343,18 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
 
   return (
     <div>
-      <div style={{ overflowX: 'auto', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
+      <div style={{ position: 'relative', overflowX: 'auto', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
+        {todayIdx >= 0 && dayX && dayWidths && (
+          <div
+            aria-hidden
+            data-testid="today-frame"
+            style={{
+              position: 'absolute', top: 0, bottom: 0, left: dayX[todayIdx], width: dayWidths[todayIdx],
+              boxSizing: 'border-box', border: '2px solid rgba(var(--accent-rgb), 0.35)', borderRadius: 'var(--radius-sm)',
+              pointerEvents: 'none', zIndex: 1,
+            }}
+          />
+        )}
         <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed', fontVariantNumeric: 'tabular-nums' }}>
           <colgroup>
             {daily.flatMap(day => [
@@ -368,7 +379,6 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                     key={day.date}
                     colSpan={3}
                     style={{
-                      background: todayBg(day),
                       padding: '0.5rem 0.4rem 0.35rem',
                       verticalAlign: 'top',
                       borderRight: daySep(i),
@@ -421,9 +431,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 if (day.isPlaceholder) {
                   return (
                     <Fragment key={day.date}>
-                      <td style={cellStyle(day, 'am', i)}><div style={dashCell}>—</div></td>
-                      <td style={cellStyle(day, 'pm', i)}><div style={dashCell}>—</div></td>
-                      <td style={cellStyle(day, 'night', i)}><div style={dashCell}>—</div></td>
+                      <td style={cellStyle('am', i)}><div style={dashCell}>—</div></td>
+                      <td style={cellStyle('pm', i)}><div style={dashCell}>—</div></td>
+                      <td style={cellStyle('night', i)}><div style={dashCell}>—</div></td>
                     </Fragment>
                   );
                 }
@@ -445,7 +455,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                   return (
                     <td
                       data-cell={`${day.date}-${period}`}
-                      style={{ ...cellStyle(day, period, i, { paddingTop: '0.6rem', paddingBottom: 0 }), ...click.style }}
+                      style={{ ...cellStyle(period, i, { paddingTop: '0.6rem', paddingBottom: 0 }), ...click.style }}
                       onClick={click.onClick}
                     >
                       {selectionMark(day, period)}
@@ -488,9 +498,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 if (day.isPlaceholder) {
                   return (
                     <Fragment key={day.date}>
-                      <td style={cellStyle(day, 'am', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
-                      <td style={cellStyle(day, 'pm', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
-                      <td style={cellStyle(day, 'night', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle('am', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle('pm', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle('night', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
                     </Fragment>
                   );
                 }
@@ -505,9 +515,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 );
                 return (
                   <Fragment key={day.date}>
-                    <td style={{ ...cellStyle(day, 'am', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'am') : undefined}>{renderProb(day.amPrecipProb)}</td>
-                    <td style={{ ...cellStyle(day, 'pm', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'pm') : undefined}>{renderProb(day.pmPrecipProb)}</td>
-                    <td style={{ ...cellStyle(day, 'night', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'night') : undefined}>{renderProb(day.nightPrecipProb)}</td>
+                    <td style={{ ...cellStyle('am', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'am') : undefined}>{renderProb(day.amPrecipProb)}</td>
+                    <td style={{ ...cellStyle('pm', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'pm') : undefined}>{renderProb(day.pmPrecipProb)}</td>
+                    <td style={{ ...cellStyle('night', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'night') : undefined}>{renderProb(day.nightPrecipProb)}</td>
                   </Fragment>
                 );
               })}
@@ -523,17 +533,17 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 if (day.isPlaceholder) {
                   return (
                     <Fragment key={day.date}>
-                      <td style={cellStyle(day, 'am', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
-                      <td style={cellStyle(day, 'pm', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
-                      <td style={cellStyle(day, 'night', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle('am', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle('pm', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
+                      <td style={cellStyle('night', i)}><div style={{ fontSize: '0.72rem', color: 'var(--ink-3)' }}>—</div></td>
                     </Fragment>
                   );
                 }
                 return (
                   <Fragment key={day.date}>
-                    <td style={{ ...cellStyle(day, 'am', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'am') : undefined}>{fmt(day.amWindMax)}</td>
-                    <td style={{ ...cellStyle(day, 'pm', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'pm') : undefined}>{fmt(day.pmWindMax)}</td>
-                    <td style={{ ...cellStyle(day, 'night', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'night') : undefined}>{fmt(day.nightWindMax)}</td>
+                    <td style={{ ...cellStyle('am', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'am') : undefined}>{fmt(day.amWindMax)}</td>
+                    <td style={{ ...cellStyle('pm', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'pm') : undefined}>{fmt(day.pmWindMax)}</td>
+                    <td style={{ ...cellStyle('night', i), cursor: canTap(day.date) ? 'pointer' : undefined }} onClick={canTap(day.date) ? () => pick(day.date, 'night') : undefined}>{fmt(day.nightWindMax)}</td>
                   </Fragment>
                 );
               })}
