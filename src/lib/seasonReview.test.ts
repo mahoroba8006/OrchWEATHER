@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildDayMap, buildSeasonReview, computePaceItems, recentSekkiRanges, REVIEW_COUNT, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
+  buildDayMap, buildSeasonReview, computePaceItems, estimateSkyCode, recentSekkiRanges, REVIEW_COUNT, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
   isInCardWindow, previousSekkiRange, rainCell, requiredYears, shiftYear, tempCell,
   type DayMap, type DayRecord, type PaceOptions,
 } from './seasonReview';
@@ -135,7 +135,9 @@ describe('buildSeasonReview', () => {
       { label: '雨の量', value: '38mm', vsLastYear: { text: '6割', tone: 'less' }, vsAvg: { text: '6割', tone: 'less' } },
       { label: '日照', value: '96h', vsLastYear: { text: '+16h', tone: 'more' }, vsAvg: { text: '+16h', tone: 'more' } },
     ]);
-    expect(r.rain).toHaveLength(16);
+    expect(r.daily).toHaveLength(16);
+    expect(r.daily[4]).toEqual({ date: '2026-09-11', precip: 22, tempMax: 30, tempMin: 18, code: 63 });
+    expect(r.daily[0]).toEqual({ date: '2026-09-07', precip: 0, tempMax: 30, tempMin: 18, code: 2 });
     expect(r.records).toEqual({
       hottest: { date: '2026-09-09', value: 33.2 },
       coolestMorning: { date: '2026-09-21', value: 15.8 },
@@ -269,5 +271,19 @@ describe('過去の節気のふりかえり（6節気分）', () => {
     const v = computeSeasonView(map, '2026-10-03', DEFAULT_PACE_OPTIONS)!;
     expect(v.reviews.map(r => r.range.name)).toEqual(['夏至', '小暑', '立秋', '処暑', '白露']);
     expect(v.reviews.at(-1)).toEqual(v.review);
+  });
+});
+
+describe('estimateSkyCode（雨量と日照からの天気の目安）', () => {
+  const d = (precip: number, sunshine: number, tempMax = 20) => ({ date: '2026-09-01', tempMean: 15, tempMax, tempMin: 10, precip, sunshine });
+  it('雨1mm以上は雨、10mm以上は強い雨、最高気温3℃以下の降水は雪', () => {
+    expect(estimateSkyCode(d(1, 8))).toBe(61);
+    expect(estimateSkyCode(d(12, 0))).toBe(63);
+    expect(estimateSkyCode(d(2, 0, 3))).toBe(71);
+  });
+  it('雨が無ければ日照で 晴れ（7h以上）・晴れ時々曇り（3h以上）・曇り', () => {
+    expect(estimateSkyCode(d(0.5, 7))).toBe(1);
+    expect(estimateSkyCode(d(0, 3))).toBe(2);
+    expect(estimateSkyCode(d(0, 2.9))).toBe(3);
   });
 });

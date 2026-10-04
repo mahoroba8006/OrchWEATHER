@@ -252,14 +252,31 @@ export function records(days: DayRecord[]): SeasonRecords {
 
 // ---- カード ----
 
+/** カードのグラフ用の1日分。code は雨量と日照から推定した天気（WMO コード） */
+export interface ReviewDay { date: string; precip: number; tempMax: number; tempMin: number; code: number }
+
+/**
+ * 雨量と日照時間からその日の天気の目安を WMO コードで返す（観測した天気そのものではない）。
+ * 実績の天気コードは「その日いちばん悪い天気」で少しの霧雨でも雨になり、カードの雨量・日照と食い違うため使わない。
+ */
+export function estimateSkyCode(d: DayRecord): number {
+  if (d.precip >= 1) {
+    if (d.tempMax <= 3) return 71;            // 雪
+    return d.precip >= HEAVY_RAIN_MM ? 63 : 61; // 強い雨 / 雨
+  }
+  if (d.sunshine >= 7) return 1;              // 晴れ
+  if (d.sunshine >= 3) return 2;              // 晴れ時々曇り
+  return 3;                                   // 曇り
+}
+
 export interface SeasonReview {
   range: SekkiRange;
   /** "白露 9/7〜9/22（16日間）" */
   periodLabel: string;
   headline: string;
   rows: CompareRow[];
-  /** 期間の日ごとの雨 */
-  rain: DayValue[];
+  /** 期間の日ごとの雨・最高/最低気温・天気の目安（グラフ用） */
+  daily: ReviewDay[];
   records: SeasonRecords;
   /** "2021〜2025年" */
   avgYears: string;
@@ -285,7 +302,7 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonRevie
       { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: rainCell(cur.precip, cmp.lastYear.precip), vsAvg: rainCell(cur.precip, cmp.avg.precip) },
       { label: '日照', value: `${Math.round(cur.sunshine)}h`, vsLastYear: sunCell(cur.sunshine, cmp.lastYear.sunshine), vsAvg: sunCell(cur.sunshine, cmp.avg.sunshine) },
     ],
-    rain: days.map(d => ({ date: d.date, value: d.precip })),
+    daily: days.map(d => ({ date: d.date, precip: d.precip, tempMax: d.tempMax, tempMin: d.tempMin, code: estimateSkyCode(d) })),
     records: records(days),
     avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
   };

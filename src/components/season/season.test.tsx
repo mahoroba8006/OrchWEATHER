@@ -8,7 +8,7 @@ import { logSeasonCardView, logSeasonCardBrowse } from '../../lib/analytics';
 import { SeasonPaceTicker } from './SeasonPaceTicker';
 import type { PaceItem } from '../../lib/seasonReview';
 import type { SeasonState } from '../../hooks/useSeasonReview';
-import { SeasonInlineCard, SeasonReviewCard } from './SeasonReviewCard';
+import { SeasonInlineCard, SeasonReviewCard, smoothPath } from './SeasonReviewCard';
 import { SeasonReviewCarousel } from './SeasonReviewCarousel';
 
 beforeAll(setupMotionTestEnv);
@@ -23,7 +23,10 @@ const review: SeasonReview = {
     { label: '雨の量', value: '38mm', vsLastYear: { text: '6割', tone: 'less' }, vsAvg: { text: '6割', tone: 'less' } },
     { label: '日照', value: '96h', vsLastYear: { text: '+16h', tone: 'more' }, vsAvg: { text: '+16h', tone: 'more' } },
   ],
-  rain: [{ date: '2026-09-07', value: 0 }, { date: '2026-09-08', value: 22 }],
+  daily: [
+    { date: '2026-09-07', precip: 0, tempMax: 30, tempMin: 18, code: 1 },
+    { date: '2026-09-08', precip: 22, tempMax: 27, tempMin: 20, code: 63 },
+  ],
   records: {
     hottest: { date: '2026-09-09', value: 33.2 },
     coolestMorning: { date: '2026-09-21', value: 15.8 },
@@ -113,6 +116,37 @@ describe('SeasonReviewCard', () => {
     expect(screen.getByText('9/21 15.8℃')).toBeTruthy();
     expect(screen.getByText('なし')).toBeTruthy();
     expect(screen.getByText(/5年平均は2021〜2025年/)).toBeTruthy();
+  });
+
+  it('雨の棒2本・気温の折れ線2本・天気アイコン2つを描く', () => {
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    const chart = screen.getByRole('img', { name: '日ごとの雨と気温（9/7〜9/22）' });
+    expect(chart.querySelectorAll('svg rect')).toHaveLength(2);
+    expect(chart.querySelectorAll('svg path')).toHaveLength(2);
+    expect(document.querySelectorAll('.season-card__icons img')).toHaveLength(2);
+  });
+
+  it('右端ラベルは気温目盛の上端・下端（最高+1・最低-1を丸めた値）', () => {
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(screen.getByText('31°')).toBeTruthy();
+    expect(screen.getByText('17°')).toBeTruthy();
+  });
+
+  it('注記に天気が目安である旨を含む', () => {
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(screen.getByText(/天気は雨量と日照からの目安です。/)).toBeTruthy();
+  });
+});
+
+describe('smoothPath', () => {
+  it('2点なら M…C… の曲線で、始点と終点を通る', () => {
+    const d = smoothPath([[5, 10], [15, 40]]);
+    expect(d).toMatch(/^M5 10 C/);
+    expect(d.endsWith('15 40')).toBe(true);
+  });
+  it('点が1つなら移動のみ、空なら空文字', () => {
+    expect(smoothPath([[5, 10]])).toBe('M5 10');
+    expect(smoothPath([])).toBe('');
   });
 });
 
@@ -216,5 +250,13 @@ describe('SeasonReviewCarousel', () => {
     expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByRole('region')).toBeNull();
+  });
+});
+
+describe('smoothPath（単調補間）', () => {
+  it('谷の手前後で値を行き過ぎない（制御点が隣の点の範囲内）', () => {
+    const d = smoothPath([[0, 10], [10, 90], [20, 90], [30, 10]]);
+    const ys = [...d.matchAll(/C([\d.-]+) ([\d.-]+) ([\d.-]+) ([\d.-]+)/g)].flatMap(m => [Number(m[2]), Number(m[4])]);
+    for (const y of ys) { expect(y).toBeGreaterThanOrEqual(10); expect(y).toBeLessThanOrEqual(90); }
   });
 });
