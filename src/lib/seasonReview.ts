@@ -83,13 +83,14 @@ export function recentSekkiRanges(today: string, n: number): SekkiRange[] {
 }
 
 /** 計算に必要な年（昇順）。実績は昨日までなので、上限は昨日の年 */
-export function requiredYears(today: string): number[] {
+export function requiredYears(today: string, back: number = AVG_YEARS): number[] {
   const yesterday = addDays(today, -1);
   const last = yearOf(yesterday);
+  // back=1 は「去年分だけ先に取り寄せる」段階用
   const earliest = Math.min(
     yearOf(recentSekkiRanges(today, REVIEW_COUNT)[0].start),
     yearOf(addDays(yesterday, -(RECENT_DAYS - 1))),
-  ) - AVG_YEARS;
+  ) - back;
   return Array.from({ length: last - earliest + 1 }, (_, i) => earliest + i);
 }
 
@@ -143,12 +144,18 @@ export function rangeStats(map: DayMap, start: string, end: string): RangeStats 
   return n ? { meanTemp: t / n, precip: p, sunshine: s } : null;
 }
 
-/** 同じ月日範囲の去年と5年平均（去年〜5年前） */
-export function comparisonStats(map: DayMap, start: string, end: string): { lastYear: RangeStats; avg: RangeStats } | null {
+/**
+ * 同じ月日範囲の去年と5年平均（去年〜5年前）。去年が無ければ null。
+ * 5年分が揃っていなければ avg は null（去年分だけ先に届いた段階）
+ */
+export function comparisonStats(map: DayMap, start: string, end: string): { lastYear: RangeStats; avg: RangeStats | null } | null {
   const per: RangeStats[] = [];
   for (let k = 1; k <= AVG_YEARS; k++) {
     const s = rangeStats(map, shiftYear(start, -k), shiftYear(end, -k));
-    if (!s) return null;
+    if (!s) {
+      if (k === 1) return null;
+      return { lastYear: per[0], avg: null };
+    }
     per.push(s);
   }
   const mean = (f: (s: RangeStats) => number) => per.reduce((a, s) => a + f(s), 0) / per.length;
@@ -314,18 +321,20 @@ export function buildSeasonReview(map: DayMap, today: string): SeasonReview | nu
 export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonReview | null {
   const cur = rangeStats(map, range.start, range.end);
   const cmp = comparisonStats(map, range.start, range.end);
-  if (!cur || !cmp) return null;
+  // カードは5年平均（帯・見出し）が要るので、揃うまで出さない
+  if (!cur || !cmp || !cmp.avg) return null;
+  const avg = cmp.avg;
   const days = rangeDays(map, range.start, range.end);
   const words = seasonWords(days.reduce((a, d) => a + d.tempMax, 0) / days.length);
   const y = yearOf(range.start);
   return {
     range,
     periodLabel: `${range.name} ${monthDay(range.start)}〜${monthDay(range.end)}（${range.days}日間）`,
-    headline: headline(cur, cmp.avg, words),
+    headline: headline(cur, avg, words),
     rows: [
-      { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: tempCell(cur.meanTemp, cmp.lastYear.meanTemp), vsAvg: tempCell(cur.meanTemp, cmp.avg.meanTemp) },
-      { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: rainCell(cur.precip, cmp.lastYear.precip), vsAvg: rainCell(cur.precip, cmp.avg.precip) },
-      { label: '日照', value: `${Math.round(cur.sunshine)}h`, vsLastYear: sunCell(cur.sunshine, cmp.lastYear.sunshine), vsAvg: sunCell(cur.sunshine, cmp.avg.sunshine) },
+      { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: tempCell(cur.meanTemp, cmp.lastYear.meanTemp), vsAvg: tempCell(cur.meanTemp, avg.meanTemp) },
+      { label: '雨の量', value: `${Math.round(cur.precip)}mm`, vsLastYear: rainCell(cur.precip, cmp.lastYear.precip), vsAvg: rainCell(cur.precip, avg.precip) },
+      { label: '日照', value: `${Math.round(cur.sunshine)}h`, vsLastYear: sunCell(cur.sunshine, cmp.lastYear.sunshine), vsAvg: sunCell(cur.sunshine, avg.sunshine) },
     ],
     daily: days.map(d => ({
       date: d.date, precip: d.precip, tempMax: d.tempMax, tempMin: d.tempMin, code: estimateSkyCode(d), ...avgMaxMin(map, d),
@@ -406,7 +415,8 @@ function ratioClause(subject: string, c: CompareCell): string {
   return `${subject}より${c.text}`;
 }
 
-const both = (f: (subject: string) => string) => `${f('去年')}・${f('5年平均')}`;
+/** 去年と5年平均の比較文。5年平均がまだ無ければ去年だけ */
+const both = (f: (subject: string) => string, hasAvg = true) => (hasAvg ? `${f('去年')}・${f('5年平均')}` : f('去年'));
 
 /** 期間 [start, last] と、去年・5年平均の同じ月日範囲 */
 function windowStats(map: DayMap, start: string, last: string) {
@@ -422,12 +432,15 @@ function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): s
   const series: number[][] = [];
   for (let k = 1; k <= AVG_YEARS; k++) {
     const s = cumulative(map, shiftYear(start, -k), `${yearOf(start) - k}-12-31`, opts.baseTemp);
-    if (!s) return null;
+    if (!s) break;
     series.push(s);
   }
-  // 5年平均は「開始日からの通し日数」ごとの積算値の平均（閏年は短い方に揃える）
+  if (series.length === 0) return null;
+  // 5年平均は「開始日からの通し日数」ごとの積算値の平均（閏年は短い方に揃える）。5年揃うまでは去年だけ
   const len = Math.min(...series.map(s => s.length));
-  const avg = Array.from({ length: len }, (_, i) => series.reduce((a, s) => a + s[i], 0) / series.length);
+  const avg = series.length === AVG_YEARS
+    ? Array.from({ length: len }, (_, i) => series.reduce((a, s) => a + s[i], 0) / series.length)
+    : null;
   const target = lastOf(cur);
   const idx = cur.length - 1;
   // 序盤（基準温度10℃なら冬〜春先）は日数差がぶれる・意味を持たないため項目ごと出さない（空くらべの日数差ガードと同じ）
@@ -436,7 +449,7 @@ function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): s
     const j = s.findIndex(v => v >= target);
     return j === -1 ? 'ahead' : j - idx;
   };
-  return `${paceClause('去年', diff(series[0]))}・${paceClause('5年平均', diff(avg))}`;
+  return both(s => paceClause(s, diff(s === '去年' || !avg ? series[0] : avg)), !!avg);
 }
 
 /** 直近期間の積算温度の差（℃） */
@@ -446,11 +459,12 @@ function gddRecent(map: DayMap, start: string, last: string, base: number): stri
   const per: number[] = [];
   for (let k = 1; k <= AVG_YEARS; k++) {
     const s = cumulative(map, shiftYear(start, -k), shiftYear(last, -k), base);
-    if (!s || s.length === 0) return null;
+    if (!s || s.length === 0) break;
     per.push(lastOf(s));
   }
-  const avg = per.reduce((a, v) => a + v, 0) / per.length;
-  return `去年より${degrees(lastOf(cur) - per[0])}・5年平均より${degrees(lastOf(cur) - avg)}`;
+  if (per.length === 0) return null;
+  const avg = per.length === AVG_YEARS ? per.reduce((a, v) => a + v, 0) / per.length : null;
+  return both(s => `${s}より${degrees(lastOf(cur) - (s === '去年' || avg === null ? per[0] : avg))}`, avg !== null);
 }
 
 /**
@@ -472,7 +486,7 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
       kind: 'temp',
       name: '気温',
       period: recentLabel,
-      text: both(s => `${s}より${tempCell(t.cur.meanTemp, (s === '去年' ? t.lastYear : t.avg).meanTemp).text}`),
+      text: both(s => `${s}より${tempCell(t.cur.meanTemp, (s === '去年' || !t.avg ? t.lastYear : t.avg).meanTemp).text}`, !!t.avg),
     });
   }
 
@@ -491,7 +505,7 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
       kind: 'precip',
       name: '降水量',
       period: pw.label,
-      text: both(s => ratioClause(s, rainCell(p.cur.precip, (s === '去年' ? p.lastYear : p.avg).precip))),
+      text: both(s => ratioClause(s, rainCell(p.cur.precip, (s === '去年' || !p.avg ? p.lastYear : p.avg).precip)), !!p.avg),
     });
   }
 
@@ -510,7 +524,7 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
       kind: 'sunshine',
       name: '日照時間',
       period: sw.label,
-      text: both(s => `${s}より${sunCell(sun.cur.sunshine, (s === '去年' ? sun.lastYear : sun.avg).sunshine).text}`),
+      text: both(s => `${s}より${sunCell(sun.cur.sunshine, (s === '去年' || !sun.avg ? sun.lastYear : sun.avg).sunshine).text}`, !!sun.avg),
     });
   }
   return items;

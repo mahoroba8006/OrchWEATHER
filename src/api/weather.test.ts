@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../lib/weatherFetch', () => ({ weatherFetch: vi.fn() }));
 import { weatherFetch } from '../lib/weatherFetch';
-import { fetchDailyActuals, fetchWeatherData } from './weather';
+import { fetchDailyActuals, fetchWeatherData, hasStoredPast } from './weather';
 
 const body = {
   daily: {
@@ -95,6 +95,18 @@ describe('fetchDailyActuals（過去年は端末に保存し、今年分だけ�
     await fetchDailyActuals(35.3401, 139.3401, '2020-01-01', '2026-10-03');
     await fetchDailyActuals(35.3404, 139.3398, '2020-01-01', '2026-10-04');
     expect(ranges().filter(r => r.startsWith('2020-01-01'))).toHaveLength(1);
+  });
+
+  it('保存済みより古い年が要るときは、足りない年だけ取り寄せて保存分とつなぐ（去年分を先に取る段階表示用）', async () => {
+    archiveMock();
+    await fetchDailyActuals(35.36, 139.36, '2025-01-01', '2026-10-03');
+    expect(hasStoredPast(35.36, 139.36, '2025-01-01', '2026-10-03')).toBe(true);
+    expect(hasStoredPast(35.36, 139.36, '2020-01-01', '2026-10-03')).toBe(false);
+    const days = await fetchDailyActuals(35.36, 139.36, '2020-01-01', '2026-10-04');
+    expect(ranges()).toEqual(['2025-01-01..2025-12-31', '2026-01-01..2026-10-03', '2020-01-01..2024-12-31', '2026-01-01..2026-10-04']);
+    expect(days).toHaveLength(2192 + 277);
+    expect(new Set(days.map(d => d.date)).size).toBe(days.length); // 重複なし
+    expect(hasStoredPast(35.36, 139.36, '2020-01-01', '2026-10-04')).toBe(true);
   });
 
   it('同じ期間の今年分は6時間メモリにキャッシュし、過ぎたら取り直す', async () => {
