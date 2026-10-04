@@ -120,3 +120,17 @@ export function currentHourIndex(hourly: readonly { time: string }[], now: Date)
   });
   return idx;
 }
+
+/**
+ * 時間別の表で、今の時刻が何列目にあたるか（列の左端を0とした小数）。各列の中央をその列の時刻とみなし、
+ * 前後の列の間を時刻で按分する。日の出・日の入りの列も時刻を持つので、その列をまたいでもずれない。範囲外は null
+ */
+export function nowColumnPos(times: string[], now: Date): number | null {
+  const t = now.getTime();
+  for (let i = 0; i < times.length - 1; i++) {
+    const a = new Date(times[i]).getTime();
+    const b = new Date(times[i + 1]).getTime();
+    if (a <= t && t < b) return i + 0.5 + (t - a) / (b - a);
+  }
+  return null;
+}

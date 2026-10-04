@@ -1,8 +1,10 @@
-import { useEffect, type CSSProperties, type RefObject } from 'react';
+import { useEffect, useState, type CSSProperties, type RefObject } from 'react';
+import { m } from 'motion/react';
+import { springs } from '../../lib/motion';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
-import { currentHourIndex } from '../../lib/sky';
+import { currentHourIndex, nowColumnPos } from '../../lib/sky';
 import './hourly.css';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import type { HourlyRowKey } from '../../lib/hourlyRows';
@@ -272,6 +274,38 @@ const DATA_ROWS: { key: HourlyRowKey; label: string; unit?: string; fmt: (h: Hou
 //   };
 // }
 
+// ── 今の線 ────────────────────────────────────────────────
+/** 今の縦線。時刻が進むにつれて1分ごとに動く（表全体は描き直さない） */
+function NowLine({ times }: { times: string[] }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const pos = nowColumnPos(times, now);
+  if (pos === null) return null;
+  const x = LABEL_W + pos * COL_W;
+  return (
+    <m.div
+      aria-hidden
+      data-testid="now-line"
+      initial={{ scaleY: 0 }}
+      animate={{ scaleY: 1 }}
+      transition={springs.enter}
+      style={{
+        position: 'absolute', top: 0, bottom: 0, left: x - 0.75, width: 1.5,
+        // 線は淡く、上端の点だけ濃く（数値に重なっても読める）
+        background: 'rgba(var(--accent-rgb), 0.4)', transformOrigin: 'top', pointerEvents: 'none',
+        // 毎時ちょうど前後は列の中央（数値の位置）を通るので、文字の背面に回す
+        zIndex: -1,
+      }}
+    >
+      {/* 上端の点（日別予報の「今の時間帯」の点と同じ印） */}
+      <span style={{ position: 'absolute', top: 2, left: -2.25, width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
+    </m.div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────
 export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, hiddenRowKeys }: Props) {
   const now    = new Date();
@@ -362,20 +396,11 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
             列がセル内容に合わせて COL_W より広くなる。すると固定ピクセルで描く
             ミニグラフSVG(W=列数×COL_W)が実列幅と食い違い、右へ行くほどバーがずれる。
             テーブル幅 = ラベル列 + 列数×COL_W に固定して各列を実寸 COL_W に揃える。 */}
-        <div style={{ position: 'relative', width: LABEL_W + tl.length * COL_W }}>
-        {/* 現在時刻の列を淡い太線の枠で囲む：上端から下端まで（表より前面・操作は透過）。ラベル列(z-index:1)の下に潜る。
-            塗りにすると、くもりなど淡い色の天気の絵が背景に溶けて見えにくいため枠にする */}
-        {currentTlIdx >= 0 && (
-          <div
-            aria-hidden
-            data-testid="now-frame"
-            style={{
-              position: 'absolute', top: 0, bottom: 0, left: LABEL_W + currentTlIdx * COL_W, width: COL_W,
-              boxSizing: 'border-box', border: '2px solid rgba(var(--accent-rgb), 0.35)', borderRadius: 'var(--radius-sm)',
-              pointerEvents: 'none',
-            }}
-          />
-        )}
+        {/* isolation: 今の線（z-index:-1）を表の文字の背面に置くための重なりの基準 */}
+        <div style={{ position: 'relative', isolation: 'isolate', width: LABEL_W + tl.length * COL_W }}>
+        {/* 今を示す縦の線（表の文字の背面・操作は透過）。ラベル列の下に潜る。
+            列を囲む・塗ると、くもりなど淡い色の天気の絵が背景に溶けるので、時刻の一点だけに印を付ける */}
+        {currentTlIdx >= 0 && <NowLine times={tl.map(tlTime)} />}
         <table style={{ borderCollapse: 'collapse', fontSize: '0.78rem', whiteSpace: 'nowrap', tableLayout: 'fixed', width: LABEL_W + tl.length * COL_W, fontVariantNumeric: 'tabular-nums' }}>
           <colgroup>
             <col style={{ width: LABEL_W }} />

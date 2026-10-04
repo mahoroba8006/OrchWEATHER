@@ -20,6 +20,7 @@ interface Props {
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 type Period = 'am' | 'pm' | 'night';
 const PERIOD_W = 50;  // px per AM / PM / Night cell
+const PAST_OPACITY = 0.5; // 今日の過ぎた時間帯（時間別の表の過去の時刻と同じ薄さ）
 const CHART_H  = 80;
 
 function probColor(p: number): string {
@@ -292,6 +293,11 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
 
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const today = jstNow.toISOString().slice(0, 10);
+  // 今日の時間帯（午前4〜12時・午後12〜20時・夜間20〜翌4時）。0〜4時は前日の夜間なので今日の列には印を付けない
+  const jstHour = jstNow.getUTCHours();
+  const nowPeriod: Period | null = jstHour >= 20 ? 'night' : jstHour >= 12 ? 'pm' : jstHour >= 4 ? 'am' : null;
+  const PERIOD_END: Record<Period, number> = { am: 12, pm: 20, night: 28 };
+  const isPastPeriod = (date: string, period: Period) => date === today && jstHour >= 4 && jstHour >= PERIOD_END[period];
 
 
   const [selected, setSelected] = useState<{ date: string; period: Period } | null>(null);
@@ -301,7 +307,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   };
 
   const daySep = (i: number) => (i < daily.length - 1 ? '1px solid var(--line)' : undefined);
-  // 今日の列は塗らずに枠で囲む（塗ると、くもりなど淡い色の天気の絵が背景に溶けて見えにくい）
+  // 今日の列は塗らず、上端の栞（細い帯）で示す（塗ると、くもりなど淡い色の天気の絵が背景に溶けて見えにくい）
   const todayIdx = daily.findIndex(d => d.date === today);
 
   const cellStyle = (period: Period, i: number, extra?: CSSProperties): CSSProperties => ({
@@ -312,6 +318,8 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
     verticalAlign: 'middle',
     borderRight: period === 'night' ? daySep(i) : undefined,
     position: 'relative',
+    // 今日の過ぎた時間帯は時間別の表と同じく薄くする
+    opacity: isPastPeriod(daily[i].date, period) ? PAST_OPACITY : undefined,
     ...extra,
   });
 
@@ -342,10 +350,10 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
         {todayIdx >= 0 && dayX && dayWidths && (
           <div
             aria-hidden
-            data-testid="today-frame"
+            data-testid="today-bookmark"
             style={{
-              position: 'absolute', top: 0, bottom: 0, left: dayX[todayIdx], width: dayWidths[todayIdx],
-              boxSizing: 'border-box', border: '2px solid rgba(var(--accent-rgb), 0.35)', borderRadius: 'var(--radius-sm)',
+              position: 'absolute', top: 0, left: dayX[todayIdx] + 6, width: Math.max(0, dayWidths[todayIdx] - 12), height: 3,
+              background: 'var(--accent)', borderRadius: '0 0 3px 3px',
               pointerEvents: 'none', zIndex: 1,
             }}
           />
@@ -382,7 +390,12 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                       fontSize: '0.875rem', fontWeight: 600, color: 'var(--ink-1)', whiteSpace: 'nowrap',
                     }}>
                       <span>
-                        {isToday && <span style={{ color: 'var(--accent)', marginRight: '0.3em' }}>今日</span>}
+                        {isToday && (
+                          <span style={{
+                            display: 'inline-block', marginRight: '0.35em', padding: '0.1em 0.5em', borderRadius: 999,
+                            background: 'var(--accent)', color: '#fff', fontSize: '0.68rem', lineHeight: 1.4, verticalAlign: '0.1em',
+                          }}>今日</span>
+                        )}
                         {dateLabel}
                       </span>
                       {!day.isPlaceholder && (
@@ -394,11 +407,29 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                       )}
                     </div>
                     <div style={{ display: 'flex', marginTop: '0.35rem' }}>
-                      {['午前', '午後', '夜間'].map(p => (
-                        <div key={p} style={{ flex: 1, textAlign: 'center', fontSize: '0.7rem', color: 'var(--ink-3)', fontWeight: 500 }}>
-                          {p}
-                        </div>
-                      ))}
+                      {([['am', '午前'], ['pm', '午後'], ['night', '夜間']] as const).map(([period, p]) => {
+                        const isNow = isToday && period === nowPeriod;
+                        return (
+                          <div
+                            key={p}
+                            data-now-period={isNow ? 'true' : undefined}
+                            style={{
+                              position: 'relative', flex: 1, textAlign: 'center', fontSize: '0.7rem', fontWeight: isNow ? 600 : 500,
+                              color: isNow ? 'var(--accent)' : 'var(--ink-3)',
+                              opacity: isPastPeriod(day.date, period) ? PAST_OPACITY : undefined,
+                            }}
+                          >
+                            {p}
+                            {/* 今の時間帯の点（時間別の表の「今」の線の上端の点と同じ印） */}
+                            {isNow && (
+                              <span aria-hidden style={{
+                                position: 'absolute', left: '50%', bottom: -6, width: 4, height: 4, marginLeft: -2,
+                                borderRadius: '50%', background: 'var(--accent)',
+                              }} />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </td>
                 );

@@ -56,15 +56,36 @@ describe('DailyForecast', () => {
 });
 
 describe('DailyForecast の「今日」の示し方', () => {
-  it('今日の列は塗らず、淡い太線の枠で囲む', () => {
+  it('今日の列は塗らず囲まず、上端の栞と「今日」の札で示す', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-01T10:00:00+09:00'));
     const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
     const painted = Array.from(container.querySelectorAll<HTMLElement>('td')).filter(td => td.style.background.includes('accent-soft'));
     expect(painted).toHaveLength(0);
-    const frame = container.querySelector<HTMLElement>('[data-testid="today-frame"]')!;
-    expect(frame).toBeTruthy();
-    expect(frame.style.border).toContain('2px solid');
+    expect(container.querySelector('[data-testid="today-frame"]')).toBeNull();
+    expect(container.querySelector('[data-testid="today-bookmark"]')).toBeTruthy();
+    vi.useRealTimers();
+  });
+
+  it('今の時間帯に点を付け、今日の過ぎた時間帯は薄くする（13時は午後・午前が過ぎた）', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T13:00:00+09:00'));
+    const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
+    const now = container.querySelectorAll('[data-now-period="true"]');
+    expect(now).toHaveLength(1);
+    expect(now[0].textContent).toBe('午後');
+    expect(container.querySelector<HTMLElement>('[data-cell="2026-10-01-am"]')!.style.opacity).toBe('0.5');
+    expect(container.querySelector<HTMLElement>('[data-cell="2026-10-01-pm"]')!.style.opacity).toBe('');
+    expect(container.querySelector<HTMLElement>('[data-cell="2026-10-02-am"]')!.style.opacity).toBe('');
+    vi.useRealTimers();
+  });
+
+  it('0〜4時は前日の夜間なので、今日の列に点を付けず薄くもしない', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T02:00:00+09:00'));
+    const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
+    expect(container.querySelectorAll('[data-now-period="true"]')).toHaveLength(0);
+    expect(container.querySelector<HTMLElement>('[data-cell="2026-10-01-am"]')!.style.opacity).toBe('');
     vi.useRealTimers();
   });
 });
