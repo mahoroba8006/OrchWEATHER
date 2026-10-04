@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildDayMap, buildSeasonReview, computePaceItems, estimateSkyCode, recentSekkiRanges, REVIEW_COUNT, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
+  buildDayMap, buildSeasonReview, computePaceItems, estimateSkyCode, seasonWords, recentSekkiRanges, REVIEW_COUNT, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
   isInCardWindow, previousSekkiRange, rainCell, requiredYears, shiftYear, tempCell,
   type DayMap, type DayRecord, type PaceOptions,
 } from './seasonReview';
@@ -141,7 +141,7 @@ describe('buildSeasonReview', () => {
     expect(r.daily[0]).toEqual({ date: '2026-09-07', precip: 0, tempMax: 30, tempMin: 18, code: 2, avgMax: 15, avgMin: 5 });
     expect(r.records).toEqual({
       hottest: { date: '2026-09-09', value: 33.2 },
-      coolestMorning: { date: '2026-09-21', value: 15.8 },
+      coldest: { date: '2026-09-21', value: 15.8 },
       heavyRain: { date: '2026-09-11', value: 22 },
     });
     expect(r.avgYears).toBe('2021〜2025年');
@@ -286,5 +286,25 @@ describe('estimateSkyCode（雨量と日照からの天気の目安）', () => {
     expect(estimateSkyCode(d(0.5, 7))).toBe(1);
     expect(estimateSkyCode(d(0, 3))).toBe(2);
     expect(estimateSkyCode(d(0, 2.9))).toBe(3);
+  });
+});
+
+describe('季節に合った言葉（seasonWords）', () => {
+  it('期間の最高気温の平均で 夏（25℃以上）・春秋・冬（15℃未満）を切り替える', () => {
+    expect(seasonWords(25)).toEqual({ warm: '暑い', cold: '涼しい', warmRecord: 'いちばん暑い日', coldRecord: 'いちばん涼しい日' });
+    expect(seasonWords(20)).toEqual({ warm: '暖かい', cold: '肌寒い', warmRecord: 'いちばん暖かい日', coldRecord: 'いちばん肌寒い日' });
+    expect(seasonWords(14.9)).toEqual({ warm: '暖かい', cold: '寒い', warmRecord: 'いちばん暖かい日', coldRecord: 'いちばん寒い日' });
+  });
+  it('見出しも季節の言葉を使う（冬に平年より低ければ「寒い」）', () => {
+    const avg = { meanTemp: 5, precip: 64, sunshine: 80 };
+    expect(headline({ meanTemp: 3, precip: 64, sunshine: 80 }, avg, seasonWords(10))).toBe('寒い半月でした');
+    expect(headline({ meanTemp: 7, precip: 64, sunshine: 80 }, avg, seasonWords(10))).toBe('暖かい半月でした');
+    expect(headline({ meanTemp: 7, precip: 30, sunshine: 80 }, avg, seasonWords(20))).toBe('暖かく、雨の少ない半月でした');
+  });
+  it('カードの記録ラベルは期間の最高気温に合わせる', () => {
+    const map: DayMap = new Map();
+    for (let y = 2021; y <= 2026; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 5, tempMax: 10, tempMin: 0 });
+    const r = buildSeasonReview(map, '2026-02-10')!; // 大寒（最高 10℃）
+    expect(r.recordLabels).toEqual({ warm: 'いちばん暖かい日', cold: 'いちばん寒い日' });
   });
 });
