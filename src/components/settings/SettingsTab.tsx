@@ -4,23 +4,21 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { useAppStore } from '../../store';
 import { LocationSettings } from './LocationSettings';
-import { JmaWarningSettings } from './JmaWarningSettings';
 import { AnalysisSettings } from './AnalysisSettings';
 import { AiCommentSettings } from './AiCommentSettings';
 import { Button } from '../ui/Button';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import './settings.css';
 
-type SettingsSubTab = 'location' | 'weather' | 'ai' | 'analysis';
+type SettingsSubTab = 'location' | 'ai' | 'analysis';
 
 const SUB_TAB_LABELS: Record<SettingsSubTab, string> = {
   location: '地点設定',
-  weather: '天気情報',
   ai: '空のアドバイス',
   analysis: '空くらべ',
 };
 
-const SUB_TABS: SettingsSubTab[] = ['location', 'weather', 'ai', 'analysis'];
+const SUB_TABS: SettingsSubTab[] = ['location', 'ai', 'analysis'];
 
 export function SettingsTab() {
   const [subTab, setSubTab] = useState<SettingsSubTab>('location');
@@ -66,7 +64,6 @@ export function SettingsTab() {
 
       {/* サブタブコンテンツ */}
       {subTab === 'location'  && <LocationSettings />}
-      {subTab === 'weather'   && <JmaWarningSettings />}
       {subTab === 'ai'        && <AiCommentSettings />}
       {subTab === 'analysis'  && <AnalysisSettings />}
     </div>

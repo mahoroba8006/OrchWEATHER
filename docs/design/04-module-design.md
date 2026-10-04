@@ -145,7 +145,7 @@
 - `ensureUserDocument`: `getDoc`→`exists()` が false のときだけ `setDoc({createdAt})`（[ADR-0022](06-adr.md)。毎回setDoc禁止＝並行getDocへの部分スナップショット競合回避）。
 - `getUserSettings`（前方互換マイグレーション）:
   - 各既定は `data?.x ?? DEFAULT`。オブジェクト系（accumStartDates等）は `{...DEFAULT, ...(data ?? {})}` で新キー補完。
-  - `enabledJmaGroups`/`enabledAiSections`: 保存済みに **新規デフォルトを差分追加**（`DEFAULT.filter(未保有)`）、未保存なら全デフォルト。
+  - `enabledAiSections`（`enabledJmaGroups` は 2026-10-04 廃止）: 保存済みに **新規デフォルトを差分追加**（`DEFAULT.filter(未保有)`）、未保存なら全デフォルト。
   - `aiCustomPrompt`: 文字列ならそれ、∴ `DEFAULT_AI_CUSTOM_PROMPT`。
   - `weatherCodeMode`: `'frequency'` のときだけ frequency、∴ `severity`。
 - 更新系はすべて `setDoc(..., {merge:true})`。
@@ -343,7 +343,7 @@
 | `components/Footer.tsx` | リンクのみ | ― |
 | `components/MonthsTable.tsx` | 月別集計の整形（旧UI） | ― |
 | `settings/SettingsTab.tsx` | 4サブタブ切替、モバイルのみアカウント欄 | モバイルでログアウト可 |
-| `settings/JmaWarningSettings.tsx` | グループON/OFFトグル、デフォルト地点選択、説明文表示 | トグルが保存されるか |
+| ~~`settings/JmaWarningSettings.tsx`~~ | 2026-10-04 削除 | — |
 | `settings/AiCommentSettings.tsx` | セクション選択・プロンプト入力。**未許可は操作不可** | 未許可で操作不可か |
 | `settings/AnalysisSettings.tsx` | 基準温度・累積開始日・Δ閾値の入力・保存 | 保存が反映されるか |
 | `weather/JmaWarningSummary.tsx` | ロード中かつ未取得は非表示。発表/継続/更新のバッジ分岐 | 継続で時刻を出さないか |

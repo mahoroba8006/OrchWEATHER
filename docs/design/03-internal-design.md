@@ -103,7 +103,7 @@ store ─┬ locationRepository ─ firebase(Firestore)
 | `settings/SettingsTab.tsx` | 設定統括 | 4サブタブ（地点設定/天気情報/空のアドバイス/空くらべ）の切替。モバイルはアカウント欄＋ログアウト。 |
 | `settings/LocationSettings.tsx` | 地点設定 | 地点の一覧・追加（現在地/地図/手動）・編集・削除・デフォルト地点。上限制御。 |
 | `settings/LocationMapModal.tsx` | 地図モーダル | vanilla Leaflet。クリックで座標選択、GSI逆ジオで地名候補。編集時は登録座標維持（`autoLocate`）。 |
-| `settings/JmaWarningSettings.tsx` | 警報設定 | 表示する警報グループ（17種）のON/OFF、各グループの農業影響説明。 |
+| ~~`settings/JmaWarningSettings.tsx`~~ | — | **2026-10-04 削除**（警報グループの表示選択を廃止。設定の「天気情報」サブタブも削除） |
 | `settings/AiCommentSettings.tsx` | AI設定 | 表示AIセクション選択・カスタムプロンプト入力（AI許可のみ操作可）。 |
 | `settings/AnalysisSettings.tsx` | 分析設定 | 基準温度2種・累積開始日（4種）・Δ日ガード閾値。 |
 

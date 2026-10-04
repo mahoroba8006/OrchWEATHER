@@ -1,7 +1,7 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Loader2, ChevronDown } from 'lucide-react';
-import { useAppStore, ALL_JMA_GROUPS, DEFAULT_AI_SECTIONS, warningNameToGroup } from '../../store';
+import { useAppStore, DEFAULT_AI_SECTIONS } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
@@ -113,24 +113,12 @@ export function WeatherTab() {
   const enabledAiSections = userSettings?.enabledAiSections ?? DEFAULT_AI_SECTIONS;
   const aiCustomPrompt = userSettings?.aiCustomPrompt ?? '';
 
-  // 有効グループでフィルタリング（特別警報は常に表示）
-  const enabledJmaGroups = userSettings?.enabledJmaGroups ?? ALL_JMA_GROUPS;
-  const enabledGroupSet = new Set(enabledJmaGroups);
-  const filteredJmaWarning = jmaWarning && {
-    ...jmaWarning,
-    items: jmaWarning.items.filter(item => {
-      if (item.level === 'special') return true; // 特別警報は常に表示
-      const group = warningNameToGroup(item.name);
-      return group === null || enabledGroupSet.has(group); // 未分類（土砂災害等）は常に表示
-    }),
-  };
-
   // AI 農作業コメント（予報・警報が揃ったら非同期取得）
   const { comment: aiComment, loading: aiCommentLoading } = useAiComment(
     aiAllowed ? user?.uid : null,
     location?.name,
     data,
-    filteredJmaWarning?.items,
+    jmaWarning?.items,
   );
 
   // カスタマイズAIコメント（'custom' セクションが有効かつプロンプト設定済みのとき取得）
@@ -139,7 +127,7 @@ export function WeatherTab() {
     aiAllowed && customEnabled ? user?.uid : null,
     customEnabled ? location?.name : null,
     customEnabled ? data : null,
-    customEnabled ? filteredJmaWarning?.items : undefined,
+    customEnabled ? jmaWarning?.items : undefined,
     customEnabled ? (aiCustomPrompt || DEFAULT_AI_CUSTOM_PROMPT) : '',
   );
 
@@ -347,7 +335,7 @@ export function WeatherTab() {
           )}
 
           <Reveal index={0}>
-            <JmaWarningSummary result={filteredJmaWarning} loading={jmaLoading} />
+            <JmaWarningSummary result={jmaWarning} loading={jmaLoading} />
           </Reveal>
 
           <Reveal index={1}>
@@ -375,7 +363,7 @@ export function WeatherTab() {
               daily={data.daily}
               weatherCodeMode={weatherCodeMode}
               onHalfDayClick={scrollToHour}
-              jmaWarnings={filteredJmaWarning?.items}
+              jmaWarnings={jmaWarning?.items}
               hourlyLastDate={hourlyLastDate}
             />
           </section>
@@ -387,7 +375,7 @@ export function WeatherTab() {
 
           <Reveal index={2}>
           <section ref={hourlySectionRef} className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={filteredJmaWarning?.items} />
+            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={jmaWarning?.items} />
           </section>
           </Reveal>
 

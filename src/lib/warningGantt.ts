@@ -2,7 +2,7 @@ import type { JmaWarningItem, WarningLevel } from '../api/jmaWarning';
 
 /**
  * 警報レベルごとの配色（気象庁の注意報・警報ボックスに合わせた色調）
- * JmaWarningSettings の LEVEL_STYLE と同系色で統一。
+ * JmaWarningSummary の LEVEL_STYLE と同系色で統一。
  */
 export const GANTT_COLOR: Record<WarningLevel, { bg: string; text: string }> = {
   advisory: { bg: 'rgba(251,146,60,0.30)',  text: '#7c4b00' },

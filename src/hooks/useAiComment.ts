@@ -7,8 +7,8 @@
 // 非ブロッキング: エラー時は静かに失敗し comment = null（天気表示を邪魔しない）
 //
 // 【無限ループ防止の要】
-// 呼び出し元の WeatherTab は filteredJmaWarning.items を毎レンダー .filter() で
-// 再生成するため、warnings/forecast の「参照」は毎レンダー変わる。
+// 呼び出し元から渡る warnings/forecast の「参照」は、再取得などで変わりうる（以前は
+// WeatherTab が毎レンダー .filter() で再生成しており、毎レンダー変わっていた）。
 // これを effect の依存に直接入れると、毎レンダー発火 → setComment(新オブジェクト)
 // → 再レンダー → … の無限ループ（＋過剰な Firestore Read）になる。
 // 対策: input/hash は本体で毎レンダー計算（純粋・安価）し、

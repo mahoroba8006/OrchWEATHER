@@ -313,7 +313,7 @@ NoSQL ドキュメント指向。永続データはユーザー本人ドキュ�
 | `accumStartDates` | map | △ | 全て `"01-01"` | 累積の開始日。`{precip, sunshine, radiation, gdd}` 各 `"MM-DD"` | 新キーは読込時に既定で補完（前方互換） |
 | `accumDeltaThresholds` | map | △ | `{gdd:30, radiation:100}` | Δ日逆引きの序盤抑制閾値。`{gdd, radiation}` | 単位: gdd=℃日、radiation=MJ/m² |
 | `defaultLocationId` | string \| null | △ | `null` | 起動時の初期表示地点ID | 無効ID時は現在地(`__geo__`)へフォールバック |
-| `enabledJmaGroups` | string[] | △ | 全17グループ | 表示する警報グループ（`JmaWarningGroup`・→5.4） | 新グループは読込時に差分追加（前方互換） |
+| ~~`enabledJmaGroups`~~ | string[] | △ | — | **2026-10-04 廃止**（注意報・警報は常にすべて表示。保存済みの値は読まない・削除はしない） | — |
 | `enabledAiSections` | string[] | △ | 標準4種 | 表示するAIセクション（`AiSection`・→5.5） | `custom` は既定無効。新セクションは差分追加 |
 | `aiCustomPrompt` | string | △ | `DEFAULT_AI_CUSTOM_PROMPT` | じぶん好みAIの入力プロンプト | UI上限200字。明示的な空文字は空のまま保持 |
 | `weatherCodeMode` | string | △ | `"severity"` | 天気コード表示モード | `"frequency"` 以外は `"severity"` に正規化 |
