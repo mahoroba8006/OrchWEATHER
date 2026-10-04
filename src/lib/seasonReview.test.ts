@@ -112,11 +112,11 @@ describe('headline', () => {
   it('1項目だけなら連体形で終える', () => {
     expect(headline({ meanTemp: 25, precip: 64, sunshine: 80 }, avg)).toBe('暑い');
   });
-  it('該当なしは「大きな違いはない」（比べた相手は期間の横に出すので平年とは言わない）', () => {
-    expect(headline({ meanTemp: 23.5, precip: 60, sunshine: 85 }, avg)).toBe('大きな違いはない');
+  it('該当なしは「大きく変わらぬ移ろい」（比べた相手は期間の横に出すので平年とは言わない）', () => {
+    expect(headline({ meanTemp: 23.5, precip: 60, sunshine: 85 }, avg)).toBe('大きく変わらぬ移ろい');
   });
   it('5年平均の雨が5mm未満なら雨は判定しない', () => {
-    expect(headline({ meanTemp: 23, precip: 20, sunshine: 80 }, { ...avg, precip: 2 })).toBe('大きな違いはない');
+    expect(headline({ meanTemp: 23, precip: 20, sunshine: 80 }, { ...avg, precip: 2 })).toBe('大きく変わらぬ移ろい');
   });
 });
 

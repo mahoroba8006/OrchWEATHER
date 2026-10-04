@@ -10,10 +10,10 @@ import { logSeasonCardView } from '../../lib/analytics';
 import { HEAVY_RAIN_MM, monthDay, type CompareCell, type SeasonReview } from '../../lib/seasonReview';
 import './season.css';
 
-// 気温の色（天気タブの日別グラフ DailyForecast と同じ）。平年より高い/低い部分だけ色を付け、残りは灰色
+// 気温の色（天気タブの日別グラフ DailyForecast と同じ）。5年平均より高い/低い部分だけ色を付け、残りは灰色
 const TEMP_MAX_COLOR = '#fb7185';
-const TEMP_MIN_COLOR = '#2f6fd6'; // 平年より低い（青）
-const TEMP_BASE_COLOR = '#4f9d72'; // 平年の範囲に収まる部分（緑）
+const TEMP_MIN_COLOR = '#2f6fd6'; // 5年平均より低い（青）
+const TEMP_BASE_COLOR = '#4f9d72'; // 5年平均の範囲に収まる部分（緑）
 const BAND_COLOR = 'rgba(62, 155, 110, 0.16)'; // 5年平均の範囲（淡い緑）
 const RAIN_COLOR = '#7cc8ee'; // 雨（水色）
 const TEMP_H = 100; // 気温の段の viewBox の高さ（横は日数×10）
@@ -97,9 +97,9 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
             <path data-testid="normal-band" d={band} fill={BAND_COLOR} />
             {daily.map((r, i) => {
               const y1 = ty(r.tempMax), y2 = ty(r.tempMin);
-              const hotH = Math.max(0, ty(Math.max(r.avgMax, r.tempMin)) - y1); // 平年の最高より上の部分
+              const hotH = Math.max(0, ty(Math.max(r.avgMax, r.tempMin)) - y1); // 5年平均の最高より上の部分
               const coldTop = ty(Math.min(r.avgMin, r.tempMax));
-              const coldH = Math.max(0, y2 - coldTop); // 平年の最低より下の部分
+              const coldH = Math.max(0, y2 - coldTop); // 5年平均の最低より下の部分
               return (
                 <g key={r.date}>
                   <rect data-testid="temp-bar" x={i * 10 + 3} y={y1} width={4} height={y2 - y1} rx={2} fill={TEMP_BASE_COLOR} />
@@ -142,8 +142,8 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
         </div>
         <p className="season-card__legend" aria-hidden="true">
           <span><i style={{ background: BAND_COLOR }} />5年平均の範囲</span>
-          <span><i style={{ background: TEMP_MAX_COLOR }} />平年より高い</span>
-          <span><i style={{ background: TEMP_MIN_COLOR }} />平年より低い</span>
+          <span><i style={{ background: TEMP_MAX_COLOR }} />5年平均より高い</span>
+          <span><i style={{ background: TEMP_MIN_COLOR }} />5年平均より低い</span>
           <span><i style={{ background: RAIN_COLOR }} />雨</span>
         </p>
       </div>

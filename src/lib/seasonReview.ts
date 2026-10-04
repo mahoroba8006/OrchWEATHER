@@ -243,7 +243,7 @@ export function headline(cur: RangeStats, avg: RangeStats, words: SeasonWords = 
     else if (s < -0.15) traits.push({ score: -s / 0.15, connective: '日差しが少なく', predicative: '日差しが少ない' });
   }
   // 比べた相手（去年／5年平均）は期間の横に出すので、ここでは「平年」と言わない
-  if (traits.length === 0) return '大きな違いはない';
+  if (traits.length === 0) return '大きく変わらぬ移ろい';
   traits.sort((a, b) => b.score - a.score);
   const [first, second] = traits;
   // 「〜半月でした」は付けず、言い切りで終える（例: 雨が少なく、日差しが多い）

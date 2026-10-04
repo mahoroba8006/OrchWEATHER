@@ -144,7 +144,7 @@ describe('SeasonReviewCard', () => {
     expect(screen.getByText(/5年平均は2021〜2025年/)).toBeTruthy();
   });
 
-  it('気温の縦棒2本・平年より高い/低い部分・5年平均の帯・天気アイコン2つを描く', () => {
+  it('気温の縦棒2本・5年平均より高い/低い部分・5年平均の帯・天気アイコン2つを描く', () => {
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     const chart = screen.getByRole('img', { name: '日ごとの最高・最低気温と5年平均（9/7〜9/22）' });
     expect(chart.querySelectorAll('[data-testid="temp-bar"]')).toHaveLength(2);
