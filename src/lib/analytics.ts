@@ -54,6 +54,11 @@ export function logSeasonCardView(source: 'inline' | 'sheet'): void {
   track('season_card_view', { source });
 }
 
+/** 描画エラー（真っ白になる代わりにエラー画面を出したとき・補助機能を隠したとき）。原因を遠隔で知るため */
+export function logAppError(where: string, error: Error | null): void {
+  track('app_error', { where, message: `${error?.name ?? 'Error'}: ${error?.message ?? ''}`.slice(0, 100) });
+}
+
 /** ヒーローの節気名からふりかえりカードを開いた。 */
 export function logSeasonCardOpen(): void {
   track('season_card_open');

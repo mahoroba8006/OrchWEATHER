@@ -27,3 +27,16 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('復帰しました')).toBeTruthy();
   });
 });
+
+describe('ErrorBoundary（エラー内容を fallback へ）', () => {
+  it('fallback に投げられたエラーを渡す（原因を画面に出せるように）', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    shouldThrow = true;
+    render(
+      <ErrorBoundary fallback={(_reset, error) => <p>{`エラー: ${error?.message}`}</p>}>
+        <Bomb />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('エラー: boom')).toBeTruthy();
+  });
+});

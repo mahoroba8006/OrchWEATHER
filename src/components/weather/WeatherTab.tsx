@@ -26,7 +26,8 @@ import { SeasonPaceTicker } from '../season/SeasonPaceTicker';
 import { SeasonInlineCard } from '../season/SeasonReviewCard';
 import { SeasonReviewCarousel } from '../season/SeasonReviewCarousel';
 import { DEFAULT_PACE_OPTIONS, type PaceOptions, type SeasonReview } from '../../lib/seasonReview';
-import { logSeasonCardOpen } from '../../lib/analytics';
+import { logAppError, logSeasonCardOpen } from '../../lib/analytics';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 import {
   classifyWeather, currentHourIndex, hhmmToMinutes, jstDateString, jstMinutesOfDay, skyPalette, timeOfDay,
 } from '../../lib/sky';
@@ -290,10 +291,13 @@ export function WeatherTab() {
 
       {data && (
         <>
-          <SeasonPaceTicker state={season} />
-          {season.status === 'ready' && season.view.showCard && season.view.review && (
-            <SeasonInlineCard review={season.view.review} />
-          )}
+          {/* 季節のあしどり・ふりかえりは補助的な機能。描画エラーが出てもその部分だけ消し、予報は見せ続ける */}
+          <ErrorBoundary onError={e => logAppError('season', e)} fallback={() => null}>
+            <SeasonPaceTicker state={season} />
+            {season.status === 'ready' && season.view.showCard && season.view.review && (
+              <SeasonInlineCard review={season.view.review} />
+            )}
+          </ErrorBoundary>
 
           {/* AI ステータスバー */}
           {enabledAiSections.some(s => s !== 'custom') && (
@@ -423,7 +427,9 @@ export function WeatherTab() {
         onClose={() => { setOpenedReview(null); setSheetIndex(null); }}
         title={shownReview ? (shownReview.progress ? shownReview.range.name : `${shownReview.range.name}のふりかえり`) : 'ふりかえり'}
       >
-        {seasonReviews.length > 0 && <SeasonReviewCarousel reviews={seasonReviews} onIndexChange={setSheetIndex} />}
+        <ErrorBoundary onError={e => logAppError('season-sheet', e)} fallback={() => <p style={{ padding: '1rem', color: 'var(--ink-3)' }}>ふりかえりを表示できませんでした。</p>}>
+          {seasonReviews.length > 0 && <SeasonReviewCarousel reviews={seasonReviews} onIndexChange={setSheetIndex} />}
+        </ErrorBoundary>
       </Sheet>
       <Footer />
     </div>
