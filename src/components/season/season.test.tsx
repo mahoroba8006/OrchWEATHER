@@ -105,7 +105,7 @@ describe('SeasonPaceTicker', () => {
 describe('SeasonReviewCard', () => {
   it('期間・見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
-    expect(screen.getByText('ふりかえり ─ 白露 9/7〜9/22（16日間）')).toBeTruthy();
+    expect(screen.getByText('白露 9/7〜9/22（16日間）')).toBeTruthy();
     expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
     expect(screen.getByText('38mm')).toBeTruthy();
     expect(screen.getAllByText('6割')).toHaveLength(2);

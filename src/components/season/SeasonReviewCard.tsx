@@ -35,7 +35,7 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
       <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         <div className="season-card__heading">
-          <p className="season-card__period">{`ふりかえり ─ ${review.periodLabel}`}</p>
+          <p className="season-card__period">{review.periodLabel}</p>
           <h3 className="season-card__title">{review.headline}</h3>
         </div>
       </header>
