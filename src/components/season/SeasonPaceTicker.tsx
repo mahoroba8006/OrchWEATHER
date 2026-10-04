@@ -1,15 +1,17 @@
 // 空もようのヒーロー直下に常設する「季節のあしどり」の帯。
 // 4項目（気温・降水量・積算温度・日照時間）を同じ枠の中で紙芝居のように切り替える。
+// 何の項目かが一目で分かるよう、本文の先頭に項目名を置く。
 // 取得中は同じ高さの骨組みで場所を確保し、予報が後から押し下げられないようにする。
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { Skeleton } from '../ui/Skeleton';
-import { springs } from '../../lib/motion';
 import type { SeasonState } from '../../hooks/useSeasonReview';
 import './season.css';
 
-/** 自動で次の項目へ進める間隔（ミリ秒） */
-const ADVANCE_MS = 4000;
+/** 自動で次の項目へ進める間隔（ミリ秒）。読み終わる前に進まないよう長めに */
+const ADVANCE_MS = 8000;
+/** 切り替えの動き。操作への反応ではなく眺める紙芝居なので、ばね（lib/motion）ではなくゆっくりした一定の動きにする */
+const SLIDE = { type: 'tween', duration: 0.8, ease: [0.4, 0, 0.2, 1] } as const;
 
 export function SeasonPaceTicker({ state }: { state: SeasonState }) {
   const reduce = useReducedMotion();
@@ -65,7 +67,7 @@ export function SeasonPaceTicker({ state }: { state: SeasonState }) {
       {/* 読み上げ用：切り替え中の文言を拾わず、全項目を一度に伝える（ボタンの中に置くと aria-label に隠れて読まれない） */}
       <ul className="season-sr">
         {items.map((it) => (
-          <li key={it.kind}>{`${it.label}：${it.text}`}</li>
+          <li key={it.kind}>{`${it.name}（${it.period}）：${it.text}`}</li>
         ))}
       </ul>
       <button
@@ -83,10 +85,13 @@ export function SeasonPaceTicker({ state }: { state: SeasonState }) {
               initial={{ y: '100%', opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '-100%', opacity: 0 }}
-              transition={springs.move}
+              transition={SLIDE}
             >
-              <span className="season-strip__label">{item.label}</span>
-              <span className="season-strip__text">{item.text}</span>
+              <span className="season-strip__label">{`季節のあしどり（${item.period}）`}</span>
+              <span className="season-strip__text">
+                <span className="season-strip__name">{item.name}</span>
+                {item.text}
+              </span>
             </m.span>
           </AnimatePresence>
         </span>

@@ -295,7 +295,8 @@ export const DEFAULT_PACE_OPTIONS: PaceOptions = {
 };
 
 export type PaceItemKind = 'temp' | 'precip' | 'gdd' | 'sunshine';
-export interface PaceItem { kind: PaceItemKind; label: string; text: string }
+/** name=項目名（本文の先頭に出す）、period=比べた期間（見出しに出す）、text=去年・5年平均との比較 */
+export interface PaceItem { kind: PaceItemKind; name: string; period: string; text: string }
 
 /** 正 = 何日早い、負 = 何日遅い、'ahead' = 比較年が年末までに届かない（今年がかなり早い） */
 type PaceDiff = number | 'ahead';
@@ -402,7 +403,8 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
   if (t) {
     items.push({
       kind: 'temp',
-      label: `季節のあしどり・気温（${recentLabel}）`,
+      name: '気温',
+      period: recentLabel,
       text: both(s => `${s}より${tempCell(t.cur.meanTemp, (s === '去年' ? t.lastYear : t.avg).meanTemp).text}`),
     });
   }
@@ -419,7 +421,8 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
   if (pw && p) {
     items.push({
       kind: 'precip',
-      label: `季節のあしどり・降水量（${pw.label}）`,
+      name: '降水量',
+      period: pw.label,
       text: both(s => ratioClause(s, rainCell(p.cur.precip, (s === '去年' ? p.lastYear : p.avg).precip))),
     });
   }
@@ -429,7 +432,7 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
     ? gddRecent(map, gw.start, last, opts.baseTemp)
     : gddPace(map, gw.start, last, opts));
   if (gw && g) {
-    items.push({ kind: 'gdd', label: `季節のあしどり・積算温度（${gw.label}・${opts.baseTemp}℃基準）`, text: g });
+    items.push({ kind: 'gdd', name: '積算温度', period: `${gw.label}・${opts.baseTemp}℃基準`, text: g });
   }
 
   const sw = windowOf(opts.startDates.sunshine);
@@ -437,7 +440,8 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
   if (sw && sun) {
     items.push({
       kind: 'sunshine',
-      label: `季節のあしどり・日照時間（${sw.label}）`,
+      name: '日照時間',
+      period: sw.label,
       text: both(s => `${s}より${sunCell(sun.cur.sunshine, (s === '去年' ? sun.lastYear : sun.avg).sunshine).text}`),
     });
   }
