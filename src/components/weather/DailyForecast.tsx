@@ -293,11 +293,6 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
   const today = jstNow.toISOString().slice(0, 10);
 
-  // 気温レンジバー用：表示期間全体の最低〜最高（placeholder 日は除く）
-  const realDays = daily.filter(d => !d.isPlaceholder);
-  const periodMin = realDays.length > 0 ? Math.min(...realDays.map(d => d.tempMin)) : 0;
-  const periodMax = realDays.length > 0 ? Math.max(...realDays.map(d => d.tempMax)) : 1;
-  const periodSpan = periodMax - periodMin || 1;
 
   const [selected, setSelected] = useState<{ date: string; period: Period } | null>(null);
   const pick = (date: string, period: Period) => {
@@ -372,8 +367,6 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 const mm = parseInt(day.date.slice(5, 7), 10);
                 const dd = parseInt(day.date.slice(8, 10), 10);
                 const dateLabel = `${mm}/${dd}(${DAY_NAMES[dow]})`;
-                const rangeLeft = ((day.tempMin - periodMin) / periodSpan) * 100;
-                const rangeWidth = ((day.tempMax - day.tempMin) / periodSpan) * 100;
                 return (
                   <td
                     key={day.date}
@@ -400,19 +393,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                         </span>
                       )}
                     </div>
-                    <div style={{ position: 'relative', height: 4, borderRadius: 2, background: 'var(--surface-sunken)', margin: '0.4rem 0 0.35rem' }}>
-                      {!day.isPlaceholder && (
-                        <div
-                          data-testid="temp-range"
-                          style={{
-                            position: 'absolute', top: 0, bottom: 0, minWidth: 4, borderRadius: 2,
-                            left: `${rangeLeft}%`, width: `${rangeWidth}%`,
-                            background: `linear-gradient(to right, ${TEMP_MIN_COLOR}, ${TEMP_MAX_COLOR})`,
-                          }}
-                        />
-                      )}
-                    </div>
-                    <div style={{ display: 'flex' }}>
+                    <div style={{ display: 'flex', marginTop: '0.35rem' }}>
                       {['午前', '午後', '夜間'].map(p => (
                         <div key={p} style={{ flex: 1, textAlign: 'center', fontSize: '0.7rem', color: 'var(--ink-3)', fontWeight: 500 }}>
                           {p}
