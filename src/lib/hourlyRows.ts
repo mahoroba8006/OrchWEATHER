@@ -19,7 +19,7 @@ export const HOURLY_ROW_OPTIONS = [
 export type HourlyRowKey = (typeof HOURLY_ROW_OPTIONS)[number]['key'];
 
 /** 非表示の行を保存する（将来増える行は、初期状態で表示になる） */
-export const DEFAULT_HIDDEN_HOURLY_ROWS: HourlyRowKey[] = ['pressure', 'humidity', 'vpd', 'dewPoint', 'cape', 'freezing'];
+export const DEFAULT_HIDDEN_HOURLY_ROWS: HourlyRowKey[] = ['windGusts', 'pressure', 'humidity', 'vpd', 'dewPoint', 'cape', 'freezing'];
 
 const KNOWN_KEYS: ReadonlySet<string> = new Set(HOURLY_ROW_OPTIONS.map(o => o.key));
 

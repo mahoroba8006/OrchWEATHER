@@ -13,7 +13,7 @@ describe('hourlyRows', () => {
   it('選択肢は13項目で、おすすめの非表示は気圧・飽差・露点・CAPE・0℃層高度', () => {
     expect(HOURLY_ROW_OPTIONS).toHaveLength(13);
     expect(HOURLY_ROW_OPTIONS[0]).toEqual({ key: 'temperature', label: '気温' });
-    expect(DEFAULT_HIDDEN_HOURLY_ROWS).toEqual(['pressure', 'humidity', 'vpd', 'dewPoint', 'cape', 'freezing']);
+    expect(DEFAULT_HIDDEN_HOURLY_ROWS).toEqual(['windGusts', 'pressure', 'humidity', 'vpd', 'dewPoint', 'cape', 'freezing']);
   });
 
   it('sanitize は未知のキー・重複・文字列以外を捨てる', () => {
