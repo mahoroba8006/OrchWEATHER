@@ -12,9 +12,10 @@ import './season.css';
 
 // 気温の色（天気タブの日別グラフ DailyForecast と同じ）。平年より高い/低い部分だけ色を付け、残りは灰色
 const TEMP_MAX_COLOR = '#fb7185';
-const TEMP_MIN_COLOR = '#7dd3fc';
-const TEMP_BASE_COLOR = '#9aa6b8';
-const BAND_COLOR = 'rgba(120, 130, 150, 0.16)';
+const TEMP_MIN_COLOR = '#2f6fd6'; // 平年より低い（青）
+const TEMP_BASE_COLOR = '#4f9d72'; // 平年の範囲に収まる部分（緑）
+const BAND_COLOR = 'rgba(62, 155, 110, 0.16)'; // 5年平均の範囲（淡い緑）
+const RAIN_COLOR = '#7cc8ee'; // 雨（水色）
 const TEMP_H = 100; // 気温の段の viewBox の高さ（横は日数×10）
 const RAIN_H = 100; // 雨の段の viewBox の高さ
 
@@ -109,7 +110,7 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
             <svg viewBox={`0 0 ${n * 10} ${RAIN_H}`} preserveAspectRatio="none" aria-hidden="true">
               {daily.map((r, i) => {
                 const h = (r.precip / maxRain) * RAIN_H;
-                return <rect key={r.date} x={i * 10 + 2} y={RAIN_H - h} width={6} height={h} fill="rgba(var(--accent-rgb), 0.55)" />;
+                return <rect key={r.date} x={i * 10 + 2} y={RAIN_H - h} width={6} height={h} fill={RAIN_COLOR} />;
               })}
             </svg>
             {daily.map((r, i) => r.precip >= HEAVY_RAIN_MM && (
@@ -131,7 +132,7 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
           <span><i style={{ background: BAND_COLOR }} />5年平均の範囲</span>
           <span><i style={{ background: TEMP_MAX_COLOR }} />平年より高い</span>
           <span><i style={{ background: TEMP_MIN_COLOR }} />平年より低い</span>
-          <span><i style={{ background: 'rgba(var(--accent-rgb), 0.55)' }} />雨</span>
+          <span><i style={{ background: RAIN_COLOR }} />雨</span>
         </p>
       </div>
 
