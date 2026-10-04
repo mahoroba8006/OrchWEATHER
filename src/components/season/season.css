@@ -131,3 +131,10 @@
 
 /* まだ描いていないカードの場所（スワイプ中に一瞬だけ見える） */
 .season-carousel__placeholder { min-height: 420px; border-radius: var(--radius-lg); background: var(--surface-card); border: 1px solid var(--line); }
+
+/* 集計中の帯（本体と同じ高さ。回転アイコンは AI コメントの読み込みと同じ動き） */
+.season-strip--loading { flex-direction: row; align-items: center; justify-content: flex-start; gap: 0.6rem; }
+.season-strip__spinner { flex-shrink: 0; color: var(--accent); animation: spin 1s linear infinite; }
+.season-strip__loading-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; font-size: 0.8rem; color: var(--ink-2); line-height: 1.35; }
+.season-strip__loading-sub { font-size: 0.68rem; color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { .season-strip__spinner { animation-duration: 3s; } }

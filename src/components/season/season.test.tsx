@@ -53,6 +53,10 @@ describe('SeasonPaceTicker', () => {
   it('loading は骨組み', () => {
     renderWithMotion(<SeasonPaceTicker state={{ status: 'loading' }} />);
     expect(screen.getByRole('status', { name: '季節のあしどりを集計中' })).toBeTruthy();
+    // 空白に見えないよう、回転アイコンと文言で集計中であることを示す
+    expect(screen.getByText('季節のあしどりを集計しています…')).toBeTruthy();
+    expect(screen.getByText(/はじめての地点は/)).toBeTruthy();
+    expect(document.querySelector('.season-strip__spinner')).toBeTruthy();
   });
   it('hidden・項目なしは何も描かない', () => {
     const a = renderWithMotion(<SeasonPaceTicker state={{ status: 'hidden' }} />);
