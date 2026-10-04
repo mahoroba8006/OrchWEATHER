@@ -1,3 +1,17 @@
+# LP 全面見直し「『今年は遅い』が、数字で見える。」（2026-10-05〜）
+
+仕様書: [docs/superpowers/specs/2026-10-05-lp-renewal-design.md](../docs/superpowers/specs/2026-10-05-lp-renewal-design.md)
+
+- [x] 方針合意（主役=ふりかえり・去年比較／見出し確定／AI章は外す／ボタン2つ同じ強さ／空くらべを強く見せる）
+- [x] 仕様書のユーザー確認（見出し確定・暦は章を立てずちりばめる）
+- [x] 実装計画: [docs/superpowers/plans/2026-10-05-lp-renewal.md](../docs/superpowers/plans/2026-10-05-lp-renewal.md)（7タスク）
+- [ ] 画面写真の撮り直し（地点・日付固定）
+- [ ] 実装（サブエージェント）
+- [ ] 検証（build・テスト・375px/1280px/reduced-motion 撮影）
+- [ ] ユーザー実機確認 → develop → 指示で main
+
+---
+
 # 今年のあゆみ＋節気ふりかえりカード（2026-10-03〜）
 
 仕様書: [docs/superpowers/specs/2026-10-03-season-review-design.md](../docs/superpowers/specs/2026-10-03-season-review-design.md)／計画: [docs/superpowers/plans/2026-10-03-season-review.md](../docs/superpowers/plans/2026-10-03-season-review.md)
