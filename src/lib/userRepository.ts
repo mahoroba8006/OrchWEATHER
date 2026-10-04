@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
-import type { UserSettings, AccumStartDates, AccumDeltaThresholds, JmaWarningGroup, AiSection } from '../store';
+import type { UserSettings, AccumStartDates, AccumDeltaThresholds, AiSection } from '../store';
 import type { WeatherCodeMode } from './wmoSeverity';
 import type { SeasonPaceMode, SeasonPaceModes } from './seasonReview';
 
@@ -15,12 +15,6 @@ const DEFAULT_ACCUM_DELTA_THRESHOLDS: AccumDeltaThresholds = {
   gdd: 30,
   radiation: 100,
 };
-
-// SYNC: store.ts の ALL_JMA_GROUPS と同期すること
-const DEFAULT_JMA_GROUPS: JmaWarningGroup[] = [
-  '大雨', '土砂災害', '洪水', '大雪', '強風', '風雪', '波浪', '高潮',
-  '乾燥', '霜', '低温', '雷', '濃霧', 'なだれ', '融雪', '着氷', '着雪',
-];
 
 // SYNC: store.ts の DEFAULT_AI_SECTIONS と同期すること
 const DEFAULT_AI_SECTIONS: AiSection[] = [
@@ -56,11 +50,6 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     ...(data?.accumDeltaThresholds ?? {}),
   };
   const defaultLocationId: string | null = data?.defaultLocationId ?? null;
-  // 保存済みリストに新規デフォルトグループを自動追加（グループ追加時の前方互換）
-  const savedJmaGroups = data?.enabledJmaGroups as JmaWarningGroup[] | undefined;
-  const enabledJmaGroups: JmaWarningGroup[] = savedJmaGroups
-    ? [...savedJmaGroups, ...DEFAULT_JMA_GROUPS.filter(g => !savedJmaGroups.includes(g))]
-    : DEFAULT_JMA_GROUPS;
   // 保存済みリストに新規デフォルトセクションを自動追加（セクション追加時の前方互換）
   const savedAiSections = data?.enabledAiSections as AiSection[] | undefined;
   const enabledAiSections: AiSection[] = savedAiSections
@@ -79,7 +68,7 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   };
   return {
     baseTempSettings, accumStartDates, accumDeltaThresholds,
-    defaultLocationId, enabledJmaGroups, enabledAiSections, aiCustomPrompt,
+    defaultLocationId, enabledAiSections, aiCustomPrompt,
     weatherCodeMode, seasonPaceModes,
   };
 }
@@ -110,13 +99,6 @@ export async function updateDefaultLocationId(
   id: string | null
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { defaultLocationId: id }, { merge: true });
-}
-
-export async function updateEnabledJmaGroups(
-  uid: string,
-  groups: JmaWarningGroup[]
-): Promise<void> {
-  await setDoc(doc(db, 'users', uid), { enabledJmaGroups: groups }, { merge: true });
 }
 
 export async function updateEnabledAiSections(
