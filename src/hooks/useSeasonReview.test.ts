@@ -73,8 +73,8 @@ describe('useSeasonReview（比べ方の設定変更）', () => {
     vi.mocked(computeSeasonView).mockReturnValue(view);
     const { result, rerender } = renderHook(({ o }) => useSeasonReview(35, 139, forecast, o), { initialProps: { o: DEFAULT_PACE_OPTIONS } });
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    rerender({ o: { ...DEFAULT_PACE_OPTIONS, mode: 'recent' } });
+    rerender({ o: { ...DEFAULT_PACE_OPTIONS, modes: { ...DEFAULT_PACE_OPTIONS.modes, gdd: 'recent' } } });
     expect(fetchDailyActuals).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(computeSeasonView).mock.lastCall?.[2].mode).toBe('recent');
+    expect(vi.mocked(computeSeasonView).mock.lastCall?.[2].modes.gdd).toBe('recent');
   });
 });

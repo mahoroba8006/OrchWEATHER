@@ -164,3 +164,5 @@
 @media (max-width: 480px) {
   .settings-subtabs .ui-seg__item { padding: 0 0.45rem; font-size: 0.78rem; }
 }
+/* 季節のあしどりの比べ方：項目名と切り替えを1行に */
+.set-pace-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 0.5rem 0; }

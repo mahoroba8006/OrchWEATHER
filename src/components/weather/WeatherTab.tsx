@@ -23,7 +23,7 @@ import { Sheet } from '../ui/Sheet';
 import { useSeasonReview } from '../../hooks/useSeasonReview';
 import { SeasonPaceTicker } from '../season/SeasonPaceTicker';
 import { SeasonInlineCard, SeasonReviewCard } from '../season/SeasonReviewCard';
-import type { PaceOptions, SeasonReview } from '../../lib/seasonReview';
+import { DEFAULT_PACE_OPTIONS, type PaceOptions, type SeasonReview } from '../../lib/seasonReview';
 import { logSeasonCardOpen } from '../../lib/analytics';
 import {
   classifyWeather, currentHourIndex, hhmmToMinutes, jstDateString, jstMinutesOfDay, skyPalette, timeOfDay,
@@ -84,10 +84,10 @@ export function WeatherTab() {
     location?.lon ?? null,
   );
 
-  // 今年のあゆみ・節気ふりかえり（予報の取得完了後に非同期で集計。予報表示は待たせない）
-  // 季節のあしどりの比べ方（ゲストは userSettings が無いので既定値）
+  // 季節のあしどり・節気ふりかえり（予報の取得完了後に非同期で集計。予報表示は待たせない）
+  // 項目ごとの比べ方（ゲストは userSettings が無いので既定値）
   const paceOptions: PaceOptions = {
-    mode: userSettings?.seasonPaceMode ?? 'analysis',
+    modes: userSettings?.seasonPaceModes ?? DEFAULT_PACE_OPTIONS.modes,
     baseTemp: userSettings?.baseTempSettings?.[0] ?? 10,
     startDates: {
       precip: userSettings?.accumStartDates?.precip ?? '01-01',

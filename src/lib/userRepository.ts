@@ -2,7 +2,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import type { UserSettings, AccumStartDates, AccumDeltaThresholds, JmaWarningGroup, AiSection } from '../store';
 import type { WeatherCodeMode } from './wmoSeverity';
-import type { SeasonPaceMode } from './seasonReview';
+import type { SeasonPaceMode, SeasonPaceModes } from './seasonReview';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
@@ -69,12 +69,18 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : DEFAULT_AI_CUSTOM_PROMPT;
   const weatherCodeMode: WeatherCodeMode =
     data?.weatherCodeMode === 'frequency' ? 'frequency' : 'severity';
-  const seasonPaceMode: SeasonPaceMode =
-    data?.seasonPaceMode === 'recent' ? 'recent' : 'analysis';
+  // 項目ごとの比べ方。旧形式（全項目共通の seasonPaceMode、develop のみで使用）からも引き継ぐ
+  const legacyPaceMode: SeasonPaceMode = data?.seasonPaceMode === 'recent' ? 'recent' : 'analysis';
+  const paceModeOf = (v: unknown): SeasonPaceMode => (v === 'recent' || v === 'analysis' ? v : legacyPaceMode);
+  const seasonPaceModes: SeasonPaceModes = {
+    precip: paceModeOf(data?.seasonPaceModes?.precip),
+    gdd: paceModeOf(data?.seasonPaceModes?.gdd),
+    sunshine: paceModeOf(data?.seasonPaceModes?.sunshine),
+  };
   return {
     baseTempSettings, accumStartDates, accumDeltaThresholds,
     defaultLocationId, enabledJmaGroups, enabledAiSections, aiCustomPrompt,
-    weatherCodeMode, seasonPaceMode,
+    weatherCodeMode, seasonPaceModes,
   };
 }
 
@@ -134,9 +140,9 @@ export async function updateWeatherCodeMode(
   await setDoc(doc(db, 'users', uid), { weatherCodeMode: mode }, { merge: true });
 }
 
-export async function updateSeasonPaceMode(
+export async function updateSeasonPaceModes(
   uid: string,
-  mode: SeasonPaceMode,
+  modes: SeasonPaceModes,
 ): Promise<void> {
-  await setDoc(doc(db, 'users', uid), { seasonPaceMode: mode }, { merge: true });
+  await setDoc(doc(db, 'users', uid), { seasonPaceModes: modes }, { merge: true });
 }

@@ -274,21 +274,25 @@ export function buildSeasonReview(map: DayMap, today: string): SeasonReview | nu
 
 // ---- 季節のあしどり ----
 
-/** analysis = 空くらべの開始日・基準温度に合わせる / recent = すべて直近30日で比べる */
+/** analysis = 累積（空くらべの開始日から）/ recent = 直近30日 */
 export type SeasonPaceMode = 'analysis' | 'recent';
+/** 比べ方を選べる項目（気温は常に直近30日） */
+export type PaceMetric = 'precip' | 'gdd' | 'sunshine';
+export type SeasonPaceModes = Record<PaceMetric, SeasonPaceMode>;
 
 export interface PaceOptions {
-  mode: SeasonPaceMode;
+  /** 項目ごとの比べ方 */
+  modes: SeasonPaceModes;
   /** 積算温度の基準温度（℃）。空くらべの基準温度1 */
   baseTemp: number;
   /** 空くらべの累積開始日（MM-DD） */
   startDates: { precip: string; sunshine: string; gdd: string };
-  /** 積算温度がこの値（℃日）未満のうちは日数差を出さず差で示す。空くらべの「日数差」ガードと共有 */
+  /** 累積の積算温度がこの値未満のうちは日数差が安定しないので出さない。空くらべの「日数差」ガードと共有 */
   gddDaysMin: number;
 }
 
 export const DEFAULT_PACE_OPTIONS: PaceOptions = {
-  mode: 'analysis',
+  modes: { precip: 'analysis', gdd: 'analysis', sunshine: 'analysis' },
   baseTemp: 10,
   startDates: { precip: '01-01', sunshine: '01-01', gdd: '01-01' },
   gddDaysMin: 30,
@@ -322,7 +326,8 @@ function cumulative(map: DayMap, start: string, end: string, base: number): numb
 }
 
 const lastOf = (s: number[]) => s[s.length - 1];
-const degDays = (v: number) => `${signed(Math.round(v), 0)}℃日`;
+/** 直近30日の積算温度の差。単位は℃（累積は日数差で示すので℃日は使わない） */
+const degrees = (v: number) => `${signed(Math.round(v), 0)}℃`;
 
 function paceClause(subject: string, d: PaceDiff): string {
   if (d === 'ahead') return `${subject}より早いペース`;
@@ -346,7 +351,7 @@ function windowStats(map: DayMap, start: string, last: string) {
   return cur && cmp ? { cur, ...cmp } : null;
 }
 
-/** 開始日からの積算温度の早い・遅い（比較年が今年の現在値に届いた日との差）。序盤は℃日の差 */
+/** 開始日からの積算温度の早い・遅い（比較年が今年の現在値に届いた日との差）。積算が小さい序盤は出さない */
 function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): string | null {
   const cur = cumulative(map, start, last, opts.baseTemp);
   if (!cur || cur.length === 0) return null;
@@ -361,10 +366,8 @@ function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): s
   const avg = Array.from({ length: len }, (_, i) => series.reduce((a, s) => a + s[i], 0) / series.length);
   const target = lastOf(cur);
   const idx = cur.length - 1;
-  if (target < opts.gddDaysMin) {
-    const at = (s: number[]) => s[Math.min(idx, s.length - 1)];
-    return `去年より${degDays(target - at(series[0]))}・5年平均より${degDays(target - at(avg))}`;
-  }
+  // 序盤（基準温度10℃なら冬〜春先）は日数差がぶれる・意味を持たないため項目ごと出さない（空くらべの日数差ガードと同じ）
+  if (target < opts.gddDaysMin) return null;
   const diff = (s: number[]): PaceDiff => {
     const j = s.findIndex(v => v >= target);
     return j === -1 ? 'ahead' : j - idx;
@@ -372,7 +375,7 @@ function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): s
   return `${paceClause('去年', diff(series[0]))}・${paceClause('5年平均', diff(avg))}`;
 }
 
-/** 直近期間の積算温度の差（℃日） */
+/** 直近期間の積算温度の差（℃） */
 function gddRecent(map: DayMap, start: string, last: string, base: number): string | null {
   const cur = cumulative(map, start, last, base);
   if (!cur || cur.length === 0) return null;
@@ -383,7 +386,7 @@ function gddRecent(map: DayMap, start: string, last: string, base: number): stri
     per.push(lastOf(s));
   }
   const avg = per.reduce((a, v) => a + v, 0) / per.length;
-  return `去年より${degDays(lastOf(cur) - per[0])}・5年平均より${degDays(lastOf(cur) - avg)}`;
+  return `去年より${degrees(lastOf(cur) - per[0])}・5年平均より${degrees(lastOf(cur) - avg)}`;
 }
 
 /**
@@ -398,7 +401,7 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
   const recentLabel = `この${RECENT_DAYS}日`;
   const items: PaceItem[] = [];
 
-  // 気温はどちらのモードでも直近30日の平均（起点からの平均は季節がまざって差が見えにくい）
+  // 気温は常に直近30日の平均（起点からの平均は季節がまざって差が見えにくい）
   const t = windowStats(map, recentStart, last);
   if (t) {
     items.push({
@@ -409,14 +412,15 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
     });
   }
 
-  // 比べる期間: recent は直近30日、analysis は今年の開始日から（開始日がまだ来ていなければ出さない）
-  const windowOf = (mmdd: string): { start: string; label: string } | null => {
-    if (opts.mode === 'recent') return { start: recentStart, label: recentLabel };
+  // 比べる期間（項目ごとの設定）: recent は直近30日、analysis は今年の開始日から（開始日がまだ来ていなければ出さない）
+  const windowOf = (metric: PaceMetric): { start: string; label: string } | null => {
+    if (opts.modes[metric] === 'recent') return { start: recentStart, label: recentLabel };
+    const mmdd = opts.startDates[metric];
     const start = shiftYear(`2000-${mmdd}`, y - 2000); // 2/29 開始を平年は 2/28 に
     return start <= last ? { start, label: `${Number(mmdd.slice(0, 2))}月${Number(mmdd.slice(3, 5))}日から` } : null;
   };
 
-  const pw = windowOf(opts.startDates.precip);
+  const pw = windowOf('precip');
   const p = pw && windowStats(map, pw.start, last);
   if (pw && p) {
     items.push({
@@ -427,15 +431,15 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
     });
   }
 
-  const gw = windowOf(opts.startDates.gdd);
-  const g = gw && (opts.mode === 'recent'
+  const gw = windowOf('gdd');
+  const g = gw && (opts.modes.gdd === 'recent'
     ? gddRecent(map, gw.start, last, opts.baseTemp)
     : gddPace(map, gw.start, last, opts));
   if (gw && g) {
     items.push({ kind: 'gdd', name: '積算温度', period: `${gw.label}・${opts.baseTemp}℃基準`, text: g });
   }
 
-  const sw = windowOf(opts.startDates.sunshine);
+  const sw = windowOf('sunshine');
   const sun = sw && windowStats(map, sw.start, last);
   if (sw && sun) {
     items.push({
