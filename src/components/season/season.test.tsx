@@ -1,14 +1,15 @@
-import { act, cleanup, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { SeasonReview } from '../../lib/seasonReview';
 
-vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn() }));
-import { logSeasonCardView } from '../../lib/analytics';
+vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn(), logSeasonCardBrowse: vi.fn() }));
+import { logSeasonCardView, logSeasonCardBrowse } from '../../lib/analytics';
 import { SeasonPaceTicker } from './SeasonPaceTicker';
 import type { PaceItem } from '../../lib/seasonReview';
 import type { SeasonState } from '../../hooks/useSeasonReview';
 import { SeasonInlineCard, SeasonReviewCard } from './SeasonReviewCard';
+import { SeasonReviewCarousel } from './SeasonReviewCarousel';
 
 beforeAll(setupMotionTestEnv);
 afterEach(cleanup);
@@ -155,5 +156,65 @@ describe('SeasonPaceTicker の表示', () => {
     renderWithMotion(<SeasonPaceTicker state={{ status: 'ready', view: { paceItems: [{ kind: 'precip', name: '降水量', period: '1月1日から', text: '去年の1.8倍・5年平均の1.4倍' }], review: null, reviews: [], showCard: false } }} />);
     expect(document.querySelector('.season-strip__name')?.textContent).toBe('降水量');
     expect(document.querySelector('.season-strip__label')?.textContent).toBe('季節のあしどり（1月1日から）');
+  });
+});
+
+describe('SeasonReviewCarousel', () => {
+  const names = ['寒露', '秋分', '白露'];
+  const reviews = names.map((name, i): SeasonReview => ({ ...review, range: { ...review.range, name, index: 12 + i } }));
+  const setScroll = (track: Element, scrollLeft: number, clientWidth = 300) => {
+    Object.defineProperty(track, 'clientWidth', { configurable: true, value: clientWidth });
+    Object.defineProperty(track, 'scrollLeft', { configurable: true, writable: true, value: scrollLeft });
+  };
+  beforeEach(() => {
+    vi.mocked(logSeasonCardBrowse).mockClear();
+    vi.stubGlobal('IntersectionObserver', class { observe() {} disconnect() {} });
+  });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('スライドと点を数だけ描き、最新（最後）を初期表示する', () => {
+    const onIndexChange = vi.fn();
+    renderWithMotion(<SeasonReviewCarousel reviews={reviews} onIndexChange={onIndexChange} />);
+    expect(screen.getAllByRole('group', { name: /^\d\/3 / })).toHaveLength(3);
+    const dots = screen.getAllByRole('button', { name: /のふりかえり（\d\/3）/ });
+    expect(dots).toHaveLength(3);
+    expect(dots[2].getAttribute('aria-current')).toBe('true');
+    expect(dots[0].getAttribute('aria-current')).toBeNull();
+    expect(onIndexChange).toHaveBeenCalledWith(2);
+  });
+
+  it('点を押すとその位置へスクロールする', () => {
+    const scrollTo = vi.fn();
+    HTMLElement.prototype.scrollTo = scrollTo as unknown as typeof HTMLElement.prototype.scrollTo;
+    renderWithMotion(<SeasonReviewCarousel reviews={reviews} />);
+    fireEvent.click(screen.getByRole('button', { name: '寒露のふりかえり（1/3）' }));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ left: 0 }));
+  });
+
+  it('スクロール位置から現在位置を求め、遡った分を計測する', () => {
+    const onIndexChange = vi.fn();
+    renderWithMotion(<SeasonReviewCarousel reviews={reviews} onIndexChange={onIndexChange} />);
+    const track = screen.getByRole('region', { name: '節気のふりかえり' });
+    setScroll(track, 300);
+    fireEvent.scroll(track);
+    expect(onIndexChange).toHaveBeenLastCalledWith(1);
+    expect(screen.getByRole('button', { name: '秋分のふりかえり（2/3）' }).getAttribute('aria-current')).toBe('true');
+    expect(logSeasonCardBrowse).toHaveBeenCalledWith(1);
+    setScroll(track, 0);
+    fireEvent.scroll(track);
+    expect(logSeasonCardBrowse).toHaveBeenCalledWith(2);
+  });
+
+  it('最新では「次の節気」が無効、「前の節気」は有効', () => {
+    renderWithMotion(<SeasonReviewCarousel reviews={reviews} />);
+    expect((screen.getByRole('button', { name: '次の節気' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: '前の節気' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('1件ならカードだけ（点・矢印なし）', () => {
+    renderWithMotion(<SeasonReviewCarousel reviews={reviews.slice(2)} />);
+    expect(screen.getByText('日差しが多く、雨の少ない半月でした')).toBeTruthy();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('region')).toBeNull();
   });
 });

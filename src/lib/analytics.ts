@@ -58,3 +58,12 @@ export function logSeasonCardView(source: 'inline' | 'sheet'): void {
 export function logSeasonCardOpen(): void {
   track('season_card_open');
 }
+
+// season_card_browse は「何節気前まで遡ったか」ごとに1セッション1回（スワイプで膨らませない）。
+const seasonCardBrowseLogged = new Set<number>();
+/** ふりかえりカードを左右にめくって古い節気を見た。back = 最新から何節気前か（1以上）。 */
+export function logSeasonCardBrowse(back: number): void {
+  if (seasonCardBrowseLogged.has(back)) return;
+  seasonCardBrowseLogged.add(back);
+  track('season_card_browse', { back });
+}

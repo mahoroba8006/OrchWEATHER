@@ -22,7 +22,8 @@ import { fallbackSky, useSkyStore, type SkyState, type SkySummary } from '../../
 import { Sheet } from '../ui/Sheet';
 import { useSeasonReview } from '../../hooks/useSeasonReview';
 import { SeasonPaceTicker } from '../season/SeasonPaceTicker';
-import { SeasonInlineCard, SeasonReviewCard } from '../season/SeasonReviewCard';
+import { SeasonInlineCard } from '../season/SeasonReviewCard';
+import { SeasonReviewCarousel } from '../season/SeasonReviewCarousel';
 import { DEFAULT_PACE_OPTIONS, type PaceOptions, type SeasonReview } from '../../lib/seasonReview';
 import { logSeasonCardOpen } from '../../lib/analytics';
 import {
@@ -98,6 +99,10 @@ export function WeatherTab() {
   };
   const season = useSeasonReview(location?.lat ?? null, location?.lon ?? null, data, paceOptions);
   const seasonReview = season.status === 'ready' ? season.view.review : null;
+  const seasonReviews = season.status === 'ready' ? season.view.reviews : [];
+  // シート内でいま見えている節気（スワイプで変わる）。閉じたら null に戻す
+  const [sheetIndex, setSheetIndex] = useState<number | null>(null);
+  const shownReview = sheetIndex !== null ? seasonReviews[sheetIndex] : seasonReview;
   // 開いたときのふりかえりを覚える。地点切替などで別のふりかえりになったら閉じ、戻っても勝手に開き直さない
   const [openedReview, setOpenedReview] = useState<SeasonReview | null>(null);
 
@@ -408,10 +413,10 @@ export function WeatherTab() {
       </div>
       <Sheet
         open={openedReview !== null && openedReview === seasonReview}
-        onClose={() => setOpenedReview(null)}
-        title={seasonReview ? `${seasonReview.range.name}のふりかえり` : 'ふりかえり'}
+        onClose={() => { setOpenedReview(null); setSheetIndex(null); }}
+        title={shownReview ? `${shownReview.range.name}のふりかえり` : 'ふりかえり'}
       >
-        {seasonReview && <SeasonReviewCard review={seasonReview} source="sheet" />}
+        {seasonReviews.length > 0 && <SeasonReviewCarousel reviews={seasonReviews} onIndexChange={setSheetIndex} />}
       </Sheet>
       <Footer />
     </div>
