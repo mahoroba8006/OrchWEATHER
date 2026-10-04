@@ -418,3 +418,41 @@
   font-size: 0.82rem;
 }
 .lp-footer a { color: rgba(255, 255, 255, 0.55); }
+
+/* ── LP 全面見直し（2026-10-05） ── */
+.lp-hero__grid { display: flex; flex-wrap: wrap; align-items: center; gap: clamp(2rem, 5vw, 3.5rem); }
+.lp-hero__badge {
+  display: inline-flex; align-items: center; gap: 0.4rem; margin: 0 0 1.1rem; padding: 0.35rem 0.9rem;
+  border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.8rem;
+}
+.lp-hero__title { font-size: clamp(1.6rem, 6vw, 2.5rem); font-weight: 800; line-height: 1.38; letter-spacing: 0.01em; margin: 0 0 1rem; }
+.lp-hero__lead { margin-bottom: 1.5rem; }
+.lp-hero__shot { max-width: 360px; margin: 0 auto; }
+
+/* 2 つのボタンを同じ強さで並べる（狭い画面は縦に同じ幅） */
+.lp-cta-pair { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+.lp-cta--pair { flex: 1 1 200px; justify-content: center; }
+.lp-cta__google { display: inline-flex; padding: 3px; border-radius: 6px; background: #fff; }
+.lp-cta--on-dark { background: #fff; color: var(--accent); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18); }
+.lp-cta-note { margin: 0.7rem 0 0; font-size: 0.78rem; color: var(--ink-3); }
+.lp-error { margin: 0.6rem 0 0; font-size: 0.85rem; color: #dc2626; }
+
+/* パッと見せる層の章 */
+.lp-glance { display: grid; gap: clamp(1.5rem, 4vw, 3rem); align-items: center; }
+@media (min-width: 860px) {
+  .lp-glance { grid-template-columns: 1fr 1fr; }
+  .lp-glance--reverse > :first-child { order: 2; }
+}
+.lp-eyebrow { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0 0 0.6rem; color: var(--accent); font-weight: 700; font-size: 0.85rem; }
+.lp-glance__title { margin-bottom: 0.4rem; }
+.lp-glance__note { margin: 0 0 1rem; color: var(--ink-3); font-size: 0.85rem; letter-spacing: 0.08em; }
+.lp-glance__big { margin: 0; font-size: clamp(1.05rem, 3.2vw, 1.25rem); font-weight: 700; line-height: 1.7; }
+.lp-points { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.6rem; }
+.lp-points li { display: flex; align-items: center; gap: 0.55rem; font-weight: 600; font-size: 0.98rem; }
+.lp-points svg { flex-shrink: 0; color: var(--accent); }
+.lp-shot-stack { display: grid; gap: 1rem; max-width: 420px; margin: 0 auto; }
+.lp-section--tight { padding-top: 0; padding-bottom: clamp(1rem, 3vw, 2rem); }
+
+/* 章の区切りの節気の絵（白い絵なので青い台に載せる） */
+.lp-sekki-divider { display: flex; justify-content: center; padding: clamp(0.5rem, 2vw, 1rem) 0; opacity: 0.85; }
+.lp-sekki-divider__tile { display: inline-flex; padding: 4px; border-radius: 12px; background: linear-gradient(180deg, #4f86c0, #2d5f96); }

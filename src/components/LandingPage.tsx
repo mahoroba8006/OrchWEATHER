@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode, type CSSProperties } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import {
-  Leaf, ArrowRight, Quote, Sparkles, BarChart2, CloudSun, SlidersHorizontal, Sprout,
-  Clock, CloudRain, History, Droplets,
+  Leaf, ArrowRight, BarChart2, CloudSun, Sprout, MapPin, CalendarRange, Thermometer,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { logLogin } from '../lib/analytics';
+import { logLogin, logLpDetailOpen } from '../lib/analytics';
+import { SekkiArt } from './sky/sekkiArt';
 import '../landing.css';
 
 /* ─────────────────────────────────────────
@@ -291,6 +291,57 @@ function GoogleIcon() {
   );
 }
 
+/** 「ログインせずに試す」「Googleで始める」を同じ強さで並べる */
+function CtaPair({ loading, onLogin, onTryGuest, onDark = false }: { loading: boolean; onLogin: () => void; onTryGuest: () => void; onDark?: boolean }) {
+  const cls = onDark ? 'lp-cta lp-cta--pair lp-cta--on-dark' : 'lp-cta lp-cta--pair';
+  return (
+    <div className="lp-cta-pair">
+      <button className={cls} onClick={onTryGuest}>
+        <CloudSun size={18} /> ログインせずに試す
+      </button>
+      <button className={cls} onClick={onLogin} disabled={loading}>
+        <span className="lp-cta__google"><GoogleIcon /></span>
+        {loading ? 'ログイン中...' : 'Googleで始める'}
+      </button>
+    </div>
+  );
+}
+
+/** 画面写真（角丸・影つき） */
+function Shot({ src, alt, width, height, eager = false }: { src: string; alt: string; width: number; height: number; eager?: boolean }) {
+  return <img className="lp-shot" src={src} alt={alt} width={width} height={height} loading={eager ? 'eager' : 'lazy'} />;
+}
+
+/** 章の区切りの節気の絵（白い絵なので青い台に載せる）。立春から順に使う */
+function SekkiDivider({ index }: { index: number }) {
+  return (
+    <div className="lp-sekki-divider" aria-hidden="true">
+      <span className="lp-sekki-divider__tile"><SekkiArt index={index} size={40} /></span>
+    </div>
+  );
+}
+
+/** パッと見せる層の章（見出し一行＋添える一行＋写真） */
+function GlanceSection({ eyebrow, title, note, lead, children, reverse = false }: {
+  eyebrow: ReactNode; title: string; note?: string; lead: ReactNode; children: ReactNode; reverse?: boolean;
+}) {
+  return (
+    <section className="lp-section">
+      <div className="lp-container">
+        <div className={reverse ? 'lp-glance lp-glance--reverse' : 'lp-glance'}>
+          <Reveal variant={reverse ? 'fade-right' : 'fade-left'}>
+            <p className="lp-eyebrow">{eyebrow}</p>
+            <h2 className="lp-h2 lp-glance__title">{title}</h2>
+            {note && <p className="lp-glance__note">{note}</p>}
+            <div className="lp-glance__lead">{lead}</div>
+          </Reveal>
+          <Reveal variant={reverse ? 'fade-left' : 'fade-right'}>{children}</Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function TabBadge({ icon: Icon, name }: { icon: typeof CloudSun; name: string }) {
   return (
     <div style={{
@@ -361,48 +412,88 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
   return (
     <section className="lp-hero lp-section" style={{ paddingTop: 'clamp(2.5rem, 6vw, 4rem)' }}>
       <HeroSky />
-      <div className="lp-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'clamp(2rem, 5vw, 3.5rem)' }}>
+      <div className="lp-container lp-hero__grid">
         <Reveal style={{ flex: '1 1 400px', minWidth: 0 }}>
-          <p style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-            background: 'var(--accent-soft)', color: 'var(--accent)',
-            fontWeight: 700, fontSize: '0.8rem', borderRadius: 999,
-            padding: '0.35rem 0.9rem', margin: '0 0 1.1rem',
-          }}>
-            <Sprout size={14} /> 農家が現場で作った気象データ活用ツール
-          </p>
-          <h1 style={{
-            fontSize: 'clamp(1.4rem, 5.2vw, 2.2rem)', fontWeight: 800,
-            lineHeight: 1.42, letterSpacing: '0.01em', margin: '0 0 1.1rem',
-          }}>
-            今日できるか、すぐわかる。<br />去年と比べて、数字で見える。
-          </h1>
-          <p className="lp-lead" style={{ marginBottom: '1.6rem' }}>
-            天気は午前・午後・夜間に分けて、雨は「カッパが要るか」まで——農業に効くさまざまな指標をわかりやすく表示。去年や他の地点との比較も、積算温度の自動計算も、グラフで見える化。農家が現場で欲しかったものだけを、ひとつのアプリに。
-          </p>
-          <button className="lp-cta" onClick={onLogin} disabled={loading}>
-            <span style={{ background: '#fff', borderRadius: 6, padding: 3, display: 'inline-flex' }}><GoogleIcon /></span>
-            {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
-            <ArrowRight size={17} />
-          </button>
-          <div style={{ marginTop: '0.8rem' }}>
-            <button className="lp-cta lp-cta--ghost" onClick={onTryGuest}>
-              ログインせずに試す（現在地のみ）
-              <ArrowRight size={17} />
-            </button>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--ink-3)', margin: '0.7rem 0 0' }}>
-            登録30秒・いまは完全無料
-          </p>
-          {error && <p style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '0.6rem' }}>{error}</p>}
+          <p className="lp-hero__badge"><Sprout size={14} /> 農家が現場で作った天気アプリ</p>
+          <h1 className="lp-hero__title">『今年は遅い』が、数字で見える。</h1>
+          <p className="lp-lead lp-hero__lead">二十四節気ごとに、去年・5年平均と比べてふりかえる、農家のための天気アプリ。</p>
+          <CtaPair loading={loading} onLogin={onLogin} onTryGuest={onTryGuest} />
+          <p className="lp-cta-note">ログインなしでも現在地で試せます。Googleアカウントなら登録30秒・いまは無料。</p>
+          {error && <p className="lp-error">{error}</p>}
         </Reveal>
         <Reveal variant="scale" delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
           <div ref={phoneParallaxRef} className="lp-phone-parallax">
-            <div className="lp-phone lp-phone--float">
-              <img src="/lp/hero-imanosora.png" alt="空もよう — 午前・午後・夜間の空模様がわかる画面" width={1170} height={2439} />
+            <div className="lp-hero__shot lp-phone--float">
+              <Shot src="/lp/review-card.webp" alt="節気のふりかえりカード — 去年・5年平均と比べた気温・雨・日照" width={780} height={1114} eager />
             </div>
           </div>
         </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function SeasonSection() {
+  return (
+    <GlanceSection
+      eyebrow={<><CalendarRange size={16} /> 季節のふりかえり</>}
+      title="二十四節気ごとに、今年の半月を一枚に。"
+      note="暦は、農の時計だった。"
+      lead={<p className="lp-glance__big">積算温度、去年より18日遅い。<br />数字で、季節の進み具合がわかる。</p>}
+    >
+      <div className="lp-shot-stack">
+        <Shot src="/lp/season-band.webp" alt="季節のあしどり — 気温・降水量・積算温度・日照を去年と比べる帯" width={780} height={106} />
+        <Shot src="/lp/review-card.webp" alt="節気のふりかえりカード" width={780} height={1114} />
+      </div>
+    </GlanceSection>
+  );
+}
+
+function KurabeSection() {
+  return (
+    <GlanceSection
+      reverse
+      eyebrow={<><BarChart2 size={16} /> 空くらべ</>}
+      title="去年と、あの場所と、並べて見える。"
+      lead={
+        <ul className="lp-points">
+          <li><CalendarRange size={18} /> 年をまたいで、重ねて比べる</li>
+          <li><MapPin size={18} /> 地点を並べて、違いを比べる</li>
+          <li><Thermometer size={18} /> 積算温度を、自動で計算</li>
+        </ul>
+      }
+    >
+      <div className="lp-shot-stack">
+        <Shot src="/lp/kurabe-temp.webp" alt="空くらべ — 今年と去年の気温を重ねたグラフ" width={780} height={1157} />
+        <Shot src="/lp/kurabe-gdd.webp" alt="空くらべ — 有効積算温度のグラフ" width={780} height={1253} />
+      </div>
+    </GlanceSection>
+  );
+}
+
+function MoyoSection() {
+  return (
+    <GlanceSection
+      eyebrow={<><CloudSun size={16} /> 空もよう</>}
+      title="今日の作業、やるかやめるかすぐ決まる。"
+      lead={
+        <ul className="lp-points">
+          <li>「リスクでみる」— その時間帯のいちばん悪い天気</li>
+          <li>「概況でみる」— その時間帯のいちばん長い天気</li>
+          <li>毎日、今日の節気と七十二候を表示</li>
+        </ul>
+      }
+    >
+      <Shot src="/lp/moyo.webp" alt="空もよう — 午前・午後・夜間の天気と、リスク／概況の切り替え" width={780} height={1688} />
+    </GlanceSection>
+  );
+}
+
+function MidCta(props: { loading: boolean; onLogin: () => void; onTryGuest: () => void }) {
+  return (
+    <section className="lp-section lp-section--tight">
+      <div className="lp-container-narrow" style={{ textAlign: 'center' }}>
+        <Reveal><CtaPair {...props} /></Reveal>
       </div>
     </section>
   );
