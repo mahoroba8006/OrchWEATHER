@@ -456,3 +456,22 @@
 /* 章の区切りの節気の絵（白い絵なので青い台に載せる） */
 .lp-sekki-divider { display: flex; justify-content: center; padding: clamp(0.5rem, 2vw, 1rem) 0; opacity: 0.85; }
 .lp-sekki-divider__tile { display: inline-flex; padding: 4px; border-radius: 12px; background: linear-gradient(180deg, #4f86c0, #2d5f96); }
+
+/* 詳しく読む層（折りたたみ） */
+.lp-details-list { display: grid; gap: 0.8rem; margin-top: 1.4rem; }
+.lp-details { border-radius: var(--radius-lg, 16px); background: rgba(255, 255, 255, 0.72); border: 1px solid var(--line); overflow: hidden; }
+.lp-details__summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1rem 1.2rem; cursor: pointer; list-style: none; font-weight: 700; font-size: 0.98rem;
+}
+.lp-details__summary::-webkit-details-marker { display: none; }
+.lp-details__summary::after { content: '＋'; color: var(--accent); font-weight: 700; }
+.lp-details[open] .lp-details__summary::after { content: '−'; }
+.lp-details__body { padding: 0 1.2rem 1.2rem; }
+.lp-details__h3 { margin: 1.2rem 0 0.5rem; font-size: 0.95rem; font-weight: 800; }
+.lp-details__h3:first-child { margin-top: 0.2rem; }
+.lp-details__list { margin: 0; padding-left: 1.2em; display: grid; gap: 0.45rem; font-size: 0.88rem; line-height: 1.8; color: var(--ink-2); }
+.lp-details__p { margin: 0 0 0.8rem; font-size: 0.9rem; line-height: 1.9; color: var(--ink-2); }
+.lp-faq { margin: 0; display: grid; gap: 1rem; }
+.lp-faq__item dt { font-weight: 700; font-size: 0.92rem; margin-bottom: 0.3rem; }
+.lp-faq__item dd { margin: 0; font-size: 0.88rem; line-height: 1.85; color: var(--ink-2); }
