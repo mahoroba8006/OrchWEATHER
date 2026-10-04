@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { User } from 'firebase/auth';
 import type { WeatherCodeMode } from './lib/wmoSeverity';
 import type { SeasonPaceModes } from './lib/seasonReview';
+import { loadGuestHiddenHourlyRows, saveGuestHiddenHourlyRows, DEFAULT_HIDDEN_HOURLY_ROWS, type HourlyRowKey } from './lib/hourlyRows';
 import { fetchAiAllowed } from './api/me';
 import {
   fetchLocations,
@@ -19,6 +20,7 @@ import {
   updateAiCustomPrompt as updateAiCustomPromptRemote,
   updateWeatherCodeMode as updateWeatherCodeModeRemote,
   updateSeasonPaceModes as updateSeasonPaceModesRemote,
+  updateHiddenHourlyRows as updateHiddenHourlyRowsRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -70,6 +72,7 @@ export interface UserSettings {
   aiCustomPrompt:       string;
   weatherCodeMode:      WeatherCodeMode;
   seasonPaceModes:      SeasonPaceModes;
+  hiddenHourlyRows:     HourlyRowKey[];
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -94,6 +97,7 @@ interface AppState {
   geoStatus: 'idle' | 'loading' | 'error';
   aiAllowed: boolean;
   guestMode: boolean;
+  guestHiddenHourlyRows: HourlyRowKey[];
 
   setUser: (user: User | null) => void;
   setAuthLoading: (loading: boolean) => void;
@@ -113,6 +117,7 @@ interface AppState {
   updateAiCustomPrompt: (prompt: string) => Promise<void>;
   updateWeatherCodeMode: (mode: WeatherCodeMode) => Promise<void>;
   updateSeasonPaceModes: (modes: SeasonPaceModes) => Promise<void>;
+  updateHiddenHourlyRows: (rows: HourlyRowKey[]) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -128,6 +133,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   geoStatus: 'idle',
   aiAllowed: false,
   guestMode: typeof localStorage !== 'undefined' && localStorage.getItem('guestMode') === '1',
+  guestHiddenHourlyRows: loadGuestHiddenHourlyRows(),
 
   setUser: (user) => set({ user }),
   setAuthLoading: (loading) => set({ authLoading: loading }),
@@ -188,6 +194,22 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, seasonPaceModes: modes }
+        : null,
+    }));
+  },
+
+  // ログイン中は Firestore、ゲストは localStorage に保存（成功してから状態を更新）
+  updateHiddenHourlyRows: async (rows) => {
+    const uid = get().user?.uid;
+    if (!uid) {
+      saveGuestHiddenHourlyRows(rows);
+      set({ guestHiddenHourlyRows: rows });
+      return;
+    }
+    await updateHiddenHourlyRowsRemote(uid, rows);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, hiddenHourlyRows: rows }
         : null,
     }));
   },
@@ -278,6 +300,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }));
   },
 }));
+
+/** 時間別の表で非表示にする行（ログイン設定 → ゲスト値 → おすすめ） */
+export function useHiddenHourlyRows(): HourlyRowKey[] {
+  return useAppStore(s => s.userSettings?.hiddenHourlyRows ?? s.guestHiddenHourlyRows ?? DEFAULT_HIDDEN_HOURLY_ROWS);
+}
 
 export {
   DEFAULT_BASE_TEMP_SETTINGS,
