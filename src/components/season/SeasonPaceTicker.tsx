@@ -61,39 +61,41 @@ export function SeasonPaceTicker({ state }: { state: SeasonState }) {
 
   const item = items[current];
   return (
-    <button
-      ref={ref}
-      type="button"
-      className="season-strip season-strip--ticker"
-      aria-label="季節のあしどり 次の項目を表示"
-      onClick={() => setIndex((current + 1) % count)}
-    >
-      <span aria-hidden="true" className="season-strip__stage">
-        <AnimatePresence initial={false}>
-          <m.span
-            key={`${item.kind}-${current}`}
-            className="season-strip__item"
-            initial={{ y: '100%', opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '-100%', opacity: 0 }}
-            transition={springs.move}
-          >
-            <span className="season-strip__label">{item.label}</span>
-            <span className="season-strip__text">{item.text}</span>
-          </m.span>
-        </AnimatePresence>
-      </span>
-      <span aria-hidden="true" className="season-strip__dots">
-        {items.map((it, i) => (
-          <i key={it.kind} className={i === current ? 'is-current' : undefined} />
-        ))}
-      </span>
-      {/* 読み上げ用：切り替え中の文言を拾わず、全項目を一度に伝える */}
+    <section className="season-pace" aria-label="季節のあしどり">
+      {/* 読み上げ用：切り替え中の文言を拾わず、全項目を一度に伝える（ボタンの中に置くと aria-label に隠れて読まれない） */}
       <ul className="season-sr">
         {items.map((it) => (
           <li key={it.kind}>{`${it.label}：${it.text}`}</li>
         ))}
       </ul>
-    </button>
+      <button
+        ref={ref}
+        type="button"
+        className="season-strip season-strip--ticker"
+        aria-label="季節のあしどり 次の項目を表示"
+        onClick={() => setIndex((current + 1) % count)}
+      >
+        <span aria-hidden="true" className="season-strip__stage">
+          <AnimatePresence initial={false}>
+            <m.span
+              key={`${item.kind}-${current}`}
+              className="season-strip__item"
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '-100%', opacity: 0 }}
+              transition={springs.move}
+            >
+              <span className="season-strip__label">{item.label}</span>
+              <span className="season-strip__text">{item.text}</span>
+            </m.span>
+          </AnimatePresence>
+        </span>
+        <span aria-hidden="true" className="season-strip__dots">
+          {items.map((it, i) => (
+            <i key={it.kind} className={i === current ? 'is-current' : undefined} />
+          ))}
+        </span>
+      </button>
+    </section>
   );
 }
