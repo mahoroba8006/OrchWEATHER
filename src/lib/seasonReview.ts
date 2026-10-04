@@ -212,7 +212,8 @@ export function rainCell(cur: number, base: number): CompareCell {
 
 // ---- 見出し ----
 
-interface Trait { score: number; connective: string; attributive: string }
+/** connective=つなぐ形（〜く）、predicative=言い切りの形（〜い） */
+interface Trait { score: number; connective: string; predicative: string }
 
 /** 5年平均とのずれから、ずれの大きい順に最大2項目で一文を作る（score はしきい値で正規化、1以上で該当） */
 /** 季節に合った気温の言葉。暦ではなく期間の最高気温の平均で選ぶ（地域差に合わせる。25℃は気象庁の「夏日」） */
@@ -228,22 +229,23 @@ const connective = (adj: string) => `${adj.slice(0, -1)}く`;
 export function headline(cur: RangeStats, avg: RangeStats, words: SeasonWords = seasonWords(25)): string {
   const traits: Trait[] = [];
   const dt = cur.meanTemp - avg.meanTemp;
-  if (dt > 1) traits.push({ score: dt, connective: connective(words.warm), attributive: words.warm });
-  else if (dt < -1) traits.push({ score: -dt, connective: connective(words.cold), attributive: words.cold });
+  if (dt > 1) traits.push({ score: dt, connective: connective(words.warm), predicative: words.warm });
+  else if (dt < -1) traits.push({ score: -dt, connective: connective(words.cold), predicative: words.cold });
   if (avg.precip >= RAIN_RATIO_MIN_BASE) {
     const r = cur.precip / avg.precip;
-    if (r < 0.7) traits.push({ score: 0.7 / Math.max(r, 0.07), connective: '雨が少なく', attributive: '雨の少ない' });
-    else if (r > 1.3) traits.push({ score: r / 1.3, connective: '雨が多く', attributive: '雨の多い' });
+    if (r < 0.7) traits.push({ score: 0.7 / Math.max(r, 0.07), connective: '雨が少なく', predicative: '雨が少ない' });
+    else if (r > 1.3) traits.push({ score: r / 1.3, connective: '雨が多く', predicative: '雨が多い' });
   }
   if (avg.sunshine > 0) {
     const s = cur.sunshine / avg.sunshine - 1;
-    if (s > 0.15) traits.push({ score: s / 0.15, connective: '日差しが多く', attributive: '日差しの多い' });
-    else if (s < -0.15) traits.push({ score: -s / 0.15, connective: '日差しが少なく', attributive: '日差しの少ない' });
+    if (s > 0.15) traits.push({ score: s / 0.15, connective: '日差しが多く', predicative: '日差しが多い' });
+    else if (s < -0.15) traits.push({ score: -s / 0.15, connective: '日差しが少なく', predicative: '日差しが少ない' });
   }
-  if (traits.length === 0) return '平年並みの穏やかな半月でした';
+  if (traits.length === 0) return '平年並みで穏やか';
   traits.sort((a, b) => b.score - a.score);
   const [first, second] = traits;
-  return second ? `${first.connective}、${second.attributive}半月でした` : `${first.attributive}半月でした`;
+  // 「〜半月でした」は付けず、言い切りで終える（例: 雨が少なく、日差しが多い）
+  return second ? `${first.connective}、${second.predicative}` : first.predicative;
 }
 
 // ---- 記録 ----

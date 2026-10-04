@@ -107,16 +107,16 @@ describe('比較文言', () => {
 describe('headline', () => {
   const avg = { meanTemp: 23, precip: 64, sunshine: 80 };
   it('ずれの大きい2項目を組み合わせる', () => {
-    expect(headline({ meanTemp: 24, precip: 38, sunshine: 96 }, avg)).toBe('日差しが多く、雨の少ない半月でした');
+    expect(headline({ meanTemp: 24, precip: 38, sunshine: 96 }, avg)).toBe('日差しが多く、雨が少ない');
   });
   it('1項目だけなら連体形で終える', () => {
-    expect(headline({ meanTemp: 25, precip: 64, sunshine: 80 }, avg)).toBe('暑い半月でした');
+    expect(headline({ meanTemp: 25, precip: 64, sunshine: 80 }, avg)).toBe('暑い');
   });
   it('該当なしは平年並み', () => {
-    expect(headline({ meanTemp: 23.5, precip: 60, sunshine: 85 }, avg)).toBe('平年並みの穏やかな半月でした');
+    expect(headline({ meanTemp: 23.5, precip: 60, sunshine: 85 }, avg)).toBe('平年並みで穏やか');
   });
   it('5年平均の雨が5mm未満なら雨は判定しない', () => {
-    expect(headline({ meanTemp: 23, precip: 20, sunshine: 80 }, { ...avg, precip: 2 })).toBe('平年並みの穏やかな半月でした');
+    expect(headline({ meanTemp: 23, precip: 20, sunshine: 80 }, { ...avg, precip: 2 })).toBe('平年並みで穏やか');
   });
 });
 
@@ -136,7 +136,7 @@ describe('buildSeasonReview', () => {
   it('期間・見出し・3項目・雨の棒・記録を組み立てる', () => {
     const r = buildSeasonReview(sampleMap(), '2026-10-01')!;
     expect(r.periodLabel).toBe('白露 9/7〜9/22（16日間）');
-    expect(r.headline).toBe('日差しが多く、雨の少ない半月でした');
+    expect(r.headline).toBe('日差しが多く、雨が少ない');
     expect(r.rows).toEqual([
       { label: '平均気温', value: '24.0℃', vsLastYear: { text: '+1.0℃', tone: 'more' }, vsAvg: { text: '+1.0℃', tone: 'more' } },
       { label: '雨の量', value: '38mm', vsLastYear: { text: '6割', tone: 'less' }, vsAvg: { text: '6割', tone: 'less' } },
@@ -307,9 +307,9 @@ describe('季節に合った言葉（seasonWords）', () => {
   });
   it('見出しも季節の言葉を使う（冬に平年より低ければ「寒い」）', () => {
     const avg = { meanTemp: 5, precip: 64, sunshine: 80 };
-    expect(headline({ meanTemp: 3, precip: 64, sunshine: 80 }, avg, seasonWords(10))).toBe('寒い半月でした');
-    expect(headline({ meanTemp: 7, precip: 64, sunshine: 80 }, avg, seasonWords(10))).toBe('暖かい半月でした');
-    expect(headline({ meanTemp: 7, precip: 30, sunshine: 80 }, avg, seasonWords(20))).toBe('暖かく、雨の少ない半月でした');
+    expect(headline({ meanTemp: 3, precip: 64, sunshine: 80 }, avg, seasonWords(10))).toBe('寒い');
+    expect(headline({ meanTemp: 7, precip: 64, sunshine: 80 }, avg, seasonWords(10))).toBe('暖かい');
+    expect(headline({ meanTemp: 7, precip: 30, sunshine: 80 }, avg, seasonWords(20))).toBe('暖かく、雨が少ない');
   });
   it('カードの記録ラベルは期間の最高気温に合わせる', () => {
     const map: DayMap = new Map();
@@ -353,5 +353,16 @@ describe('去年分だけ届いた段階（5年平均はまだ）', () => {
   it('requiredYears に何年さかのぼるかを渡せる（去年分だけの段階用）', () => {
     expect(requiredYears('2026-10-03', 1)).toEqual([2025, 2026]);
     expect(requiredYears('2026-06-10', 1)).toEqual([2024, 2025, 2026]);
+  });
+});
+
+describe('見出しの言い切り（「半月でした」を付けない）', () => {
+  const avg = { meanTemp: 20, precip: 64, sunshine: 80 };
+  it('ずれの大きい順に「〜く、〜い」でつなぐ', () => {
+    expect(headline({ meanTemp: 18, precip: 64, sunshine: 60 }, avg, seasonWords(20))).toBe('肌寒く、日差しが少ない');
+    expect(headline({ meanTemp: 19.5, precip: 64, sunshine: 40 }, avg, seasonWords(20))).toBe('日差しが少ない');
+    expect(headline({ meanTemp: 18.8, precip: 64, sunshine: 50 }, avg, seasonWords(20))).toBe('日差しが少なく、肌寒い');
+    expect(headline({ meanTemp: 22, precip: 64, sunshine: 60 }, avg, seasonWords(20))).toBe('暖かく、日差しが少ない');
+    expect(headline({ meanTemp: 20, precip: 120, sunshine: 80 }, avg, seasonWords(20))).toBe('雨が多い');
   });
 });
