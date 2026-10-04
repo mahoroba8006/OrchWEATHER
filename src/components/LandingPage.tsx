@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode, type CSSProperties } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import {
-  Leaf, ArrowRight, Quote, Sparkles, BarChart2, CloudSun, SlidersHorizontal, Sprout,
-  Clock, CloudRain, History, Droplets,
+  Leaf, BarChart2, CloudSun, Sprout, MapPin, CalendarRange, Thermometer,
 } from 'lucide-react';
 import { auth } from '../lib/firebase';
-import { logLogin } from '../lib/analytics';
+import { logLogin, logLpDetailOpen } from '../lib/analytics';
+import { SekkiArt } from './sky/sekkiArt';
 import '../landing.css';
 
 /* ─────────────────────────────────────────
@@ -45,37 +45,6 @@ function useScrollProgress(onProgress: (p: number) => void, opts?: { forceActive
       window.removeEventListener('resize', onScroll);
     };
   }, [onProgress, opts?.forceActive]);
-}
-
-/** 要素がビューポート中心からどれだけ離れているかに応じた translate3d オフセットを返す（速度差でパララックス表現）。 */
-function useParallax<T extends HTMLElement>(speed: number) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    if (prefersReducedMotion()) return;
-    const el = ref.current;
-    if (!el) return;
-    let ticking = false;
-    const update = () => {
-      ticking = false;
-      const rect = el.getBoundingClientRect();
-      const center = rect.top + rect.height / 2 - window.innerHeight / 2;
-      el.style.transform = `translate3d(0, ${(-center * speed).toFixed(2)}px, 0)`;
-    };
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(update);
-      }
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, [speed]);
-  return ref;
 }
 
 /* ─────────────────────────────────────────
@@ -122,12 +91,6 @@ function SkyBackdrop() {
   }, []);
   useScrollProgress(handleProgress);
   return <div ref={ref} className="lp-sky-backdrop" aria-hidden="true" />;
-}
-
-/* ── パララックス装飾雲（セクション間） ── */
-function ParallaxCloud({ speed, style }: { speed: number; style?: CSSProperties }) {
-  const ref = useParallax<HTMLDivElement>(speed);
-  return <div ref={ref} className="lp-parallax-cloud" aria-hidden="true" style={style} />;
 }
 
 /* ─────────────────────────────────────────
@@ -205,24 +168,6 @@ const isIOSStandalone = () =>
 /* ─────────────────────────────────────────
    データ定義
 ───────────────────────────────────────── */
-const tabOverview = [
-  {
-    icon: CloudSun,
-    name: '空もよう',
-    tagline: '午前・午後・夜間で、今日の作業を読む',
-  },
-  {
-    icon: BarChart2,
-    name: '空くらべ',
-    tagline: '去年と比べて、場所で比べて、数字で見える',
-  },
-  {
-    icon: History,
-    name: '空しらべ',
-    tagline: 'あの日の天気を、詳しく確認',
-  },
-];
-
 type CompMark = { m: '✓' | '○' | '◎' | '△' | '✗'; note?: string };
 type CompRow = { label: string; ours: CompMark; general: CompMark; jma: CompMark };
 
@@ -232,12 +177,6 @@ const compRows: CompRow[] = [
     ours: { m: '✓', note: '自動計算・グラフ表示' },
     general: { m: '✗' },
     jma: { m: '△', note: 'データはあるが自分で計算' },
-  },
-  {
-    label: 'AIの作業提案',
-    ours: { m: '△', note: '近日提供予定' },
-    general: { m: '✗' },
-    jma: { m: '✗' },
   },
   {
     label: '現場目線のラベル',
@@ -271,12 +210,6 @@ const compRows: CompRow[] = [
   },
 ];
 
-const steps = [
-  { num: 1, title: 'Googleアカウントで登録', body: '無料・30秒。メールアドレスの入力やパスワードの設定は不要です。' },
-  { num: 2, title: '畑の場所を登録', body: '現在地ならワンタップ。地図から選んで複数の圃場を登録することもできます。' },
-  { num: 3, title: '今日の「できる・できない」がすぐわかる', body: '午前・午後・夜間の空模様も、カッパが要るかどうかも、最初の画面ですぐにわかります。' },
-];
-
 /* ─────────────────────────────────────────
    共通パーツ
 ───────────────────────────────────────── */
@@ -291,22 +224,54 @@ function GoogleIcon() {
   );
 }
 
-function TabBadge({ icon: Icon, name }: { icon: typeof CloudSun; name: string }) {
+/** 「ログインせずに試す」「Googleで始める」を同じ強さで並べる */
+function CtaPair({ loading, onLogin, onTryGuest, onDark = false }: { loading: boolean; onLogin: () => void; onTryGuest: () => void; onDark?: boolean }) {
+  const cls = onDark ? 'lp-cta lp-cta--pair lp-cta--on-dark' : 'lp-cta lp-cta--pair';
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
-      padding: '0.45rem 1rem',
-      background: 'var(--accent-soft)',
-      border: '1px solid rgba(var(--accent-rgb),0.3)',
-      borderRadius: 999,
-      color: 'var(--accent)',
-      fontWeight: 800,
-      fontSize: '0.9rem',
-      marginBottom: '1.6rem',
-    }}>
-      <Icon size={15} />
-      {name}
+    <div className="lp-cta-pair">
+      <button className={cls} onClick={onTryGuest} disabled={loading}>
+        <CloudSun size={18} /> ログインせずに試す
+      </button>
+      <button className={cls} onClick={onLogin} disabled={loading}>
+        <span className="lp-cta__google"><GoogleIcon /></span>
+        {loading ? 'ログイン中...' : 'Googleで始める'}
+      </button>
     </div>
+  );
+}
+
+/** 画面写真（角丸・影つき） */
+function Shot({ src, alt, width, height, eager = false }: { src: string; alt: string; width: number; height: number; eager?: boolean }) {
+  return <img className="lp-shot" src={src} alt={alt} width={width} height={height} loading={eager ? 'eager' : 'lazy'} />;
+}
+
+/** 章の区切りの節気の絵（白い絵なので青い台に載せる）。立春から順に使う */
+function SekkiDivider({ index }: { index: number }) {
+  return (
+    <div className="lp-sekki-divider" aria-hidden="true">
+      <span className="lp-sekki-divider__tile"><SekkiArt index={index} size={40} /></span>
+    </div>
+  );
+}
+
+/** パッと見せる層の章（見出し一行＋添える一行＋写真） */
+function GlanceSection({ eyebrow, title, titleText, note, lead, children, reverse = false }: {
+  eyebrow: ReactNode; title: ReactNode; titleText: string; note?: string; lead: ReactNode; children: ReactNode; reverse?: boolean;
+}) {
+  return (
+    <section className="lp-section">
+      <div className="lp-container">
+        <div className={reverse ? 'lp-glance lp-glance--reverse' : 'lp-glance'}>
+          <Reveal variant={reverse ? 'fade-right' : 'fade-left'}>
+            <p className="lp-eyebrow">{eyebrow}</p>
+            <h2 className="lp-h2 lp-glance__title" aria-label={titleText}>{title}</h2>
+            {note && <p className="lp-glance__note">{note}</p>}
+            <div className="lp-glance__lead">{lead}</div>
+          </Reveal>
+          <Reveal variant={reverse ? 'fade-left' : 'fade-right'}>{children}</Reveal>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -357,50 +322,21 @@ function HeroSky() {
 }
 
 function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error: string | null; onLogin: () => void; onTryGuest: () => void }) {
-  const phoneParallaxRef = useParallax<HTMLDivElement>(0.06);
   return (
     <section className="lp-hero lp-section" style={{ paddingTop: 'clamp(2.5rem, 6vw, 4rem)' }}>
       <HeroSky />
-      <div className="lp-container" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'clamp(2rem, 5vw, 3.5rem)' }}>
+      <div className="lp-container lp-hero__grid">
         <Reveal style={{ flex: '1 1 400px', minWidth: 0 }}>
-          <p style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-            background: 'var(--accent-soft)', color: 'var(--accent)',
-            fontWeight: 700, fontSize: '0.8rem', borderRadius: 999,
-            padding: '0.35rem 0.9rem', margin: '0 0 1.1rem',
-          }}>
-            <Sprout size={14} /> 農家が現場で作った気象データ活用ツール
-          </p>
-          <h1 style={{
-            fontSize: 'clamp(1.4rem, 5.2vw, 2.2rem)', fontWeight: 800,
-            lineHeight: 1.42, letterSpacing: '0.01em', margin: '0 0 1.1rem',
-          }}>
-            今日できるか、すぐわかる。<br />去年と比べて、数字で見える。
-          </h1>
-          <p className="lp-lead" style={{ marginBottom: '1.6rem' }}>
-            天気は午前・午後・夜間に分けて、雨は「カッパが要るか」まで——農業に効くさまざまな指標をわかりやすく表示。去年や他の地点との比較も、積算温度の自動計算も、グラフで見える化。農家が現場で欲しかったものだけを、ひとつのアプリに。
-          </p>
-          <button className="lp-cta" onClick={onLogin} disabled={loading}>
-            <span style={{ background: '#fff', borderRadius: 6, padding: 3, display: 'inline-flex' }}><GoogleIcon /></span>
-            {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
-            <ArrowRight size={17} />
-          </button>
-          <div style={{ marginTop: '0.8rem' }}>
-            <button className="lp-cta lp-cta--ghost" onClick={onTryGuest}>
-              ログインせずに試す（現在地のみ）
-              <ArrowRight size={17} />
-            </button>
-          </div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--ink-3)', margin: '0.7rem 0 0' }}>
-            登録30秒・いまは完全無料
-          </p>
-          {error && <p style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '0.6rem' }}>{error}</p>}
+          <p className="lp-hero__badge"><Sprout size={14} /> 農家が現場で作った天気アプリ</p>
+          <h1 className="lp-hero__title" aria-label="『今年は遅い』が、数字で見える。"><span className="lp-phrase">『今年は遅い』が、</span><span className="lp-phrase">数字で見える。</span></h1>
+          <p className="lp-lead lp-hero__lead">二十四節気ごとに、去年・5年平均と比べてふりかえる、農家のための天気アプリ。</p>
+          <CtaPair loading={loading} onLogin={onLogin} onTryGuest={onTryGuest} />
+          <p className="lp-cta-note">ログインなしでも現在地で試せます。Googleアカウントなら登録30秒・いまは無料。</p>
+          {error && <p className="lp-error">{error}</p>}
         </Reveal>
         <Reveal variant="scale" delay={0.15} style={{ flex: '1 1 300px', minWidth: 0 }}>
-          <div ref={phoneParallaxRef} className="lp-phone-parallax">
-            <div className="lp-phone lp-phone--float">
-              <img src="/lp/hero-imanosora.png" alt="空もよう — 午前・午後・夜間の空模様がわかる画面" width={1170} height={2439} />
-            </div>
+          <div className="lp-hero__shot lp-phone--float">
+            <Shot src="/lp/review-card.webp" alt="節気のふりかえりカード — 去年・5年平均と比べた気温・雨・日照" width={780} height={1114} eager />
           </div>
         </Reveal>
       </div>
@@ -408,485 +344,86 @@ function Hero({ loading, error, onLogin, onTryGuest }: { loading: boolean; error
   );
 }
 
-/* ── 3タブ俯瞰 ── */
-function BridgeSection() {
+function SeasonSection() {
   return (
-    <section className="lp-section lp-section--cloud-host" style={{ paddingTop: 0, paddingBottom: 'clamp(1rem, 3vw, 1.5rem)' }}>
-      <ParallaxCloud speed={0.15} style={{ width: 220, height: 100, top: '-10%', right: '-6%' }} />
-      <div className="lp-container-narrow">
-        <Reveal>
-          <h2 className="lp-h2">3つの画面で、農業の時間をすべてカバーする。</h2>
-        </Reveal>
-        <Reveal
-          stagger={100}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-            gap: '1rem',
-            marginTop: '1.8rem',
-          }}
-        >
-          {tabOverview.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <div key={tab.name} className="lp-glass" style={{ padding: '1.4rem 1.2rem', textAlign: 'center', height: '100%', boxSizing: 'border-box' }}>
-                <div style={{
-                  width: 44, height: 44, borderRadius: 12,
-                  background: 'linear-gradient(135deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.28))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 0.75rem',
-                }}>
-                  <Icon size={20} color="var(--accent)" />
-                </div>
-                <p style={{ fontWeight: 800, fontSize: '1.05rem', margin: '0 0 0.4rem', letterSpacing: '0.02em' }}>
-                  {tab.name}
-                </p>
-                <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--ink-2)', lineHeight: 1.75 }}>
-                  {tab.tagline}
-                </p>
-              </div>
-            );
-          })}
-        </Reveal>
+    <GlanceSection
+      eyebrow={<><CalendarRange size={16} /> 季節のふりかえり</>}
+      titleText="二十四節気ごとに、今年の半月を一枚に。"
+      title={<><span className="lp-phrase">二十四節気ごとに、</span><span className="lp-phrase">今年の半月を一枚に。</span></>}
+      note="暦は、農の時計だった。"
+      lead={<p className="lp-glance__big">積算温度、去年より18日遅い。<br />数字で、季節の進み具合がわかる。</p>}
+    >
+      <div className="lp-shot-stack">
+        <Shot src="/lp/season-band.webp" alt="季節のあしどり — 気温・降水量・積算温度・日照を去年と比べる帯" width={780} height={106} />
+        <Shot src="/lp/review-card-2.webp" alt="節気のふりかえりカード（処暑）" width={780} height={1114} />
+      </div>
+    </GlanceSection>
+  );
+}
+
+function KurabeSection() {
+  return (
+    <GlanceSection
+      reverse
+      eyebrow={<><BarChart2 size={16} /> 空くらべ</>}
+      titleText="去年と、あの場所と、並べて見える。"
+      title={<><span className="lp-phrase">去年と、あの場所と、</span><span className="lp-phrase">並べて見える。</span></>}
+      lead={
+        <ul className="lp-points">
+          <li><CalendarRange size={18} /> 年をまたいで、重ねて比べる</li>
+          <li><MapPin size={18} /> 地点を並べて、違いを比べる</li>
+          <li><Thermometer size={18} /> 積算温度を、自動で計算</li>
+        </ul>
+      }
+    >
+      <div className="lp-shot-stack">
+        <Shot src="/lp/kurabe-temp.webp" alt="空くらべ — 今年と去年の気温を重ねたグラフ" width={780} height={1157} />
+        <Shot src="/lp/kurabe-gdd.webp" alt="空くらべ — 有効積算温度のグラフ" width={780} height={1253} />
+      </div>
+    </GlanceSection>
+  );
+}
+
+function MoyoSection() {
+  return (
+    <GlanceSection
+      eyebrow={<><CloudSun size={16} /> 空もよう</>}
+      titleText="今日の作業、やるかやめるかすぐ決まる。"
+      title={<><span className="lp-phrase">今日の作業、</span><span className="lp-phrase">やるかやめるか</span><span className="lp-phrase">すぐ決まる。</span></>}
+      lead={
+        <ul className="lp-points">
+          <li>「リスクでみる」— その時間帯のいちばん悪い天気</li>
+          <li>「概況でみる」— その時間帯のいちばん長い天気</li>
+          <li>毎日、今日の節気と七十二候を表示</li>
+        </ul>
+      }
+    >
+      <Shot src="/lp/moyo.webp" alt="空もよう — 午前・午後・夜間の天気と、リスク／概況の切り替え" width={780} height={1688} />
+    </GlanceSection>
+  );
+}
+
+function MidCta(props: { loading: boolean; onLogin: () => void; onTryGuest: () => void }) {
+  return (
+    <section className="lp-section lp-section--tight">
+      <div className="lp-container-narrow" style={{ textAlign: 'center' }}>
+        <Reveal><CtaPair {...props} /></Reveal>
       </div>
     </section>
   );
 }
 
-/* ── 空もよう（メイン） ── */
-function SoraMoyoSection() {
+/** 詳しく読む層の折りたたみ。中身はページ内に残る（検索に拾われる）。開いたら GA4 に記録 */
+function Detail({ section, title, children }: { section: 'features' | 'compare' | 'maker' | 'faq'; title: string; children: ReactNode }) {
   return (
-    <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-      <div className="lp-container">
-        <Reveal>
-          <TabBadge icon={CloudSun} name="空もよう" />
-          <div className="lp-glass" style={{
-            padding: '1.2rem 1.4rem',
-            marginBottom: '2.5rem',
-            borderLeft: '3px solid var(--accent)',
-          }}>
-            <Quote size={16} color="var(--accent)" style={{ marginBottom: '0.4rem' }} />
-            <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
-              今日できるか、毎朝頭の中で計算している
-            </p>
-            <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.85 }}>
-              防除、散布、施肥…。今日できるか明日できるか、気温・降水確率・風速を一つずつ確認しながら考えている。
-            </p>
-          </div>
-        </Reveal>
-
-        {/* 現場目線のリード */}
-        <Reveal variant="fade-left">
-          <div style={{ marginBottom: 'clamp(1.8rem, 5vw, 2.6rem)' }}>
-            <h3 style={{
-              fontSize: 'clamp(1.3rem, 3.4vw, 1.7rem)', fontWeight: 800,
-              lineHeight: 1.5, margin: '0 0 0.8rem',
-            }}>
-              知りたいのは「傘が要るか」より、「畑に出られるか」。
-            </h3>
-            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-              空もようは、ふつうの天気予報を農作業の現場に寄り添う形に作り直しました。天気・降水量・専門データのすべてを、作業の判断にそのまま使える見せ方で表示します。
-            </p>
-          </div>
-        </Reveal>
-
-        {/* 日別の表示 */}
-        <Reveal>
-          <div style={{ marginBottom: '1.3rem' }}>
-            <p style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
-              margin: '0 0 0.7rem',
-            }}>
-              <CloudSun size={16} /> 日別の表示
-            </p>
-            <h3 style={{
-              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-              lineHeight: 1.5, margin: 0,
-            }}>
-              まずは一日を、大きくつかむ。
-            </h3>
-          </div>
-        </Reveal>
-        <Reveal
-          stagger={110}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '1.1rem',
-          }}
-        >
-
-            {/* 1日3分割 */}
-            <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.28))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: '0.85rem',
-              }}>
-                <Clock size={17} color="var(--accent)" />
-              </div>
-              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
-                作業時間に合わせた1日3分割
-              </p>
-              <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                1日を畑仕事の時間帯で3つに分割（<strong>午前4〜12時</strong>・<strong>午後12〜20時</strong>・<strong>夜間20〜翌4時</strong>）。「晴れのち雨」が午前のうちなのか、午後から崩れるのか——天気が変わるタイミングが一目でわかります。
-              </p>
-            </div>
-
-            {/* リスク/概況の2モード */}
-            <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, rgba(var(--accent-rgb),0.12), rgba(var(--accent-rgb),0.28))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: '0.85rem',
-              }}>
-                <CloudSun size={17} color="var(--accent)" />
-              </div>
-              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
-                「リスク」と「概況」で切り替え
-              </p>
-              <p style={{ margin: '0 0 0.9rem', color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                知りたいのは、雨が降るリスクだけではありません。晴れ間を逃すリスクも。その日の作業に合わせて見方を切り替えられます。
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                  <div style={{
-                    background: 'rgba(244,167,185,0.2)', border: '1px solid #e88ea8',
-                    borderRadius: 5, padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem', fontWeight: 700, color: '#9b2d4e',
-                    whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
-                  }}>
-                    リスクでみる
-                  </div>
-                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
-                    その時間帯のいちばん悪い天気を表示。散布・播種など一発勝負の作業に。
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                  <div style={{
-                    background: 'rgba(var(--accent-rgb),0.1)', border: '1px solid var(--accent)',
-                    borderRadius: 5, padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-press)',
-                    whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
-                  }}>
-                    概況でみる
-                  </div>
-                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
-                    その時間帯のいちばん長い天気を表示。雨の合間を活かしたい日に。
-                  </p>
-                </div>
-              </div>
-            </div>
-        </Reveal>
-
-        {/* 時間別の表示 */}
-        <div className="lp-zigzag" style={{ marginTop: 'clamp(2.2rem, 6vw, 3.2rem)', marginBottom: 'clamp(1.6rem, 4vw, 2.4rem)' }}>
-          <Reveal variant="fade-left">
-            <p style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
-              margin: '0 0 0.7rem',
-            }}>
-              <Clock size={16} /> 時間別の表示
-            </p>
-            <h3 style={{
-              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-              lineHeight: 1.5, margin: '0 0 0.8rem',
-            }}>
-              気になる時間は、1時間ごとに。
-            </h3>
-            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-              午前・午後・夜間の3分割からさらに踏み込んで、<strong>1時間ごと</strong>の細かな動きまで。気温・降水・風がどう変わるかを時間軸で追えるので、天気が崩れるタイミングをピンポイントでつかめます。
-            </p>
-          </Reveal>
-          <Reveal variant="fade-right">
-            <img className="lp-shot" src="/lp/hour.png" alt="空もよう — 時間別の天気がわかる画面" width={1170} height={2022} loading="lazy" />
-          </Reveal>
-        </div>
-
-        <Reveal
-          stagger={110}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '1.1rem',
-          }}
-        >
-
-            {/* カッパ判断 */}
-            <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, rgba(14,165,233,0.12), rgba(14,165,233,0.28))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: '0.85rem',
-              }}>
-                <CloudRain size={17} color="#0284c7" />
-              </div>
-              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
-                降水量は「カッパが要るか」で
-              </p>
-              <p style={{ margin: '0 0 0.9rem', color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                知りたいのは雨が降るかだけでなく、「カッパを着るか着ないか」。通常の予報で「小雨」とまとめられる3mmまでの雨を、現場の体感で3段階に分けて表示します。
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                  <div style={{
-                    background: 'rgba(var(--accent-rgb),0.1)', border: '1px solid var(--accent)',
-                    borderRadius: 5, padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-press)',
-                    whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
-                  }}>
-                    ぽつぽつ
-                  </div>
-                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
-                    ぽつりと当たる程度。カッパなしで作業できる。
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                  <div style={{
-                    background: 'rgba(245,158,11,0.14)', border: '1px solid #f59e0b',
-                    borderRadius: 5, padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem', fontWeight: 700, color: '#b45309',
-                    whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
-                  }}>
-                    カッパ？
-                  </div>
-                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
-                    濡れ始める境目。短時間ならカッパなしでも。
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                  <div style={{
-                    background: 'rgba(244,167,185,0.2)', border: '1px solid #e88ea8',
-                    borderRadius: 5, padding: '0.2rem 0.6rem',
-                    fontSize: '0.75rem', fontWeight: 700, color: '#9b2d4e',
-                    whiteSpace: 'nowrap', flexShrink: 0, marginTop: '0.1rem',
-                  }}>
-                    カッパ！
-                  </div>
-                  <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.82rem', lineHeight: 1.75 }}>
-                    しっかり濡れる。カッパが必要。
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 農業専門データ */}
-            <div className="lp-glass" style={{ padding: '1.5rem 1.4rem' }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                background: 'linear-gradient(135deg, rgba(14,165,233,0.12), rgba(14,165,233,0.28))',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: '0.85rem',
-              }}>
-                <Droplets size={17} color="#0284c7" />
-              </div>
-              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.93rem' }}>
-                農業に効く専門データを時間別に
-              </p>
-              <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.85rem', lineHeight: 1.8 }}>
-                露点温度（霜害リスク）、飽差（水分管理）、0℃層高度（雹リスク）、大気安定度（落雷リスク）、紫外線指数——気温と降水確率だけでは見えない判断材料を、時間別に一覧表示します。
-              </p>
-            </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* ── 空くらべ ── */
-function SoraKurabeSection() {
-  return (
-    <section className="lp-section lp-section--cloud-host" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-      <ParallaxCloud speed={0.25} style={{ width: 260, height: 120, top: '55%', left: '-8%' }} />
-      <div className="lp-container">
-        <Reveal>
-          <TabBadge icon={BarChart2} name="空くらべ" />
-          <div className="lp-glass" style={{
-            padding: '1.2rem 1.4rem',
-            marginBottom: '2.5rem',
-            borderLeft: '3px solid var(--accent)',
-          }}>
-            <Quote size={16} color="var(--accent)" style={{ marginBottom: '0.4rem' }} />
-            <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
-              「今年は去年より暖かい気がする」けど、実際どうなのかわからない
-            </p>
-            <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.85 }}>
-              去年と比べてどれくらい違うのか、何日進んでいるか——感覚ではなく数字で把握したい。
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="lp-zigzag">
-          <Reveal variant="fade-left">
-            <p style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
-              margin: '0 0 0.7rem',
-            }}>
-              <BarChart2 size={16} /> 前年比較・積算
-            </p>
-            <h3 style={{
-              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-              lineHeight: 1.5, margin: '0 0 0.8rem',
-            }}>
-              「今年は早い？遅い？」が、数字でわかる。
-            </h3>
-            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-              比較したい年や登録地点を選んでグラフに重ねると、「去年より何日進んでいるか」「あの場所とどれくらい違うか」までひと目でわかります。
-            </p>
-          </Reveal>
-          <Reveal variant="fade-right">
-            <img className="lp-shot" src="/lp/feature-kurabe.png" alt="前年比較チャートの画面" width={1170} height={1884} loading="lazy" />
-          </Reveal>
-        </div>
-
-        {/* 積算のしくみ */}
-        <Reveal>
-          <div className="lp-glass" style={{
-            padding: 'clamp(1.5rem, 4vw, 2rem)',
-            marginTop: 'clamp(1.8rem, 5vw, 2.6rem)',
-          }}>
-            <p style={{ fontWeight: 800, margin: '0 0 1.1rem', fontSize: '1rem' }}>
-              自分の畑の生育に合わせて、積算を作れる。
-            </p>
-            <Reveal stagger={90} style={{ display: 'flex', flexDirection: 'column', gap: '0.95rem' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: '0.5rem' }} />
-                <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
-                  <strong>毎日の数値を自動で積算してグラフ表示。</strong><span style={{ color: 'var(--ink-2)' }}>降水量・日照時間・日射量・積算温度の4つを、毎日の値から自動で積み上げて見える化します。</span>
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: '0.5rem' }} />
-                <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
-                  <strong>積算の開始日は、生育状況に合わせて自由に設定。</strong><span style={{ color: 'var(--ink-2)' }}>萌芽や定植のタイミングなど、いつから積み上げるかを自分で決められます。</span>
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: '0.5rem' }} />
-                <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.85 }}>
-                  <strong>積算温度は、基準温度を2種類まで登録。</strong><span style={{ color: 'var(--ink-2)' }}>作物や用途に合わせた基準温度を2つ持てるので、ねらいの異なる積算を並べて確認できます。</span>
-                </p>
-              </div>
-            </Reveal>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* ── 空しらべ（軽め） ── */
-function SoraShirabeSection() {
-  return (
-    <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-      <div className="lp-container-narrow">
-        <Reveal variant="blur">
-          <TabBadge icon={History} name="空しらべ" />
-          <div className="lp-glass" style={{ padding: 'clamp(1.6rem, 4vw, 2.4rem)' }}>
-            <h3 style={{
-              fontSize: 'clamp(1.1rem, 2.8vw, 1.35rem)', fontWeight: 800,
-              lineHeight: 1.5, margin: '0 0 0.85rem',
-            }}>
-              あの日の天気が、今日と同じ画面で見える。
-            </h3>
-            <p className="lp-lead" style={{ fontSize: '0.9rem', margin: 0 }}>
-              「防除が効かなかったのは天気のせいか」「あの大雨、実際どれくらいだった？」——
-              空しらべは過去の任意の日付を選ぶと、時間別のすべてのデータをそのまま表示します。
-              失敗した作業の原因追跡にも、翌年の作業計画を立てるときの参考にも。
-            </p>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* ── AIアドバイス（近日提供） ── */
-function AiAdviceSection() {
-  return (
-    <section className="lp-section" style={{ paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-      <div className="lp-container">
-        <Reveal>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', flexWrap: 'wrap' }}>
-            <TabBadge icon={Sparkles} name="AIアドバイス" />
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-              background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.45)',
-              borderRadius: 999, padding: '0.3rem 0.85rem',
-              color: '#b45309', fontWeight: 800, fontSize: '0.8rem',
-              marginBottom: '1.6rem',
-            }}>
-              近日提供開始予定
-            </span>
-          </div>
-          <div className="lp-glass" style={{
-            padding: '1.2rem 1.4rem',
-            marginBottom: '2.5rem',
-            borderLeft: '3px solid #f59e0b',
-          }}>
-            <p style={{ fontWeight: 700, margin: '0 0 0.3rem', fontSize: '0.95rem' }}>
-              気象データを読み解く手間を、AIにまかせる。
-            </p>
-            <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.85 }}>
-              AIが気象データから作業できる時間帯と残るリスクを提案する機能を準備中です。
-            </p>
-          </div>
-        </Reveal>
-
-        {/* AI農作業アドバイス */}
-        <div className="lp-zigzag" style={{ marginBottom: 'clamp(2.5rem, 7vw, 4rem)' }}>
-          <Reveal variant="fade-left">
-            <p style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
-              margin: '0 0 0.7rem',
-            }}>
-              <Sparkles size={16} /> AI農作業アドバイス
-            </p>
-            <h3 style={{
-              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-              lineHeight: 1.5, margin: '0 0 0.8rem',
-            }}>
-              「明日、散布できるか」に、答えが出る。
-            </h3>
-            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-              AIが気象データから作業できる時間帯と残るリスクをわかりやすく提案。天気の概要だけでなく、畑に出ての仕事、農薬や液肥の散布、肥料の散布、など作業別にあなたの判断をサポート。材料はすべてここに。
-            </p>
-          </Reveal>
-          <Reveal variant="fade-right">
-            <img className="lp-shot" src="/lp/feature-ai.webp" alt="AI農作業アドバイスの画面" width={780} height={744} loading="lazy" />
-          </Reveal>
-        </div>
-
-        {/* じぶん好みAI */}
-        <Reveal variant="fade-right">
-          <div>
-            <p style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-              color: 'var(--accent)', fontWeight: 700, fontSize: '0.82rem',
-              margin: '0 0 0.7rem',
-            }}>
-              <SlidersHorizontal size={16} /> じぶん好みAI
-            </p>
-            <h3 style={{
-              fontSize: 'clamp(1.2rem, 3.2vw, 1.55rem)', fontWeight: 800,
-              lineHeight: 1.5, margin: '0 0 0.8rem',
-            }}>
-              あなたの畑に合わせて、AIに聞ける。
-            </h3>
-            <p className="lp-lead" style={{ fontSize: '0.92rem' }}>
-              「うちは標高が高いから、露点温度0度以下、気温7度以下の可能性があれば霜の警告を出して」「風に弱い作物があるので風速に重点を置いて解説して」自分の言葉で条件を登録すれば、気象データをもとに、AIがそれを踏まえて答えます。
-            </p>
-          </div>
-        </Reveal>
-      </div>
-    </section>
+    <details
+      className="lp-details"
+      data-section={section}
+      onToggle={(e) => { if (e.currentTarget.open) logLpDetailOpen(section); }}
+    >
+      <summary className="lp-details__summary">{title}</summary>
+      <div className="lp-details__body">{children}</div>
+    </details>
   );
 }
 
@@ -901,41 +438,32 @@ function MarkCell({ mark, ours = false }: { mark: CompMark; ours?: boolean }) {
   );
 }
 
-function ComparisonSection() {
+function CompareTable() {
   return (
-    <section className="lp-section" style={{ paddingTop: 0 }}>
-      <div className="lp-container-narrow">
-        <Reveal>
-          <h2 className="lp-h2">一般の天気アプリとの違い</h2>
-        </Reveal>
-        <Reveal delay={0.1}>
-          <div className="lp-glass" style={{ overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table className="lp-comp">
-                <thead>
-                  <tr>
-                    <th></th>
-                    <th style={{ color: 'var(--accent)' }}>Orch.Weather</th>
-                    <th>一般天気アプリ</th>
-                    <th>気象庁HP</th>
-                  </tr>
-                </thead>
-                <RevealTbody>
-                  {compRows.map(r => (
-                    <tr key={r.label}>
-                      <td>{r.label}</td>
-                      <MarkCell mark={r.ours} ours />
-                      <MarkCell mark={r.general} />
-                      <MarkCell mark={r.jma} />
-                    </tr>
-                  ))}
-                </RevealTbody>
-              </table>
-            </div>
-          </div>
-        </Reveal>
+    <div className="lp-glass" style={{ overflow: 'hidden' }}>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table className="lp-comp">
+          <thead>
+            <tr>
+              <th></th>
+              <th style={{ color: 'var(--accent)' }}>Orch.Weather</th>
+              <th>一般天気アプリ</th>
+              <th>気象庁HP</th>
+            </tr>
+          </thead>
+          <RevealTbody>
+            {compRows.map(r => (
+              <tr key={r.label}>
+                <td>{r.label}</td>
+                <MarkCell mark={r.ours} ours />
+                <MarkCell mark={r.general} />
+                <MarkCell mark={r.jma} />
+              </tr>
+            ))}
+          </RevealTbody>
+        </table>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -945,7 +473,6 @@ const tierGroups: { group: string; rows: { label: string; guest: CompMark; free:
     group: '空もよう',
     rows: [
       { label: '天気情報',     guest: { m: '△', note: '現在地' }, free: { m: '○', note: '10件' },           paid: { m: '◎', note: '50件' } },
-      { label: 'AIアドバイス', guest: { m: '✗' },                 free: { m: '✗' },                         paid: { m: '◎' } },
     ],
   },
   {
@@ -963,152 +490,122 @@ const tierGroups: { group: string; rows: { label: string; guest: CompMark; free:
   },
 ];
 
-function TierComparisonSection() {
+function TierTable() {
   return (
-    <section className="lp-section" style={{ paddingTop: 0 }}>
-      <div className="lp-container-narrow">
-        <Reveal>
-          <h2 className="lp-h2">ログインでひろがる、できること</h2>
-        </Reveal>
-        <Reveal delay={0.1}>
-          <div className="lp-glass" style={{ overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table className="lp-comp">
-                <thead>
-                  <tr>
-                    <th colSpan={2}></th>
-                    <th>ログインなし</th>
-                    <th>ログイン<br />（無料）</th>
-                    <th style={{ color: 'var(--accent)' }}>ログイン<br />（有料）<span style={{ fontSize: '0.68rem', fontWeight: 600 }}>※予定</span></th>
-                  </tr>
-                </thead>
-                <RevealTbody>
-                  {tierGroups.flatMap(g => g.rows.map((r, i) => (
-                    <tr key={g.group + r.label}>
-                      {i === 0 && (
-                        <td
-                          rowSpan={g.rows.length}
-                          style={{ textAlign: 'left', fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap', borderRight: '1px solid var(--line)' }}
-                        >
-                          {g.group}
-                        </td>
-                      )}
-                      <td style={{ textAlign: 'left', fontWeight: 500, whiteSpace: 'nowrap', width: '1%' }}>{r.label}</td>
-                      <MarkCell mark={r.guest} />
-                      <MarkCell mark={r.free} />
-                      <MarkCell mark={r.paid} ours />
-                    </tr>
-                  )))}
-                </RevealTbody>
-              </table>
-            </div>
-          </div>
-        </Reveal>
-        <Reveal delay={0.15}>
-          <p style={{ fontSize: '0.8rem', color: 'var(--ink-2)', lineHeight: 1.85, margin: '1rem 0 0' }}>
-いまはお試し期間として、多くの機能を無料でお使いいただけます。ご利用いただける機能の範囲は、お試し期間の終了やサービスの状況により、今後変更となる場合があります。あらかじめご了承ください。
-          </p>
-        </Reveal>
+    <>
+      <div className="lp-glass" style={{ overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="lp-comp">
+            <thead>
+              <tr>
+                <th colSpan={2}></th>
+                <th>ログインなし</th>
+                <th>ログイン<br />（無料）</th>
+                <th style={{ color: 'var(--accent)' }}>ログイン<br />（有料）<span style={{ fontSize: '0.68rem', fontWeight: 600 }}>※予定</span></th>
+              </tr>
+            </thead>
+            <RevealTbody>
+              {tierGroups.flatMap(g => g.rows.map((r, i) => (
+                <tr key={g.group + r.label}>
+                  {i === 0 && (
+                    <td
+                      rowSpan={g.rows.length}
+                      style={{ textAlign: 'left', fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap', borderRight: '1px solid var(--line)' }}
+                    >
+                      {g.group}
+                    </td>
+                  )}
+                  <td style={{ textAlign: 'left', fontWeight: 500, whiteSpace: 'nowrap', width: '1%' }}>{r.label}</td>
+                  <MarkCell mark={r.guest} />
+                  <MarkCell mark={r.free} />
+                  <MarkCell mark={r.paid} ours />
+                </tr>
+              )))}
+            </RevealTbody>
+          </table>
+        </div>
       </div>
-    </section>
+      <p style={{ fontSize: '0.8rem', color: 'var(--ink-2)', lineHeight: 1.85, margin: '1rem 0 0' }}>
+        いまはお試し期間として、多くの機能を無料でお使いいただけます。ご利用いただける機能の範囲は、お試し期間の終了やサービスの状況により、今後変更となる場合があります。あらかじめご了承ください。
+      </p>
+    </>
   );
 }
 
-/* ── 作った人 ── */
-function MakerNote() {
+const faqs: { q: string; a: string }[] = [
+  { q: '無料で使えますか？', a: 'いまはお試し期間として、多くの機能を無料でお使いいただけます。有料プランは予定段階です。ご利用いただける機能の範囲は、今後変更となる場合があります。' },
+  { q: 'ログインしないと使えませんか？', a: 'ログインなしでも、現在地の天気・ふりかえり・去年との比較を試せます。畑の場所を登録して使うには、Googleアカウントでのログインが必要です。' },
+  { q: '「5年平均」とは何ですか？', a: '去年から5年前までの、同じ月日の期間の実績の平均です。ふりかえりや季節のあしどりは、過去の実績の集計と比較です。' },
+  { q: 'データはどこから来ていますか？', a: '気象データ（実績・予報）は Open-Meteo、注意報・警報は気象庁の発表を使っています。アプリが独自に天気を予測することはありません。' },
+];
+
+function DetailsSection() {
   return (
-    <section className="lp-section" style={{ paddingTop: 0 }}>
+    <section className="lp-section">
       <div className="lp-container-narrow">
-        <Reveal variant="blur">
-          <div className="lp-glass" style={{
-            padding: 'clamp(1.6rem, 4vw, 2.4rem)',
-            textAlign: 'center',
-            borderTop: '3px solid var(--accent)',
-          }}>
-            <Sprout size={26} color="var(--accent)" style={{ marginBottom: '0.8rem' }} />
-            <h2 className="lp-h2" style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.6rem)' }}>
-              作ったのは、同じ悩みを持つ農家です。
-            </h2>
-            <p className="lp-lead" style={{ textAlign: 'left' }}>
+        <Reveal><h2 className="lp-h2">もっと詳しく</h2></Reveal>
+        <div className="lp-details-list">
+          <Detail section="features" title="機能をくわしく見る">
+            <h3 className="lp-details__h3">空くらべ — 積算を、自分の畑に合わせて</h3>
+            <ul className="lp-details__list">
+              <li>降水量・日照時間・日射量・積算温度の4つを、毎日の値から自動で積み上げてグラフにします。</li>
+              <li>積算の開始日は、萌芽や定植など生育に合わせて自由に設定できます。</li>
+              <li>積算温度の基準温度は2種類まで登録でき、ねらいの異なる積算を並べて確認できます。</li>
+              <li>比較したい年や登録地点をグラフに重ねると、「去年より何日進んでいるか」「あの場所とどれくらい違うか」がわかります。</li>
+            </ul>
+            <h3 className="lp-details__h3">空もよう — 畑の時間で、1日を3つに</h3>
+            <ul className="lp-details__list">
+              <li>1日を午前4〜12時・午後12〜20時・夜間20〜翌4時に分けて、天気が変わるタイミングをつかめます。</li>
+              <li>3mmまでの雨を「ぽつぽつ」「カッパ？」「カッパ！」の3段階で表示します。</li>
+              <li>露点温度（霜）・飽差（水分管理）・0℃層高度（雹）・大気安定度（落雷）・紫外線指数を、時間別に一覧できます。</li>
+            </ul>
+            <h3 className="lp-details__h3">空しらべ — あの日の天気を、今日と同じ画面で</h3>
+            <ul className="lp-details__list">
+              <li>過去の日付を選ぶと、時間別のすべてのデータをそのまま表示します。作業の原因追跡や、翌年の計画に。</li>
+              <li>ログイン（有料・予定）では、気温・降水量・日射量など過去1年分をCSVでまとめて保存できます。</li>
+            </ul>
+          </Detail>
+          <Detail section="compare" title="一般の天気アプリとの違い・料金">
+            <CompareTable />
+            <h3 className="lp-details__h3">ログインでひろがる、できること</h3>
+            <TierTable />
+          </Detail>
+          <Detail section="maker" title="作った人のこと">
+            <p className="lp-details__p">
               Orch.Weatherは、農作業の判断を助け、作物の生育を可視化したい。そう考えた一人の農家が、「現場で欲しかったもの」を詰め込んだアプリです。
             </p>
-            <p style={{
-              textAlign: 'left',
-              marginTop: '1rem',
-              fontSize: 'clamp(0.85rem, 2.2vw, 0.92rem)',
-              lineHeight: 1.9,
-              color: 'var(--ink-2)',
-            }}>
-              積算温度を自動で計算し、昨年と何日違うかを並べて表示。天気は「概況」と「リスク」を切り替えて確認でき、1日は畑に出る時間に合わせて午前・午後・夜間に分割。カッパが要るかどうかまで一目でわかります。こうした機能は、机の上ではなく、現場で使いながら磨いてきたものばかりです。
+            <p className="lp-details__p">
+              積算温度を自動で計算し、昨年と何日違うかを並べて表示。天気は「概況」と「リスク」を切り替えて確認でき、1日は畑に出る時間に合わせて午前・午後・夜間に分割。こうした機能は、机の上ではなく、現場で使いながら磨いてきたものばかりです。
             </p>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* ── 始め方 ── */
-function StepsSection() {
-  return (
-    <section className="lp-section lp-section--cloud-host" style={{ paddingTop: 0 }}>
-      <ParallaxCloud speed={0.2} style={{ width: 240, height: 110, top: '10%', right: '-6%' }} />
-      <div className="lp-container">
-        <Reveal>
-          <h2 className="lp-h2">3ステップで、今日から使える。</h2>
-        </Reveal>
-        <Reveal
-          variant="scale"
-          stagger={110}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '1.1rem',
-            marginTop: '1.8rem',
-          }}
-        >
-          {steps.map((s) => (
-            <div key={s.num} className="lp-glass" style={{ padding: '1.5rem 1.3rem', height: '100%', boxSizing: 'border-box', textAlign: 'center' }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-press) 100%)',
-                color: '#fff', fontWeight: 800, fontSize: '1.05rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 0.9rem',
-              }}>
-                {s.num}
-              </div>
-              <p style={{ fontWeight: 700, margin: '0 0 0.5rem', fontSize: '0.98rem' }}>{s.title}</p>
-              <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.86rem', lineHeight: 1.8 }}>{s.body}</p>
-            </div>
-          ))}
-        </Reveal>
+          </Detail>
+          <Detail section="faq" title="よくある質問">
+            <dl className="lp-faq">
+              {faqs.map(f => (
+                <div key={f.q} className="lp-faq__item">
+                  <dt>{f.q}</dt>
+                  <dd>{f.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </Detail>
+        </div>
       </div>
     </section>
   );
 }
 
 /* ── 最終CTA ── */
-function FinalCta({ loading, onLogin }: { loading: boolean; onLogin: () => void }) {
+function FinalCta(props: { loading: boolean; onLogin: () => void; onTryGuest: () => void }) {
   return (
     <section className="lp-section lp-final">
       <div className="lp-final-glow" aria-hidden="true" />
       <div className="lp-container-narrow">
         <Reveal>
-          <h2 className="lp-h2" style={{ color: '#fff' }}>明日の朝から、判断が変わる。</h2>
+          <h2 className="lp-h2" style={{ color: '#fff' }}>今年の季節を、数字で見てみる。</h2>
           <p style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.9, margin: '0 0 1.6rem', fontSize: '0.95rem' }}>
-            いまは完全無料。Googleアカウントがあれば30秒で始められます。
+            ログインなしでも、現在地ですぐに試せます。
           </p>
-          <button
-            className="lp-cta"
-            onClick={onLogin}
-            disabled={loading}
-            style={{ background: '#fff', color: 'var(--accent)', boxShadow: '0 10px 26px rgba(0,0,0,0.18)' }}
-          >
-            <GoogleIcon />
-            {loading ? 'ログイン中...' : 'Googleアカウントで無料で始める'}
-            <ArrowRight size={17} />
-          </button>
+          <CtaPair {...props} onDark />
         </Reveal>
       </div>
     </section>
@@ -1195,16 +692,16 @@ export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
       <Nav loading={loading} onLogin={handleLogin} />
       <div className="lp-content">
         <Hero loading={loading} error={error} onLogin={handleLogin} onTryGuest={onTryGuest} />
-        <BridgeSection />
-        <SoraMoyoSection />
-        <SoraKurabeSection />
-        <SoraShirabeSection />
-        <AiAdviceSection />
-        <ComparisonSection />
-        <TierComparisonSection />
-        <MakerNote />
-        <StepsSection />
-        <FinalCta loading={loading} onLogin={handleLogin} />
+        <SekkiDivider index={0} />
+        <SeasonSection />
+        <SekkiDivider index={1} />
+        <KurabeSection />
+        <SekkiDivider index={2} />
+        <MoyoSection />
+        <MidCta loading={loading} onLogin={handleLogin} onTryGuest={onTryGuest} />
+        <SekkiDivider index={3} />
+        <DetailsSection />
+        <FinalCta loading={loading} onLogin={handleLogin} onTryGuest={onTryGuest} />
         <LpFooter />
       </div>
     </div>

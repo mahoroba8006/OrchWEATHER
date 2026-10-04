@@ -72,3 +72,8 @@ export function logSeasonCardBrowse(back: number): void {
   seasonCardBrowseLogged.add(back);
   track('season_card_browse', { back });
 }
+
+/** LP の「詳しく読む」折りたたみを開いた。どの詳細が読まれているかを見る（section: features / compare / maker / faq） */
+export function logLpDetailOpen(section: string): void {
+  track('lp_detail_open', { section });
+}
