@@ -1,7 +1,7 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Loader2, ChevronDown } from 'lucide-react';
-import { useAppStore, DEFAULT_AI_SECTIONS } from '../../store';
+import { useAppStore, useHiddenHourlyRows, DEFAULT_AI_SECTIONS } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
@@ -16,6 +16,7 @@ import { useAiComment } from '../../hooks/useAiComment';
 import { useAiCustomComment } from '../../hooks/useAiCustomComment';
 import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
 import { HourlyTable } from './HourlyTable';
+import { HourlyRowsEditor } from './HourlyRowsEditor';
 import { Footer } from '../Footer';
 import { SkyHero } from '../sky/SkyHero';
 import { fallbackSky, useSkyStore, type SkyState, type SkySummary } from '../../skyStore';
@@ -40,6 +41,9 @@ export function WeatherTab() {
   const hourlySectionRef = useRef<HTMLElement>(null);
   const aiSectionRef = useRef<HTMLDivElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
+  const hiddenHourlyRows = useHiddenHourlyRows();
+  const hiddenRowKeySet = useMemo(() => new Set<string>(hiddenHourlyRows), [hiddenHourlyRows]);
+  const [hourlyRowsOpen, setHourlyRowsOpen] = useState(false);
 
   // デフォルト地点 or geoLocation が揃ったとき初期選択を確定させる
   useEffect(() => {
@@ -375,8 +379,23 @@ export function WeatherTab() {
 
           <Reveal index={2}>
           <section ref={hourlySectionRef} className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={jmaWarning?.items} />
+            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={jmaWarning?.items} hiddenRowKeys={hiddenRowKeySet} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem 0' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--ink-3)' }}>
+                {hiddenHourlyRows.length > 0 ? `${hiddenHourlyRows.length}項目を非表示にしています` : ''}
+              </span>
+              <button
+                type="button"
+                onClick={() => setHourlyRowsOpen(true)}
+                style={{ fontSize: '0.75rem', color: 'var(--ink-2)', textDecoration: 'underline', background: 'none', border: 'none', padding: '0.25rem 0', cursor: 'pointer' }}
+              >
+                表示項目を選ぶ
+              </button>
+            </div>
           </section>
+          <Sheet open={hourlyRowsOpen} onClose={() => setHourlyRowsOpen(false)} title="時間別の表示項目">
+            <HourlyRowsEditor />
+          </Sheet>
           </Reveal>
 
           <Reveal index={3}>
