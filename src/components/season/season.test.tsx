@@ -134,6 +134,9 @@ describe('SeasonReviewCard', () => {
     expect(rain.querySelectorAll('svg rect')).toHaveLength(2);
     expect(screen.getByText('22')).toBeTruthy();
     expect(rain.querySelectorAll('.season-card__rain-label')).toHaveLength(1);
+    // 数値はグラフの下（天気アイコンの上）の段に置き、右端に単位 mm を出す
+    expect(rain.querySelector('.season-card__rainvals .season-card__rain-label')?.textContent).toBe('22');
+    expect(rain.querySelector('.season-card__rain-unit')?.textContent).toBe('mm');
   });
 
   it('右端ラベルは気温目盛の上端・下端（5年平均も含めた最高+1・最低-1）', () => {

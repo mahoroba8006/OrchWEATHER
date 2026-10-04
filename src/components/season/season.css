@@ -77,9 +77,10 @@
 .season-card__icons { display: flex; margin-top: 2px; }
 /* 右端に気温の目盛りの余白を取り、棒と重ねない（雨の段・アイコン列も同じ幅に揃える） */
 .season-card__chart, .season-card__raincol, .season-card__icons { padding-right: 24px; }
-.season-card__raincol { margin-top: 2px; }
-.season-card__rainbars { position: relative; padding-top: 0.6rem; }
-.season-card__rain-label { position: absolute; top: 0; transform: translateX(-50%); font-size: 0.55rem; line-height: 1; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.season-card__raincol { position: relative; margin-top: 2px; }
+.season-card__rainvals { position: relative; height: 0.75rem; }
+.season-card__rain-unit { position: absolute; right: 0; bottom: 0; font-size: 0.55rem; line-height: 0.75rem; color: var(--ink-3); }
+.season-card__rain-label { position: absolute; top: 0.1rem; transform: translateX(-50%); font-size: 0.55rem; line-height: 1; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .season-card__icons span { flex: 1; display: flex; justify-content: center; min-width: 0; }
 /* 16日分が狭い画面で並ぶので、アイコンは列幅まで縮める（縮めないとカードが横にはみ出し、横スライドの位置がずれる） */
 .season-card__icons img { width: 100%; max-width: 18px; height: auto; }
