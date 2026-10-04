@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildDayMap, buildSeasonReview, computeSeasonView, computeYearPace, currentSekkiStart, daysBetween, formatYearPace, fromForecastPast, headline,
+  buildDayMap, buildSeasonReview, computePaceItems, computeSeasonView, currentSekkiStart, daysBetween, DEFAULT_PACE_OPTIONS, fromForecastPast, headline,
   isInCardWindow, previousSekkiRange, rainCell, requiredYears, shiftYear, tempCell,
-  type DayMap, type DayRecord,
+  type DayMap, type DayRecord, type PaceOptions,
 } from './seasonReview';
 import { addDays } from './dateUtils';
 import type { DailyForecastData } from '../api/forecast';
@@ -154,91 +154,87 @@ describe('buildSeasonReview', () => {
   });
 });
 
-describe('積算気温のペース', () => {
-  // 過去年（2020〜2025）は毎日 10℃
+describe('季節のあしどり（computePaceItems）', () => {
+  // 過去年（2020〜2025）は毎日 10℃・雨2mm・日照5h
   function pastYears(): DayMap {
     const map: DayMap = new Map();
-    for (let y = 2020; y <= 2025; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 10 });
+    for (let y = 2020; y <= 2025; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 10, precip: 2, sunshine: 5 });
     return map;
   }
-
-  it('今年が暖かいと「早い」（10/2 時点・毎日11℃ → 28日早い）', () => {
+  // 今年（〜10/2）は毎日 11℃・雨3mm・日照6h
+  function warmYear(): DayMap {
     const map = pastYears();
-    fill(map, '2026-01-01', '2026-10-02', { tempMean: 11 });
-    const p = computeYearPace(map, '2026-10-03')!;
-    expect(p).toEqual({ kind: 'accum', vsLastYear: 28, vsAvg: 28 });
-    expect(formatYearPace(p)).toEqual({
-      label: '今年のあゆみ（1月1日から）',
-      text: '積算気温 去年より28日早い・5年平均より28日早い',
-    });
+    fill(map, '2026-01-01', '2026-10-02', { tempMean: 11, precip: 3, sunshine: 6 });
+    return map;
+  }
+  const opts = (o: Partial<PaceOptions> = {}): PaceOptions => ({ ...DEFAULT_PACE_OPTIONS, baseTemp: 0, ...o });
+
+  it('空くらべに合わせる: 気温（30日）・降水量・積算温度・日照時間の順', () => {
+    expect(computePaceItems(warmYear(), '2026-10-03', opts())).toEqual([
+      { kind: 'temp', label: '季節のあしどり・気温（この30日）', text: '去年より+1.0℃・5年平均より+1.0℃' },
+      { kind: 'precip', label: '季節のあしどり・降水量（1月1日から）', text: '去年の1.5倍・5年平均の1.5倍' },
+      { kind: 'gdd', label: '季節のあしどり・積算温度（1月1日から・0℃基準）', text: '去年より28日早い・5年平均より28日早い' },
+      // 5年平均には閏年 2024 を含む（1/1〜10/2 が1日多い）ため 1376h → +274h
+      { kind: 'sunshine', label: '季節のあしどり・日照時間（1月1日から）', text: '去年より+275h・5年平均より+274h' },
+    ]);
   });
 
-  it('今年が涼しいと「遅い」', () => {
-    const map = pastYears();
-    fill(map, '2026-01-01', '2026-10-02', { tempMean: 9 });
-    const p = computeYearPace(map, '2026-10-03')!;
-    expect(p).toEqual({ kind: 'accum', vsLastYear: -27, vsAvg: -27 });
-    expect(formatYearPace(p).text).toBe('積算気温 去年より27日遅い・5年平均より27日遅い');
+  it('積算温度は基準温度を引いた分だけ積み、比較年が届かなければ「早いペース」', () => {
+    const gdd = computePaceItems(warmYear(), '2026-10-03', opts({ baseTemp: 10 })).find(i => i.kind === 'gdd')!;
+    expect(gdd.label).toBe('季節のあしどり・積算温度（1月1日から・10℃基準）');
+    expect(gdd.text).toBe('去年より早いペース・5年平均より早いペース');
   });
 
-  it('比較年が年末までに届かなければ「早いペース」', () => {
-    const map = pastYears();
-    fill(map, '2026-01-01', '2026-10-02', { tempMean: 30 });
-    const p = computeYearPace(map, '2026-10-03')!;
-    expect(p).toEqual({ kind: 'accum', vsLastYear: 'ahead', vsAvg: 'ahead' });
-    expect(formatYearPace(p).text).toBe('積算気温 去年より早いペース・5年平均より早いペース');
+  it('積算が日数差のしきい値未満なら、同じ日数時点の差（℃日）で示す', () => {
+    // 基準10.5℃: 過去年は0、今年は0.5×275日=137.5
+    const gdd = computePaceItems(warmYear(), '2026-10-03', opts({ baseTemp: 10.5, gddDaysMin: 200 })).find(i => i.kind === 'gdd')!;
+    expect(gdd.text).toBe('去年より+138℃日・5年平均より+138℃日');
   });
 
-  it('同じなら「同じペース」', () => {
-    const map = pastYears();
-    fill(map, '2026-01-01', '2026-10-02', { tempMean: 10 });
-    expect(formatYearPace(computeYearPace(map, '2026-10-03')!).text)
-      .toBe('積算気温 去年と同じペース・5年平均と同じペース');
-  });
-
-  it('積算 200℃・日 未満の時期は直近30日の平均気温差', () => {
-    const map = pastYears();
-    fill(map, '2026-01-01', '2026-01-09', { tempMean: 11 });
-    const p = computeYearPace(map, '2026-01-10')!;
-    expect(p.kind).toBe('recent');
-    expect(formatYearPace(p)).toEqual({
-      label: 'この30日',
-      text: '平均気温 去年より+0.3℃・5年平均より+0.3℃',
-    });
-  });
-
-  it('0℃未満の日は0として積算する（積算値を減らさない）', () => {
+  it('0℃未満の日は0として積算する', () => {
     const map = pastYears();
     fill(map, '2026-01-01', '2026-01-31', { tempMean: -5 });
     fill(map, '2026-02-01', '2026-10-02', { tempMean: 11 });
-    // 244日×11 = 2684 → 過去年は 269日目（通し番号268）で到達 → 268-274 = 6日遅い
-    expect(computeYearPace(map, '2026-10-03')).toEqual({ kind: 'accum', vsLastYear: -6, vsAvg: -6 });
+    const gdd = computePaceItems(map, '2026-10-03', opts()).find(i => i.kind === 'gdd')!;
+    expect(gdd.text).toBe('去年より6日遅い・5年平均より6日遅い');
   });
 
-  it('1/1 は前年分を「今年」として数えず、直近30日に切り替える', () => {
-    const p = computeYearPace(pastYears(), '2026-01-01')!;
-    expect(p.kind).toBe('recent');
-    expect(formatYearPace(p).text).toBe('平均気温 去年より±0.0℃・5年平均より±0.0℃');
+  it('開始日は空くらべの設定に従い、まだ来ていない開始日の項目は出さない', () => {
+    const items = computePaceItems(warmYear(), '2026-10-03', opts({ startDates: { precip: '04-01', sunshine: '11-01', gdd: '01-01' } }));
+    expect(items.find(i => i.kind === 'precip')?.label).toBe('季節のあしどり・降水量（4月1日から）');
+    expect(items.find(i => i.kind === 'sunshine')).toBeUndefined();
   });
 
-  it('当年データが未着の 1/2 も前年を「今年」として数えない', () => {
-    expect(computeYearPace(pastYears(), '2026-01-02')!.kind).toBe('recent');
+  it('直近30日: 降水量・積算温度・日照時間も30日で比べ、積算温度は差（℃日）', () => {
+    const items = computePaceItems(warmYear(), '2026-10-03', opts({ mode: 'recent' }));
+    expect(items.map(i => [i.kind, i.label, i.text])).toEqual([
+      ['temp', '季節のあしどり・気温（この30日）', '去年より+1.0℃・5年平均より+1.0℃'],
+      ['precip', '季節のあしどり・降水量（この30日）', '去年の1.5倍・5年平均の1.5倍'],
+      ['gdd', '季節のあしどり・積算温度（この30日・0℃基準）', '去年より+30℃日・5年平均より+30℃日'],
+      ['sunshine', '季節のあしどり・日照時間（この30日）', '去年より+30h・5年平均より+30h'],
+    ]);
   });
 
-  it('データが無ければ null', () => {
-    expect(computeYearPace(new Map(), '2026-10-03')).toBeNull();
+  it('1/1 は前年分を「今年」として数えず、気温（30日）だけになる', () => {
+    expect(computePaceItems(pastYears(), '2026-01-01', opts()).map(i => i.kind)).toEqual(['temp']);
+  });
+
+  it('データが無ければ空', () => {
+    expect(computePaceItems(new Map(), '2026-10-03', opts())).toEqual([]);
   });
 });
 
 describe('computeSeasonView', () => {
   it('どちらも作れなければ null', () => {
-    expect(computeSeasonView(new Map(), '2026-10-03')).toBeNull();
+    expect(computeSeasonView(new Map(), '2026-10-03', DEFAULT_PACE_OPTIONS)).toBeNull();
   });
   it('カード表示は節気の変わり目3日間のみ', () => {
     const map: DayMap = new Map();
     for (let y = 2021; y <= 2026; y++) fill(map, `${y}-01-01`, `${y}-12-31`, { tempMean: 10 });
-    expect(computeSeasonView(map, '2026-09-24')!.showCard).toBe(true);
-    expect(computeSeasonView(map, '2026-10-03')!.showCard).toBe(false);
-    expect(computeSeasonView(map, '2026-10-03')!.review?.range.name).toBe('白露');
+    expect(computeSeasonView(map, '2026-09-24', DEFAULT_PACE_OPTIONS)!.showCard).toBe(true);
+    const v = computeSeasonView(map, '2026-10-03', DEFAULT_PACE_OPTIONS)!;
+    expect(v.showCard).toBe(false);
+    expect(v.review?.range.name).toBe('白露');
+    expect(v.paceItems.length).toBeGreaterThan(0);
   });
 });

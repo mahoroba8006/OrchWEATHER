@@ -1,11 +1,12 @@
-import { act, cleanup, screen } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { SeasonReview } from '../../lib/seasonReview';
 
 vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn() }));
 import { logSeasonCardView } from '../../lib/analytics';
-import { YearPaceStrip } from './YearPaceStrip';
+import { SeasonPaceTicker } from './SeasonPaceTicker';
+import type { PaceItem } from '../../lib/seasonReview';
 import { SeasonInlineCard, SeasonReviewCard } from './SeasonReviewCard';
 
 beforeAll(setupMotionTestEnv);
@@ -29,18 +30,73 @@ const review: SeasonReview = {
   avgYears: '2021〜2025年',
 };
 
-describe('YearPaceStrip', () => {
+const paceItems: PaceItem[] = [
+  { kind: 'temp', label: '季節のあしどり・気温（直近30日）', text: '去年より1.0℃高い' },
+  { kind: 'gdd', label: '季節のあしどり・積算温度（1月1日から・10℃基準）', text: '去年より4日遅い' },
+];
+// 退場アニメーション中は旧項目が残りうるので、1つになる（切り替えが済む）まで待ってから読む
+const shown = (el: Element) => {
+  const nodes = el.querySelectorAll('.season-strip__text');
+  expect(nodes).toHaveLength(1);
+  return nodes[0].textContent;
+};
+const readyState = (items: PaceItem[]) =>
+  ({ status: 'ready', view: { paceItems: items, review: null, showCard: false } }) as const;
+
+describe('SeasonPaceTicker', () => {
   it('loading は骨組み', () => {
-    renderWithMotion(<YearPaceStrip state={{ status: 'loading' }} />);
-    expect(screen.getByRole('status', { name: '今年のあゆみを集計中' })).toBeTruthy();
+    renderWithMotion(<SeasonPaceTicker state={{ status: 'loading' }} />);
+    expect(screen.getByRole('status', { name: '季節のあしどりを集計中' })).toBeTruthy();
   });
-  it('ready は文言', () => {
-    renderWithMotion(<YearPaceStrip state={{ status: 'ready', view: { pace: { label: '今年のあゆみ（1月1日から）', text: '積算気温 去年より4日早い・5年平均より2日早い' }, review: null, showCard: false } }} />);
-    expect(screen.getByText('積算気温 去年より4日早い・5年平均より2日早い')).toBeTruthy();
+  it('hidden・項目なしは何も描かない', () => {
+    const a = renderWithMotion(<SeasonPaceTicker state={{ status: 'hidden' }} />);
+    expect(a.container.textContent).toBe('');
+    cleanup();
+    const b = renderWithMotion(<SeasonPaceTicker state={readyState([])} />);
+    expect(b.container.textContent).toBe('');
   });
-  it('hidden・idle は何も描かない', () => {
-    const { container } = renderWithMotion(<YearPaceStrip state={{ status: 'hidden' }} />);
-    expect(container.textContent).toBe('');
+  it('ready は最初の項目を表示し、タップで次へ進んで一周する', async () => {
+    renderWithMotion(<SeasonPaceTicker state={readyState(paceItems)} />);
+    const btn = screen.getByRole('button', { name: '季節のあしどり 次の項目を表示' });
+    const expectShown = (text: string) => waitFor(() => expect(shown(btn)).toBe(text));
+    await expectShown('去年より1.0℃高い');
+    act(() => btn.click());
+    await expectShown('去年より4日遅い');
+    act(() => btn.click());
+    await expectShown('去年より1.0℃高い');
+  });
+  it('4秒ごとに自動で次へ進む', () => {
+    vi.useFakeTimers();
+    try {
+      renderWithMotion(<SeasonPaceTicker state={readyState(paceItems)} />);
+      // フェイクタイマーでは退場の完了が進まないので、現在位置の点で判定する
+      const dots = () => Array.from(document.querySelectorAll('.season-strip__dots i')).findIndex((d) => d.classList.contains('is-current'));
+      expect(dots()).toBe(0);
+      act(() => { vi.advanceTimersByTime(4000); });
+      expect(dots()).toBe(1);
+      act(() => { vi.advanceTimersByTime(4000); });
+      expect(dots()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('1項目なら自動で進めない', () => {
+    vi.useFakeTimers();
+    try {
+      renderWithMotion(<SeasonPaceTicker state={readyState(paceItems.slice(0, 1))} />);
+      act(() => { vi.advanceTimersByTime(12000); });
+      expect(shown(screen.getByRole('button'))).toBe('去年より1.0℃高い');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('読み上げ用の一覧に全項目が入る', () => {
+    renderWithMotion(<SeasonPaceTicker state={readyState(paceItems)} />);
+    const items = screen.getAllByRole('listitem', { hidden: true }).map((li) => li.textContent);
+    expect(items).toEqual([
+      '季節のあしどり・気温（直近30日）：去年より1.0℃高い',
+      '季節のあしどり・積算温度（1月1日から・10℃基準）：去年より4日遅い',
+    ]);
   });
 });
 

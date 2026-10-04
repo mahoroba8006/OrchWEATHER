@@ -1,4 +1,4 @@
-/* 今年のあゆみの帯・節気ふりかえりカード */
+/* 季節のあしどりの帯・節気ふりかえりカード */
 .season-strip {
   box-sizing: border-box;
   min-height: 52px;
@@ -12,6 +12,32 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
 }
+/* 帯全体をボタンにして、タップで次の項目へ進める */
+.season-strip--ticker {
+  position: relative;
+  width: 100%;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.season-strip--ticker:hover { background: var(--surface-card); }
+.season-strip__stage { position: absolute; inset: 0; display: block; }
+.season-strip__item {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  padding: 0.45rem 2.2rem 0.45rem 0.85rem;
+}
+.season-strip__dots {
+  position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+  display: flex; gap: 4px;
+}
+.season-strip__dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
+.season-strip__dots i.is-current { background: var(--ink-3); }
 .season-strip__label { font-size: 0.7rem; color: var(--ink-3); line-height: 1.3; }
 .season-strip__text { font-size: 0.85rem; font-weight: 600; color: var(--ink-1); line-height: 1.4; }
 
@@ -51,7 +77,9 @@
 .season-card__records dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .season-card__note { margin: 0.6rem 0 0; font-size: 0.7rem; color: var(--ink-3); line-height: 1.5; }
+.season-sr,
 .season-card__sr {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  list-style: none;
 }

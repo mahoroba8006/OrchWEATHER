@@ -2,6 +2,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import type { UserSettings, AccumStartDates, AccumDeltaThresholds, JmaWarningGroup, AiSection } from '../store';
 import type { WeatherCodeMode } from './wmoSeverity';
+import type { SeasonPaceMode } from './seasonReview';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
@@ -68,10 +69,12 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : DEFAULT_AI_CUSTOM_PROMPT;
   const weatherCodeMode: WeatherCodeMode =
     data?.weatherCodeMode === 'frequency' ? 'frequency' : 'severity';
+  const seasonPaceMode: SeasonPaceMode =
+    data?.seasonPaceMode === 'recent' ? 'recent' : 'analysis';
   return {
     baseTempSettings, accumStartDates, accumDeltaThresholds,
     defaultLocationId, enabledJmaGroups, enabledAiSections, aiCustomPrompt,
-    weatherCodeMode,
+    weatherCodeMode, seasonPaceMode,
   };
 }
 
@@ -129,4 +132,11 @@ export async function updateWeatherCodeMode(
   mode: WeatherCodeMode,
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { weatherCodeMode: mode }, { merge: true });
+}
+
+export async function updateSeasonPaceMode(
+  uid: string,
+  mode: SeasonPaceMode,
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { seasonPaceMode: mode }, { merge: true });
 }

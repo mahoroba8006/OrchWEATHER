@@ -21,9 +21,9 @@ import { SkyHero } from '../sky/SkyHero';
 import { fallbackSky, useSkyStore, type SkyState, type SkySummary } from '../../skyStore';
 import { Sheet } from '../ui/Sheet';
 import { useSeasonReview } from '../../hooks/useSeasonReview';
-import { YearPaceStrip } from '../season/YearPaceStrip';
+import { SeasonPaceTicker } from '../season/SeasonPaceTicker';
 import { SeasonInlineCard, SeasonReviewCard } from '../season/SeasonReviewCard';
-import type { SeasonReview } from '../../lib/seasonReview';
+import type { PaceOptions, SeasonReview } from '../../lib/seasonReview';
 import { logSeasonCardOpen } from '../../lib/analytics';
 import {
   classifyWeather, currentHourIndex, hhmmToMinutes, jstDateString, jstMinutesOfDay, skyPalette, timeOfDay,
@@ -85,7 +85,18 @@ export function WeatherTab() {
   );
 
   // 今年のあゆみ・節気ふりかえり（予報の取得完了後に非同期で集計。予報表示は待たせない）
-  const season = useSeasonReview(location?.lat ?? null, location?.lon ?? null, data);
+  // 季節のあしどりの比べ方（ゲストは userSettings が無いので既定値）
+  const paceOptions: PaceOptions = {
+    mode: userSettings?.seasonPaceMode ?? 'analysis',
+    baseTemp: userSettings?.baseTempSettings?.[0] ?? 10,
+    startDates: {
+      precip: userSettings?.accumStartDates?.precip ?? '01-01',
+      sunshine: userSettings?.accumStartDates?.sunshine ?? '01-01',
+      gdd: userSettings?.accumStartDates?.gdd ?? '01-01',
+    },
+    gddDaysMin: userSettings?.accumDeltaThresholds?.gdd ?? 30,
+  };
+  const season = useSeasonReview(location?.lat ?? null, location?.lon ?? null, data, paceOptions);
   const seasonReview = season.status === 'ready' ? season.view.review : null;
   // 開いたときのふりかえりを覚える。地点切替などで別のふりかえりになったら閉じ、戻っても勝手に開き直さない
   const [openedReview, setOpenedReview] = useState<SeasonReview | null>(null);
@@ -282,7 +293,7 @@ export function WeatherTab() {
 
       {data && (
         <>
-          <YearPaceStrip state={season} />
+          <SeasonPaceTicker state={season} />
           {season.status === 'ready' && season.view.showCard && season.view.review && (
             <SeasonInlineCard review={season.view.review} />
           )}

@@ -1,4 +1,4 @@
-// 今年のあゆみ（積算気温の早い・遅い）と、節気ふりかえりカードの計算。
+// 季節のあしどり（気温・降水量・積算温度・日照時間の去年・5年平均比）と、節気ふりかえりカードの計算。
 // 過去の実績値の集計・比較のみを扱う（将来の見通しは出さない＝予報業務に当たらない）。
 // 日付はすべて "YYYY-MM-DD"（JST 暦日）。加減算は dateUtils.addDays（UTC 基準）を使う。
 import type { DailyActual } from '../api/weather';
@@ -16,8 +16,6 @@ export const CARD_WINDOW_DAYS = 3;
 export const RAIN_RATIO_MIN_BASE = 5;
 /** 「まとまった雨」とみなす日降水量（mm） */
 export const HEAVY_RAIN_MM = 10;
-/** 積算気温が小さい時期（主に1月）は日数差がぶれるため、直近30日の平均に切り替えるしきい値（℃・日） */
-export const PACE_MIN_ACCUM = 200;
 
 const yearOf = (date: string) => Number(date.slice(0, 4));
 const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
@@ -274,13 +272,33 @@ export function buildSeasonReview(map: DayMap, today: string): SeasonReview | nu
   };
 }
 
-// ---- 今年のあゆみ ----
+// ---- 季節のあしどり ----
+
+/** analysis = 空くらべの開始日・基準温度に合わせる / recent = すべて直近30日で比べる */
+export type SeasonPaceMode = 'analysis' | 'recent';
+
+export interface PaceOptions {
+  mode: SeasonPaceMode;
+  /** 積算温度の基準温度（℃）。空くらべの基準温度1 */
+  baseTemp: number;
+  /** 空くらべの累積開始日（MM-DD） */
+  startDates: { precip: string; sunshine: string; gdd: string };
+  /** 積算温度がこの値（℃日）未満のうちは日数差を出さず差で示す。空くらべの「日数差」ガードと共有 */
+  gddDaysMin: number;
+}
+
+export const DEFAULT_PACE_OPTIONS: PaceOptions = {
+  mode: 'analysis',
+  baseTemp: 10,
+  startDates: { precip: '01-01', sunshine: '01-01', gdd: '01-01' },
+  gddDaysMin: 30,
+};
+
+export type PaceItemKind = 'temp' | 'precip' | 'gdd' | 'sunshine';
+export interface PaceItem { kind: PaceItemKind; label: string; text: string }
 
 /** 正 = 何日早い、負 = 何日遅い、'ahead' = 比較年が年末までに届かない（今年がかなり早い） */
-export type PaceDiff = number | 'ahead';
-export type YearPace =
-  | { kind: 'accum'; vsLastYear: PaceDiff; vsAvg: PaceDiff }
-  | { kind: 'recent'; vsLastYear: number; vsAvg: number };
+type PaceDiff = number | 'ahead';
 
 /** onOrBefore 以前でデータがある最新日 */
 function latestDate(map: DayMap, onOrBefore: string): string | null {
@@ -289,53 +307,21 @@ function latestDate(map: DayMap, onOrBefore: string): string | null {
   return best;
 }
 
-/** その年の 1/1 から end までの日ごとの有効積算気温（0℃基準＝0℃未満の日は0）。欠けがあれば null */
-function cumulative(map: DayMap, year: number, end: string): number[] | null {
+/** start〜end の日ごとの有効積算温度（base℃を引いた分。下回る日は0）。欠けがあれば null */
+function cumulative(map: DayMap, start: string, end: string, base: number): number[] | null {
   const out: number[] = [];
   let sum = 0;
-  for (let d = `${year}-01-01`; d <= end; d = addDays(d, 1)) {
+  for (let d = start; d <= end; d = addDays(d, 1)) {
     const r = map.get(d);
     if (!r) return null;
-    sum += Math.max(0, r.tempMean);
+    sum += Math.max(0, r.tempMean - base);
     out.push(sum);
   }
   return out;
 }
 
-export function computeYearPace(map: DayMap, today: string): YearPace | null {
-  const last = latestDate(map, addDays(today, -1));
-  if (!last) return null;
-  // 「今年」は today の暦年で固定する。最新実績が前年（1/1・当年データ未着）なら積算は使わない
-  const y = yearOf(today);
-  const cur = yearOf(last) === y ? cumulative(map, y, last) : null;
-
-  if (cur && cur.length > 0 && cur[cur.length - 1] >= PACE_MIN_ACCUM) {
-    const target = cur[cur.length - 1];
-    const idx = cur.length - 1;
-    const series: number[][] = [];
-    for (let k = 1; k <= AVG_YEARS; k++) {
-      const s = cumulative(map, y - k, `${y - k}-12-31`);
-      if (!s) return null;
-      series.push(s);
-    }
-    // 5年平均は「1/1 からの通し日数」ごとの積算値の平均（閏年は短い方に揃える）
-    const len = Math.min(...series.map(s => s.length));
-    const avg = Array.from({ length: len }, (_, i) => series.reduce((a, s) => a + s[i], 0) / series.length);
-    const diff = (s: number[]): PaceDiff => {
-      const j = s.findIndex(v => v >= target);
-      return j === -1 ? 'ahead' : j - idx;
-    };
-    return { kind: 'accum', vsLastYear: diff(series[0]), vsAvg: diff(avg) };
-  }
-
-  const start = addDays(last, -(RECENT_DAYS - 1));
-  const c = rangeStats(map, start, last);
-  const cmp = comparisonStats(map, start, last);
-  if (!c || !cmp) return null;
-  return { kind: 'recent', vsLastYear: c.meanTemp - cmp.lastYear.meanTemp, vsAvg: c.meanTemp - cmp.avg.meanTemp };
-}
-
-export interface PaceView { label: string; text: string }
+const lastOf = (s: number[]) => s[s.length - 1];
+const degDays = (v: number) => `${signed(Math.round(v), 0)}℃日`;
 
 function paceClause(subject: string, d: PaceDiff): string {
   if (d === 'ahead') return `${subject}より早いペース`;
@@ -343,29 +329,134 @@ function paceClause(subject: string, d: PaceDiff): string {
   return d > 0 ? `${subject}より${d}日早い` : `${subject}より${-d}日遅い`;
 }
 
-export function formatYearPace(p: YearPace): PaceView {
-  if (p.kind === 'accum') {
-    return {
-      label: '今年のあゆみ（1月1日から）',
-      text: `積算気温 ${paceClause('去年', p.vsLastYear)}・${paceClause('5年平均', p.vsAvg)}`,
-    };
+/** 「6割」「1.5倍」は「去年の〜」、「同じくらい」は「去年と〜」、mm 差は「去年より〜」 */
+function ratioClause(subject: string, c: CompareCell): string {
+  if (c.text === '同じくらい') return `${subject}と同じくらい`;
+  if (c.text.endsWith('割') || c.text.endsWith('倍')) return `${subject}の${c.text}`;
+  return `${subject}より${c.text}`;
+}
+
+const both = (f: (subject: string) => string) => `${f('去年')}・${f('5年平均')}`;
+
+/** 期間 [start, last] と、去年・5年平均の同じ月日範囲 */
+function windowStats(map: DayMap, start: string, last: string) {
+  const cur = rangeStats(map, start, last);
+  const cmp = comparisonStats(map, start, last);
+  return cur && cmp ? { cur, ...cmp } : null;
+}
+
+/** 開始日からの積算温度の早い・遅い（比較年が今年の現在値に届いた日との差）。序盤は℃日の差 */
+function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): string | null {
+  const cur = cumulative(map, start, last, opts.baseTemp);
+  if (!cur || cur.length === 0) return null;
+  const series: number[][] = [];
+  for (let k = 1; k <= AVG_YEARS; k++) {
+    const s = cumulative(map, shiftYear(start, -k), `${yearOf(start) - k}-12-31`, opts.baseTemp);
+    if (!s) return null;
+    series.push(s);
   }
-  const t = (d: number) => tempCell(d, 0).text;
-  return { label: `この${RECENT_DAYS}日`, text: `平均気温 去年より${t(p.vsLastYear)}・5年平均より${t(p.vsAvg)}` };
+  // 5年平均は「開始日からの通し日数」ごとの積算値の平均（閏年は短い方に揃える）
+  const len = Math.min(...series.map(s => s.length));
+  const avg = Array.from({ length: len }, (_, i) => series.reduce((a, s) => a + s[i], 0) / series.length);
+  const target = lastOf(cur);
+  const idx = cur.length - 1;
+  if (target < opts.gddDaysMin) {
+    const at = (s: number[]) => s[Math.min(idx, s.length - 1)];
+    return `去年より${degDays(target - at(series[0]))}・5年平均より${degDays(target - at(avg))}`;
+  }
+  const diff = (s: number[]): PaceDiff => {
+    const j = s.findIndex(v => v >= target);
+    return j === -1 ? 'ahead' : j - idx;
+  };
+  return `${paceClause('去年', diff(series[0]))}・${paceClause('5年平均', diff(avg))}`;
+}
+
+/** 直近期間の積算温度の差（℃日） */
+function gddRecent(map: DayMap, start: string, last: string, base: number): string | null {
+  const cur = cumulative(map, start, last, base);
+  if (!cur || cur.length === 0) return null;
+  const per: number[] = [];
+  for (let k = 1; k <= AVG_YEARS; k++) {
+    const s = cumulative(map, shiftYear(start, -k), shiftYear(last, -k), base);
+    if (!s || s.length === 0) return null;
+    per.push(lastOf(s));
+  }
+  const avg = per.reduce((a, v) => a + v, 0) / per.length;
+  return `去年より${degDays(lastOf(cur) - per[0])}・5年平均より${degDays(lastOf(cur) - avg)}`;
+}
+
+/**
+ * 季節のあしどりの各項目（気温・降水量・積算温度・日照時間の順）。作れない項目は含めない。
+ * 「今年」は today の暦年で固定（1/1 などに前年分を今年として数えない）。
+ */
+export function computePaceItems(map: DayMap, today: string, opts: PaceOptions): PaceItem[] {
+  const last = latestDate(map, addDays(today, -1));
+  if (!last) return [];
+  const y = yearOf(today);
+  const recentStart = addDays(last, -(RECENT_DAYS - 1));
+  const recentLabel = `この${RECENT_DAYS}日`;
+  const items: PaceItem[] = [];
+
+  // 気温はどちらのモードでも直近30日の平均（起点からの平均は季節がまざって差が見えにくい）
+  const t = windowStats(map, recentStart, last);
+  if (t) {
+    items.push({
+      kind: 'temp',
+      label: `季節のあしどり・気温（${recentLabel}）`,
+      text: both(s => `${s}より${tempCell(t.cur.meanTemp, (s === '去年' ? t.lastYear : t.avg).meanTemp).text}`),
+    });
+  }
+
+  // 比べる期間: recent は直近30日、analysis は今年の開始日から（開始日がまだ来ていなければ出さない）
+  const windowOf = (mmdd: string): { start: string; label: string } | null => {
+    if (opts.mode === 'recent') return { start: recentStart, label: recentLabel };
+    const start = shiftYear(`2000-${mmdd}`, y - 2000); // 2/29 開始を平年は 2/28 に
+    return start <= last ? { start, label: `${Number(mmdd.slice(0, 2))}月${Number(mmdd.slice(3, 5))}日から` } : null;
+  };
+
+  const pw = windowOf(opts.startDates.precip);
+  const p = pw && windowStats(map, pw.start, last);
+  if (pw && p) {
+    items.push({
+      kind: 'precip',
+      label: `季節のあしどり・降水量（${pw.label}）`,
+      text: both(s => ratioClause(s, rainCell(p.cur.precip, (s === '去年' ? p.lastYear : p.avg).precip))),
+    });
+  }
+
+  const gw = windowOf(opts.startDates.gdd);
+  const g = gw && (opts.mode === 'recent'
+    ? gddRecent(map, gw.start, last, opts.baseTemp)
+    : gddPace(map, gw.start, last, opts));
+  if (gw && g) {
+    items.push({ kind: 'gdd', label: `季節のあしどり・積算温度（${gw.label}・${opts.baseTemp}℃基準）`, text: g });
+  }
+
+  const sw = windowOf(opts.startDates.sunshine);
+  const sun = sw && windowStats(map, sw.start, last);
+  if (sw && sun) {
+    items.push({
+      kind: 'sunshine',
+      label: `季節のあしどり・日照時間（${sw.label}）`,
+      text: both(s => `${s}より${sunCell(sun.cur.sunshine, (s === '去年' ? sun.lastYear : sun.avg).sunshine).text}`),
+    });
+  }
+  return items;
 }
 
 // ---- 画面用ビュー ----
 
 export interface SeasonView {
-  pace: PaceView | null;
+  /** 季節のあしどりの項目（帯で順番に切り替えて見せる） */
+  paceItems: PaceItem[];
   review: SeasonReview | null;
   /** カードを帯の下に出すか（節気の変わり目 CARD_WINDOW_DAYS 日間） */
   showCard: boolean;
 }
 
-export function computeSeasonView(map: DayMap, today: string): SeasonView | null {
-  const pace = computeYearPace(map, today);
+export function computeSeasonView(map: DayMap, today: string, opts: PaceOptions): SeasonView | null {
+  const paceItems = computePaceItems(map, today, opts);
   const review = buildSeasonReview(map, today);
-  if (!pace && !review) return null;
-  return { pace: pace ? formatYearPace(pace) : null, review, showCard: !!review && isInCardWindow(today) };
+  if (paceItems.length === 0 && !review) return null;
+  return { paceItems, review, showCard: !!review && isInCardWindow(today) };
 }
