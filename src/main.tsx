@@ -9,8 +9,11 @@ import { MotionProvider } from './components/ui/MotionProvider'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { AppErrorFallback } from './components/AppErrorFallback'
 import { logAppError } from './lib/analytics'
+import { startCssGuard } from './lib/cssGuard'
 
 registerSW({ immediate: true })
+// 見た目の CSS が当たっていなければ読み直し、原因の手がかりを表示・記録する
+startCssGuard()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
