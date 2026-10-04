@@ -16,7 +16,7 @@ afterEach(cleanup);
 
 const review: SeasonReview = {
   range: { index: 14, name: '白露', start: '2026-09-07', end: '2026-09-22', days: 16 },
-  periodLabel: '白露 9/7〜9/22（16日間）',
+  periodLabel: '9/7〜9/22（16日間）',
   headline: '日差しが多く、雨が少ない',
   progress: null,
   rows: [
@@ -121,9 +121,17 @@ describe('SeasonPaceTicker', () => {
 });
 
 describe('SeasonReviewCard', () => {
+  it('シートでは期間だけ、帯の下では節気名を添える', () => {
+    const { unmount } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(screen.queryByText(/白露/)).toBeNull();
+    unmount();
+    renderWithMotion(<SeasonReviewCard review={review} source="inline" />);
+    expect(screen.getByText('白露 9/7〜9/22（16日間）')).toBeTruthy();
+  });
+
   it('期間・見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
-    expect(screen.getByText('白露 9/7〜9/22（16日間）')).toBeTruthy();
+    expect(screen.getByText('9/7〜9/22（16日間）')).toBeTruthy();
     expect(screen.getByText('日差しが多く、雨が少ない')).toBeTruthy();
     expect(screen.getByText('38mm')).toBeTruthy();
     expect(screen.getAllByText('6割')).toHaveLength(2);
@@ -173,9 +181,9 @@ describe('SeasonReviewCard', () => {
 });
 
 describe('SeasonReviewCard 途中経過', () => {
-  it('「途中経過」と期間を出し、見出し・比較列は出さない', () => {
+  it('「途中経過」は出さず期間を出し、見出し・比較列は出さない', () => {
     const { container } = renderWithMotion(<SeasonReviewCard review={progressReview} source="sheet" />);
-    expect(screen.getByText('途中経過')).toBeTruthy();
+    expect(screen.queryByText('途中経過')).toBeNull();
     expect(screen.getByText('9/7〜9/22（3日目／16日間）')).toBeTruthy();
     expect(screen.queryByText('去年比')).toBeNull();
     expect(screen.queryByText('5年平均比')).toBeNull();

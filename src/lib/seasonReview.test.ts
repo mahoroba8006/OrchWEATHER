@@ -135,7 +135,7 @@ describe('buildSeasonReview', () => {
 
   it('期間・見出し・3項目・雨の棒・記録を組み立てる', () => {
     const r = buildSeasonReview(sampleMap(), '2026-10-01')!;
-    expect(r.periodLabel).toBe('白露 9/7〜9/22（16日間）');
+    expect(r.periodLabel).toBe('9/7〜9/22（16日間）');
     expect(r.headline).toBe('日差しが多く、雨が少ない');
     expect(r.rows).toEqual([
       { label: '平均気温', value: '24.0℃', vsLastYear: { text: '+1.0℃', tone: 'more' }, vsAvg: { text: '+1.0℃', tone: 'more' } },

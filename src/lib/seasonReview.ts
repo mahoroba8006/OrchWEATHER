@@ -303,7 +303,7 @@ export function estimateSkyCode(d: DayRecord): number {
 
 export interface SeasonReview {
   range: SekkiRange;
-  /** "白露 9/7〜9/22（16日間）" */
+  /** "9/7〜9/22（16日間）"（節気名はシートの見出し・絵で示すので含めない） */
   periodLabel: string;
   headline: string;
   rows: CompareRow[];
@@ -334,7 +334,7 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange): SeasonRevie
   const y = yearOf(range.start);
   return {
     range,
-    periodLabel: `${range.name} ${monthDay(range.start)}〜${monthDay(range.end)}（${range.days}日間）`,
+    periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}（${range.days}日間）`,
     headline: headline(cur, avg, words),
     rows: [
       { label: '平均気温', value: `${cur.meanTemp.toFixed(1)}℃`, vsLastYear: tempCell(cur.meanTemp, cmp.lastYear.meanTemp), vsAvg: tempCell(cur.meanTemp, avg.meanTemp) },
