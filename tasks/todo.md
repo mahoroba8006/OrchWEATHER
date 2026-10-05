@@ -1,3 +1,16 @@
+# LP ゼロベース作り直し「一日×一年の空」（2026-10-06〜）
+
+仕様書: [docs/superpowers/specs/2026-10-06-lp-sky-journey-design.md](../docs/superpowers/specs/2026-10-06-lp-sky-journey-design.md)／計画: [docs/superpowers/plans/2026-10-06-lp-sky-journey.md](../docs/superpowers/plans/2026-10-06-lp-sky-journey.md)（11タスク）
+
+- [x] 参考サイト調査（X投稿の40リンク）→方向性B「空が流れる」→見出し「「今年は遅い」が、数字で見える。」＋添え「勘を、数字で裏づける。」
+- [x] 一日×一年（朝=春・昼=夏・夕焼け=秋・夜=冬）の試作で合意。舞うものは少なく・ゆっくり。写真は使わない
+- [x] 章ごとの設計図で合意（ボタン下「Googleアカウントですぐにログイン。無料で利用できます」）
+- [ ] 実装（タスク1〜10）
+- [ ] 実画面検証（375/1280/reduced・重さ・Open-Meteo 0件）
+- [ ] ユーザー実機確認（develop プレビュー）→ 指示で main
+
+---
+
 # LP 全面見直し「『今年は遅い』が、数字で見える。」（2026-10-05〜）
 
 仕様書: [docs/superpowers/specs/2026-10-05-lp-renewal-design.md](../docs/superpowers/specs/2026-10-05-lp-renewal-design.md)
