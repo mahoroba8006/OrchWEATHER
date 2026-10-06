@@ -29,8 +29,8 @@ describe('LpHero', () => {
     expect(screen.getByRole('heading', { level: 1, name: '「今年は遅い」が、数字で見える。' })).toBeTruthy();
     expect(screen.getByText('勘を、数字で裏づける。')).toBeTruthy();
     expect(screen.getByText(sekkiForDate(new Date()).name)).toBeTruthy();
-    expect(screen.getByText('Googleアカウントですぐにログイン。無料で利用できます')).toBeTruthy();
-    expect(screen.getByText('あなたの地域の気温・雨・日照を、去年・5年平均と比べる。')).toBeTruthy();
+    expect(document.querySelector('.lp-hero__note')!.textContent).toBe('Googleアカウントですぐにログイン。無料で利用できます');
+    expect(document.querySelector('.lp-hero__use')!.textContent).toBe('あなたの農園の天気が見える。あの年・あの場所との違いが見える。');
     expect(screen.getByText('東京・2026年10月5日時点')).toBeTruthy();
   });
   it('今日の節気は見出しより前に置く', () => {

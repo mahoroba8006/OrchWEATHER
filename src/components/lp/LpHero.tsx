@@ -21,9 +21,9 @@ export function LpHero({ loading, error, onLogin, onTryGuest }: {
         </p>
         <LineReveal as="h1" className="lp-hero__title" lines={['「今年は遅い」が、', '数字で見える。']} />
         <p className="lp-hero__sub">勘を、数字で裏づける。</p>
-        <p className="lp-hero__use">あなたの地域の気温・雨・日照を、去年・5年平均と比べる。</p>
+        <p className="lp-hero__use"><span className="lp-phrase">あなたの農園の天気が見える。</span><span className="lp-phrase">あの年・あの場所との違いが見える。</span></p>
         <CtaPair loading={loading} onLogin={onLogin} onTryGuest={onTryGuest} />
-        <p className="lp-hero__note">Googleアカウントですぐにログイン。無料で利用できます</p>
+        <p className="lp-hero__note"><span className="lp-phrase">Googleアカウントですぐにログイン。</span><span className="lp-phrase">無料で利用できます</span></p>
         {error && <p className="lp-error" role="alert">{error}</p>}
       </div>
       <div className="lp-hero__device">
