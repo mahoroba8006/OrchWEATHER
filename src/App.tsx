@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { m } from 'motion/react';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsTab } from './components/settings/SettingsTab';
-import { LandingPage } from './components/LandingPage';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
 import { WeatherTab } from './components/weather/WeatherTab';
@@ -21,6 +20,8 @@ import { logGuestStart } from './lib/analytics';
 import { AnalysisTab } from './components/analysis/AnalysisTab';
 import { useAnalysisState } from './components/analysis/useAnalysisState';
 import './App.css';
+
+const LandingPage = lazy(() => import('./components/LandingPage').then((m) => ({ default: m.LandingPage })));
 
 
 function AppContent() {
@@ -119,7 +120,11 @@ function AppContent() {
   const sinking = sheet !== null && isMobile;
 
   if (!user && !guestMode) {
-    return <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />;
+    return (
+      <Suspense fallback={<div style={{ minHeight: '100vh', background: '#3d4f86' }} />}>
+        <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />
+      </Suspense>
+    );
   }
 
   return (
