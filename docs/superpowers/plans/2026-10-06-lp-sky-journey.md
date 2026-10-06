@@ -497,13 +497,21 @@ git commit -m "feat(lp): 背景の舞うもの（花びら・光・落ち葉・�
 ```ts
 // src/components/lp/lpFacts.test.ts
 import { describe, expect, it } from 'vitest';
-import { GDD_LAG_DAYS, HUNCHES, LP_FACTS_SOURCE, gddCurve } from './lpFacts';
+import { GDD_LAG_DAYS, HUNCHES, LP_FACTS_ASOF, LP_FACTS_SOURCE, gddCurve, hunchSummary } from './lpFacts';
 
 describe('lpFacts', () => {
   it('3つの勘と、撮影した画面と同じ数字', () => {
     expect(HUNCHES.map((h) => h.quote)).toEqual(['今年は、遅い気がする。', '雨、多すぎないか。', 'お日さま、足りてない。']);
     expect(HUNCHES.map((h) => h.value)).toEqual([18, 5.9, 64]);
     expect(LP_FACTS_SOURCE).toBe('東京・2026年の実績');
+    expect(LP_FACTS_ASOF).toBe('東京・2026年10月5日時点');
+  });
+  it('勘の章の最後に残す3行', () => {
+    expect(HUNCHES.map(hunchSummary)).toEqual([
+      '積算温度：去年より18日遅い',
+      '白露の雨：5年平均の5.9倍',
+      '白露の日照：5年平均より64時間少ない',
+    ]);
   });
   it('「平年」と言わない', () => {
     expect(JSON.stringify(HUNCHES)).not.toMatch(/平年/);
@@ -527,10 +535,14 @@ Expected: FAIL（`Failed to resolve import "./lpFacts"`）
 // LP に載せる数字。東京・2026年の実績（scripts/lp-shots.mjs で 2026-10-05 に撮影した画面と同じ値）。
 // 画面写真を撮り直したら、ここも同じ値に更新する。
 export const LP_FACTS_SOURCE = '東京・2026年の実績';
+/** 最初の画面の札に添える撮影時点（撮影時点の数字を今日の実績と誤解させない） */
+export const LP_FACTS_ASOF = '東京・2026年10月5日時点';
 
 export interface Hunch {
   /** 農家のつぶやき */
   quote: string;
+  /** 章の最後に振り返るときの見出し */
+  topic: string;
   /** 数字の見出し */
   label: string;
   /** 数字の前の言葉 */
@@ -542,10 +554,15 @@ export interface Hunch {
 }
 
 export const HUNCHES: readonly Hunch[] = [
-  { quote: '今年は、遅い気がする。', label: '積算温度（1月1日から・10℃基準）', before: '去年より', value: 18, decimals: 0, unit: '日遅い', note: '5年平均より12日遅い' },
-  { quote: '雨、多すぎないか。', label: '白露（9/7〜9/22）の雨の量', before: '5年平均の', value: 5.9, decimals: 1, unit: '倍', note: '476mm（去年の10.6倍）' },
-  { quote: 'お日さま、足りてない。', label: '白露（9/7〜9/22）の日照', before: '5年平均より', value: 64, decimals: 0, unit: '時間少ない', note: '39時間（去年より68時間少ない）' },
+  { quote: '今年は、遅い気がする。', topic: '積算温度', label: '積算温度（1月1日から・10℃基準）', before: '去年より', value: 18, decimals: 0, unit: '日遅い', note: '5年平均より12日遅い' },
+  { quote: '雨、多すぎないか。', topic: '白露の雨', label: '白露（9/7〜9/22）の雨の量', before: '5年平均の', value: 5.9, decimals: 1, unit: '倍', note: '476mm（去年の10.6倍）' },
+  { quote: 'お日さま、足りてない。', topic: '白露の日照', label: '白露（9/7〜9/22）の日照', before: '5年平均より', value: 64, decimals: 0, unit: '時間少ない', note: '39時間（去年より68時間少ない）' },
 ];
+
+/** 章の最後に残す一行（例「積算温度：去年より18日遅い」） */
+export function hunchSummary(h: Hunch): string {
+  return `${h.topic}：${h.before}${h.value.toFixed(h.decimals)}${h.unit}`;
+}
 
 /** 積算温度の模式図で、今年が去年より遅れる日数（季節のあしどりの実績と同じ） */
 export const GDD_LAG_DAYS = 18;
@@ -563,6 +580,11 @@ export function gddCurve(day: number, lag = 0): number {
 export function logLpChapterView(chapter: string): void {
   track('lp_chapter_view', { chapter });
 }
+
+/** LP の空もようで「リスクでみる／概況でみる」が押された（触れる仕掛けが効いているか） */
+export function logLpMoyoToggle(mode: string): void {
+  track('lp_moyo_toggle', { mode });
+}
 ```
 
 - [ ] **Step 4: 通ることを確認する**
@@ -574,7 +596,7 @@ Expected: PASS
 
 ```bash
 git add src/components/lp/lpFacts.ts src/components/lp/lpFacts.test.ts src/lib/analytics.ts
-git commit -m "feat(lp): LP の数字（東京・2026年の実績）と章の閲覧計測"
+git commit -m "feat(lp): LP の数字（東京・2026年の実績）と章の閲覧・切替の計測"
 ```
 
 ---
@@ -1441,7 +1463,12 @@ git commit -m "feat(lp): 背景「一日×一年の空」と見出し帯・節�
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 const logLpDetailOpen = vi.fn();
-vi.mock('../../lib/analytics', () => ({ logLpChapterView: vi.fn(), logLpDetailOpen: (s: string) => logLpDetailOpen(s) }));
+const logLpMoyoToggle = vi.fn();
+vi.mock('../../lib/analytics', () => ({
+  logLpChapterView: vi.fn(),
+  logLpDetailOpen: (s: string) => logLpDetailOpen(s),
+  logLpMoyoToggle: (m: string) => logLpMoyoToggle(m),
+}));
 import { LpHero } from './LpHero';
 import { HunchChapter } from './HunchChapter';
 import { sekkiForDate } from '../../lib/sekki';
@@ -1459,6 +1486,13 @@ describe('LpHero', () => {
     expect(screen.getByText('勘を、数字で裏づける。')).toBeTruthy();
     expect(screen.getByText(sekkiForDate(new Date()).name)).toBeTruthy();
     expect(screen.getByText('Googleアカウントですぐにログイン。無料で利用できます')).toBeTruthy();
+    expect(screen.getByText('あなたの地域の気温・雨・日照を、去年・5年平均と比べる。')).toBeTruthy();
+    expect(screen.getByText('東京・2026年10月5日時点')).toBeTruthy();
+  });
+  it('今日の節気は見出しより前に置く', () => {
+    const { container } = render(<LpHero loading={false} error={null} onLogin={() => {}} onTryGuest={() => {}} />);
+    const copy = container.querySelector('.lp-hero__copy')!;
+    expect(copy.firstElementChild!.className).toBe('lp-hero__today');
   });
 });
 
@@ -1471,6 +1505,8 @@ describe('HunchChapter（動きを減らす設定＝縦に並べた静止表示�
     expect(container.textContent).toContain('5.9');
     expect(screen.getByRole('heading', { name: '勘を、数字で裏づける。' })).toBeTruthy();
     expect(screen.getByText('東京・2026年の実績')).toBeTruthy();
+    // 静止表示では3つの勘をすでに並べているので、結論の下の3行は重ねて出さない
+    expect(container.querySelector('.lp-hunch__summary')).toBeNull();
   });
 });
 ```
@@ -1487,6 +1523,7 @@ Expected: FAIL（`Failed to resolve import "./LpHero"`）
 // 0. 最初の画面（夜明け・立春）。見出しがせり上がり、丘の向こうからカードが昇り、札の数字が数え上がる。
 import { sekkiForDate } from '../../lib/sekki';
 import { useChapterView } from './hooks';
+import { LP_FACTS_ASOF } from './lpFacts';
 import { CountUp, CtaPair, LineReveal, Shot } from './primitives';
 import './hero.css';
 
@@ -1498,21 +1535,26 @@ export function LpHero({ loading, error, onLogin, onTryGuest }: {
   return (
     <section ref={ref} id="top" className="lp-ch lp-hero" data-scene="0">
       <div className="lp-hero__copy">
-        <LineReveal as="h1" className="lp-hero__title" lines={['「今年は遅い」が、', '数字で見える。']} />
-        <p className="lp-hero__sub">勘を、数字で裏づける。</p>
+        {/* 今日の節気は見出しの上の小さな札に（縦に積む段数を増やさない） */}
         <p className="lp-hero__today">
           今日は<b>{today.name}</b>
           <span className="lp-hero__kou">{today.kou.name}（{today.kou.reading}）</span>
         </p>
+        <LineReveal as="h1" className="lp-hero__title" lines={['「今年は遅い」が、', '数字で見える。']} />
+        <p className="lp-hero__sub">勘を、数字で裏づける。</p>
+        <p className="lp-hero__use">あなたの地域の気温・雨・日照を、去年・5年平均と比べる。</p>
         <CtaPair loading={loading} onLogin={onLogin} onTryGuest={onTryGuest} />
         <p className="lp-hero__note">Googleアカウントですぐにログイン。無料で利用できます</p>
         {error && <p className="lp-error" role="alert">{error}</p>}
       </div>
       <div className="lp-hero__device">
         <Shot src="/lp/review-card.webp" alt="節気のふりかえりカード（白露）— 去年・5年平均と比べた気温・雨・日照" width={780} height={1114} eager />
-        <p className="lp-chip lp-hero__chip">
-          積算温度 去年より<CountUp to={18} delay={1100} />日遅い
-        </p>
+        <div className="lp-hero__badge">
+          <p className="lp-chip">
+            積算温度 去年より<CountUp to={18} delay={1100} />日遅い
+          </p>
+          <p className="lp-hero__asof">{LP_FACTS_ASOF}</p>
+        </div>
       </div>
     </section>
   );
@@ -1538,18 +1580,24 @@ export function LpHero({ loading, error, onLogin, onTryGuest }: {
   opacity: 0; animation: lp-fade-in 1s var(--lp-ease) 0.6s forwards;
 }
 .lp-hero__today {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
-  margin: 22px 0 26px; font-size: 13px; letter-spacing: 0.06em;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px;
+  margin: 0 0 18px; font-size: 12.5px; letter-spacing: 0.06em;
+  opacity: 0; animation: lp-fade-in 1s var(--lp-ease) 0.1s forwards;
+}
+.lp-hero__use {
+  margin: 10px 0 26px; max-width: 30em;
+  font-size: clamp(14px, 1.6vw, 16px); line-height: 1.8; font-weight: 500;
   opacity: 0; animation: lp-fade-in 1s var(--lp-ease) 0.8s forwards;
 }
-.lp-hero__today b { font-family: var(--lp-mincho); font-size: 18px; margin-left: 0.3em; }
+.lp-hero__today b { font-family: var(--lp-mincho); font-size: 16px; margin-left: 0.3em; }
 .lp-hero__kou { opacity: 0.85; }
 .lp-hero__note { margin: 14px 0 0; font-size: 12.5px; letter-spacing: 0.04em; opacity: 0.9; }
 .lp-hero .lp-cta-pair { opacity: 0; animation: lp-fade-in 1s var(--lp-ease) 1s forwards; }
 
 .lp-hero__device { position: relative; justify-self: center; width: min(68vw, 330px); }
 .lp-hero__device .lp-shot { transform: rotate(-3deg); animation: lp-rise 1.7s var(--lp-ease) 0.3s both; }
-.lp-hero__chip { position: absolute; right: -10px; top: -18px; animation: lp-fade-in 0.8s var(--lp-ease) 1.1s both; }
+.lp-hero__badge { position: absolute; right: -10px; top: -22px; display: grid; justify-items: end; gap: 6px; animation: lp-fade-in 0.8s var(--lp-ease) 1.1s both; }
+.lp-hero__asof { margin: 0; padding-right: 6px; font-family: var(--lp-mono); font-size: 10.5px; letter-spacing: 0.08em; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3); }
 
 @keyframes lp-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes lp-rise { from { opacity: 0; transform: translateY(140px) rotate(-3deg); } to { opacity: 1; transform: rotate(-3deg); } }
@@ -1560,7 +1608,7 @@ export function LpHero({ loading, error, onLogin, onTryGuest }: {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-hero__sub, .lp-hero__today, .lp-hero .lp-cta-pair, .lp-hero__chip { animation: none; opacity: 1; }
+  .lp-hero__sub, .lp-hero__today, .lp-hero__use, .lp-hero .lp-cta-pair, .lp-hero__badge { animation: none; opacity: 1; }
   .lp-hero__device .lp-shot { animation: none; }
 }
 ```
@@ -1570,10 +1618,10 @@ export function LpHero({ loading, error, onLogin, onTryGuest }: {
 ```tsx
 // src/components/lp/HunchChapter.tsx
 // 1. 勘の章（朝・春）＝最大の見せ場。画面を止めたまま、スクロールで3つの勘を順に見せ、
-// 言葉が一文字ずつ溶けて数字が数え上がる。最後に「勘を、数字で裏づける。」。
+// 言葉が一文字ずつ溶けて数字が数え上がる。最後に「勘を、数字で裏づける。」と、3つの比較結果を小さく残す。
 // 動きを減らす設定では、縦に並べた静止表示にする。
 import { useState, type CSSProperties } from 'react';
-import { HUNCHES, LP_FACTS_SOURCE, type Hunch } from './lpFacts';
+import { HUNCHES, LP_FACTS_SOURCE, hunchSummary, type Hunch } from './lpFacts';
 import { stickyProgress, useChapterView, useReduced, useScrollFrame } from './hooks';
 import { CountUp, LineReveal } from './primitives';
 import './hunch.css';
@@ -1592,10 +1640,19 @@ function Fact({ h, start }: { h: Hunch; start: boolean }) {
   );
 }
 
-function Conclusion() {
+/** 結論。summary=true なら、その下に3つの比較結果を落ち着いた文字で残す（動きを減らす設定では、
+ *  すでに3つの勘と数字を縦に並べているので重ねて出さない） */
+function Conclusion({ summary = false }: { summary?: boolean }) {
   return (
     <div className="lp-hunch__end">
       <LineReveal lines={['勘を、', '数字で裏づける。']} />
+      {summary && (
+        <ul className="lp-hunch__summary">
+          {HUNCHES.map((h, i) => (
+            <li key={h.topic} style={{ '--i': i } as CSSProperties}>{hunchSummary(h)}</li>
+          ))}
+        </ul>
+      )}
       <p className="lp-hunch__source">{LP_FACTS_SOURCE}</p>
     </div>
   );
@@ -1645,7 +1702,7 @@ export function HunchChapter() {
             <Fact h={h} start={phase === 'fact'} />
           </div>
         ) : (
-          <Conclusion />
+          <Conclusion summary />
         )}
         <div className="lp-hunch__meter" aria-hidden="true">
           {[0, 1, 2].map((i) => <i key={i} className={i <= stage ? 'is-on' : ''} />)}
@@ -1691,6 +1748,14 @@ export function HunchChapter() {
 
 .lp-hunch__end { text-align: left; width: min(100%, 880px); }
 .lp-hunch__end .lp-lines { font-size: clamp(40px, 10vw, 104px); }
+.lp-hunch__summary { display: grid; gap: 0; max-width: 26em; margin: 30px 0 0; padding: 0; list-style: none; font-size: clamp(14px, 1.8vw, 17px); font-weight: 500; }
+.lp-hunch__summary li {
+  padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, 0.3);
+  opacity: 0; transform: translateY(8px);
+  animation: lp-summary-in 0.7s var(--lp-ease) calc(0.9s + var(--i) * 0.22s) forwards;
+}
+.lp-hunch__summary li:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
+@keyframes lp-summary-in { to { opacity: 1; transform: none; } }
 .lp-hunch__source { margin: 18px 0 0; font-family: var(--lp-mono); font-size: 12px; letter-spacing: 0.14em; opacity: 0.85; }
 
 .lp-hunch__meter { position: absolute; left: var(--lp-gutter); bottom: 9vh; display: flex; gap: 6px; }
@@ -2063,21 +2128,22 @@ import { FinalChapter, LpFooter } from './FinalChapter';
 
 ```tsx
 describe('MoyoChapter', () => {
-  it('見出し・2つの見方・雨のことば', () => {
-    render(<MoyoChapter />);
+  it('見出し・雨のことば。最初は「リスクでみる」', () => {
+    const { container } = render(<MoyoChapter />);
     expect(screen.getByRole('heading', { name: '今日の作業、やるかやめるかすぐ決まる。' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText('その時間帯の、いちばん悪い天気')).toBeTruthy();
-    expect(screen.getByText('その時間帯の、いちばん長い天気')).toBeTruthy();
+    expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
   });
-  it('動きを減らす設定では、2つの見方を説明と写真の組で並べる（2枚とも出す）', () => {
+  it('押すと写真と説明が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
     const { container } = render(<MoyoChapter />);
-    expect(container.querySelector('.lp-moyo--still')).toBeTruthy();
-    const modes = container.querySelectorAll('.lp-moyo__mode');
-    expect(modes).toHaveLength(2);
-    expect(modes[0].textContent).toContain('その時間帯の、いちばん悪い天気');
-    expect(modes[1].textContent).toContain('その時間帯の、いちばん長い天気');
-    expect(screen.getAllByRole('img', { name: /空もよう/ })).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: '概況でみる' }));
+    expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByText('その時間帯の、いちばん長い天気')).toBeTruthy();
+    expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-gaikyo.webp');
+    expect(logLpMoyoToggle).toHaveBeenCalledWith('gaikyo');
   });
 });
 
@@ -2116,96 +2182,74 @@ Expected: FAIL（`Failed to resolve import "./MoyoChapter"`）
 
 ```tsx
 // src/components/lp/MoyoChapter.tsx
-// 4. 空もよう（午後・晩夏）。画面に見えている間だけ「リスクでみる⇄概況でみる」が自動で切り替わり、
-// 3mmまでの雨のことば「ぽつぽつ・カッパ？・カッパ！」が雨粒のように落ちてくる。
-// 動きを減らす設定では、2つの見方を「説明＋写真」の組で並べた静止表示にする。
+// 4. 空もよう（午後・晩夏）。「リスクでみる／概況でみる」を押すと、写真と説明が一緒に切り替わる。
+// 押されるまでは、見えている間だけ自動で切り替える（最初はリスク）。一度押したら自動切替は止める。
+// 動きを減らす設定では、自動切替と切り替えの動きだけを止め、押して切り替える操作は同じにする。
 import { useEffect, useState, type CSSProperties } from 'react';
+import { logLpMoyoToggle } from '../../lib/analytics';
 import { useChapterView, useReduced, useVisibility } from './hooks';
-import { LineReveal, Shot } from './primitives';
+import { LineReveal } from './primitives';
 import './moyo.css';
 
 const MODES = [
-  { label: 'リスクでみる', caption: 'その時間帯の、いちばん悪い天気', src: '/lp/moyo-risk.webp' },
-  { label: '概況でみる', caption: 'その時間帯の、いちばん長い天気', src: '/lp/moyo-gaikyo.webp' },
+  { key: 'risk', label: 'リスクでみる', caption: 'その時間帯の、いちばん悪い天気', src: '/lp/moyo-risk.webp' },
+  { key: 'gaikyo', label: '概況でみる', caption: 'その時間帯の、いちばん長い天気', src: '/lp/moyo-gaikyo.webp' },
 ] as const;
 const RAIN_WORDS = ['ぽつぽつ', 'カッパ？', 'カッパ！'];
 const POINTS = ['1日を、午前・午後・夜間の3つに', '露点・飽差・0℃層高度も、時間別に', '毎日、今日の節気と七十二候'];
-
-function Points() {
-  return (
-    <ul className="lp-moyo__points">
-      {POINTS.map((t) => <li key={t}>{t}</li>)}
-    </ul>
-  );
-}
-
-function RainWords({ still = false }: { still?: boolean }) {
-  return (
-    <ul className={still ? 'lp-moyo__rain lp-moyo__rain--still' : 'lp-moyo__rain'} aria-label="3mmまでの雨の言い方">
-      {RAIN_WORDS.map((w, i) => <li key={w} style={{ '--i': i } as CSSProperties}>{w}</li>)}
-    </ul>
-  );
-}
 
 export function MoyoChapter() {
   const reduced = useReduced();
   const ref = useChapterView<HTMLElement>('moyo');
   const [deviceRef, visible, seen] = useVisibility<HTMLDivElement>(0.35);
   const [mode, setMode] = useState(0);
-  // 見えている間だけ切り替える（画面外ではタイマーを止める）
+  const [touched, setTouched] = useState(false);
+  // 押されるまで・見えている間だけ自動で切り替える（画面外ではタイマーを止める）
   useEffect(() => {
-    if (reduced || !visible) return;
+    if (reduced || touched || !visible) return;
     const id = window.setInterval(() => setMode((m) => 1 - m), 3200);
     return () => window.clearInterval(id);
-  }, [reduced, visible]);
+  }, [reduced, touched, visible]);
 
-  if (reduced) {
-    return (
-      <section ref={ref} className="lp-ch lp-moyo lp-moyo--still" data-scene="0.47">
-        <div className="lp-moyo__copy">
-          <LineReveal lines={['今日の作業、', 'やるかやめるか', 'すぐ決まる。']} />
-          <Points />
-        </div>
-        <div className="lp-moyo__pair">
-          {MODES.map((m) => (
-            <div key={m.label} className="lp-moyo__mode">
-              <p className="lp-moyo__modehead"><b>{m.label}</b><span>{m.caption}</span></p>
-              <Shot variant="phone" src={m.src} alt={`空もよう — ${m.label}`} width={780} height={1688} />
-            </div>
-          ))}
-        </div>
-        <div>
-          <RainWords still />
-          <p className="lp-moyo__rainnote">3mmまでの雨は、3段階のことばで。</p>
-        </div>
-      </section>
-    );
-  }
+  const choose = (i: number) => {
+    setTouched(true);
+    setMode(i);
+    logLpMoyoToggle(MODES[i].key);
+  };
 
   return (
-    <section ref={ref} className="lp-ch lp-moyo" data-scene="0.47">
+    <section ref={ref} className={reduced ? 'lp-ch lp-moyo lp-moyo--still' : 'lp-ch lp-moyo'} data-scene="0.47">
       <div className="lp-moyo__copy">
         <LineReveal lines={['今日の作業、', 'やるかやめるか', 'すぐ決まる。']} />
-        <div className="lp-moyo__modes" aria-hidden="true">
-          {MODES.map((m, i) => <span key={m.label} className={i === mode ? 'is-on' : ''}>{m.label}</span>)}
-        </div>
-        <dl className="lp-moyo__captions">
+        <div className="lp-moyo__modes" role="group" aria-label="空もようの見方">
           {MODES.map((m, i) => (
-            <div key={m.label} className={i === mode ? 'is-on' : ''}>
-              <dt>{m.label}</dt>
-              <dd>{m.caption}</dd>
-            </div>
+            <button
+              key={m.key}
+              type="button"
+              aria-pressed={i === mode}
+              aria-controls="lp-moyo-screen"
+              className={i === mode ? 'is-on' : ''}
+              onClick={() => choose(i)}
+            >
+              {m.label}
+            </button>
           ))}
-        </dl>
-        <Points />
+        </div>
+        <p className="lp-moyo__hint">タップで切り替え</p>
+        {/* 自動で切り替わる間は読み上げない（3.2秒ごとの読み上げを避ける）。押した後だけ知らせる */}
+        <p className="lp-moyo__caption" aria-live={touched ? 'polite' : 'off'}>{MODES[mode].caption}</p>
+        <ul className="lp-moyo__points">
+          {POINTS.map((t) => <li key={t}>{t}</li>)}
+        </ul>
       </div>
-      <div ref={deviceRef} className={seen ? 'lp-moyo__device is-in' : 'lp-moyo__device'}>
-        <figure className="lp-shot lp-shot--phone lp-moyo__phone">
+      <div ref={deviceRef} className={seen || reduced ? 'lp-moyo__device is-in' : 'lp-moyo__device'}>
+        <figure id="lp-moyo-screen" className="lp-shot lp-shot--phone lp-moyo__phone">
           {MODES.map((m, i) => (
             <img
-              key={m.label}
+              key={m.key}
               src={m.src}
               alt={`空もよう — ${m.label}`}
+              aria-hidden={i !== mode}
               width={780}
               height={1688}
               loading="lazy"
@@ -2214,7 +2258,9 @@ export function MoyoChapter() {
             />
           ))}
         </figure>
-        <RainWords />
+        <ul className="lp-moyo__rain" aria-label="3mmまでの雨の言い方">
+          {RAIN_WORDS.map((w, i) => <li key={w} style={{ '--i': i } as CSSProperties}>{w}</li>)}
+        </ul>
         <p className="lp-moyo__rainnote">3mmまでの雨は、3段階のことばで。</p>
       </div>
     </section>
@@ -2226,13 +2272,15 @@ export function MoyoChapter() {
 /* src/components/lp/moyo.css — 4. 空もよう */
 .lp-moyo { display: grid; gap: 56px; padding-top: 18vh; padding-bottom: 18vh; }
 .lp-moyo__modes { display: inline-flex; margin-top: 28px; padding: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.22); backdrop-filter: blur(6px); }
-.lp-moyo__modes span { padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; transition: background 0.5s ease, color 0.5s ease; }
-.lp-moyo__modes span.is-on { background: #fff; color: var(--lp-ink); }
-.lp-moyo__captions { display: grid; margin: 14px 0 0; }
-.lp-moyo__captions > div { grid-area: 1 / 1; opacity: 0; transition: opacity 0.6s ease; } /* 動く表示だけで使う（静止表示は .lp-moyo__pair） */
-.lp-moyo__captions > div.is-on { opacity: 1; }
-.lp-moyo__captions dt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.lp-moyo__captions dd { margin: 0; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(18px, 2.6vw, 24px); }
+.lp-moyo__modes button {
+  min-height: 40px; padding: 0 18px; border: 0; border-radius: 999px;
+  background: transparent; color: #fff; font: 700 13px/1 var(--lp-sans); cursor: pointer;
+  transition: background 0.5s ease, color 0.5s ease;
+}
+.lp-moyo__modes button.is-on { background: #fff; color: var(--lp-ink); }
+.lp-moyo__modes button:focus-visible { outline: 3px solid #ffe7a8; outline-offset: 2px; }
+.lp-moyo__hint { margin: 8px 0 0 8px; font-size: 11.5px; letter-spacing: 0.08em; opacity: 0.85; }
+.lp-moyo__caption { margin: 12px 0 0; min-height: 1.5em; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(18px, 2.6vw, 24px); }
 .lp-moyo__points { margin: 26px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14.5px; font-weight: 500; }
 .lp-moyo__points li::before { content: '— '; opacity: 0.7; }
 
@@ -2257,22 +2305,15 @@ export function MoyoChapter() {
 @keyframes lp-drop { to { opacity: 1; transform: none; } }
 .lp-moyo__rainnote { margin: 18px 0 0; text-align: center; font-size: 12.5px; opacity: 0.9; }
 
-/* 動きを減らす設定: 2つの見方を「説明＋写真」の組で並べる（重ねない） */
-.lp-moyo__pair { display: grid; gap: 44px; justify-items: center; }
-.lp-moyo__mode { width: min(66vw, 280px); display: grid; gap: 14px; }
-.lp-moyo__modehead { margin: 0; display: grid; gap: 4px; }
-.lp-moyo__modehead b { font-size: 13px; letter-spacing: 0.06em; }
-.lp-moyo__modehead span { font-family: var(--lp-mincho); font-weight: 800; font-size: 19px; }
-.lp-moyo__rain--still { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.lp-moyo__rain--still li { position: static; opacity: 1; transform: none; }
-@media (min-width: 960px) { .lp-moyo--still .lp-moyo__pair { grid-template-columns: 1fr 1fr; } }
-
 @media (min-width: 960px) {
   .lp-moyo { grid-template-columns: 1.1fr 0.9fr; align-items: center; }
 }
+/* 動きを減らす設定: 切り替えは押したときだけ・動きなしで。雨のことばは最初から置く */
+.lp-moyo--still .lp-moyo__phone img, .lp-moyo--still .lp-moyo__modes button { transition: none; }
+.lp-moyo--still .lp-moyo__rain li { opacity: 1; transform: none; animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .lp-moyo__rain li { opacity: 1; transform: none; animation: none !important; }
-  .lp-moyo__phone img, .lp-moyo__captions > div, .lp-moyo__modes span { transition: none; }
+  .lp-moyo__phone img, .lp-moyo__modes button { transition: none; }
 }
 ```
 
@@ -2492,7 +2533,7 @@ Expected: PASS
 
 ```bash
 git add src/components/lp/MoyoChapter.tsx src/components/lp/moyo.css src/components/lp/LpDetails.tsx src/components/lp/MakerChapter.tsx src/components/lp/maker.css src/components/lp/FinalChapter.tsx src/components/lp/final.css src/components/lp/chapters.test.tsx
-git commit -m "feat(lp): 空もよう・作った人＋詳しく読む・最後のボタン＋フッター"
+git commit -m "feat(lp): 空もよう（押して切り替え）・作った人＋詳しく読む・最後のボタン＋フッター"
 ```
 
 ---
@@ -2514,7 +2555,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../lib/firebase', () => ({ auth: {} }));
 vi.mock('firebase/auth', () => ({ GoogleAuthProvider: class {}, signInWithPopup: vi.fn(), signInWithRedirect: vi.fn() }));
-vi.mock('../lib/analytics', () => ({ logLogin: vi.fn(), logLpDetailOpen: vi.fn(), logLpChapterView: vi.fn() }));
+vi.mock('../lib/analytics', () => ({ logLogin: vi.fn(), logLpDetailOpen: vi.fn(), logLpChapterView: vi.fn(), logLpMoyoToggle: vi.fn() }));
 
 import { LandingPage } from './LandingPage';
 
@@ -2770,28 +2811,45 @@ for (const vp of [{ width: 375, height: 667 }, { width: 375, height: 812 }, { wi
   console.log('sekki card', vp, r);
   await page.close();
 }
-// (2) 動きを減らす設定で、空もようの2つの見方が「重ならず・見えて」いる
+// (2) 動きを減らす設定でも、押して2つの見方を両方読める（写真と説明が一緒に切り替わる）
 {
   const ctx = await b.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
   const page = await ctx.newPage();
   await page.goto('http://localhost:5180/', { waitUntil: 'networkidle' });
-  const r = await page.evaluate(async () => {
-    const modes = [...document.querySelectorAll('.lp-moyo__mode')];
-    modes[1].scrollIntoView();
-    await new Promise((res) => setTimeout(res, 800));
-    return modes.map((m) => {
-      const img = m.querySelector('img');
-      const rect = m.getBoundingClientRect();
-      return { top: rect.top, bottom: rect.bottom, opacity: getComputedStyle(img).opacity, imgH: img.getBoundingClientRect().height, text: m.textContent };
-    });
+  const read = () => page.evaluate(() => {
+    const on = document.querySelector('.lp-moyo__phone img.is-on');
+    return {
+      caption: document.querySelector('.lp-moyo__caption').textContent,
+      src: on?.getAttribute('src'),
+      opacity: on ? getComputedStyle(on).opacity : null,
+      h: on ? on.getBoundingClientRect().height : 0,
+    };
   });
-  if (r.length !== 2) fails.push(`空もよう静止表示: 組が ${r.length} 個`);
-  else {
-    if (r[0].bottom > r[1].top) fails.push('空もよう静止表示: 2つの組が重なっている');
-    r.forEach((m, i) => { if (m.opacity !== '1' || m.imgH < 100) fails.push(`空もよう静止表示: ${i + 1}枚目が見えない (${m.opacity}, ${m.imgH})`); });
-  }
-  console.log('moyo still', r);
+  const btn = page.getByRole('button', { name: '概況でみる' });
+  await btn.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(600);
+  const before = await read();
+  await btn.click();
+  await page.waitForTimeout(400);
+  const after = await read();
+  if (before.caption !== 'その時間帯の、いちばん悪い天気' || before.src !== '/lp/moyo-risk.webp') fails.push(`空もよう: 最初がリスクでない ${JSON.stringify(before)}`);
+  if (after.caption !== 'その時間帯の、いちばん長い天気' || after.src !== '/lp/moyo-gaikyo.webp' || after.opacity !== '1' || after.h < 100) fails.push(`空もよう: 押しても概況が読めない ${JSON.stringify(after)}`);
+  console.log('moyo reduced', before, after);
   await ctx.close();
+}
+// (3) 押した後は自動切替が止まる（動きのある設定）
+{
+  const page = await b.newPage({ viewport: { width: 375, height: 812 } });
+  await page.goto('http://localhost:5180/', { waitUntil: 'networkidle' });
+  const btn = page.getByRole('button', { name: '概況でみる' });
+  await btn.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(600);
+  await btn.click();
+  const c1 = await page.locator('.lp-moyo__caption').textContent();
+  await page.waitForTimeout(7000);
+  const c2 = await page.locator('.lp-moyo__caption').textContent();
+  if (c1 !== c2) fails.push(`空もよう: 押した後も自動で切り替わっている (${c1} → ${c2})`);
+  await page.close();
 }
 await b.close();
 console.log(fails.length ? `FAIL\n${fails.join('\n')}` : 'ALL READABLE');
@@ -2801,7 +2859,9 @@ process.exit(fails.length ? 1 : 0);
 Run（Bash）: `node scripts/_lp_readable.mjs; rm scripts/_lp_readable.mjs`
 Expected: `ALL READABLE`。`FAIL` のときは、出力された数値をもとに CSS を直し、Step 2 からやり直す。
 
-あわせて、空もようを通り過ぎた後に自動切替のタイマーが止まることを確かめる: 空もようの章を表示 → ページ末尾まで送る → 5秒待つ間に、`.lp-moyo__modes .is-on` の文字が変わらないことを `page.evaluate` で2回読んで比べる。
+あわせて、押す前に空もようを通り過ぎた場合もタイマーが止まることを確かめる: 空もようの章を表示 → ページ末尾まで送る → 7秒の間をあけて `.lp-moyo__caption` の文字を2回読み、変わらないこと。
+
+最初の画面は、375×667 でボタン2つが最初の画面の中（下端が 667px 以内）に入っているかも測る。入らない場合は、見出しの文字の大きさと上の余白を詰める（文字は削らない）。
 
 - [ ] **Step 4: スクロールの重さを測る**
 
@@ -2858,11 +2918,11 @@ git push origin develop
 | 一日×一年の空（色・太陽と月・星・節気・季節の一致） | 1, 6 |
 | 舞うものは少なく・ゆっくり・画面外で停止 | 2, 6 |
 | 上部の帯（時刻と節気）・PC の目盛り | 6 |
-| 0. 最初の画面（今日の節気・数え上げ・せり上がり・ボタン下の一行） | 7 |
-| 1. 勘の章（3つの勘→数字→結論・出典） | 3, 7 |
+| 0. 最初の画面（今日の節気の札・用途の一文・札の撮影時点・数え上げ・せり上がり・ボタン下の一行） | 3, 7 |
+| 1. 勘の章（3つの勘→数字→結論＋3行の振り返り・出典） | 3, 7 |
 | 2. 節気のふりかえり（24枚が横へ・処暑で止まる・季節のあしどり） | 8 |
 | 3. 空くらべ（描かれる線・18日の差・要点・本物の画面2枚・模式の注記） | 3, 8 |
-| 4. 空もよう（自動切替・2枚撮影・雨のことば） | 4, 9 |
+| 4. 空もよう（押して切り替え・押すまで自動切替・2枚撮影・雨のことば・計測） | 3, 4, 9 |
 | 5. 作った人＋詳しく読む（現行の文章・GA4） | 9 |
 | 6. 最後のボタン＋フッター（今日の節気で輪を閉じる） | 9 |
 | 見た目の方針（書体・色・避けるもの） | 5〜9 |
