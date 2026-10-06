@@ -21,13 +21,15 @@ export function SkyScene() {
   const bodyRef = useRef<HTMLDivElement>(null);
   const weightsRef = useRef<[number, number, number, number]>([1, 0, 0, 0]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // 各章の位置（毎コマ測り直すと重いので、表示時・リサイズ時・大きさが変わったときだけ測る）
+  const anchorsRef = useRef<SceneAnchor[]>([]);
 
   useScrollFrame(() => {
     const root = rootRef.current;
     if (!root) return;
     const y = window.scrollY + window.innerHeight * 0.5;
     const end = document.documentElement.scrollHeight;
-    const p = progressFromAnchors(readAnchors(), y, end, reduced);
+    const p = progressFromAnchors(anchorsRef.current, y, end, reduced);
     const s = sceneAt(p);
     const st = root.style;
     st.setProperty('--sky-top', s.skyTop);
@@ -56,12 +58,18 @@ export function SkyScene() {
 
   // 設定の切り替え・画像や書体の読み込みによる位置のずれでも、スクロールを待たずに計算し直す
   useEffect(() => {
-    const recompute = () => window.dispatchEvent(new Event('scroll'));
+    const recompute = () => {
+      anchorsRef.current = readAnchors();
+      window.dispatchEvent(new Event('scroll'));
+    };
     recompute();
-    if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver(recompute);
-    ro.observe(document.body);
-    return () => ro.disconnect();
+    window.addEventListener('resize', recompute, { passive: true });
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(recompute);
+    ro?.observe(document.body);
+    return () => {
+      window.removeEventListener('resize', recompute);
+      ro?.disconnect();
+    };
   }, [reduced]);
 
   // 舞うもの（少なく、ゆっくり）。画面が隠れている間は止める

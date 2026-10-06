@@ -60,7 +60,7 @@ export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
         <KurabeChapter />
         <MoyoChapter />
         <MakerChapter />
-        <FinalChapter {...cta} />
+        <FinalChapter {...cta} error={error} />
       </main>
       <LpFooter />
     </div>

@@ -1,7 +1,7 @@
 // src/components/lp/SekkiChapter.tsx
 // 2. 節気のふりかえり（昼前・初夏）。縦スクロールで24枚の節気の水彩画が横へ流れ、
 // 処暑で止まって本物のふりかえりカードがせり上がる。動きを減らす設定では横にスワイプできる静止表示。
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { SEKKI } from '../../lib/sekki';
 import { SekkiArt } from '../sky/sekkiArt';
 import { stickyProgress, useChapterView, useReduced, useScrollFrame } from './hooks';
@@ -25,7 +25,11 @@ export function SekkiChapter() {
   useScrollFrame(() => {
     const pin = pinRef.current;
     const track = trackRef.current;
-    if (reduced || !pin || !track) return;
+    if (!pin || !track) return;
+    if (reduced) {
+      track.style.transform = '';
+      return;
+    }
     const p = stickyProgress(pin);
     const focus = track.children[FOCUS] as HTMLElement | undefined;
     if (!focus) return;
@@ -33,6 +37,10 @@ export function SekkiChapter() {
     track.style.transform = `translate3d(${(-target * easeInOut(Math.min(1, p / 0.6))).toFixed(1)}px, 0, 0)`;
     setShown(p > 0.62);
   });
+  // 動きを減らす設定に切り替わったら、横流れの途中の位置を残さない（スクロールを待たずに戻す）
+  useEffect(() => {
+    if (reduced && trackRef.current) trackRef.current.style.transform = '';
+  }, [reduced]);
 
   const cls = ['lp-ch', 'lp-sekki', reduced ? 'lp-sekki--still' : '', shown || reduced ? 'is-shown' : ''].filter(Boolean).join(' ');
   return (
@@ -44,7 +52,11 @@ export function SekkiChapter() {
           <p className="lp-vertical lp-sekki__aside">暦は、農の時計だった。</p>
         </div>
         <div className="lp-sekki__body">
-        <div className="lp-sekki__rail">
+        {/* 静止表示では横にスクロールして見るので、キーボードでも動かせるようにする */}
+        <div
+          className="lp-sekki__rail"
+          {...(reduced ? { tabIndex: 0, role: 'region', 'aria-label': '二十四節気（横にスクロールできます）' } : {})}
+        >
           <ol ref={trackRef} className="lp-sekki__track">
             {SEKKI.map((s, i) => (
               <li

@@ -48,7 +48,7 @@ export function KurabeChapter() {
       <div className="lp-kurabe__stage">
         <LineReveal lines={['去年と、あの場所と、', '並べて見える。']} />
         <figure className="lp-kurabe__fig">
-          <svg viewBox="0 0 640 320" role="img" aria-label="積算温度の模式図。今年の線は去年より18日遅れて伸びる">
+          <svg viewBox="0 0 640 320" role="img" aria-label={`積算温度の模式図。今年の線は去年より${GDD_LAG_DAYS}日遅れて伸びる`}>
             <line className="lp-kurabe__axis" x1="40" y1="280" x2="600" y2="280" />
             {MONTHS.map(([m, d]) => (
               <text key={m} className="lp-kurabe__tick" x={X(d)} y="304">{m}</text>
@@ -61,7 +61,7 @@ export function KurabeChapter() {
               <line x1={GAP_X0} x2={GAP_X1} y1={GAP_Y} y2={GAP_Y} />
               <line x1={GAP_X0} x2={GAP_X0} y1={GAP_Y - 6} y2={GAP_Y + 6} />
               <line x1={GAP_X1} x2={GAP_X1} y1={GAP_Y - 6} y2={GAP_Y + 6} />
-              <text x={(GAP_X0 + GAP_X1) / 2} y={GAP_Y - 14}>18日</text>
+              <text x={(GAP_X0 + GAP_X1) / 2} y={GAP_Y - 14}>{GDD_LAG_DAYS}日</text>
             </g>
           </svg>
           <figcaption>図は模式です。数字は{LP_FACTS_SOURCE}（1月1日から・10℃基準）。</figcaption>

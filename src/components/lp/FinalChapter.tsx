@@ -5,7 +5,7 @@ import { useChapterView } from './hooks';
 import { CtaPair, LineReveal } from './primitives';
 import './final.css';
 
-export function FinalChapter(props: { loading: boolean; onLogin: () => void; onTryGuest: () => void }) {
+export function FinalChapter({ error = null, ...props }: { loading: boolean; error?: string | null; onLogin: () => void; onTryGuest: () => void }) {
   const ref = useChapterView<HTMLElement>('final');
   const today = sekkiForDate(new Date());
   return (
@@ -13,6 +13,8 @@ export function FinalChapter(props: { loading: boolean; onLogin: () => void; onT
       <p className="lp-final__today">今日は{today.name}。</p>
       <LineReveal lines={['今年の季節を、', '数字で見てみる。']} />
       <CtaPair {...props} tone="night" />
+      {/* 最後のボタンで失敗しても、ここで見えるように（ヒーローと同じ表示） */}
+      {error && <p className="lp-error" role="alert">{error}</p>}
       <p className="lp-final__note">ログインなしでも、現在地ですぐに試せます。</p>
     </section>
   );

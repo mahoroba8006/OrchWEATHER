@@ -3,15 +3,10 @@
 // 言葉が一文字ずつ溶けて数字が数え上がる。最後に「勘を、数字で裏づける。」と、3つの比較結果を小さく残す。
 // 動きを減らす設定では、縦に並べた静止表示にする。
 import { useRef, useState, type CSSProperties } from 'react';
-import { HUNCHES, LP_FACTS_SOURCE, hunchSummary, type Hunch } from './lpFacts';
+import { HUNCHES, LP_FACTS_SOURCE, hunchSummary, splitPhrases, type Hunch } from './lpFacts';
 import { stickyProgress, useChapterView, useReduced, useScrollFrame } from './hooks';
 import { CountUp, LineReveal } from './primitives';
 import './hunch.css';
-
-/** 「、」の直後で句に分ける（句の中では折り返さず、行頭に「。」「、」が来ないようにする） */
-function phrases(quote: string): string[] {
-  return quote.split(/(?<=、)/);
-}
 
 function Fact({ h, start }: { h: Hunch; start: boolean }) {
   return (
@@ -86,14 +81,22 @@ export function HunchChapter() {
   const h = HUNCHES[Math.min(stage, 2)];
   return (
     <section ref={ref} className="lp-ch lp-hunch" data-scene="0.1">
-      <div className="lp-hunch__stage">
+      {/* 見せ場は今の場面しか描かないので、読み上げには3つの勘と数字をまとめて渡し、見せ場は読ませない */}
+      <div className="lp-sr">
+        <h2>勘を、数字で裏づける。</h2>
+        <ol>
+          {HUNCHES.map((x) => <li key={x.quote}>{x.quote}{hunchSummary(x)}</li>)}
+        </ol>
+        <p>{LP_FACTS_SOURCE}</p>
+      </div>
+      <div className="lp-hunch__stage" aria-hidden="true">
         {stage < 3 ? (
           <div key={stage} className={`lp-hunch__item is-${phase}`}>
             <p className="lp-hunch__quote">
               {(() => {
                 let n = 0; // 句をまたいで通しの番号（一文字ずつ溶ける順番）
-                return phrases(h.quote).map((ph, j) => (
-                  <span key={j} className="lp-hunch__phrase" aria-hidden="true">
+                return splitPhrases(h.quote).map((ph, j) => (
+                  <span key={j} className="lp-hunch__phrase">
                     {[...ph].map((c) => {
                       const i = n++;
                       return <span key={i} style={{ '--i': i } as CSSProperties}>{c}</span>;
@@ -101,7 +104,6 @@ export function HunchChapter() {
                   </span>
                 ));
               })()}
-              <span className="lp-sr">{h.quote}</span>
             </p>
             <Fact h={h} start={phase === 'fact'} />
           </div>

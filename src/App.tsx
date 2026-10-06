@@ -21,7 +21,16 @@ import { AnalysisTab } from './components/analysis/AnalysisTab';
 import { useAnalysisState } from './components/analysis/useAnalysisState';
 import './App.css';
 
-const LandingPage = lazy(() => import('./components/LandingPage').then((m) => ({ default: m.LandingPage })));
+const loadLanding = () => import('./components/LandingPage');
+// ログイン状態は IndexedDB から非同期に戻るため最初は分からない。ログインを確かめる間に LP を先に読み込み始める
+// （ゲストで使っている人は LP を見ないので読まない。ログイン済みの人は一度だけ余分に読む）
+try {
+  // 失敗しても表示するときに読み直すので、ここでは握りつぶす（未処理の reject を出さない）
+  if (localStorage.getItem('guestMode') !== '1') loadLanding().catch(() => {});
+} catch {
+  // localStorage が使えない環境では先読みしない（表示するときに読み込む）
+}
+const LandingPage = lazy(() => loadLanding().then((m) => ({ default: m.LandingPage })));
 
 
 function AppContent() {

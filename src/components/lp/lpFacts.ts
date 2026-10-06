@@ -37,3 +37,9 @@ export const GDD_LAG_DAYS = 18;
 export function gddCurve(day: number, lag = 0): number {
   return 3000 / (1 + Math.exp(-(day - lag - 200) / 40));
 }
+
+/** 「、」の直後で句に分ける（句の中では折り返さず、行頭に「。」「、」が来ないようにする）。
+ *  古い iOS Safari（16.4 未満）は後読み (?<=) を読めず LP 全体が落ちるので、match で分ける */
+export function splitPhrases(quote: string): string[] {
+  return quote.match(/[^、]+、?/g) ?? [quote];
+}

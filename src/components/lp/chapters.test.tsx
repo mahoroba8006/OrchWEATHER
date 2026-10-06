@@ -62,6 +62,11 @@ describe('SekkiChapter', () => {
     expect(container.querySelectorAll('.lp-sekki__tile')).toHaveLength(24);
     expect(screen.getByAltText(/節気のふりかえりカード（処暑）/)).toBeTruthy();
   });
+  it('静止表示では、横に流れる帯をキーボードでもスクロールできる', () => {
+    render(<SekkiChapter />);
+    const rail = screen.getByRole('region', { name: '二十四節気（横にスクロールできます）' });
+    expect(rail.getAttribute('tabindex')).toBe('0');
+  });
 });
 
 describe('KurabeChapter', () => {
@@ -80,7 +85,9 @@ describe('MoyoChapter', () => {
     const { container } = render(<MoyoChapter />);
     expect(screen.getByRole('heading', { name: '今日の作業、やるかやめるかすぐ決まる。' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByText('その時間帯の、いちばん悪い天気')).toBeTruthy();
+    expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('その時間帯の、いちばん悪い天気');
+    // 押されるまでは読み上げない
+    expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('');
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
   });
@@ -89,7 +96,8 @@ describe('MoyoChapter', () => {
     fireEvent.click(screen.getByRole('button', { name: '概況でみる' }));
     expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('false');
-    expect(screen.getByText('その時間帯の、いちばん多い天気')).toBeTruthy();
+    expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('その時間帯の、いちばん多い天気');
+    expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('概況でみる：その時間帯の、いちばん多い天気');
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-gaikyo.webp');
     expect(logLpMoyoToggle).toHaveBeenCalledWith('gaikyo');
   });
@@ -117,5 +125,9 @@ describe('FinalChapter / LpFooter', () => {
     fireEvent.click(screen.getByRole('button', { name: /ログインせずに試す/ }));
     expect(onTryGuest).toHaveBeenCalled();
     expect(screen.getByText('ご利用上の注意')).toBeTruthy();
+  });
+  it('ログインに失敗したら、最後のボタンの近くにも知らせる', () => {
+    render(<FinalChapter loading={false} error="ログインに失敗しました。もう一度お試しください。" onLogin={() => {}} onTryGuest={() => {}} />);
+    expect(screen.getByRole('alert').textContent).toBe('ログインに失敗しました。もう一度お試しください。');
   });
 });

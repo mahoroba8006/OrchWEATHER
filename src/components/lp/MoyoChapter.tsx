@@ -21,6 +21,8 @@ export function MoyoChapter() {
   const [deviceRef, visible, seen] = useVisibility<HTMLDivElement>(0.35);
   const [mode, setMode] = useState(0);
   const [touched, setTouched] = useState(false);
+  // 読み上げる文。押したときだけ書き換える（自動切替では変えない＝3.2秒ごとに読み上げない）
+  const [announce, setAnnounce] = useState('');
   // 押されるまで・見えている間だけ自動で切り替える（画面外ではタイマーを止める）
   useEffect(() => {
     if (reduced || touched || !visible) return;
@@ -31,6 +33,7 @@ export function MoyoChapter() {
   const choose = (i: number) => {
     setTouched(true);
     setMode(i);
+    setAnnounce(`${MODES[i].label}：${MODES[i].caption}`);
     logLpMoyoToggle(MODES[i].key);
   };
 
@@ -53,8 +56,10 @@ export function MoyoChapter() {
           ))}
         </div>
         <p className="lp-moyo__hint">タップで切り替え</p>
-        {/* 自動で切り替わる間は読み上げない（3.2秒ごとの読み上げを避ける）。押した後だけ知らせる */}
-        <p className="lp-moyo__caption" aria-live={touched ? 'polite' : 'off'}>{MODES[mode].caption}</p>
+        {/* 見える説明は読み上げない（自動切替のたびに読まれないように）。押したときだけ下の読み上げ用の行で知らせる。
+            aria-live の領域は最初から置いておかないと、最初の一回が読まれないことがある */}
+        <p className="lp-moyo__caption" aria-hidden="true">{MODES[mode].caption}</p>
+        <p className="lp-sr" aria-live="polite">{announce}</p>
         <ul className="lp-moyo__points">
           {POINTS.map((t) => <li key={t}>{t}</li>)}
         </ul>
