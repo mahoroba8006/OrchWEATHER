@@ -43,9 +43,6 @@
 @keyframes lp-summary-in { to { opacity: 1; transform: none; } }
 .lp-hunch__source { margin: 18px 0 0; font-family: var(--lp-mono); font-size: 12px; letter-spacing: 0.14em; opacity: 0.85; }
 
-.lp-hunch__meter { position: absolute; left: var(--lp-gutter); bottom: 9vh; display: flex; gap: 6px; }
-.lp-hunch__meter i { display: block; width: 28px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.35); transition: background 0.4s; }
-.lp-hunch__meter i.is-on { background: #fff; }
 
 /* 動きを減らす設定（縦に並べた静止表示） */
 .lp-hunch--still { height: auto; padding: 18vh var(--lp-gutter); }

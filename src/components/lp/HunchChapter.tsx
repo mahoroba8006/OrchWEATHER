@@ -111,9 +111,6 @@ export function HunchChapter() {
         ) : (
           <Conclusion summary />
         )}
-        <div className="lp-hunch__meter" aria-hidden="true">
-          {[0, 1, 2].map((i) => <i key={i} className={i <= stage ? 'is-on' : ''} />)}
-        </div>
       </div>
     </section>
   );
