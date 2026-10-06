@@ -49,7 +49,7 @@ export function SekkiChapter() {
       <div className="lp-sekki__stage" data-sticky-stage>
         <div className="lp-sekki__head">
           <LineReveal lines={['二十四節気ごとに、', '今年の半月を一枚に。']} />
-          <p className="lp-vertical lp-sekki__aside">暦は、農の時計だった。</p>
+          <p className="lp-vertical lp-sekki__aside">暦をめくると、<br />畑の季節が<br />見えてくる。</p>
         </div>
         <div className="lp-sekki__body">
         {/* 静止表示では横にスクロールして見るので、キーボードでも動かせるようにする */}

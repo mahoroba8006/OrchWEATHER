@@ -4,13 +4,14 @@
 .lp-sekki__pin { height: 300vh; }
 /* 見出し → 本体（節気の列＋カード）。本体は残りの高さをすべて使い、カードはその高さに収まる大きさにする */
 .lp-sekki__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); padding-top: clamp(84px, 13vh, 130px); }
-.lp-sekki__head { position: relative; padding: 0 calc(var(--lp-gutter) + 40px) 0 var(--lp-gutter); }
-/* 縦書きは見出しの行の高さを押し広げないよう、右端に浮かせる */
+.lp-sekki__head { position: relative; padding: 0 calc(var(--lp-gutter) + clamp(64px, 6vw, 100px)) 0 var(--lp-gutter); }
+/* 縦書きは見出しの行の高さを押し広げないよう、右端に浮かせる（3列にして節気の列まで伸ばさない） */
 .lp-sekki__aside { position: absolute; top: 0; right: var(--lp-gutter); white-space: nowrap; }
 /* スマホは縦書きを置く幅が無いので、見出しの下に横書きの一行で添える */
 @media (max-width: 599px) {
   .lp-sekki__head { padding-right: var(--lp-gutter); }
   .lp-sekki__aside { position: static; writing-mode: horizontal-tb; margin-top: 10px; font-size: 13px; letter-spacing: 0.2em; }
+  .lp-sekki__aside br { display: none; }
 }
 
 .lp-sekki__body { position: relative; min-height: 0; margin-top: clamp(18px, 4vh, 40px); container-type: size; }

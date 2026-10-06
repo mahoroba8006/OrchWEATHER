@@ -58,7 +58,7 @@ describe('SekkiChapter', () => {
   it('見出し・縦書きの添え書き・24の節気・ふりかえりカード', () => {
     const { container } = render(<SekkiChapter />);
     expect(screen.getByRole('heading', { name: '二十四節気ごとに、今年の半月を一枚に。' })).toBeTruthy();
-    expect(screen.getByText('暦は、農の時計だった。')).toBeTruthy();
+    expect(screen.getByText('暦をめくると、畑の季節が見えてくる。')).toBeTruthy();
     expect(container.querySelectorAll('.lp-sekki__tile')).toHaveLength(24);
     expect(screen.getByAltText(/節気のふりかえりカード（処暑）/)).toBeTruthy();
   });
