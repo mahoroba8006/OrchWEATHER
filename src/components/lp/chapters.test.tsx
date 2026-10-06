@@ -10,6 +10,8 @@ vi.mock('../../lib/analytics', () => ({
 }));
 import { LpHero } from './LpHero';
 import { HunchChapter } from './HunchChapter';
+import { SekkiChapter } from './SekkiChapter';
+import { KurabeChapter } from './KurabeChapter';
 import { sekkiForDate } from '../../lib/sekki';
 
 beforeAll(() => {
@@ -46,5 +48,26 @@ describe('HunchChapter（動きを減らす設定＝縦に並べた静止表示�
     expect(screen.getByText('東京・2026年の実績')).toBeTruthy();
     // 静止表示では3つの勘をすでに並べているので、結論の下の3行は重ねて出さない
     expect(container.querySelector('.lp-hunch__summary')).toBeNull();
+  });
+});
+
+describe('SekkiChapter', () => {
+  it('見出し・縦書きの添え書き・24の節気・ふりかえりカード', () => {
+    const { container } = render(<SekkiChapter />);
+    expect(screen.getByRole('heading', { name: '二十四節気ごとに、今年の半月を一枚に。' })).toBeTruthy();
+    expect(screen.getByText('暦は、農の時計だった。')).toBeTruthy();
+    expect(container.querySelectorAll('.lp-sekki__tile')).toHaveLength(24);
+    expect(screen.getByAltText(/節気のふりかえりカード（処暑）/)).toBeTruthy();
+  });
+});
+
+describe('KurabeChapter', () => {
+  it('見出し・模式図・3つの要点・本物の画面2枚', () => {
+    render(<KurabeChapter />);
+    expect(screen.getByRole('heading', { name: '去年と、あの場所と、並べて見える。' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /今年の線は去年より18日遅れて伸びる/ })).toBeTruthy();
+    expect(screen.getByText('図は模式です。数字は東京・2026年の実績（1月1日から・10℃基準）。')).toBeTruthy();
+    for (const t of ['年をまたいで、重ねて比べる', '地点を並べて、違いを比べる', '積算温度を、自動で計算']) expect(screen.getByText(t)).toBeTruthy();
+    expect(screen.getAllByRole('img', { name: /空くらべ/ })).toHaveLength(2);
   });
 });
