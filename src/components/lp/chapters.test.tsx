@@ -77,7 +77,7 @@ describe('KurabeChapter', () => {
     expect(screen.getByText('図は模式です。数字は東京・2026年の実績（1月1日から・10℃基準）。')).toBeTruthy();
     for (const t of ['年をまたいで、重ねて比べる', '地点を並べて、違いを比べる', '積算温度を、自動で計算']) expect(screen.getByText(t)).toBeTruthy();
     expect(screen.getAllByRole('img', { name: /空くらべ/ })).toHaveLength(2);
-    expect(document.querySelector('.lp-kurabe__shotlead')!.textContent).toBe('日付をタップすると、その日の値と去年との差。');
+    expect(document.querySelector('.lp-kurabe__shotlead')!.textContent).toBe('気温、降水量、積算温度、日射量、日照時間、湿度、飽差まで。知りたい値がグラフで、数値で見える。');
   });
 });
 

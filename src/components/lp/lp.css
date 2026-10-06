@@ -133,12 +133,16 @@ h2.lp-lines { font-size: clamp(30px, 7.6vw, 64px); }
 }
 .lp-nav__login:focus-visible { outline: 3px solid #ffe7a8; outline-offset: 2px; }
 
-/* PC の節気の目盛り */
+/* 右端の節気の目盛り（スマホは本文の余白に収まる小さな字、PC は大きく） */
 .lp-dial {
-  position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 10;
-  display: none; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none;
-  font-family: var(--lp-mincho); font-size: 11px; letter-spacing: 0.1em; text-align: right;
+  position: fixed; right: 4px; top: 50%; transform: translateY(-50%); z-index: 10;
+  display: flex; flex-direction: column; gap: 1px; margin: 0; padding: 0; list-style: none;
+  font-family: var(--lp-mincho); font-size: 8px; line-height: 1.35; letter-spacing: 0.05em; text-align: right;
+  pointer-events: none;
 }
 .lp-dial li { opacity: 0.35; transition: opacity 0.4s, font-size 0.4s; }
-.lp-dial li.is-on { opacity: 1; font-size: 15px; font-weight: 800; }
-@media (min-width: 1024px) { .lp-dial { display: flex; } }
+.lp-dial li.is-on { opacity: 1; font-size: 11px; font-weight: 800; }
+@media (min-width: 1024px) {
+  .lp-dial { right: 20px; gap: 3px; font-size: 11px; line-height: normal; letter-spacing: 0.1em; }
+  .lp-dial li.is-on { font-size: 15px; }
+}
