@@ -91,7 +91,7 @@ describe('MoyoChapter', () => {
     expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('');
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
-    expect(container.querySelector('.lp-moyo__hourlylead')!.textContent).toBe('1時間ごとの表で、作業の時間を選ぶ。');
+    expect(container.querySelector('.lp-moyo__hourlylead')!.textContent).toBe('1時間ごとの空がわかる。作業が決まる。');
     expect(screen.getAllByRole('img', { name: /時間別の表/ })).toHaveLength(2);
     expect(screen.getByText('画面は東京・2026年9月20日（雨の日）の実績。')).toBeTruthy();
   });
