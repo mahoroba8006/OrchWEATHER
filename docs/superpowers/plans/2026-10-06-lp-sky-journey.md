@@ -349,7 +349,8 @@ describe('createParticles', () => {
   it('ゆっくり（落下速度 0.18〜0.5）で画面内に置く', () => {
     const ps = createParticles(5, 400, 800, () => 0.5);
     expect(ps).toHaveLength(5);
-    expect(ps[0]).toMatchObject({ x: 200, y: 400, v: 0.34 });
+    expect(ps[0]).toMatchObject({ x: 200, y: 400 });
+    expect(ps[0].v).toBeCloseTo(0.34, 10);
   });
 });
 
@@ -2141,7 +2142,7 @@ describe('MoyoChapter', () => {
     fireEvent.click(screen.getByRole('button', { name: '概況でみる' }));
     expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('false');
-    expect(screen.getByText('その時間帯の、いちばん長い天気')).toBeTruthy();
+    expect(screen.getByText('その時間帯の、いちばん多い天気')).toBeTruthy();
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-gaikyo.webp');
     expect(logLpMoyoToggle).toHaveBeenCalledWith('gaikyo');
   });
@@ -2193,7 +2194,7 @@ import './moyo.css';
 
 const MODES = [
   { key: 'risk', label: 'リスクでみる', caption: 'その時間帯の、いちばん悪い天気', src: '/lp/moyo-risk.webp' },
-  { key: 'gaikyo', label: '概況でみる', caption: 'その時間帯の、いちばん長い天気', src: '/lp/moyo-gaikyo.webp' },
+  { key: 'gaikyo', label: '概況でみる', caption: 'その時間帯の、いちばん多い天気', src: '/lp/moyo-gaikyo.webp' },
 ] as const;
 const RAIN_WORDS = ['ぽつぽつ', 'カッパ？', 'カッパ！'];
 const POINTS = ['1日を、午前・午後・夜間の3つに', '露点・飽差・0℃層高度も、時間別に', '毎日、今日の節気と七十二候'];
@@ -2833,7 +2834,7 @@ for (const vp of [{ width: 375, height: 667 }, { width: 375, height: 812 }, { wi
   await page.waitForTimeout(400);
   const after = await read();
   if (before.caption !== 'その時間帯の、いちばん悪い天気' || before.src !== '/lp/moyo-risk.webp') fails.push(`空もよう: 最初がリスクでない ${JSON.stringify(before)}`);
-  if (after.caption !== 'その時間帯の、いちばん長い天気' || after.src !== '/lp/moyo-gaikyo.webp' || after.opacity !== '1' || after.h < 100) fails.push(`空もよう: 押しても概況が読めない ${JSON.stringify(after)}`);
+  if (after.caption !== 'その時間帯の、いちばん多い天気' || after.src !== '/lp/moyo-gaikyo.webp' || after.opacity !== '1' || after.h < 100) fails.push(`空もよう: 押しても概況が読めない ${JSON.stringify(after)}`);
   console.log('moyo reduced', before, after);
   await ctx.close();
 }
