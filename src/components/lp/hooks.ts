@@ -35,10 +35,13 @@ export function useScrollFrame(cb: () => void): void {
   }, []);
 }
 
-/** 背の高い章（中で画面を止める）の進み具合 0→1 */
+/** 背の高い章（中で画面を止める）の進み具合 0→1。
+ *  止める区間の長さは「入れ物の高さ − 止まる枠（data-sticky-stage）の実測の高さ」。
+ *  枠は 100svh なので、innerHeight で引くと Safari のアドレスバーの出入りで進み具合が跳ぶ。 */
 export function stickyProgress(el: HTMLElement): number {
   const r = el.getBoundingClientRect();
-  const span = r.height - window.innerHeight;
+  const stage = el.querySelector<HTMLElement>('[data-sticky-stage]');
+  const span = r.height - (stage ? stage.offsetHeight : window.innerHeight);
   return span > 0 ? Math.min(1, Math.max(0, -r.top / span)) : 0;
 }
 

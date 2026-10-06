@@ -46,7 +46,7 @@ export function SekkiChapter() {
   return (
     <section ref={ref} className={cls} data-scene="0.27">
       <div ref={pinRef} className="lp-sekki__pin">
-      <div className="lp-sekki__stage">
+      <div className="lp-sekki__stage" data-sticky-stage>
         <div className="lp-sekki__head">
           <LineReveal lines={['二十四節気ごとに、', '今年の半月を一枚に。']} />
           <p className="lp-vertical lp-sekki__aside">暦は、農の時計だった。</p>

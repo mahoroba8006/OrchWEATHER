@@ -89,7 +89,7 @@ export function HunchChapter() {
         </ol>
         <p>{LP_FACTS_SOURCE}</p>
       </div>
-      <div className="lp-hunch__stage" aria-hidden="true">
+      <div className="lp-hunch__stage" data-sticky-stage aria-hidden="true">
         {stage < 3 ? (
           <div key={stage} className={`lp-hunch__item is-${phase}`}>
             <p className="lp-hunch__quote">

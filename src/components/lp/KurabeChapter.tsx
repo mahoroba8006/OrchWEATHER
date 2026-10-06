@@ -45,7 +45,7 @@ export function KurabeChapter() {
   return (
     <section ref={ref} className={reduced ? 'lp-ch lp-kurabe lp-kurabe--still' : 'lp-ch lp-kurabe'} data-scene="0.4">
       <div ref={pinRef} className="lp-kurabe__pin">
-      <div className="lp-kurabe__stage">
+      <div className="lp-kurabe__stage" data-sticky-stage>
         <LineReveal lines={['去年と、あの場所と、', '並べて見える。']} />
         <figure className="lp-kurabe__fig">
           <svg viewBox="0 0 640 320" role="img" aria-label={`積算温度の模式図。今年の線は去年より${GDD_LAG_DAYS}日遅れて伸びる`}>

@@ -128,6 +128,9 @@ interface AppState {
   deleteLocation: (id: string) => Promise<void>;
 }
 
+// ストアの初期化（下の create）で loadGuestWeatherCodeMode() が読むので、create より前に置く
+const GUEST_WEATHER_CODE_MODE_KEY = 'weatherCodeMode';
+
 export const useAppStore = create<AppState>()((set, get) => ({
   user: null,
   authLoading: true,
@@ -321,8 +324,6 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }));
   },
 }));
-
-const GUEST_WEATHER_CODE_MODE_KEY = 'weatherCodeMode';
 
 export function loadGuestWeatherCodeMode(): WeatherCodeMode {
   try {

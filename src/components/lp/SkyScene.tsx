@@ -80,29 +80,40 @@ export function SkyScene() {
     if (!cv || !ctx) return;
     let w = 0;
     let h = 0;
+    let dpr = 0;
     let parts = createParticles(0, 0, 0);
     const size = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // 粒は小さくぼかしも無いので、高精細画面でも 1.5 倍までで十分（描く画素数を減らす）
+      const nextDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const nextW = window.innerWidth;
+      const nextH = window.innerHeight;
+      if (nextW === w && nextH === h && nextDpr === dpr) return; // 寸法が変わったときだけ作り直す
       const prevW = w;
-      w = window.innerWidth;
-      h = window.innerHeight;
-      cv.width = w * dpr;
-      cv.height = h * dpr;
+      w = nextW;
+      h = nextH;
+      dpr = nextDpr;
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       // スマホのアドレスバーの出入り（高さだけの変化）では舞うものを作り直さない
       if (w !== prevW) parts = createParticles(particleCount(w), w, h);
     };
     size();
     let raf = 0;
-    const tick = () => {
+    let last = 0;
+    // ゆっくり舞うだけなので 30 コマ/秒で描く（1 コマで 2 歩進めて速さは変えない）
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      if (now - last < 30) return;
+      last = now;
       ctx.clearRect(0, 0, w, h);
       for (const q of parts) {
         const kind = kindFor(q.k, weightsRef.current);
         if (!kind) continue;
         stepParticle(q, kind, w, h);
+        stepParticle(q, kind, w, h);
         drawParticle(ctx, q, kind);
       }
-      raf = requestAnimationFrame(tick);
     };
     const onVis = () => {
       cancelAnimationFrame(raf);

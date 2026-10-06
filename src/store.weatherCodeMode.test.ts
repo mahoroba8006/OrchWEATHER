@@ -46,3 +46,12 @@ describe('loadGuestWeatherCodeMode', () => {
     expect(loadGuestWeatherCodeMode()).toBe('frequency');
   });
 });
+
+describe('起動時の復元', () => {
+  it('保存済みの frequency を、ストアの初期化時に読み込む', async () => {
+    localStorage.setItem('weatherCodeMode', 'frequency');
+    vi.resetModules();
+    const fresh = await import('./store');
+    expect(fresh.useAppStore.getState().guestWeatherCodeMode).toBe('frequency');
+  });
+});
