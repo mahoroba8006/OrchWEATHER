@@ -1,7 +1,8 @@
 // LP 用の画面写真を撮る（開発用）。
 // 使い方: 別ターミナルで `npm run dev -- --port 5180 --strictPort` を起動し、
 //         `LAT=35.681 LON=139.767 node scripts/lp-shots.mjs` を実行する。出力は screenshots/lp/（git 管理外）。
-//         空もようの2枚だけ撮るときは ONLY=moyo、時間別の表と空くらべだけは ONLY=extra を付ける。
+//         空もようの2枚だけ撮るときは ONLY=moyo、時間別の表と空くらべだけは ONLY=extra、
+//         時間別の表をすべての項目・雨の日で2枚に分けて撮るときは ONLY=hourly（RAIN_DAY で日付）を付ける。
 //         空くらべは TEMP_DAY（既定 9/20）・GDD_DAY（既定 10/5）の日付に指を置いた状態で撮る。
 // Open-Meteo の利用上限を消費するので、実行回数は絞ること。
 import { chromium } from 'playwright';
@@ -20,6 +21,12 @@ const context = await browser.newContext({
   locale: 'ja-JP', timezoneId: 'Asia/Tokyo',
   permissions: ['geolocation'], geolocation: { latitude: lat, longitude: lon },
 });
+// HAR=1: 気象データの応答をファイルに記録し、2回目以降はそれを再生する（撮り直しで Open-Meteo の上限を使わない）
+if (process.env.HAR) {
+  const { existsSync } = await import('node:fs');
+  const har = join(outDir, 'open-meteo.har');
+  await context.routeFromHAR(har, { url: /open-meteo\.com/, update: !existsSync(har), updateContent: 'embed' });
+}
 await context.addInitScript(() => { localStorage.setItem('guestMode', '1'); });
 const page = await context.newPage();
 // ONLY=moyo: 空もようの2枚だけ／ONLY=extra: 空もようの時間別と空くらべ（値を表示した状態）だけ
@@ -39,6 +46,49 @@ try {
     console.log('saved', name);
   }
   if (only === 'moyo') process.exit(0);
+
+  // 1a) 時間別の表（すべての項目・雨の時間帯）。空しらべで RAIN_DAY（既定 2026-09-20、東京で日中に雨）を開き、
+  //     RAIN_HOUR 時の列へ横に送って、「作業の行」と「データの行」の2枚に分けて撮る
+  if (only === 'hourly') {
+    await page.evaluate(() => localStorage.setItem('hiddenHourlyRows', '[]'));
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(3000);
+    await page.getByRole('button', { name: '空しらべ' }).first().click();
+    await page.addStyleTag({ content: '.shell-bottomnav { display: none !important; }' });
+    await page.waitForTimeout(1500);
+    await page.locator('input[type="date"]').fill(process.env.RAIN_DAY ?? '2026-09-20');
+    await page.waitForTimeout(8000);
+    const label = (txt) => page.locator('td.hourly-label', { hasText: txt }).first();
+    const table = label('時刻').locator('xpath=ancestor::table');
+    await table.scrollIntoViewIfNeeded();
+    // 横に送る入れ物（表の祖先で横にはみ出しているもの）に印を付け、RAIN_HOUR（既定 10）時の列を左端へ送る
+    await table.evaluate((t, hour) => {
+      let sc = t.parentElement;
+      while (sc && !['auto', 'scroll'].includes(getComputedStyle(sc).overflowX)) sc = sc.parentElement;
+      sc.setAttribute('data-shot-scroller', '');
+      const timeRow = [...t.querySelectorAll('tr')].find((r) => r.querySelector('td.hourly-label')?.textContent === '時刻');
+      const cell = [...timeRow.querySelectorAll('td:not(.hourly-label)')].find((c) => c.textContent.trim() === hour);
+      sc.scrollLeft = cell.offsetLeft - timeRow.querySelector('td.hourly-label').offsetWidth;
+    }, process.env.RAIN_HOUR ?? '10');
+    console.log('widths', await table.evaluate((t) => { const out = []; for (let e = t; e && out.length < 8; e = e.parentElement) out.push(`${e.tagName}.${(e.className || '').toString().slice(0, 24)} cw=${e.clientWidth} sw=${e.scrollWidth} ox=${getComputedStyle(e).overflowX}`); return out; }));
+    await page.waitForTimeout(800);
+    const groups = {
+      'moyo-hourly-work': ['日付', '時刻', '天気', '気温/降水', '気温', '降水確率', '降水量', '降雪量', '風速', '瞬間風速', '風向き'],
+      'moyo-hourly-data': ['日付', '時刻', '紫外線指数', '気圧', '湿度', '飽差', '露点', 'CAPE', '0℃層高度'],
+    };
+    for (const [name, keep] of Object.entries(groups)) {
+      await table.evaluate((t, keep) => {
+        for (const r of t.querySelectorAll('tr')) {
+          const l = r.querySelector('td.hourly-label')?.textContent ?? '';
+          r.style.display = keep.some((k) => l === k || (l.startsWith(k) && !keep.some((o) => o.length > k.length && l.startsWith(o)))) ? '' : 'none';
+        }
+      }, keep);
+      await page.waitForTimeout(500);
+      await page.locator('[data-shot-scroller]').screenshot({ path: join(outDir, `${name}.png`) });
+      console.log('saved', name);
+    }
+    process.exit(0);
+  }
 
   // 1b) 空もようの時間別の表（午前の天気・気温・降水・風などが並ぶ範囲）
   const hourlyTable = page.locator('td.hourly-label', { hasText: '時刻' }).first().locator('xpath=ancestor::table');

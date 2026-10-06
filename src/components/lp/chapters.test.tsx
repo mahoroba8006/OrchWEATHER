@@ -92,7 +92,8 @@ describe('MoyoChapter', () => {
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
     expect(container.querySelector('.lp-moyo__hourlylead')!.textContent).toBe('1時間ごとの表で、作業の時間を選ぶ。');
-    expect(screen.getByRole('img', { name: /時間別の表/ })).toBeTruthy();
+    expect(screen.getAllByRole('img', { name: /時間別の表/ })).toHaveLength(2);
+    expect(screen.getByText('画面は東京・2026年9月20日（雨の日）の実績。')).toBeTruthy();
   });
   it('押すと写真と説明が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
     const { container } = render(<MoyoChapter />);

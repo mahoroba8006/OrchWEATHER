@@ -35,8 +35,21 @@
 .lp-moyo__rainnote { margin: 18px 0 0; text-align: center; font-size: 12.5px; opacity: 0.9; }
 
 /* 時間別の表（章の最後に横いっぱいで） */
-.lp-moyo__hourly { justify-self: center; width: min(90vw, 520px); display: grid; gap: 16px; opacity: 0; transform: translateY(40px); transition: opacity 0.9s ease, transform 1.1s var(--lp-ease); }
+.lp-moyo__hourly { justify-self: center; width: min(100%, 880px); display: grid; gap: 14px; opacity: 0; transform: translateY(40px); transition: opacity 0.9s ease, transform 1.1s var(--lp-ease); }
 .lp-moyo__hourly.is-in { opacity: 1; transform: none; }
+.lp-moyo__tables {
+  display: flex; gap: 14px; margin: 0 calc(-1 * var(--lp-gutter)); padding: 4px var(--lp-gutter) 12px;
+  overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.lp-moyo__tables::-webkit-scrollbar { display: none; }
+.lp-moyo__table { flex: none; width: min(74vw, 300px); margin: 0; scroll-snap-align: center; display: grid; gap: 8px; align-content: start; }
+.lp-moyo__table .lp-shot img { border-radius: 12px; }
+.lp-moyo__table figcaption { text-align: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.04em; }
+.lp-moyo__tablenote { margin: 0; text-align: center; font-size: 11.5px; opacity: 0.88; }
+@media (min-width: 720px) {
+  .lp-moyo__tables { justify-content: center; margin: 0; padding: 4px 0 12px; overflow: visible; }
+  .lp-moyo__table { width: min(40vw, 380px); }
+}
 .lp-moyo__hourlylead { margin: 0; text-align: center; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(18px, 2.6vw, 24px); text-shadow: 0 2px 18px rgba(20, 50, 80, 0.3); }
 
 @media (min-width: 960px) {

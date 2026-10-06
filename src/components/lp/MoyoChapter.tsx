@@ -88,7 +88,18 @@ export function MoyoChapter() {
       </div>
       <div ref={hourlyRef} className={hourlySeen || reduced ? 'lp-moyo__hourly is-in' : 'lp-moyo__hourly'}>
         <p className="lp-moyo__hourlylead"><span className="lp-phrase">1時間ごとの表で、</span><span className="lp-phrase">作業の時間を選ぶ。</span></p>
-        <Shot src="/lp/moyo-hourly.webp" alt="空もよう — 時間別の表（天気・気温・紫外線・降水確率・降水量・風速・風向き）" width={780} height={968} />
+        {/* 全項目を「作業の目安」と「くわしいデータ」の2枚に分けて小さく並べる（スマホは横にめくる） */}
+        <div className="lp-moyo__tables">
+          <figure className="lp-moyo__table">
+            <Shot src="/lp/moyo-hourly-work.webp" alt="時間別の表（作業の目安）— 天気・気温・降水確率・降水量・風速・瞬間風速・風向き" width={780} height={869} />
+            <figcaption>雨・風・気温</figcaption>
+          </figure>
+          <figure className="lp-moyo__table">
+            <Shot src="/lp/moyo-hourly-data.webp" alt="時間別の表（くわしいデータ）— 紫外線指数・気圧・湿度・飽差・露点・CAPE・0℃層高度" width={780} height={760} />
+            <figcaption>湿度・飽差・露点・0℃層高度など</figcaption>
+          </figure>
+        </div>
+        <p className="lp-moyo__tablenote">画面は東京・2026年9月20日（雨の日）の実績。</p>
       </div>
     </section>
   );
