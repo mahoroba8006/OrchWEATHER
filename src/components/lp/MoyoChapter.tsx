@@ -81,18 +81,22 @@ export function MoyoChapter() {
             />
           ))}
         </figure>
-        <ul className="lp-moyo__rain" aria-label="3mmまでの雨の言い方">
-          {RAIN_WORDS.map((w, i) => <li key={w} style={{ '--i': i } as CSSProperties}>{w}</li>)}
-        </ul>
-        <p className="lp-moyo__rainnote">3mmまでの雨は、3段階のことばで。</p>
+        <p className="lp-moyo__devicenote">リスクと概況で、作業を判断</p>
       </div>
       <div ref={hourlyRef} className={hourlySeen || reduced ? 'lp-moyo__hourly is-in' : 'lp-moyo__hourly'}>
         <p className="lp-moyo__hourlylead"><span className="lp-phrase">1時間ごとの空がわかる。</span><span className="lp-phrase">作業が決まる。</span></p>
         {/* 全項目を「作業の目安」と「くわしいデータ」の2枚に分けて小さく並べる（スマホは横にめくる） */}
         <div className="lp-moyo__tables">
           <figure className="lp-moyo__table">
-            <Shot src="/lp/moyo-hourly-work.webp" alt="時間別の表（作業の目安）— 天気・気温・降水確率・降水量・風速・瞬間風速・風向き" width={780} height={869} />
+            {/* 表の中の「カッパ！」などと同じ、3mmまでの雨のことばを札にして添える */}
+            <div className="lp-moyo__tablewrap">
+              <Shot src="/lp/moyo-hourly-work.webp" alt="時間別の表（作業の目安）— 天気・気温・降水確率・降水量・風速・瞬間風速・風向き" width={780} height={869} />
+              <ul className="lp-moyo__rain" aria-label="3mmまでの雨の言い方">
+                {RAIN_WORDS.map((w, i) => <li key={w} style={{ '--i': i } as CSSProperties}>{w}</li>)}
+              </ul>
+            </div>
             <figcaption>一般的な情報も</figcaption>
+            <p className="lp-moyo__rainnote">3mmまでの雨は、3段階のことばで。</p>
           </figure>
           <figure className="lp-moyo__table">
             <Shot src="/lp/moyo-hourly-data.webp" alt="時間別の表（くわしいデータ）— 紫外線指数・気圧・湿度・飽差・露点・CAPE・0℃層高度" width={780} height={760} />
