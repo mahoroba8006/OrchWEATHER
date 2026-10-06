@@ -55,6 +55,7 @@
 - 文言の制約: 「平年」は使わず「5年平均」と言う。「AI」という語は出さない。予報を自ら行うと受け取れる表現は使わない。有料列は「※予定」を残す。
 - アイコンの飾り（lucide-react）は LP では使わない。Google の G マークだけは機能として使う。
 - テストは `npm test -- <パス>` で実行する（`vitest run src` に引数が渡る）。
+- **コマンドはすべて Bash ツール（Git Bash）で実行する前提**で書いてある（`A=1 node …` の環境変数指定、`python - <<'EOF'` のヒアドキュメント、`rm`）。PowerShell では動かない。PowerShell で手動実行するときは、環境変数を `$env:ONLY='moyo'; $env:LAT='35.681'; $env:LON='139.767'; node scripts/lp-shots.mjs` のように置き換え、Python は一時ファイルに保存して `python <ファイル>` で実行する。
 
 ---
 
@@ -612,10 +613,11 @@ Open-Meteo の利用上限を消費するので、撮影は**1回だけ**行う�
 
 別ターミナルで `npm run dev -- --port 5180 --strictPort` を起動してから実行する:
 
-Run: `ONLY=moyo LAT=35.681 LON=139.767 node scripts/lp-shots.mjs`
+Run（Bash）: `ONLY=moyo LAT=35.681 LON=139.767 node scripts/lp-shots.mjs`
+（PowerShell の場合: `$env:ONLY='moyo'; $env:LAT='35.681'; $env:LON='139.767'; node scripts/lp-shots.mjs`）
 Expected: `saved moyo-risk` と `saved moyo-gaikyo` が出て、`screenshots/lp/` に2枚できる
 
-- [ ] **Step 3: webp に変換して public/lp に置き、旧写真を消す**
+- [ ] **Step 3: webp に変換して public/lp に置き、旧写真を消す（Bash で実行）**
 
 ```bash
 python - <<'EOF'
@@ -658,8 +660,9 @@ git commit -m "chore(lp): 空もようの「リスク」「概況」の画面写
 
 ```tsx
 // src/components/lp/primitives.test.tsx
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { useVisibility } from './hooks';
 import { CountUp, CtaPair, LineReveal } from './primitives';
 import { publishScene, subscribeScene } from './sceneStore';
 
@@ -696,6 +699,31 @@ describe('CtaPair', () => {
     fireEvent.click(google);
     expect(onTryGuest).toHaveBeenCalled();
     expect(onLogin).toHaveBeenCalled();
+  });
+});
+
+describe('useVisibility', () => {
+  it('画面外に出ると visible は false に戻り、seen は true のまま', () => {
+    let fire: (v: boolean) => void = () => {};
+    const Orig = globalThis.IntersectionObserver;
+    globalThis.IntersectionObserver = class {
+      constructor(cb: IntersectionObserverCallback) {
+        fire = (v) => cb([{ isIntersecting: v } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof IntersectionObserver;
+    function Probe() {
+      const [ref, visible, seen] = useVisibility<HTMLDivElement>();
+      return <div ref={ref}>{`${visible}/${seen}`}</div>;
+    }
+    const { container } = render(<Probe />);
+    act(() => fire(true));
+    expect(container.textContent).toBe('true/true');
+    act(() => fire(false));
+    expect(container.textContent).toBe('false/true');
+    globalThis.IntersectionObserver = Orig;
   });
 });
 
@@ -781,6 +809,26 @@ export function useInViewOnce<T extends Element>(threshold = 0.25): [RefObject<T
     return () => obs.disconnect();
   }, [inView, threshold]);
   return [ref, inView];
+}
+
+/** 今見えているか（visible）と、一度でも見えたか（seen）。画面外に出ると visible は false に戻る。
+ *  IntersectionObserver が無い環境では両方 true */
+export function useVisibility<T extends Element>(threshold = 0.25): [RefObject<T | null>, boolean, boolean] {
+  const ref = useRef<T>(null);
+  const noObserver = typeof IntersectionObserver === 'undefined';
+  const [visible, setVisible] = useState(noObserver);
+  const [seen, setSeen] = useState(noObserver);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(([e]) => {
+      setVisible(e.isIntersecting);
+      if (e.isIntersecting) setSeen(true);
+    }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return [ref, visible, seen];
 }
 
 /** 章が画面に入ったら1回だけ GA4 に記録する */
@@ -933,6 +981,8 @@ export function Shot({ src, alt, width, height, variant = 'card', eager = false,
   overflow-x: clip; /* sticky を効かせるため hidden ではなく clip（非対応環境は hidden） */
   -webkit-font-smoothing: antialiased;
 }
+/* 高さの計算に余白を含める（アプリ全体の指定に頼らない。100svh の枠が余白ではみ出さないように） */
+.lp-root *, .lp-root *::before, .lp-root *::after { box-sizing: border-box; }
 .lp-main { position: relative; z-index: 2; }
 
 /* 章の共通の余白。章ごとの高さは各章で変える（同じ高さの繰り返しにしない） */
@@ -1763,6 +1813,7 @@ export function SekkiChapter() {
           <LineReveal lines={['二十四節気ごとに、', '今年の半月を一枚に。']} />
           <p className="lp-vertical lp-sekki__aside">暦は、農の時計だった。</p>
         </div>
+        <div className="lp-sekki__body">
         <div className="lp-sekki__rail">
           <ol ref={trackRef} className="lp-sekki__track">
             {SEKKI.map((s, i) => (
@@ -1781,6 +1832,7 @@ export function SekkiChapter() {
         <div className="lp-sekki__card">
           <Shot src="/lp/review-card-2.webp" alt="節気のふりかえりカード（処暑）— 去年・5年平均と比べた気温・雨・日照" width={780} height={1114} />
         </div>
+        </div>
       </div>
       </div>
       <div className="lp-sekki__band">
@@ -1797,14 +1849,23 @@ export function SekkiChapter() {
 .lp-sekki { padding: 0; }
 /* 画面を止める区間（この中で stage が止まる）。帯はこの後に続く */
 .lp-sekki__pin { height: 300vh; }
-.lp-sekki__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; grid-template-rows: auto auto 1fr; padding-top: clamp(84px, 13vh, 130px); }
-.lp-sekki__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 0 var(--lp-gutter); }
-.lp-sekki__aside { flex: none; }
+/* 見出し → 本体（節気の列＋カード）。本体は残りの高さをすべて使い、カードはその高さに収まる大きさにする */
+.lp-sekki__stage { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr); padding-top: clamp(84px, 13vh, 130px); }
+.lp-sekki__head { position: relative; padding: 0 calc(var(--lp-gutter) + 40px) 0 var(--lp-gutter); }
+/* 縦書きは見出しの行の高さを押し広げないよう、右端に浮かせる */
+.lp-sekki__aside { position: absolute; top: 0; right: var(--lp-gutter); white-space: nowrap; }
+/* スマホは縦書きを置く幅が無いので、見出しの下に横書きの一行で添える */
+@media (max-width: 599px) {
+  .lp-sekki__head { padding-right: var(--lp-gutter); }
+  .lp-sekki__aside { position: static; writing-mode: horizontal-tb; margin-top: 10px; font-size: 13px; letter-spacing: 0.2em; }
+}
 
-.lp-sekki__rail { margin-top: clamp(22px, 5vh, 48px); }
-.lp-sekki__track { display: flex; gap: 12px; margin: 0; padding: 0 50vw 0 var(--lp-gutter); list-style: none; will-change: transform; }
+.lp-sekki__body { position: relative; min-height: 0; margin-top: clamp(18px, 4vh, 40px); container-type: size; }
+.lp-sekki__rail { transition: opacity 0.8s ease; }
+.lp-sekki.is-shown .lp-sekki__rail { opacity: 0.22; }
+.lp-sekki__track { display: flex; gap: 12px; margin: 0; padding: 12px 50vw 0 var(--lp-gutter); list-style: none; will-change: transform; }
 .lp-sekki__tile {
-  flex: none; width: 104px; height: 140px; border-radius: 14px;
+  flex: none; width: 92px; height: 124px; border-radius: 14px;
   background: linear-gradient(160deg, color-mix(in srgb, var(--tile) 82%, #fff), var(--tile));
   display: grid; justify-items: center; align-content: center; gap: 2px;
   box-shadow: 0 16px 30px -18px rgba(10, 30, 50, 0.55);
@@ -1815,10 +1876,12 @@ export function SekkiChapter() {
 .lp-sekki__reading { font-size: 9.5px; letter-spacing: 0.06em; opacity: 0.85; }
 .lp-sekki.is-shown .lp-sekki__tile.is-focus { transform: translateY(-10px) scale(1.08); outline-color: #fff; }
 
+/* カードは本体の上に重ねて出す。幅は「残りの高さ（cqh）に全体が収まる幅」「画面幅」「380px」の小さい方 */
 .lp-sekki__card {
-  justify-self: center; align-self: start; width: min(74vw, 340px); margin-top: 26px;
+  position: absolute; inset: 0 0 2.5vh; display: flex; justify-content: center; align-items: flex-start; pointer-events: none;
   opacity: 0; transform: translateY(80px); transition: opacity 0.9s ease, transform 1.1s var(--lp-ease);
 }
+.lp-sekki__card .lp-shot { width: min(86vw, 380px, calc(97cqh * 780 / 1114)); }
 .lp-sekki.is-shown .lp-sekki__card { opacity: 1; transform: none; }
 
 .lp-sekki__band { padding: 8vh var(--lp-gutter) 16vh; display: grid; justify-items: center; gap: 14px; }
@@ -1826,17 +1889,18 @@ export function SekkiChapter() {
 .lp-sekki__bandlead { margin: 0; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(20px, 3.4vw, 30px); }
 
 @media (min-width: 960px) {
-  .lp-sekki__card { width: 300px; }
   .lp-sekki__tile { width: 120px; height: 158px; }
 }
 
 /* 動きを減らす設定 */
 .lp-sekki--still .lp-sekki__pin { height: auto; }
-.lp-sekki--still .lp-sekki__stage { position: static; height: auto; overflow: visible; }
-.lp-sekki--still .lp-sekki__rail { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.lp-sekki--still .lp-sekki__stage { position: static; height: auto; overflow: visible; display: block; }
+.lp-sekki--still .lp-sekki__body { container-type: normal; }
+.lp-sekki--still .lp-sekki__rail { overflow-x: auto; -webkit-overflow-scrolling: touch; opacity: 1; }
 .lp-sekki--still .lp-sekki__track { padding-right: var(--lp-gutter); }
-.lp-sekki--still .lp-sekki__card { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .lp-sekki__tile, .lp-sekki__card { transition: none; } }
+.lp-sekki--still .lp-sekki__card { position: static; opacity: 1; transform: none; margin-top: 28px; }
+.lp-sekki--still .lp-sekki__card .lp-shot { width: min(74vw, 340px); }
+@media (prefers-reduced-motion: reduce) { .lp-sekki__tile, .lp-sekki__card, .lp-sekki__rail { transition: none; } }
 ```
 
 - [ ] **Step 4: 空くらべを書く**
@@ -2006,6 +2070,15 @@ describe('MoyoChapter', () => {
     expect(screen.getByText('その時間帯の、いちばん長い天気')).toBeTruthy();
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
   });
+  it('動きを減らす設定では、2つの見方を説明と写真の組で並べる（2枚とも出す）', () => {
+    const { container } = render(<MoyoChapter />);
+    expect(container.querySelector('.lp-moyo--still')).toBeTruthy();
+    const modes = container.querySelectorAll('.lp-moyo__mode');
+    expect(modes).toHaveLength(2);
+    expect(modes[0].textContent).toContain('その時間帯の、いちばん悪い天気');
+    expect(modes[1].textContent).toContain('その時間帯の、いちばん長い天気');
+    expect(screen.getAllByRole('img', { name: /空もよう/ })).toHaveLength(2);
+  });
 });
 
 describe('MakerChapter', () => {
@@ -2043,11 +2116,12 @@ Expected: FAIL（`Failed to resolve import "./MoyoChapter"`）
 
 ```tsx
 // src/components/lp/MoyoChapter.tsx
-// 4. 空もよう（午後・晩夏）。画面に入ると「リスクでみる⇄概況でみる」が自動で切り替わり、
+// 4. 空もよう（午後・晩夏）。画面に見えている間だけ「リスクでみる⇄概況でみる」が自動で切り替わり、
 // 3mmまでの雨のことば「ぽつぽつ・カッパ？・カッパ！」が雨粒のように落ちてくる。
+// 動きを減らす設定では、2つの見方を「説明＋写真」の組で並べた静止表示にする。
 import { useEffect, useState, type CSSProperties } from 'react';
-import { useChapterView, useInViewOnce, useReduced } from './hooks';
-import { LineReveal } from './primitives';
+import { useChapterView, useReduced, useVisibility } from './hooks';
+import { LineReveal, Shot } from './primitives';
 import './moyo.css';
 
 const MODES = [
@@ -2055,17 +2129,58 @@ const MODES = [
   { label: '概況でみる', caption: 'その時間帯の、いちばん長い天気', src: '/lp/moyo-gaikyo.webp' },
 ] as const;
 const RAIN_WORDS = ['ぽつぽつ', 'カッパ？', 'カッパ！'];
+const POINTS = ['1日を、午前・午後・夜間の3つに', '露点・飽差・0℃層高度も、時間別に', '毎日、今日の節気と七十二候'];
+
+function Points() {
+  return (
+    <ul className="lp-moyo__points">
+      {POINTS.map((t) => <li key={t}>{t}</li>)}
+    </ul>
+  );
+}
+
+function RainWords({ still = false }: { still?: boolean }) {
+  return (
+    <ul className={still ? 'lp-moyo__rain lp-moyo__rain--still' : 'lp-moyo__rain'} aria-label="3mmまでの雨の言い方">
+      {RAIN_WORDS.map((w, i) => <li key={w} style={{ '--i': i } as CSSProperties}>{w}</li>)}
+    </ul>
+  );
+}
 
 export function MoyoChapter() {
   const reduced = useReduced();
   const ref = useChapterView<HTMLElement>('moyo');
-  const [deviceRef, inView] = useInViewOnce<HTMLDivElement>(0.35);
+  const [deviceRef, visible, seen] = useVisibility<HTMLDivElement>(0.35);
   const [mode, setMode] = useState(0);
+  // 見えている間だけ切り替える（画面外ではタイマーを止める）
   useEffect(() => {
-    if (reduced || !inView) return;
+    if (reduced || !visible) return;
     const id = window.setInterval(() => setMode((m) => 1 - m), 3200);
     return () => window.clearInterval(id);
-  }, [reduced, inView]);
+  }, [reduced, visible]);
+
+  if (reduced) {
+    return (
+      <section ref={ref} className="lp-ch lp-moyo lp-moyo--still" data-scene="0.47">
+        <div className="lp-moyo__copy">
+          <LineReveal lines={['今日の作業、', 'やるかやめるか', 'すぐ決まる。']} />
+          <Points />
+        </div>
+        <div className="lp-moyo__pair">
+          {MODES.map((m) => (
+            <div key={m.label} className="lp-moyo__mode">
+              <p className="lp-moyo__modehead"><b>{m.label}</b><span>{m.caption}</span></p>
+              <Shot variant="phone" src={m.src} alt={`空もよう — ${m.label}`} width={780} height={1688} />
+            </div>
+          ))}
+        </div>
+        <div>
+          <RainWords still />
+          <p className="lp-moyo__rainnote">3mmまでの雨は、3段階のことばで。</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section ref={ref} className="lp-ch lp-moyo" data-scene="0.47">
@@ -2076,19 +2191,15 @@ export function MoyoChapter() {
         </div>
         <dl className="lp-moyo__captions">
           {MODES.map((m, i) => (
-            <div key={m.label} className={reduced || i === mode ? 'is-on' : ''}>
+            <div key={m.label} className={i === mode ? 'is-on' : ''}>
               <dt>{m.label}</dt>
               <dd>{m.caption}</dd>
             </div>
           ))}
         </dl>
-        <ul className="lp-moyo__points">
-          <li>1日を、午前・午後・夜間の3つに</li>
-          <li>露点・飽差・0℃層高度も、時間別に</li>
-          <li>毎日、今日の節気と七十二候</li>
-        </ul>
+        <Points />
       </div>
-      <div ref={deviceRef} className={inView || reduced ? 'lp-moyo__device is-in' : 'lp-moyo__device'}>
+      <div ref={deviceRef} className={seen ? 'lp-moyo__device is-in' : 'lp-moyo__device'}>
         <figure className="lp-shot lp-shot--phone lp-moyo__phone">
           {MODES.map((m, i) => (
             <img
@@ -2103,9 +2214,7 @@ export function MoyoChapter() {
             />
           ))}
         </figure>
-        <ul className="lp-moyo__rain" aria-label="3mmまでの雨の言い方">
-          {RAIN_WORDS.map((w, i) => <li key={w} style={{ '--i': i } as CSSProperties}>{w}</li>)}
-        </ul>
+        <RainWords />
         <p className="lp-moyo__rainnote">3mmまでの雨は、3段階のことばで。</p>
       </div>
     </section>
@@ -2120,7 +2229,7 @@ export function MoyoChapter() {
 .lp-moyo__modes span { padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; transition: background 0.5s ease, color 0.5s ease; }
 .lp-moyo__modes span.is-on { background: #fff; color: var(--lp-ink); }
 .lp-moyo__captions { display: grid; margin: 14px 0 0; }
-.lp-moyo__captions > div { grid-area: 1 / 1; opacity: 0; transition: opacity 0.6s ease; }
+.lp-moyo__captions > div { grid-area: 1 / 1; opacity: 0; transition: opacity 0.6s ease; } /* 動く表示だけで使う（静止表示は .lp-moyo__pair） */
 .lp-moyo__captions > div.is-on { opacity: 1; }
 .lp-moyo__captions dt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .lp-moyo__captions dd { margin: 0; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(18px, 2.6vw, 24px); }
@@ -2147,6 +2256,16 @@ export function MoyoChapter() {
 .lp-moyo__device.is-in .lp-moyo__rain li { animation: lp-drop 1.1s cubic-bezier(0.3, 1.4, 0.5, 1) calc(0.6s + var(--i) * 0.45s) forwards; }
 @keyframes lp-drop { to { opacity: 1; transform: none; } }
 .lp-moyo__rainnote { margin: 18px 0 0; text-align: center; font-size: 12.5px; opacity: 0.9; }
+
+/* 動きを減らす設定: 2つの見方を「説明＋写真」の組で並べる（重ねない） */
+.lp-moyo__pair { display: grid; gap: 44px; justify-items: center; }
+.lp-moyo__mode { width: min(66vw, 280px); display: grid; gap: 14px; }
+.lp-moyo__modehead { margin: 0; display: grid; gap: 4px; }
+.lp-moyo__modehead b { font-size: 13px; letter-spacing: 0.06em; }
+.lp-moyo__modehead span { font-family: var(--lp-mincho); font-weight: 800; font-size: 19px; }
+.lp-moyo__rain--still { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.lp-moyo__rain--still li { position: static; opacity: 1; transform: none; }
+@media (min-width: 960px) { .lp-moyo--still .lp-moyo__pair { grid-template-columns: 1fr 1fr; } }
 
 @media (min-width: 960px) {
   .lp-moyo { grid-template-columns: 1.1fr 0.9fr; align-items: center; }
@@ -2627,6 +2746,63 @@ Expected: 3通りとも `errors []`、`open-meteo requests 0`
 
 直したら Step 2 からやり直す（Open-Meteo は叩かないので、何度撮ってもよい）。
 
+- [ ] **Step 3b: 「あるのに読めない」を自動で確かめる**
+
+DOM にあるかだけを見るテストでは、画面からはみ出す・重なる・見えないといった問題を見逃す。実際の画面で位置と見え方を測る一時スクリプト `scripts/_lp_readable.mjs` を作って実行し、終わったら消す:
+
+```js
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const fails = [];
+// (1) 節気カードが、画面を止めている間に全体が画面内に収まる（3つの画面サイズ）
+for (const vp of [{ width: 375, height: 667 }, { width: 375, height: 812 }, { width: 1280, height: 800 }]) {
+  const page = await b.newPage({ viewport: vp });
+  await page.goto('http://localhost:5180/', { waitUntil: 'networkidle' });
+  const r = await page.evaluate(async () => {
+    const pin = document.querySelector('.lp-sekki__pin');
+    const top = pin.getBoundingClientRect().top + scrollY;
+    scrollTo(0, top + (pin.offsetHeight - innerHeight) * 0.85); // カードが出ている位置
+    await new Promise((res) => setTimeout(res, 1600));
+    const img = document.querySelector('.lp-sekki__card img').getBoundingClientRect();
+    return { top: img.top, bottom: img.bottom, width: img.width, vh: innerHeight };
+  });
+  if (r.top < 0 || r.bottom > r.vh) fails.push(`節気カード ${vp.width}x${vp.height}: top=${r.top} bottom=${r.bottom} vh=${r.vh}`);
+  console.log('sekki card', vp, r);
+  await page.close();
+}
+// (2) 動きを減らす設定で、空もようの2つの見方が「重ならず・見えて」いる
+{
+  const ctx = await b.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  await page.goto('http://localhost:5180/', { waitUntil: 'networkidle' });
+  const r = await page.evaluate(async () => {
+    const modes = [...document.querySelectorAll('.lp-moyo__mode')];
+    modes[1].scrollIntoView();
+    await new Promise((res) => setTimeout(res, 800));
+    return modes.map((m) => {
+      const img = m.querySelector('img');
+      const rect = m.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom, opacity: getComputedStyle(img).opacity, imgH: img.getBoundingClientRect().height, text: m.textContent };
+    });
+  });
+  if (r.length !== 2) fails.push(`空もよう静止表示: 組が ${r.length} 個`);
+  else {
+    if (r[0].bottom > r[1].top) fails.push('空もよう静止表示: 2つの組が重なっている');
+    r.forEach((m, i) => { if (m.opacity !== '1' || m.imgH < 100) fails.push(`空もよう静止表示: ${i + 1}枚目が見えない (${m.opacity}, ${m.imgH})`); });
+  }
+  console.log('moyo still', r);
+  await ctx.close();
+}
+await b.close();
+console.log(fails.length ? `FAIL\n${fails.join('\n')}` : 'ALL READABLE');
+process.exit(fails.length ? 1 : 0);
+```
+
+Run（Bash）: `node scripts/_lp_readable.mjs; rm scripts/_lp_readable.mjs`
+Expected: `ALL READABLE`。`FAIL` のときは、出力された数値をもとに CSS を直し、Step 2 からやり直す。
+
+あわせて、空もようを通り過ぎた後に自動切替のタイマーが止まることを確かめる: 空もようの章を表示 → ページ末尾まで送る → 5秒待つ間に、`.lp-moyo__modes .is-on` の文字が変わらないことを `page.evaluate` で2回読んで比べる。
+
 - [ ] **Step 4: スクロールの重さを測る**
 
 CPU を4倍に絞って、スクロール中のコマ落ちを測る一時スクリプトを実行する:
@@ -2694,4 +2870,4 @@ git push origin develop
 | 動きを減らす設定 | 5〜9（各章）、11（確認） |
 | 文言の制約（平年・AI・※予定・実績） | 3, 9, 10（テスト） |
 | 章の閲覧計測 | 3, 5（`useChapterView`）、各章 |
-| 検証（build・テスト・3通りの撮影・重さ・Open-Meteo 0件） | 10, 11 |
+| 検証（build・テスト・3通りの撮影・重さ・Open-Meteo 0件・カード全体と静止表示が読めること） | 10, 11 |
