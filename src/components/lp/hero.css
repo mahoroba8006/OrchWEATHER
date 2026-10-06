@@ -28,6 +28,8 @@
 .lp-hero__today b { font-family: var(--lp-mincho); font-size: 16px; margin-left: 0.3em; }
 .lp-hero__kou { opacity: 0.85; }
 .lp-hero__note { margin: 14px 0 0; font-size: 12.5px; letter-spacing: 0.04em; opacity: 0.9; }
+/* 小さな文字は明るい空・雲の上でも読めるよう、影を二重にする */
+.lp-hero__today, .lp-hero__sub, .lp-hero__use, .lp-hero__note { text-shadow: 0 1px 3px rgba(20, 40, 70, 0.45), 0 2px 18px rgba(20, 40, 70, 0.35); }
 .lp-hero .lp-cta-pair { opacity: 0; animation: lp-fade-in 1s var(--lp-ease) 1s forwards; }
 
 .lp-hero__device { position: relative; justify-self: center; width: min(68vw, 330px); }

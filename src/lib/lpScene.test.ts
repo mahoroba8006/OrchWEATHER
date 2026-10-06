@@ -46,8 +46,10 @@ describe('sekkiIndexAt', () => {
 
 describe('celestialAt / starsAt', () => {
   it('太陽は左下から昇り、昼に最も高く、夕方以降は月になる', () => {
-    expect(celestialAt(0)).toEqual({ kind: 'sun', x: 8, y: 70, height: 0 });
+    // 夜明けと夕焼けは丘の向こう（画面の下 88% の高さ）にあり、最初の画面の文字の後ろに来ない
+    expect(celestialAt(0)).toEqual({ kind: 'sun', x: 8, y: 88, height: 0 });
     expect(celestialAt(0.35).height).toBeCloseTo(1, 5);
+    expect(celestialAt(0.35).y).toBeCloseTo(12, 5);
     expect(celestialAt(0.8).kind).toBe('moon');
   });
   it('星は夕方の終わりから出て、夜に出そろう', () => {

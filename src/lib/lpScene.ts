@@ -108,7 +108,8 @@ export function celestialAt(p: number): Celestial {
   if (q >= MOON_FROM) return { kind: 'moon', x: 78, y: 18, height: 1 };
   const t = Math.min(q / SUN_END, 1);
   const height = Math.sin(t * Math.PI);
-  return { kind: 'sun', x: 8 + t * 84, y: 70 - height * 58, height };
+  // 夜明け・夕焼けは丘の向こう（88vh）から昇り・沈む。最初の画面の文字の後ろに太陽が来ないように
+  return { kind: 'sun', x: 8 + t * 84, y: 88 - height * 76, height };
 }
 
 export function starsAt(p: number): number {
