@@ -114,7 +114,7 @@ describe('MoyoChapter', () => {
 describe('MakerChapter', () => {
   it('作った人の一行と、詳しく読む層3つ（開くと GA4 に記録）', () => {
     const { container } = render(<MakerChapter />);
-    expect(screen.getByRole('heading', { name: '現場で欲しかったものを、自分で作った。' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '現場で欲しかったものを、農家が作りました。' })).toBeTruthy();
     expect(container.querySelectorAll('details.lp-details')).toHaveLength(3);
     const faq = container.querySelector<HTMLDetailsElement>('details[data-section="faq"]')!;
     faq.open = true;
