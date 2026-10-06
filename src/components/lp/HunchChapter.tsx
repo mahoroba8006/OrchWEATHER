@@ -14,7 +14,7 @@ function Fact({ h, start }: { h: Hunch; start: boolean }) {
       <p className="lp-fact__label">{h.label}</p>
       <p className="lp-fact__value">
         <span className="lp-fact__before">{h.before}</span>
-        <CountUp to={h.value} decimals={h.decimals} start={start} duration={1200} delay={350} />
+        <CountUp to={h.value} decimals={h.decimals} start={start} duration={600} delay={100} />
         <span className="lp-fact__unit">{h.unit}</span>
       </p>
       <p className="lp-fact__note">{h.note}</p>
@@ -45,7 +45,8 @@ export function HunchChapter() {
   const ref = useChapterView<HTMLElement>('hunch');
   const [stage, setStage] = useState(0); // 0〜2=勘、3=結論
   const [phase, setPhase] = useState<'quote' | 'fact'>('quote');
-  // 境目（0.42）付近の小さな揺れで言葉と数字が行き来しないよう、0.38〜0.46 では直前の状態を保つ
+  // 数字を早く出し、長く見せる（速めのスクロールでも出きった数字が目に入るよう、各段の 7 割を数字の場面に）。
+  // 境目（0.3）付近の小さな揺れで言葉と数字が行き来しないよう、0.26〜0.34 では直前の状態を保つ
   const last = useRef<{ st: number; phase: 'quote' | 'fact' }>({ st: -1, phase: 'quote' });
 
   useScrollFrame(() => {
@@ -55,8 +56,8 @@ export function HunchChapter() {
     const f = x - st;
     const next: 'quote' | 'fact' =
       st >= 3 ? 'fact'
-        : st === last.current.st && f >= 0.38 && f <= 0.46 ? last.current.phase
-          : f < 0.42 ? 'quote' : 'fact';
+        : st === last.current.st && f >= 0.26 && f <= 0.34 ? last.current.phase
+          : f < 0.3 ? 'quote' : 'fact';
     last.current = { st, phase: next };
     setStage(st);
     setPhase(next);

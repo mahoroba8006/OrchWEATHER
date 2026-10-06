@@ -1,5 +1,5 @@
 /* src/components/lp/hunch.css — 1. 勘の章 */
-.lp-hunch { height: 420vh; padding: 0; }
+.lp-hunch { height: 500vh; padding: 0; }
 .lp-hunch__stage {
   position: sticky; top: 0; height: 100svh;
   display: grid; place-items: center; padding: 0 var(--lp-gutter);
@@ -22,7 +22,7 @@
 }
 .lp-hunch__item.is-fact .lp-hunch__phrase > span { opacity: 0; filter: blur(10px); transform: translateY(-0.35em); }
 
-.lp-fact { align-self: center; opacity: 0; transform: translateY(18px); transition: opacity 0.9s ease 0.35s, transform 0.9s var(--lp-ease) 0.35s; }
+.lp-fact { align-self: center; opacity: 0; transform: translateY(18px); transition: opacity 0.5s ease 0.1s, transform 0.5s var(--lp-ease) 0.1s; }
 .lp-hunch__item.is-fact .lp-fact { opacity: 1; transform: none; }
 .lp-fact__label { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.92; }
 .lp-fact__value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 12px; margin: 0; line-height: 1; }
