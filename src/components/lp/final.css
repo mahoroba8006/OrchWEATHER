@@ -1,0 +1,16 @@
+/* src/components/lp/final.css — 6. 最後のボタン＋フッター */
+.lp-final { min-height: 100svh; display: grid; align-content: center; justify-items: start; gap: 22px; padding-top: 12vh; padding-bottom: 30vh; }
+.lp-final__today { margin: 0; font-family: var(--lp-mincho); font-weight: 600; font-size: clamp(16px, 2vw, 20px); letter-spacing: 0.12em; }
+.lp-final .lp-lines { font-size: clamp(34px, 8.6vw, 80px); }
+.lp-final__note { margin: 0; font-size: 13px; opacity: 0.88; }
+.lp-cta-pair--night .lp-cta { background: #fff; color: #0f2340; }
+
+.lp-footer { position: relative; z-index: 2; padding: 48px var(--lp-gutter) 40px; color: rgba(22, 48, 58, 0.78); font-size: 12px; line-height: 1.8; text-align: center; }
+.lp-footer__notice { max-width: 760px; margin: 0 auto 28px; text-align: left; padding: 16px 20px; border-radius: 10px; background: rgba(255, 255, 255, 0.55); }
+.lp-footer__noticeh { margin: 0 0 6px; font-weight: 700; color: var(--lp-ink); }
+.lp-footer__notice p:last-child { margin: 0; }
+.lp-footer__brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--lp-ink); }
+.lp-footer__brand img { filter: invert(18%) sepia(20%) saturate(900%) hue-rotate(150deg); }
+.lp-footer__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin: 10px 0 0; }
+.lp-footer a { color: var(--lp-ink); }
+.lp-footer__copy { margin: 10px 0 0; }

@@ -1,5 +1,5 @@
 // src/components/lp/chapters.test.tsx
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 const logLpDetailOpen = vi.fn();
 const logLpMoyoToggle = vi.fn();
@@ -12,6 +12,9 @@ import { LpHero } from './LpHero';
 import { HunchChapter } from './HunchChapter';
 import { SekkiChapter } from './SekkiChapter';
 import { KurabeChapter } from './KurabeChapter';
+import { MoyoChapter } from './MoyoChapter';
+import { MakerChapter } from './MakerChapter';
+import { FinalChapter, LpFooter } from './FinalChapter';
 import { sekkiForDate } from '../../lib/sekki';
 
 beforeAll(() => {
@@ -69,5 +72,50 @@ describe('KurabeChapter', () => {
     expect(screen.getByText('図は模式です。数字は東京・2026年の実績（1月1日から・10℃基準）。')).toBeTruthy();
     for (const t of ['年をまたいで、重ねて比べる', '地点を並べて、違いを比べる', '積算温度を、自動で計算']) expect(screen.getByText(t)).toBeTruthy();
     expect(screen.getAllByRole('img', { name: /空くらべ/ })).toHaveLength(2);
+  });
+});
+
+describe('MoyoChapter', () => {
+  it('見出し・雨のことば。最初は「リスクでみる」', () => {
+    const { container } = render(<MoyoChapter />);
+    expect(screen.getByRole('heading', { name: '今日の作業、やるかやめるかすぐ決まる。' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('その時間帯の、いちばん悪い天気')).toBeTruthy();
+    expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
+    for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
+  });
+  it('押すと写真と説明が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
+    const { container } = render(<MoyoChapter />);
+    fireEvent.click(screen.getByRole('button', { name: '概況でみる' }));
+    expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByText('その時間帯の、いちばん多い天気')).toBeTruthy();
+    expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-gaikyo.webp');
+    expect(logLpMoyoToggle).toHaveBeenCalledWith('gaikyo');
+  });
+});
+
+describe('MakerChapter', () => {
+  it('作った人の一行と、詳しく読む層3つ（開くと GA4 に記録）', () => {
+    const { container } = render(<MakerChapter />);
+    expect(screen.getByRole('heading', { name: '現場で欲しかったものを、自分で作った。' })).toBeTruthy();
+    expect(container.querySelectorAll('details.lp-details')).toHaveLength(3);
+    const faq = container.querySelector<HTMLDetailsElement>('details[data-section="faq"]')!;
+    faq.open = true;
+    fireEvent(faq, new Event('toggle'));
+    expect(logLpDetailOpen).toHaveBeenCalledWith('faq');
+    expect(screen.getByText('※予定')).toBeTruthy();
+  });
+});
+
+describe('FinalChapter / LpFooter', () => {
+  it('今日の節気・見出し・ボタン2つ、フッターの注意書き', () => {
+    const onTryGuest = vi.fn();
+    render(<><FinalChapter loading={false} onLogin={() => {}} onTryGuest={onTryGuest} /><LpFooter /></>);
+    expect(screen.getByText(`今日は${sekkiForDate(new Date()).name}。`)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '今年の季節を、数字で見てみる。' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /ログインせずに試す/ }));
+    expect(onTryGuest).toHaveBeenCalled();
+    expect(screen.getByText('ご利用上の注意')).toBeTruthy();
   });
 });
