@@ -4,8 +4,8 @@
 // 動きを減らす設定では、自動切替と切り替えの動きだけを止め、押して切り替える操作は同じにする。
 import { useEffect, useState, type CSSProperties } from 'react';
 import { logLpMoyoToggle } from '../../lib/analytics';
-import { useChapterView, useReduced, useVisibility } from './hooks';
-import { LineReveal } from './primitives';
+import { useChapterView, useInViewOnce, useReduced, useVisibility } from './hooks';
+import { LineReveal, Shot } from './primitives';
 import './moyo.css';
 
 const MODES = [
@@ -19,6 +19,7 @@ export function MoyoChapter() {
   const reduced = useReduced();
   const ref = useChapterView<HTMLElement>('moyo');
   const [deviceRef, visible, seen] = useVisibility<HTMLDivElement>(0.35);
+  const [hourlyRef, hourlySeen] = useInViewOnce<HTMLDivElement>(0.2);
   const [mode, setMode] = useState(0);
   const [touched, setTouched] = useState(false);
   // 読み上げる文。押したときだけ書き換える（自動切替では変えない＝3.2秒ごとに読み上げない）
@@ -84,6 +85,10 @@ export function MoyoChapter() {
           {RAIN_WORDS.map((w, i) => <li key={w} style={{ '--i': i } as CSSProperties}>{w}</li>)}
         </ul>
         <p className="lp-moyo__rainnote">3mmまでの雨は、3段階のことばで。</p>
+      </div>
+      <div ref={hourlyRef} className={hourlySeen || reduced ? 'lp-moyo__hourly is-in' : 'lp-moyo__hourly'}>
+        <p className="lp-moyo__hourlylead"><span className="lp-phrase">1時間ごとの表で、</span><span className="lp-phrase">作業の時間を選ぶ。</span></p>
+        <Shot src="/lp/moyo-hourly.webp" alt="空もよう — 時間別の表（天気・気温・紫外線・降水確率・降水量・風速・風向き）" width={780} height={968} />
       </div>
     </section>
   );

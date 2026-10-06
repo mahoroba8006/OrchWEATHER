@@ -71,9 +71,10 @@ export function KurabeChapter() {
         </ul>
       </div>
       </div>
+      <p className="lp-kurabe__shotlead"><span className="lp-phrase">日付をタップすると、</span><span className="lp-phrase">その日の値と去年との差。</span></p>
       <div className="lp-kurabe__shots">
-        <Shot src="/lp/kurabe-temp.webp" alt="空くらべ — 今年と去年の気温を重ねたグラフ" width={780} height={1157} />
-        <Shot src="/lp/kurabe-gdd.webp" alt="空くらべ — 有効積算温度のグラフ（今年と去年）" width={780} height={1253} />
+        <Shot src="/lp/kurabe-temp.webp" alt="空くらべ — 今年と去年の気温を重ねたグラフ。9/20 をタップして、両年の最低・最高気温を表示" width={780} height={1262} />
+        <Shot src="/lp/kurabe-gdd.webp" alt="空くらべ — 有効積算温度のグラフ。10/4 をタップして、累積の差（−252℃・18日遅い）を表示" width={780} height={1357} />
       </div>
     </section>
   );

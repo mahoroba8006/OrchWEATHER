@@ -34,12 +34,19 @@
 @keyframes lp-drop { to { opacity: 1; transform: none; } }
 .lp-moyo__rainnote { margin: 18px 0 0; text-align: center; font-size: 12.5px; opacity: 0.9; }
 
+/* 時間別の表（章の最後に横いっぱいで） */
+.lp-moyo__hourly { justify-self: center; width: min(90vw, 520px); display: grid; gap: 16px; opacity: 0; transform: translateY(40px); transition: opacity 0.9s ease, transform 1.1s var(--lp-ease); }
+.lp-moyo__hourly.is-in { opacity: 1; transform: none; }
+.lp-moyo__hourlylead { margin: 0; text-align: center; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(18px, 2.6vw, 24px); text-shadow: 0 2px 18px rgba(20, 50, 80, 0.3); }
+
 @media (min-width: 960px) {
   .lp-moyo { grid-template-columns: 1.1fr 0.9fr; align-items: center; }
+  .lp-moyo__hourly { grid-column: 1 / -1; margin-top: 24px; }
 }
 /* 動きを減らす設定: 切り替えは押したときだけ・動きなしで。雨のことばは最初から置く */
 .lp-moyo--still .lp-moyo__phone img, .lp-moyo--still .lp-moyo__modes button { transition: none; }
 .lp-moyo--still .lp-moyo__rain li { opacity: 1; transform: none; animation: none; }
+.lp-moyo--still .lp-moyo__hourly { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .lp-moyo__rain li { opacity: 1; transform: none; animation: none !important; }
   .lp-moyo__phone img, .lp-moyo__modes button { transition: none; }

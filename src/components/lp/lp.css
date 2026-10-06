@@ -48,6 +48,9 @@
 .lp-lines.is-in .lp-line__in { transform: none; }
 h2.lp-lines { font-size: clamp(30px, 7.6vw, 64px); }
 
+/* 言葉のまとまりで折り返す（途中で切らない） */
+.lp-phrase { display: inline-block; }
+
 /* 縦書きの添え書き */
 .lp-vertical {
   writing-mode: vertical-rl;

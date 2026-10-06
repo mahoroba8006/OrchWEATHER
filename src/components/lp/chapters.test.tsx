@@ -77,6 +77,7 @@ describe('KurabeChapter', () => {
     expect(screen.getByText('図は模式です。数字は東京・2026年の実績（1月1日から・10℃基準）。')).toBeTruthy();
     for (const t of ['年をまたいで、重ねて比べる', '地点を並べて、違いを比べる', '積算温度を、自動で計算']) expect(screen.getByText(t)).toBeTruthy();
     expect(screen.getAllByRole('img', { name: /空くらべ/ })).toHaveLength(2);
+    expect(document.querySelector('.lp-kurabe__shotlead')!.textContent).toBe('日付をタップすると、その日の値と去年との差。');
   });
 });
 
@@ -90,6 +91,8 @@ describe('MoyoChapter', () => {
     expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('');
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
+    expect(container.querySelector('.lp-moyo__hourlylead')!.textContent).toBe('1時間ごとの表で、作業の時間を選ぶ。');
+    expect(screen.getByRole('img', { name: /時間別の表/ })).toBeTruthy();
   });
   it('押すと写真と説明が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
     const { container } = render(<MoyoChapter />);
