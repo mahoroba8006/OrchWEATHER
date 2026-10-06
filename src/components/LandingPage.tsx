@@ -12,7 +12,6 @@ import { KurabeChapter } from './lp/KurabeChapter';
 import { MoyoChapter } from './lp/MoyoChapter';
 import { MakerChapter } from './lp/MakerChapter';
 import { FinalChapter, LpFooter } from './lp/FinalChapter';
-import './lp/lp.css';
 
 const isIOSStandalone = () =>
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||

@@ -32,7 +32,7 @@
 .lp-fact__note { margin: 14px 0 0; font-size: 14px; opacity: 0.88; }
 
 .lp-hunch__end { text-align: left; width: min(100%, 880px); }
-.lp-hunch__end .lp-lines { font-size: clamp(40px, 10vw, 104px); }
+.lp-hunch__end .lp-lines { font-size: clamp(32px, 8.6vw, 104px); } /* 375px で「数字で裏づける。」が1行に収まる大きさ */
 .lp-hunch__summary { display: grid; gap: 0; max-width: 26em; margin: 30px 0 0; padding: 0; list-style: none; font-size: clamp(14px, 1.8vw, 17px); font-weight: 500; }
 .lp-hunch__summary li {
   padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, 0.3);

@@ -2,6 +2,9 @@
 // LP の共通部品: 行ごとにせり上がる見出し・数え上がる数字・ボタン2つ・画面写真。
 import { createElement, useEffect, useState, type CSSProperties } from 'react';
 import { useInViewOnce, useReduced } from './hooks';
+// 共通スタイルは各章の css より先に読み込む（同じ詳細度の指定を章の側で上書きできるように）。
+// 章はすべてこのファイルを import してから自分の css を import する。
+import './lp.css';
 
 /** 見出しを行ごとに下からせり上げる（画面に入ったとき1回）。読み上げは行をつなげた文 */
 export function LineReveal({ as = 'h2', lines, className }: { as?: 'h1' | 'h2' | 'p'; lines: readonly string[]; className?: string }) {

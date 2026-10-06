@@ -18,6 +18,15 @@
 .lp-kurabe__gap.is-on { opacity: 1; }
 .lp-kurabe__gap line { stroke: #ffe7a8; stroke-width: 2; }
 .lp-kurabe__gap text { fill: #ffe7a8; font: 500 22px var(--lp-mono); text-anchor: middle; }
+/* スマホでは図が縮むので、文字と線を太らせて読める大きさにする（SVG の座標単位で指定） */
+@media (max-width: 600px) {
+  .lp-kurabe__tick { font-size: 20px; }
+  .lp-kurabe__legend { font-size: 24px; }
+  .lp-kurabe__gap text { font-size: 36px; }
+  .lp-kurabe__line--last { stroke-width: 3.4; }
+  .lp-kurabe__line--this { stroke-width: 5.2; }
+  .lp-kurabe__gap line { stroke-width: 3; }
+}
 
 .lp-kurabe__points { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; font-weight: 700; font-size: clamp(15px, 2vw, 19px); }
 .lp-kurabe__points li { opacity: 0.3; transform: translateX(-8px); transition: opacity 0.5s ease, transform 0.6s var(--lp-ease); }

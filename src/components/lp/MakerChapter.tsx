@@ -10,7 +10,7 @@ export function MakerChapter() {
   return (
     <section ref={ref} className="lp-ch lp-maker" data-scene="0.64">
       <div className="lp-maker__story">
-        <LineReveal lines={['現場で欲しかったものを、', '自分で作った。']} />
+        <LineReveal lines={['現場で', '欲しかったものを、', '自分で作った。']} />
         <p>
           Orch.Weatherは、農作業の判断を助け、作物の生育を可視化したい。そう考えた一人の農家が、「現場で欲しかったもの」を詰め込んだアプリです。
         </p>

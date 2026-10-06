@@ -120,14 +120,15 @@ export function SkyScene() {
       <div className="lp-scene__cloud lp-scene__cloud--3" />
       <svg className="lp-scene__land" viewBox="0 0 1440 520" preserveAspectRatio="xMidYMax slice">
         {/* 遠くの山並み */}
-        <path fill="var(--ridge)" d="M0 262 Q60 236 120 244 T240 214 T360 236 T480 204 T600 232 T720 196 T840 228 T960 206 T1080 236 T1200 210 T1320 238 T1440 222 V520 H0Z" />
+        <path fill="var(--ridge)" d="M0 268 C110 246 210 254 320 238 S540 214 690 236 S950 226 1090 238 S1320 222 1440 240 V520 H0Z" />
         {/* 奥の丘 */}
         <path fill="var(--far)" d="M0 304 C180 254 360 274 540 294 S900 254 1110 274 S1340 294 1440 280 V520 H0Z" />
         {/* 中の丘と木立 */}
         <path fill="var(--mid)" d="M0 364 C200 324 420 354 640 340 S1020 316 1240 344 S1400 354 1440 348 V520 H0Z" />
         <g fill="rgba(20, 45, 25, 0.16)">
-          <circle cx="210" cy="342" r="15" /><circle cx="234" cy="335" r="19" /><circle cx="258" cy="344" r="12" />
-          <circle cx="1052" cy="330" r="16" /><circle cx="1076" cy="323" r="21" /><circle cx="1100" cy="332" r="13" />
+          {/* スマホ幅（中央だけが見える）でも途中で切れないよう、木立は中央寄りに置く */}
+          <circle cx="520" cy="343" r="15" /><circle cx="544" cy="336" r="19" /><circle cx="568" cy="345" r="12" />
+          <circle cx="880" cy="328" r="16" /><circle cx="904" cy="321" r="21" /><circle cx="928" cy="330" r="13" />
         </g>
         {/* 手前の田畑と畦 */}
         <path fill="var(--near)" d="M0 424 C260 394 520 414 760 408 S1080 396 1300 414 L1440 418 V520 H0Z" />

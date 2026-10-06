@@ -41,6 +41,8 @@
 .lp-sekki__band .lp-shot { width: min(88vw, 520px); }
 .lp-sekki__bandlead { margin: 0; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(20px, 3.4vw, 30px); }
 
+/* PC は右端に節気の目盛り（.lp-dial）が出るので、縦書きをその内側へずらす */
+@media (min-width: 1024px) { .lp-sekki__aside { right: calc(var(--lp-gutter) + 56px); } }
 @media (min-width: 960px) {
   .lp-sekki__tile { width: 120px; height: 158px; }
 }
