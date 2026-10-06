@@ -1,7 +1,7 @@
 // src/components/weather/HistoricalWeatherTab.tsx
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
-import { useAppStore } from '../../store';
+import { useAppStore, useWeatherCodeMode } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useHistoricalForecast } from '../../hooks/useHistoricalForecast';
 import { SegmentedControl } from '../ui/SegmentedControl';
@@ -28,7 +28,7 @@ function jstDaysAgo(n: number): string {
 
 export function HistoricalWeatherTab() {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, updateWeatherCodeMode } = useAppStore();
-  const weatherCodeMode = userSettings?.weatherCodeMode ?? 'severity';
+  const weatherCodeMode = useWeatherCodeMode();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');

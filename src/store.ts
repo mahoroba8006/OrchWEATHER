@@ -100,6 +100,8 @@ interface AppState {
   aiAllowed: boolean;
   guestMode: boolean;
   guestHiddenHourlyRows: HourlyRowKey[];
+  /** ゲスト（未ログイン）の天気アイコンの表示基準（localStorage に保存） */
+  guestWeatherCodeMode: WeatherCodeMode;
 
   setUser: (user: User | null) => void;
   setAuthLoading: (loading: boolean) => void;
@@ -137,6 +139,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   aiAllowed: false,
   guestMode: typeof localStorage !== 'undefined' && localStorage.getItem('guestMode') === '1',
   guestHiddenHourlyRows: loadGuestHiddenHourlyRows(),
+  guestWeatherCodeMode: loadGuestWeatherCodeMode(),
 
   setUser: (user) => set({ user }),
   setAuthLoading: (loading) => set({ authLoading: loading }),
@@ -274,7 +277,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   updateWeatherCodeMode: async (mode) => {
     const uid = get().user?.uid;
-    if (!uid) return;
+    if (!uid) {
+      saveGuestWeatherCodeMode(mode);
+      set({ guestWeatherCodeMode: mode });
+      return;
+    }
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, weatherCodeMode: mode }
@@ -314,6 +321,27 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }));
   },
 }));
+
+const GUEST_WEATHER_CODE_MODE_KEY = 'weatherCodeMode';
+
+export function loadGuestWeatherCodeMode(): WeatherCodeMode {
+  try {
+    return localStorage.getItem(GUEST_WEATHER_CODE_MODE_KEY) === 'frequency' ? 'frequency' : 'severity';
+  } catch {
+    return 'severity';
+  }
+}
+
+function saveGuestWeatherCodeMode(mode: WeatherCodeMode): void {
+  try {
+    localStorage.setItem(GUEST_WEATHER_CODE_MODE_KEY, mode);
+  } catch { /* localStorage 不可環境は無視 */ }
+}
+
+/** 天気アイコンの表示基準（ログイン設定 → ゲスト値） */
+export function useWeatherCodeMode(): WeatherCodeMode {
+  return useAppStore(s => s.userSettings?.weatherCodeMode ?? s.guestWeatherCodeMode);
+}
 
 /** 時間別の表で非表示にする行（ログイン設定 → ゲスト値 → おすすめ） */
 export function useHiddenHourlyRows(): HourlyRowKey[] {
