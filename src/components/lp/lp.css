@@ -1,0 +1,143 @@
+/* src/components/lp/lp.css — LP 共通（書体・色・共通部品）。章ごとの見た目は各章の css に置く */
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+.lp-root {
+  --lp-ink: #16303a;
+  --lp-paper: #fbf8f1;
+  --lp-leaf: #3d7a4a;
+  --lp-mincho: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --lp-sans: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+  --lp-mono: 'DM Mono', ui-monospace, monospace;
+  --lp-ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+  --lp-gutter: clamp(20px, 6vw, 96px);
+  position: relative;
+  min-height: 100vh;
+  color: #fff;
+  font-family: var(--lp-sans);
+  background: #3d4f86;
+  overflow-x: hidden;
+  overflow-x: clip; /* sticky を効かせるため hidden ではなく clip（非対応環境は hidden） */
+  -webkit-font-smoothing: antialiased;
+}
+/* 高さの計算に余白を含める（アプリ全体の指定に頼らない。100svh の枠が余白ではみ出さないように） */
+.lp-root *, .lp-root *::before, .lp-root *::after { box-sizing: border-box; }
+.lp-main { position: relative; z-index: 2; }
+
+/* 章の共通の余白。章ごとの高さは各章で変える（同じ高さの繰り返しにしない） */
+.lp-ch { position: relative; padding: 0 var(--lp-gutter); }
+
+/* 読み上げ専用 */
+.lp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 見出し（明朝・行ごとにせり上がる） */
+.lp-lines {
+  margin: 0;
+  font-family: var(--lp-mincho);
+  font-weight: 800;
+  font-feature-settings: 'palt';
+  letter-spacing: -0.01em;
+  line-height: 1.24;
+  text-shadow: 0 2px 28px rgba(20, 50, 80, 0.28);
+}
+.lp-line { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.lp-line__in {
+  display: inline-block;
+  transform: translateY(110%);
+  transition: transform 1.15s var(--lp-ease) calc(var(--i) * 0.14s);
+}
+.lp-lines.is-in .lp-line__in { transform: none; }
+h2.lp-lines { font-size: clamp(30px, 7.6vw, 64px); }
+
+/* 縦書きの添え書き */
+.lp-vertical {
+  writing-mode: vertical-rl;
+  font-family: var(--lp-mincho);
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  font-size: clamp(14px, 1.6vw, 18px);
+  margin: 0;
+  opacity: 0.92;
+}
+
+/* 等幅の数字 */
+.lp-num { font-family: var(--lp-mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+
+/* 小さな札 */
+.lp-chip {
+  display: inline-flex; align-items: baseline; gap: 0.25em;
+  margin: 0; padding: 0.55em 1em;
+  border-radius: 999px;
+  background: #fff; color: var(--lp-ink);
+  font-size: 13px; font-weight: 700;
+  box-shadow: 0 12px 28px -12px rgba(10, 30, 50, 0.45);
+}
+.lp-chip .lp-num { font-size: 1.35em; color: #2f6e9e; }
+
+/* ボタン2つ（同じ強さ） */
+.lp-cta-pair { display: flex; flex-wrap: wrap; gap: 12px; }
+.lp-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 52px; padding: 0 26px;
+  border-radius: 999px;
+  border: 1.5px solid #fff;
+  background: #fff; color: #17384a;
+  font: 700 15px/1 var(--lp-sans);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.35s var(--lp-ease), box-shadow 0.35s var(--lp-ease), background 0.25s;
+  box-shadow: 0 14px 30px -16px rgba(10, 30, 50, 0.55);
+}
+.lp-cta:hover { transform: translateY(-2px); box-shadow: 0 20px 36px -16px rgba(10, 30, 50, 0.6); }
+.lp-cta:active { transform: translateY(0); }
+.lp-cta:focus-visible { outline: 3px solid #ffe7a8; outline-offset: 3px; }
+.lp-cta:disabled { opacity: 0.6; cursor: default; }
+.lp-cta__g { display: inline-flex; }
+@media (max-width: 480px) { .lp-cta-pair .lp-cta { flex: 1 1 100%; } }
+
+/* 画面写真 */
+.lp-shot { margin: 0; }
+.lp-shot img { display: block; width: 100%; height: auto; }
+.lp-shot--card img { border-radius: 18px; box-shadow: 0 40px 70px -30px rgba(10, 30, 50, 0.55); }
+.lp-shot--band img { border-radius: 14px; box-shadow: 0 20px 40px -24px rgba(10, 30, 50, 0.5); }
+.lp-shot--phone {
+  padding: 9px; border-radius: 40px; background: #0f1d22;
+  box-shadow: 0 50px 90px -30px rgba(10, 30, 50, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.lp-shot--phone img { border-radius: 32px; }
+
+/* エラー */
+.lp-error { margin: 12px 0 0; color: #ffe1e1; font-weight: 700; font-size: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-line__in { transform: none; transition: none; }
+  .lp-cta { transition: none; }
+}
+
+/* 上部の帯 */
+.lp-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding: 14px var(--lp-gutter);
+  transition: background 0.5s ease;
+}
+.lp-nav.is-scrolled { background: linear-gradient(180deg, rgba(10, 25, 45, 0.28), rgba(10, 25, 45, 0)); }
+.lp-nav__brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; letter-spacing: 0.02em; }
+.lp-nav__clock { font-family: var(--lp-mono); font-size: 12px; letter-spacing: 0.14em; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25); white-space: nowrap; }
+.lp-nav__login {
+  justify-self: end;
+  min-height: 36px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7); background: transparent; color: #fff;
+  font: 700 13px/1 var(--lp-sans); cursor: pointer;
+}
+.lp-nav__login:focus-visible { outline: 3px solid #ffe7a8; outline-offset: 2px; }
+@media (max-width: 480px) { .lp-nav__brand span { display: none; } }
+
+/* PC の節気の目盛り */
+.lp-dial {
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 10;
+  display: none; flex-direction: column; gap: 3px; margin: 0; padding: 0; list-style: none;
+  font-family: var(--lp-mincho); font-size: 11px; letter-spacing: 0.1em; text-align: right;
+}
+.lp-dial li { opacity: 0.35; transition: opacity 0.4s, font-size 0.4s; }
+.lp-dial li.is-on { opacity: 1; font-size: 15px; font-weight: 800; }
+@media (min-width: 1024px) { .lp-dial { display: flex; } }

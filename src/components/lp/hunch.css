@@ -1,0 +1,55 @@
+/* src/components/lp/hunch.css — 1. 勘の章 */
+.lp-hunch { height: 420vh; padding: 0; }
+.lp-hunch__stage {
+  position: sticky; top: 0; height: 100svh;
+  display: grid; place-items: center; padding: 0 var(--lp-gutter);
+}
+.lp-hunch__item { display: grid; width: min(100%, 880px); animation: lp-hunch-in 0.9s var(--lp-ease) both; }
+.lp-hunch__item > * { grid-area: 1 / 1; }
+@keyframes lp-hunch-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+.lp-hunch__quote {
+  margin: 0; align-self: center;
+  font-family: var(--lp-mincho); font-weight: 800; font-feature-settings: 'palt';
+  font-size: clamp(30px, 8.4vw, 76px); line-height: 1.3;
+  text-shadow: 0 2px 28px rgba(20, 50, 80, 0.3);
+}
+.lp-hunch__phrase { display: inline-block; white-space: nowrap; }
+.lp-hunch__phrase > span {
+  display: inline-block;
+  transition: opacity 0.7s ease, filter 0.7s ease, transform 0.7s var(--lp-ease);
+  transition-delay: calc(var(--i) * 28ms);
+}
+.lp-hunch__item.is-fact .lp-hunch__phrase > span { opacity: 0; filter: blur(10px); transform: translateY(-0.35em); }
+
+.lp-fact { align-self: center; opacity: 0; transform: translateY(18px); transition: opacity 0.9s ease 0.35s, transform 0.9s var(--lp-ease) 0.35s; }
+.lp-hunch__item.is-fact .lp-fact { opacity: 1; transform: none; }
+.lp-fact__label { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.92; }
+.lp-fact__value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 12px; margin: 0; line-height: 1; }
+.lp-fact__before { font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(20px, 3vw, 30px); }
+.lp-fact__value .lp-num { font-size: clamp(76px, 22vw, 180px); letter-spacing: -0.04em; }
+.lp-fact__unit { font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(22px, 3.4vw, 36px); }
+.lp-fact__note { margin: 14px 0 0; font-size: 14px; opacity: 0.88; }
+
+.lp-hunch__end { text-align: left; width: min(100%, 880px); }
+.lp-hunch__end .lp-lines { font-size: clamp(32px, 8.6vw, 104px); } /* 375px で「数字で裏づける。」が1行に収まる大きさ */
+.lp-hunch__summary { display: grid; gap: 0; max-width: 26em; margin: 30px 0 0; padding: 0; list-style: none; font-size: clamp(14px, 1.8vw, 17px); font-weight: 500; }
+.lp-hunch__summary li {
+  padding: 9px 0; border-top: 1px solid rgba(255, 255, 255, 0.3);
+  opacity: 0; transform: translateY(8px);
+  animation: lp-summary-in 0.7s var(--lp-ease) calc(0.9s + var(--i) * 0.22s) forwards;
+}
+.lp-hunch__summary li:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
+@keyframes lp-summary-in { to { opacity: 1; transform: none; } }
+.lp-hunch__source { margin: 18px 0 0; font-family: var(--lp-mono); font-size: 12px; letter-spacing: 0.14em; opacity: 0.85; }
+
+.lp-hunch__meter { position: absolute; left: var(--lp-gutter); bottom: 9vh; display: flex; gap: 6px; }
+.lp-hunch__meter i { display: block; width: 28px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.35); transition: background 0.4s; }
+.lp-hunch__meter i.is-on { background: #fff; }
+
+/* 動きを減らす設定（縦に並べた静止表示） */
+.lp-hunch--still { height: auto; padding: 18vh var(--lp-gutter); }
+.lp-hunch__list { display: grid; gap: 64px; margin: 0 0 80px; padding: 0; list-style: none; }
+.lp-hunch--still .lp-hunch__quote { font-size: clamp(26px, 6vw, 48px); margin-bottom: 18px; }
+.lp-hunch--still .lp-fact { opacity: 1; transform: none; }
+.lp-hunch--still .lp-fact__value .lp-num { font-size: clamp(56px, 14vw, 120px); }

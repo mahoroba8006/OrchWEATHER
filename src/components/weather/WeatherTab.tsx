@@ -1,7 +1,7 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Loader2, ChevronDown } from 'lucide-react';
-import { useAppStore, useHiddenHourlyRows, DEFAULT_AI_SECTIONS } from '../../store';
+import { useAppStore, useHiddenHourlyRows, useWeatherCodeMode, DEFAULT_AI_SECTIONS } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
@@ -34,7 +34,7 @@ import {
 
 export function WeatherTab() {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user, updateWeatherCodeMode, aiAllowed } = useAppStore();
-  const weatherCodeMode = userSettings?.weatherCodeMode ?? 'severity';
+  const weatherCodeMode = useWeatherCodeMode();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');

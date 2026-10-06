@@ -1,0 +1,54 @@
+/* src/components/lp/scene.css — 背景「一日×一年の空」 */
+@property --sky-top { syntax: '<color>'; inherits: true; initial-value: #3d4f86; }
+@property --sky-bottom { syntax: '<color>'; inherits: true; initial-value: #f2c9a8; }
+@property --ridge { syntax: '<color>'; inherits: true; initial-value: #cdc59b; }
+@property --far { syntax: '<color>'; inherits: true; initial-value: #a9c48f; }
+@property --mid { syntax: '<color>'; inherits: true; initial-value: #8db474; }
+@property --near { syntax: '<color>'; inherits: true; initial-value: #6f9c5c; }
+@property --cloud { syntax: '<color>'; inherits: true; initial-value: #f7dccb; }
+
+.lp-scene { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+/* 動きを減らす設定: 章ごとの色へ静かに切り替える */
+.lp-scene--still { transition: --sky-top 0.9s ease, --sky-bottom 0.9s ease, --ridge 0.9s ease, --far 0.9s ease, --mid 0.9s ease, --near 0.9s ease, --cloud 0.9s ease; }
+
+.lp-scene__sky { position: absolute; inset: 0; background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom)); }
+.lp-scene__stars {
+  position: absolute; inset: 0 0 40% 0; opacity: var(--stars, 0);
+  background-image:
+    radial-gradient(1.2px 1.2px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 28% 8%, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 44% 22%, #fff, transparent), radial-gradient(1px 1px at 63% 12%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 78% 30%, #fff, transparent), radial-gradient(1px 1px at 90% 9%, #fff, transparent),
+    radial-gradient(1px 1px at 8% 44%, #fff, transparent), radial-gradient(1.3px 1.3px at 55% 40%, #fff, transparent),
+    radial-gradient(1px 1px at 35% 54%, #fff, transparent), radial-gradient(1px 1px at 84% 50%, #fff, transparent);
+  background-size: 360px 260px; background-repeat: repeat;
+  animation: lp-twinkle 4.5s ease-in-out infinite alternate;
+}
+@keyframes lp-twinkle { to { filter: brightness(0.55); } }
+
+.lp-scene__body { position: absolute; left: 0; top: 0; width: 260px; height: 260px; border-radius: 50%; will-change: transform; }
+.lp-scene__body[data-kind='sun'] {
+  background: radial-gradient(circle, rgba(255, 250, 225, 1) 0 18%, rgba(255, var(--warm, 220), 160, 0.45) 38%, transparent 70%);
+}
+.lp-scene__body[data-kind='moon'] {
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, #f4f2e6 0 14%, rgba(220, 230, 255, 0.22) 30%, transparent 62%);
+}
+
+.lp-scene__cloud {
+  position: absolute; border-radius: 50%; filter: blur(6px);
+  background: radial-gradient(closest-side, var(--cloud), transparent);
+  translate: var(--cloud-shift, 0) 0;
+  animation: lp-drift 70s ease-in-out infinite alternate;
+}
+.lp-scene__cloud--1 { width: 460px; height: 140px; top: 12%; left: -6%; opacity: calc(0.85 * var(--cloud-night, 1)); }
+.lp-scene__cloud--2 { width: 320px; height: 100px; top: 24%; left: 46%; opacity: calc(0.7 * var(--cloud-night, 1)); animation-duration: 90s; }
+.lp-scene__cloud--3 { width: 620px; height: 260px; top: 30%; left: 30%; opacity: calc(var(--cumulus, 0.35) * var(--cloud-night, 1)); animation-duration: 110s; transition: opacity 1.2s ease; }
+@keyframes lp-drift { from { transform: translateX(-40px); } to { transform: translateX(80px); } }
+
+.lp-scene__land { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 44vh; }
+@media (max-width: 600px) { .lp-scene__land { height: 34vh; } }
+.lp-scene__fx { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-scene__stars, .lp-scene__cloud { animation: none; }
+}

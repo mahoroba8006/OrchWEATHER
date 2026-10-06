@@ -1,6 +1,7 @@
 // LP 用の画面写真を撮る（開発用）。
 // 使い方: 別ターミナルで `npm run dev -- --port 5180 --strictPort` を起動し、
 //         `LAT=35.681 LON=139.767 node scripts/lp-shots.mjs` を実行する。出力は screenshots/lp/（git 管理外）。
+//         空もようの2枚だけ撮るときは ONLY=moyo を付ける。
 // Open-Meteo の利用上限を消費するので、実行回数は絞ること。
 import { chromium } from 'playwright';
 import { mkdir } from 'node:fs/promises';
@@ -26,10 +27,15 @@ try {
   await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(6000); // 季節のあしどりの集計待ち
 
-  // 1) 空もよう: 空（節気・候が写る）＋リスク/概況の切り替え＋日別予報
+  // 1) 空もよう: 「リスクでみる」「概況でみる」の2枚（空に節気・候が写る）
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: join(outDir, 'moyo.png'), clip: { x: 0, y: 0, width: 390, height: 844 } });
-  console.log('saved moyo');
+  for (const [label, name] of [['リスクでみる', 'moyo-risk'], ['概況でみる', 'moyo-gaikyo']]) {
+    await page.getByRole('tab', { name: label }).first().click();
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: join(outDir, `${name}.png`), clip: { x: 0, y: 0, width: 390, height: 844 } });
+    console.log('saved', name);
+  }
+  if (process.env.ONLY === 'moyo') process.exit(0);
 
   // 2) 季節のあしどりの帯（8秒ごとに項目が替わるので、積算温度が出るまで待つ）
   const strip = page.locator('.season-strip').first();

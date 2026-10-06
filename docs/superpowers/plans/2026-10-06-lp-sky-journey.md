@@ -54,7 +54,7 @@
 - 動きを減らす設定の判定は `useReduced()`（タスク5）で行う。CSS でも `@media (prefers-reduced-motion: reduce)` で同じ扱いにする。
 - 文言の制約: 「平年」は使わず「5年平均」と言う。「AI」という語は出さない。予報を自ら行うと受け取れる表現は使わない。有料列は「※予定」を残す。
 - アイコンの飾り（lucide-react）は LP では使わない。Google の G マークだけは機能として使う。
-- テストは `npm test -- <パス>` で実行する（`vitest run src` に引数が渡る）。
+- 1ファイルだけのテストは `npx vitest run <パス>` で実行する（`npm test -- <パス>` は script の `src` が優先されて全件を実行してしまう）。全件は `npm test`。
 - **コマンドはすべて Bash ツール（Git Bash）で実行する前提**で書いてある（`A=1 node …` の環境変数指定、`python - <<'EOF'` のヒアドキュメント、`rm`）。PowerShell では動かない。PowerShell で手動実行するときは、環境変数を `$env:ONLY='moyo'; $env:LAT='35.681'; $env:LON='139.767'; node scripts/lp-shots.mjs` のように置き換え、Python は一時ファイルに保存して `python <ファイル>` で実行する。
 
 ---
@@ -154,7 +154,7 @@ describe('progressFromAnchors', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/lib/lpScene.test.ts`
+Run: `npx vitest run src/lib/lpScene.test.ts`
 Expected: FAIL（`Failed to resolve import "./lpScene"`）
 
 - [ ] **Step 3: 実装する**
@@ -308,7 +308,7 @@ export function progressFromAnchors(anchors: readonly SceneAnchor[], y: number, 
 
 - [ ] **Step 4: 通ることを確認する**
 
-Run: `npm test -- src/lib/lpScene.test.ts`
+Run: `npx vitest run src/lib/lpScene.test.ts`
 Expected: PASS（全件）
 
 - [ ] **Step 5: コミット**
@@ -349,7 +349,8 @@ describe('createParticles', () => {
   it('ゆっくり（落下速度 0.18〜0.5）で画面内に置く', () => {
     const ps = createParticles(5, 400, 800, () => 0.5);
     expect(ps).toHaveLength(5);
-    expect(ps[0]).toMatchObject({ x: 200, y: 400, v: 0.34 });
+    expect(ps[0]).toMatchObject({ x: 200, y: 400 });
+    expect(ps[0].v).toBeCloseTo(0.34, 10);
   });
 });
 
@@ -380,7 +381,7 @@ describe('particleCount', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/lp/particles.test.ts`
+Run: `npx vitest run src/components/lp/particles.test.ts`
 Expected: FAIL（`Failed to resolve import "./particles"`）
 
 - [ ] **Step 3: 実装する**
@@ -473,7 +474,7 @@ export const particleCount = (width: number) => (width < 600 ? 16 : 26);
 
 - [ ] **Step 4: 通ることを確認する**
 
-Run: `npm test -- src/components/lp/particles.test.ts`
+Run: `npx vitest run src/components/lp/particles.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: コミット**
@@ -525,7 +526,7 @@ describe('lpFacts', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/lp/lpFacts.test.ts`
+Run: `npx vitest run src/components/lp/lpFacts.test.ts`
 Expected: FAIL（`Failed to resolve import "./lpFacts"`）
 
 - [ ] **Step 3: 実装する**
@@ -589,7 +590,7 @@ export function logLpMoyoToggle(mode: string): void {
 
 - [ ] **Step 4: 通ることを確認する**
 
-Run: `npm test -- src/components/lp/lpFacts.test.ts`
+Run: `npx vitest run src/components/lp/lpFacts.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: コミット**
@@ -764,7 +765,7 @@ describe('sceneStore', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/lp/primitives.test.tsx`
+Run: `npx vitest run src/components/lp/primitives.test.tsx`
 Expected: FAIL（`Failed to resolve import "./primitives"`）
 
 - [ ] **Step 3: フックと配信の仕組みを書く**
@@ -1100,7 +1101,7 @@ h2.lp-lines { font-size: clamp(30px, 7.6vw, 64px); }
 
 - [ ] **Step 5b: 通ることを確認する**
 
-Run: `npm test -- src/components/lp/primitives.test.tsx`
+Run: `npx vitest run src/components/lp/primitives.test.tsx`
 Expected: PASS
 
 - [ ] **Step 6: コミット**
@@ -1158,7 +1159,7 @@ describe('LpNav / SekkiDial', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/lp/SkyScene.test.tsx`
+Run: `npx vitest run src/components/lp/SkyScene.test.tsx`
 Expected: FAIL（`Failed to resolve import "./SkyScene"`）
 
 - [ ] **Step 3: 背景を書く**
@@ -1437,7 +1438,7 @@ export function SekkiDial() {
 
 - [ ] **Step 6: 通ることを確認する**
 
-Run: `npm test -- src/components/lp/SkyScene.test.tsx`
+Run: `npx vitest run src/components/lp/SkyScene.test.tsx`
 Expected: PASS
 
 - [ ] **Step 7: コミット**
@@ -1513,7 +1514,7 @@ describe('HunchChapter（動きを減らす設定＝縦に並べた静止表示�
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/lp/chapters.test.tsx`
+Run: `npx vitest run src/components/lp/chapters.test.tsx`
 Expected: FAIL（`Failed to resolve import "./LpHero"`）
 
 - [ ] **Step 3: 最初の画面を書く**
@@ -1772,7 +1773,7 @@ export function HunchChapter() {
 
 - [ ] **Step 5: 通ることを確認する**
 
-Run: `npm test -- src/components/lp/chapters.test.tsx`
+Run: `npx vitest run src/components/lp/chapters.test.tsx`
 Expected: PASS
 
 - [ ] **Step 6: コミット**
@@ -1827,7 +1828,7 @@ describe('KurabeChapter', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/lp/chapters.test.tsx`
+Run: `npx vitest run src/components/lp/chapters.test.tsx`
 Expected: FAIL（`Failed to resolve import "./SekkiChapter"`）
 
 - [ ] **Step 3: 節気のふりかえりを書く**
@@ -2093,7 +2094,7 @@ export function KurabeChapter() {
 
 - [ ] **Step 5: 通ることを確認する**
 
-Run: `npm test -- src/components/lp/chapters.test.tsx`
+Run: `npx vitest run src/components/lp/chapters.test.tsx`
 Expected: PASS
 
 - [ ] **Step 6: コミット**
@@ -2141,7 +2142,7 @@ describe('MoyoChapter', () => {
     fireEvent.click(screen.getByRole('button', { name: '概況でみる' }));
     expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('false');
-    expect(screen.getByText('その時間帯の、いちばん長い天気')).toBeTruthy();
+    expect(screen.getByText('その時間帯の、いちばん多い天気')).toBeTruthy();
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-gaikyo.webp');
     expect(logLpMoyoToggle).toHaveBeenCalledWith('gaikyo');
   });
@@ -2175,7 +2176,7 @@ describe('FinalChapter / LpFooter', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/lp/chapters.test.tsx`
+Run: `npx vitest run src/components/lp/chapters.test.tsx`
 Expected: FAIL（`Failed to resolve import "./MoyoChapter"`）
 
 - [ ] **Step 3: 空もようを書く**
@@ -2193,7 +2194,7 @@ import './moyo.css';
 
 const MODES = [
   { key: 'risk', label: 'リスクでみる', caption: 'その時間帯の、いちばん悪い天気', src: '/lp/moyo-risk.webp' },
-  { key: 'gaikyo', label: '概況でみる', caption: 'その時間帯の、いちばん長い天気', src: '/lp/moyo-gaikyo.webp' },
+  { key: 'gaikyo', label: '概況でみる', caption: 'その時間帯の、いちばん多い天気', src: '/lp/moyo-gaikyo.webp' },
 ] as const;
 const RAIN_WORDS = ['ぽつぽつ', 'カッパ？', 'カッパ！'];
 const POINTS = ['1日を、午前・午後・夜間の3つに', '露点・飽差・0℃層高度も、時間別に', '毎日、今日の節気と七十二候'];
@@ -2526,7 +2527,7 @@ export function LpFooter() {
 
 - [ ] **Step 7: 通ることを確認する**
 
-Run: `npm test -- src/components/lp/chapters.test.tsx`
+Run: `npx vitest run src/components/lp/chapters.test.tsx`
 Expected: PASS
 
 - [ ] **Step 8: コミット**
@@ -2598,7 +2599,7 @@ describe('LandingPage', () => {
 
 - [ ] **Step 2: 失敗を確認する**
 
-Run: `npm test -- src/components/LandingPage.test.tsx`
+Run: `npx vitest run src/components/LandingPage.test.tsx`
 Expected: FAIL（見出しが『』のまま、章の数が違う、など）
 
 - [ ] **Step 3: LandingPage を組み立てだけにする**
@@ -2833,7 +2834,7 @@ for (const vp of [{ width: 375, height: 667 }, { width: 375, height: 812 }, { wi
   await page.waitForTimeout(400);
   const after = await read();
   if (before.caption !== 'その時間帯の、いちばん悪い天気' || before.src !== '/lp/moyo-risk.webp') fails.push(`空もよう: 最初がリスクでない ${JSON.stringify(before)}`);
-  if (after.caption !== 'その時間帯の、いちばん長い天気' || after.src !== '/lp/moyo-gaikyo.webp' || after.opacity !== '1' || after.h < 100) fails.push(`空もよう: 押しても概況が読めない ${JSON.stringify(after)}`);
+  if (after.caption !== 'その時間帯の、いちばん多い天気' || after.src !== '/lp/moyo-gaikyo.webp' || after.opacity !== '1' || after.h < 100) fails.push(`空もよう: 押しても概況が読めない ${JSON.stringify(after)}`);
   console.log('moyo reduced', before, after);
   await ctx.close();
 }

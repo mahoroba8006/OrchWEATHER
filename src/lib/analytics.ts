@@ -77,3 +77,13 @@ export function logSeasonCardBrowse(back: number): void {
 export function logLpDetailOpen(section: string): void {
   track('lp_detail_open', { section });
 }
+
+/** LP の各章が画面に入った（どこまで読まれたか）。章ごとに1回だけ送る */
+export function logLpChapterView(chapter: string): void {
+  track('lp_chapter_view', { chapter });
+}
+
+/** LP の空もようで「リスクでみる／概況でみる」が押された（触れる仕掛けが効いているか） */
+export function logLpMoyoToggle(mode: string): void {
+  track('lp_moyo_toggle', { mode });
+}

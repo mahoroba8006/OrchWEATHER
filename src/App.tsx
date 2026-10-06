@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { m } from 'motion/react';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
 import { SettingsTab } from './components/settings/SettingsTab';
-import { LandingPage } from './components/LandingPage';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
 import { WeatherTab } from './components/weather/WeatherTab';
@@ -21,6 +20,17 @@ import { logGuestStart } from './lib/analytics';
 import { AnalysisTab } from './components/analysis/AnalysisTab';
 import { useAnalysisState } from './components/analysis/useAnalysisState';
 import './App.css';
+
+const loadLanding = () => import('./components/LandingPage');
+// ログイン状態は IndexedDB から非同期に戻るため最初は分からない。ログインを確かめる間に LP を先に読み込み始める
+// （ゲストで使っている人は LP を見ないので読まない。ログイン済みの人は一度だけ余分に読む）
+try {
+  // 失敗しても表示するときに読み直すので、ここでは握りつぶす（未処理の reject を出さない）
+  if (localStorage.getItem('guestMode') !== '1') loadLanding().catch(() => {});
+} catch {
+  // localStorage が使えない環境では先読みしない（表示するときに読み込む）
+}
+const LandingPage = lazy(() => loadLanding().then((m) => ({ default: m.LandingPage })));
 
 
 function AppContent() {
@@ -119,7 +129,11 @@ function AppContent() {
   const sinking = sheet !== null && isMobile;
 
   if (!user && !guestMode) {
-    return <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />;
+    return (
+      <Suspense fallback={<div style={{ minHeight: '100vh', background: '#3d4f86' }} />}>
+        <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />
+      </Suspense>
+    );
   }
 
   return (
