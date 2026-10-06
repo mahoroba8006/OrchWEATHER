@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { celestialAt, clockLabel, mixColor, progressFromAnchors, sceneAt, sekkiIndexAt, starsAt } from './lpScene';
+import { celestialAt, mixColor, progressFromAnchors, sceneAt, sekkiIndexAt, starsAt } from './lpScene';
 
 describe('mixColor', () => {
   it('2色を割合で混ぜて rgb() で返す', () => {
@@ -41,14 +41,6 @@ describe('sekkiIndexAt', () => {
     expect(sekkiIndexAt(0.6)).toBeGreaterThanOrEqual(12);
     expect(sekkiIndexAt(0.6)).toBeLessThan(18);
     expect(sekkiIndexAt(0.9)).toBeGreaterThanOrEqual(18);
-  });
-});
-
-describe('clockLabel', () => {
-  it('時（小数）を HH:MM にする', () => {
-    expect(clockLabel(5.5)).toBe('05:30');
-    expect(clockLabel(12.5)).toBe('12:30');
-    expect(clockLabel(22)).toBe('22:00');
   });
 });
 

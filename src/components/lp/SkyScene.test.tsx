@@ -22,10 +22,10 @@ describe('SkyScene', () => {
 });
 
 describe('LpNav / SekkiDial', () => {
-  it('背景の進み具合に合わせて時刻と節気を出す', () => {
+  it('帯には時刻・節気を出さず、目盛りだけが背景の進み具合に合わせて節気を示す', () => {
     const { container } = render(<><LpNav loading={false} onLogin={() => {}} /><SekkiDial /></>);
     act(() => publishScene(0.62));
-    expect(container.querySelector('.lp-nav__clock')!.textContent).toBe('17:30　白露');
+    expect(container.querySelector('.lp-nav')!.textContent).toBe('Orch.Weatherログイン');
     expect(container.querySelector('.lp-dial .is-on')!.textContent).toBe('白露');
   });
 });

@@ -90,13 +90,6 @@ export function sekkiIndexAt(p: number): number {
   return Math.min(23, Math.floor(clamp01(p) * 24));
 }
 
-export function clockLabel(hour: number): string {
-  const total = Math.round(hour * 60);
-  const hh = Math.floor(total / 60) % 24;
-  const mm = total % 60;
-  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-}
-
 export interface Celestial {
   kind: 'sun' | 'moon';
   /** 画面幅に対する位置（vw） */
