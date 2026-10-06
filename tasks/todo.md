@@ -11,6 +11,8 @@
 - [x] 文言をアプリに合わせる: 概況＝「いちばん多い天気」
 - [x] 実画面検証: 375/1280/reduced 撮影・目視で修正（共通 css の読み込み順・山並み・札の注記・図の文字・見出しの折り返し）。自動確認 ALL READABLE（節気カード 375×667/812・1280×800 で全体表示、静止表示で両モード、通過後・押下後にタイマー停止）。CPU 4倍絞りで p95 33ms。Open-Meteo 要求 0件
 - [x] 最終レビュー（Opus）: 致命1件＝後読み正規表現で iOS<16.4 で LP が読めない→修正。ほか読み上げ・LP 先読み・エラー表示など8件修正。テスト395件・tsc・lint・build OK
+- [x] Codex レビュー（develop d1899ce）: ①アドレスバーの出入りで sticky の進み具合が跳ぶ→枠の実測高で測る ②ゲストの天気アイコン設定が再読み込みで戻る（TDZ）→修正＋起動時テスト ④canvas を 30fps・DPR1.5・寸法変化時のみ再設定。テスト399件・ALL READABLE・p95 33ms
+- [ ] 別件（要相談）: iOS ホーム起動時のリダイレクト認証（既存リスク・Codex ③）。カスタムドメインと authDomain（firebaseapp.com）が別オリジンのため Safari 16.1+ で復帰できない恐れ → /__/auth/* の同一オリジン転送（Cloudflare Pages Functions）＋本番の VITE_FIREBASE_AUTH_DOMAIN 変更＋OAuth リダイレクトURI。本番設定・実機は未確認
 - [ ] ユーザー実機確認（develop プレビュー）→ 指示で main
 
 ---

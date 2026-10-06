@@ -67,3 +67,7 @@
 ## 2026-10-06: build.target が es2020 でも、正規表現の後読み（`(?<=…)`）は変換されずに出力される
 - **状況:** LP の `split(/(?<=、)/)` がそのまま出力され、iOS Safari 16.4 未満では LP のチャンク全体が読み込めない状態だった（最終レビューで発見）。
 - **ルール:** 後読みを使わない（`match(/[^、]+、?/g)` などで書く）。build 後に `grep -c "?<=" dist/assets/*.js` で確認する。
+
+## 2026-10-06: ストアの初期化から呼ぶ関数が、後ろで宣言した const を読むと TDZ で必ず失敗する
+- **状況:** `create()` の初期値で `loadGuestWeatherCodeMode()` を呼び、その関数が create より後ろの `const GUEST_WEATHER_CODE_MODE_KEY` を読んでいた。関数宣言は巻き上がるが const は未初期化で ReferenceError → try/catch に握りつぶされ常に既定値。テストは setState で状態を上書きしていたので気づけなかった（Codex レビューで発見）。
+- **ルール:** モジュール初期化中に使う定数は使う場所より前に置く。「起動時に保存値を読む」処理は、保存値を入れてから `vi.resetModules()`＋動的 import で読み込むテストを書く。
