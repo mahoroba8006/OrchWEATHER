@@ -46,14 +46,23 @@ export function SkyScene() {
     const body = bodyRef.current;
     if (body) {
       body.dataset.kind = c.kind;
-      body.style.left = `${c.x}vw`;
-      body.style.top = `${c.y}vh`;
+      body.style.transform = `translate(calc(${c.x}vw - 50%), calc(${c.y}vh - 50%))`;
       // 地平線に近いほど赤みを帯びる
       body.style.setProperty('--warm', String(200 + Math.round(50 * c.height)));
     }
     weightsRef.current = s.weights;
     publishScene(p);
   });
+
+  // 設定の切り替え・画像や書体の読み込みによる位置のずれでも、スクロールを待たずに計算し直す
+  useEffect(() => {
+    const recompute = () => window.dispatchEvent(new Event('scroll'));
+    recompute();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(recompute);
+    ro.observe(document.body);
+    return () => ro.disconnect();
+  }, [reduced]);
 
   // 舞うもの（少なく、ゆっくり）。画面が隠れている間は止める
   useEffect(() => {
@@ -66,12 +75,14 @@ export function SkyScene() {
     let parts = createParticles(0, 0, 0);
     const size = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const prevW = w;
       w = window.innerWidth;
       h = window.innerHeight;
       cv.width = w * dpr;
       cv.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      parts = createParticles(particleCount(w), w, h);
+      // スマホのアドレスバーの出入り（高さだけの変化）では舞うものを作り直さない
+      if (w !== prevW) parts = createParticles(particleCount(w), w, h);
     };
     size();
     let raf = 0;

@@ -118,7 +118,7 @@ h2.lp-lines { font-size: clamp(30px, 7.6vw, 64px); }
   position: fixed; top: 0; left: 0; right: 0; z-index: 20;
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   padding: 14px var(--lp-gutter);
-  transition: background 0.5s ease, backdrop-filter 0.5s ease;
+  transition: background 0.5s ease;
 }
 .lp-nav.is-scrolled { background: linear-gradient(180deg, rgba(10, 25, 45, 0.28), rgba(10, 25, 45, 0)); }
 .lp-nav__brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; letter-spacing: 0.02em; }

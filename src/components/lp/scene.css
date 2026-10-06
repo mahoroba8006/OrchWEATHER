@@ -20,11 +20,12 @@
     radial-gradient(1.4px 1.4px at 78% 30%, #fff, transparent), radial-gradient(1px 1px at 90% 9%, #fff, transparent),
     radial-gradient(1px 1px at 8% 44%, #fff, transparent), radial-gradient(1.3px 1.3px at 55% 40%, #fff, transparent),
     radial-gradient(1px 1px at 35% 54%, #fff, transparent), radial-gradient(1px 1px at 84% 50%, #fff, transparent);
+  background-size: 360px 260px; background-repeat: repeat;
   animation: lp-twinkle 4.5s ease-in-out infinite alternate;
 }
 @keyframes lp-twinkle { to { filter: brightness(0.55); } }
 
-.lp-scene__body { position: absolute; width: 260px; height: 260px; border-radius: 50%; transform: translate(-50%, -50%); }
+.lp-scene__body { position: absolute; left: 0; top: 0; width: 260px; height: 260px; border-radius: 50%; will-change: transform; }
 .lp-scene__body[data-kind='sun'] {
   background: radial-gradient(circle, rgba(255, 250, 225, 1) 0 18%, rgba(255, var(--warm, 220), 160, 0.45) 38%, transparent 70%);
 }
