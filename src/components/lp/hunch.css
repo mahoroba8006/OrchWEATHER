@@ -25,10 +25,11 @@
 .lp-fact { align-self: center; opacity: 0; transform: translateY(18px); transition: opacity 0.5s ease 0.1s, transform 0.5s var(--lp-ease) 0.1s; }
 .lp-hunch__item.is-fact .lp-fact { opacity: 1; transform: none; }
 .lp-fact__label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 14px; }
-/* 項目名は太陽と重なっても読めるよう、濃い空色の札に白抜きで置く */
+/* 項目名は太陽と重なっても読めるよう、淡いすりガラスの札に濃い空色の文字で置く */
 .lp-fact__term {
   padding: 4px 14px 5px; border-radius: 6px;
-  background: rgba(14, 42, 74, 0.78); color: #fff;
+  background: rgba(255, 255, 255, 0.5); color: #1f4468;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(20px, 3vw, 28px); letter-spacing: 0.06em; line-height: 1.3;
 }
 .lp-fact__detail { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-shadow: 0 1px 10px rgba(20, 50, 80, 0.55); }
