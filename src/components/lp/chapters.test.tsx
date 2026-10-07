@@ -86,7 +86,10 @@ describe('MoyoChapter', () => {
     const { container } = render(<MoyoChapter />);
     expect(screen.getByRole('heading', { name: '今日の作業、やるかやめるかすぐ決まる。' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('true');
-    expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('その時間帯の、いちばん悪い天気');
+    expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('天気の見かたを自分で選ぶ。');
+    expect(container.querySelector('.lp-moyo__points')!.textContent).toContain('タップで切り替え');
+    expect(container.querySelector('.lp-moyo__points')!.textContent).toContain('午前（4時〜12時）・午後（12時〜20時）・夜間（20時〜翌4時）');
+    expect(container.querySelector('.lp-moyo__points')!.textContent).toContain('1時間ごと、2週間先までの予報を表示');
     // 押されるまでは読み上げない
     expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('');
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
@@ -104,8 +107,7 @@ describe('MoyoChapter', () => {
     fireEvent.click(screen.getByRole('button', { name: '概況でみる' }));
     expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('false');
-    expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('その時間帯の、いちばん多い天気');
-    expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('概況でみる：その時間帯の、いちばん多い天気');
+        expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('概況でみる');
     expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-gaikyo.webp');
     expect(logLpMoyoToggle).toHaveBeenCalledWith('gaikyo');
   });

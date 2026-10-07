@@ -9,11 +9,16 @@ import { LineReveal, Shot } from './primitives';
 import './moyo.css';
 
 const MODES = [
-  { key: 'risk', label: 'リスクでみる', caption: 'その時間帯の、いちばん悪い天気', src: '/lp/moyo-risk.webp' },
-  { key: 'gaikyo', label: '概況でみる', caption: 'その時間帯の、いちばん多い天気', src: '/lp/moyo-gaikyo.webp' },
+  { key: 'risk', label: 'リスクでみる', src: '/lp/moyo-risk.webp' },
+  { key: 'gaikyo', label: '概況でみる', src: '/lp/moyo-gaikyo.webp' },
 ] as const;
 const RAIN_WORDS = ['ぽつぽつ', 'カッパ？', 'カッパ！'];
-const POINTS = ['1日を、午前・午後・夜間の3つに', '露点・飽差・0℃層高度も、時間別に', '毎日、今日の節気と七十二候'];
+// 折り返しは意味のまとまり（lp-phrase）ごと
+const POINTS: { text: string[]; sub?: string[] }[] = [
+  { text: ['その時間帯の悪い天気（リスク）と', '多い天気（概況）'], sub: ['タップで切り替え'] },
+  { text: ['1日を、作業時間にあわせた3つに'], sub: ['午前（4時〜12時）・', '午後（12時〜20時）・', '夜間（20時〜翌4時）'] },
+  { text: ['1時間ごと、', '2週間先までの予報を表示'] },
+];
 
 export function MoyoChapter() {
   const reduced = useReduced();
@@ -34,7 +39,7 @@ export function MoyoChapter() {
   const choose = (i: number) => {
     setTouched(true);
     setMode(i);
-    setAnnounce(`${MODES[i].label}：${MODES[i].caption}`);
+    setAnnounce(MODES[i].label);
     logLpMoyoToggle(MODES[i].key);
   };
 
@@ -56,13 +61,17 @@ export function MoyoChapter() {
             </button>
           ))}
         </div>
-        <p className="lp-moyo__hint">タップで切り替え</p>
-        {/* 見える説明は読み上げない（自動切替のたびに読まれないように）。押したときだけ下の読み上げ用の行で知らせる。
+        <p className="lp-moyo__caption">天気の見かたを自分で選ぶ。</p>
+        {/* 切り替えの読み上げは、押したときだけ下の行で知らせる（自動切替のたびに読まれないように）。
             aria-live の領域は最初から置いておかないと、最初の一回が読まれないことがある */}
-        <p className="lp-moyo__caption" aria-hidden="true">{MODES[mode].caption}</p>
         <p className="lp-sr" aria-live="polite">{announce}</p>
         <ul className="lp-moyo__points">
-          {POINTS.map((t) => <li key={t}>{t}</li>)}
+          {POINTS.map((t) => (
+            <li key={t.text[0]}>
+              {t.text.map((x) => <span key={x} className="lp-phrase">{x}</span>)}
+              {t.sub && <span className="lp-moyo__sub">{t.sub.map((x) => <span key={x} className="lp-phrase">{x}</span>)}</span>}
+            </li>
+          ))}
         </ul>
       </div>
       <div ref={deviceRef} className={seen || reduced ? 'lp-moyo__device is-in' : 'lp-moyo__device'}>

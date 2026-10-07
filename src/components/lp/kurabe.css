@@ -32,8 +32,8 @@
 .lp-kurabe__points li { opacity: 0.3; transform: translateX(-8px); transition: opacity 0.5s ease, transform 0.6s var(--lp-ease); }
 .lp-kurabe__points li.is-on { opacity: 1; transform: none; }
 
-.lp-kurabe__shotlead { margin: 0 0 24px; padding: 0 var(--lp-gutter); text-align: center; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(18px, 2.6vw, 24px); text-shadow: 0 2px 18px rgba(20, 50, 80, 0.3); }
-.lp-kurabe__shots { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; padding: 0 var(--lp-gutter) 16vh; }
+.lp-kurabe__shotlead { margin: 0; padding: 72px var(--lp-gutter) 16vh; text-align: center; font-family: var(--lp-mincho); font-weight: 800; font-size: clamp(14px, 1.8vw, 17px); color: #1f4468; text-shadow: 0 0 14px rgba(255, 255, 255, 0.7); }
+.lp-kurabe__shots { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; padding: 0 var(--lp-gutter); }
 .lp-kurabe__shots .lp-shot { width: min(80vw, 330px); }
 .lp-kurabe__shots .lp-shot:nth-child(2) { transform: translateY(48px); }
 
