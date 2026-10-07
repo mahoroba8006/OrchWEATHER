@@ -11,7 +11,10 @@ import './hunch.css';
 function Fact({ h, start }: { h: Hunch; start: boolean }) {
   return (
     <div className="lp-fact">
-      <p className="lp-fact__label">{h.label}</p>
+      <p className="lp-fact__label">
+        <span className="lp-fact__term">{h.term}</span>
+        <span className="lp-fact__detail">{h.detail}</span>
+      </p>
       <p className="lp-fact__value">
         <span className="lp-fact__before">{h.before}</span>
         <CountUp to={h.value} decimals={h.decimals} start={start} duration={600} delay={100} />

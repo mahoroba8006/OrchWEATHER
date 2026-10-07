@@ -9,8 +9,10 @@ export interface Hunch {
   quote: string;
   /** 章の最後に振り返るときの見出し */
   topic: string;
-  /** 数字の見出し */
-  label: string;
+  /** 数字の項目名（大きく目立たせる） */
+  term: string;
+  /** 項目名に添える期間・条件 */
+  detail: string;
   /** 数字の前の言葉 */
   before: string;
   value: number;
@@ -20,9 +22,9 @@ export interface Hunch {
 }
 
 export const HUNCHES: readonly Hunch[] = [
-  { quote: '今年は、遅い気がする。', topic: '積算温度', label: '積算温度（1月1日から・10℃基準）', before: '去年より', value: 18, decimals: 0, unit: '日遅い', note: '5年平均より12日遅い' },
-  { quote: '雨、多すぎないか。', topic: '白露の雨', label: '白露（9/7〜9/22）の雨の量', before: '5年平均の', value: 5.9, decimals: 1, unit: '倍', note: '476mm（去年の10.6倍）' },
-  { quote: 'お日さま、足りてない。', topic: '白露の日照', label: '白露（9/7〜9/22）の日照', before: '5年平均より', value: 64, decimals: 0, unit: '時間少ない', note: '39時間（去年より68時間少ない）' },
+  { quote: '今年は、遅い気がする。', topic: '積算温度', term: '積算温度', detail: '1月1日から・10℃基準', before: '去年より', value: 18, decimals: 0, unit: '日遅い', note: '5年平均より12日遅い' },
+  { quote: '雨、多すぎないか。', topic: '白露の雨', term: '降水量', detail: '白露（9/7〜9/22）', before: '5年平均の', value: 5.9, decimals: 1, unit: '倍', note: '476mm（去年の10.6倍）' },
+  { quote: 'お日さま、足りてない。', topic: '白露の日照', term: '日照時間', detail: '白露（9/7〜9/22）', before: '5年平均より', value: 64, decimals: 0, unit: '時間少ない', note: '39時間（去年より68時間少ない）' },
 ];
 
 /** 章の最後に残す一行（例「積算温度：去年より18日遅い」） */
