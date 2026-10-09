@@ -3,8 +3,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { SeasonReview } from '../../lib/seasonReview';
 
-vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn(), logSeasonCardBrowse: vi.fn() }));
-import { logSeasonCardView, logSeasonCardBrowse } from '../../lib/analytics';
+vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn(), logSeasonCardBrowse: vi.fn(), logSeasonCardDismiss: vi.fn() }));
+import { logSeasonCardView, logSeasonCardBrowse, logSeasonCardDismiss } from '../../lib/analytics';
 import { SeasonPaceTicker } from './SeasonPaceTicker';
 import type { PaceItem } from '../../lib/seasonReview';
 import type { SeasonState } from '../../hooks/useSeasonReview';
@@ -123,12 +123,23 @@ describe('SeasonPaceTicker', () => {
 });
 
 describe('SeasonReviewCard', () => {
-  it('シートでは期間だけ、帯の下では節気名を添える', () => {
+  it('シートでは期間だけ、帯の下では節気名の札を添える', () => {
     const { unmount } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     expect(screen.queryByText(/白露/)).toBeNull();
     unmount();
     renderWithMotion(<SeasonReviewCard review={review} source="inline" />);
-    expect(screen.getByText('白露 9/7〜9/22（16日間）')).toBeTruthy();
+    expect(screen.getByText('白露のふりかえり').className).toBe('season-card__tag');
+    expect(screen.getByText('9/7〜9/22（16日間）')).toBeTruthy();
+  });
+
+  it('閉じる手段が渡されたときだけ閉じるボタンを出す', () => {
+    const { unmount } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(screen.queryByRole('button', { name: /閉じる/ })).toBeNull();
+    unmount();
+    const onClose = vi.fn();
+    renderWithMotion(<SeasonReviewCard review={review} source="inline" onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: '白露のふりかえりを閉じる' }));
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('期間・見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
@@ -330,5 +341,47 @@ describe('SeasonReviewCarousel', () => {
     expect(screen.getByText('日差しが多く、雨が少ない')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByRole('region')).toBeNull();
+  });
+});
+
+describe('SeasonInlineCard を閉じる', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(logSeasonCardDismiss).mockClear();
+  });
+
+  it('閉じると消えて端末に記録し、節気名から見られることを知らせる', async () => {
+    renderWithMotion(<SeasonInlineCard review={review} />);
+    fireEvent.click(screen.getByRole('button', { name: '白露のふりかえりを閉じる' }));
+    await waitFor(() => expect(screen.queryByRole('article')).toBeNull());
+    expect(localStorage.getItem('seasonCardDismissed')).toBe('2026-09-07');
+    expect(logSeasonCardDismiss).toHaveBeenCalledOnce();
+    expect(screen.getByRole('status').textContent).toBe('白露のふりかえりは、上の節気名をタップするといつでも見られます');
+  });
+
+  it('知らせは数秒で消える', async () => {
+    vi.useFakeTimers();
+    try {
+      renderWithMotion(<SeasonInlineCard review={review} />);
+      fireEvent.click(screen.getByRole('button', { name: '白露のふりかえりを閉じる' }));
+      expect(screen.getByRole('status').textContent).not.toBe('');
+      await act(async () => { vi.advanceTimersByTime(5000); });
+    } finally {
+      vi.useRealTimers();
+    }
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe(''));
+  });
+
+  it('閉じた節気のカードは次に開いても出さず、知らせも出さない', () => {
+    localStorage.setItem('seasonCardDismissed', '2026-09-07');
+    renderWithMotion(<SeasonInlineCard review={review} />);
+    expect(screen.queryByRole('article')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
+  });
+
+  it('別の節気のカードは、前の節気を閉じていても出す', () => {
+    localStorage.setItem('seasonCardDismissed', '2026-08-23');
+    renderWithMotion(<SeasonInlineCard review={review} />);
+    expect(screen.getByRole('article', { name: '白露のふりかえり' })).toBeTruthy();
   });
 });

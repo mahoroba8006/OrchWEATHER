@@ -59,6 +59,11 @@ export function logAppError(where: string, error: Error | null): void {
   track('app_error', { where, message: `${error?.name ?? 'Error'}: ${error?.message ?? ''}`.slice(0, 100) });
 }
 
+/** 帯の下のふりかえりカードを閉じた（閉じずに節気の変わり目を過ごす人との比で、読まれ方を見る）。 */
+export function logSeasonCardDismiss(): void {
+  track('season_card_dismiss');
+}
+
 /** ヒーローの節気名からふりかえりカードを開いた。 */
 export function logSeasonCardOpen(): void {
   track('season_card_open');

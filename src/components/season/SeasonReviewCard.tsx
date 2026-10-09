@@ -1,12 +1,13 @@
-// 節気ふりかえりカード。帯の下（節気の変わり目3日間）とシート内で共用する。
+// 節気ふりかえりカード。帯の下（節気の変わり目3日間・閉じたら出さない）とシート内で共用する。
 // 閲覧の計測は「見出し部の半分以上が画面に入った」時点（マウント＝閲覧ではない。カード全体を基準にすると
 // 背の低い画面のシートでは半分が入らず計測されないため、見出し部で判定する）。重複除去は analytics 側。
-import { useEffect, useRef } from 'react';
-import { m } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, m } from 'motion/react';
 import { SekkiArt } from '../sky/sekkiArt';
 import { WeatherIcon } from '../weather/WeatherIcon';
 import { springs } from '../../lib/motion';
-import { logSeasonCardView } from '../../lib/analytics';
+import { logSeasonCardDismiss, logSeasonCardView } from '../../lib/analytics';
+import { dismissSeasonCard, isSeasonCardDismissed } from '../../lib/seasonCardDismiss';
 import { HEAVY_RAIN_MM, monthDay, type CompareCell, type SeasonReview } from '../../lib/seasonReview';
 import './season.css';
 
@@ -24,7 +25,7 @@ function Cell({ c }: { c: CompareCell | null }) {
   return <td className={`season-card__cmp season-card__cmp--${c.tone}`}>{c.text}</td>;
 }
 
-export function SeasonReviewCard({ review, source }: { review: SeasonReview; source: 'inline' | 'sheet' }) {
+export function SeasonReviewCard({ review, source, onClose }: { review: SeasonReview; source: 'inline' | 'sheet'; onClose?: () => void }) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -61,13 +62,19 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
       <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         <div className="season-card__heading">
-          {/* シートでは見出しに節気名があるので、帯の下のカードだけ名前を添える */}
+          {/* シートでは見出しに節気名があるので、帯の下のカードだけ札で何のカードかを示す */}
+          {source === 'inline' && <p className="season-card__tag">{`${review.range.name}のふりかえり`}</p>}
           <p className="season-card__period">
-            {source === 'inline' && `${review.range.name} `}{review.periodLabel}
+            {review.periodLabel}
             {review.headlineBase && <span className="season-card__base">{`${review.headlineBase}に比べて`}</span>}
           </p>
           {!progress && <h3 className="season-card__title">{review.headline}</h3>}
         </div>
+        {onClose && (
+          <button type="button" className="season-card__close" aria-label={`${review.range.name}のふりかえりを閉じる`} onClick={onClose}>
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+          </button>
+        )}
       </header>
 
       <table className="season-card__table">
@@ -164,16 +171,54 @@ export function SeasonReviewCard({ review, source }: { review: SeasonReview; sou
   );
 }
 
-/** 帯の下に、高さを滑らかに広げて登場させる（reduced-motion は MotionProvider 側で即時化） */
+/** 帯の下に、高さを滑らかに広げて登場させる（reduced-motion は MotionProvider 側で即時化）。
+ *  閉じたらその節気のカードは端末では二度と出さず、節気名から見られることを数秒だけ知らせる */
 export function SeasonInlineCard({ review }: { review: SeasonReview }) {
+  const start = review.range.start;
+  const [closed, setClosed] = useState(() => isSeasonCardDismissed(start));
+  const [hint, setHint] = useState(false);
+  useEffect(() => {
+    if (!hint) return;
+    const t = setTimeout(() => setHint(false), HINT_MS);
+    return () => clearTimeout(t);
+  }, [hint]);
+  const close = () => {
+    dismissSeasonCard(start);
+    logSeasonCardDismiss();
+    setClosed(true);
+    setHint(true);
+  };
   return (
-    <m.div
-      initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
-      // 開き終えたら overflow を戻し、カードの影が切れないようにする
-      animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
-      transition={springs.enter}
-    >
-      <SeasonReviewCard review={review} source="inline" />
-    </m.div>
+    <>
+      <AnimatePresence initial={false}>
+        {!closed && (
+          <m.div
+            key={start}
+            initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+            // 開き終えたら overflow を戻し、カードの影が切れないようにする
+            animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
+            exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
+            transition={springs.enter}
+          >
+            <SeasonReviewCard review={review} source="inline" onClose={close} />
+          </m.div>
+        )}
+      </AnimatePresence>
+      {/* 閉じた後の知らせ。中身が無い間は CSS（:empty）で消し、並びの余白を取らない */}
+      {closed && (
+        <p className="season-card__hint" role="status">
+          <AnimatePresence>
+            {hint && (
+              <m.span key="hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                {`${review.range.name}のふりかえりは、上の節気名をタップするといつでも見られます`}
+              </m.span>
+            )}
+          </AnimatePresence>
+        </p>
+      )}
+    </>
   );
 }
+
+/** 閉じた後の知らせを出しておく時間 */
+const HINT_MS = 5000;
