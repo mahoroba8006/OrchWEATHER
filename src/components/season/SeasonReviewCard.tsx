@@ -64,19 +64,21 @@ export function SeasonReviewCard({ review, source, onClose, onDetail }: {
     <article className="season-card" aria-label={`${review.range.name}のふりかえり`}>
       <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
-        {/* 上の段（札・小見出し）は右上のボタンと並べ、下の段（一言・三候）はボタンの下まで幅を使う */}
-        <div className="season-card__top">
-          {/* シートでは見出しに節気名と期間があるので、帯の下のカードだけ札で何のカードかを示し、期間を添える */}
-          {source === 'inline' ? (
-            <p className="season-card__tag-row">
-              <span className="season-card__tag">{`${review.range.name}のふりかえり`}</span>
-              <span className="season-card__tag-date">{review.periodLabel}</span>
-            </p>
-          ) : (
-            <p className="season-card__period">{progress ? '七十二候' : `${review.headlineBase}に比べて`}</p>
-          )}
-        </div>
-        <div className="season-card__main">
+        {/* 上の段（札・小見出し）は右上のボタンと並べ、下の段（一言）はボタンの下まで幅を使う。三候は1候1行で幅が要らないので、ボタンの左に縦に並べる */}
+        {!progress && (
+          <div className="season-card__top">
+            {/* シートでは見出しに節気名と期間があるので、帯の下のカードだけ札で何のカードかを示し、期間を添える */}
+            {source === 'inline' ? (
+              <p className="season-card__tag-row">
+                <span className="season-card__tag">{`${review.range.name}のふりかえり`}</span>
+                <span className="season-card__tag-date">{review.periodLabel}</span>
+              </p>
+            ) : (
+              <p className="season-card__period">{`${review.headlineBase}に比べて`}</p>
+            )}
+          </div>
+        )}
+        <div className={progress ? 'season-card__main season-card__main--kou' : 'season-card__main'}>
           {progress ? (
             // 途中経過は見出しが無いので、節気の三候と入る日を並べ、今の候を濃く示す
             <ol className="season-card__kou" aria-label="七十二候">

@@ -63,6 +63,7 @@
 }
 .season-card__top { grid-column: 2; grid-row: 1; align-self: end; min-width: 0; }
 .season-card__main { grid-column: 2 / 4; grid-row: 2; align-self: start; min-width: 0; }
+.season-card__main--kou { grid-column: 2; grid-row: 1 / 3; align-self: center; }
 /* 節気の絵は空のヒーロー用（淡い白の筆致）なので、白いカード上では空色の台に載せる（白い筆致が見える濃さの青） */
 .season-card__art { grid-column: 1; grid-row: 1 / 3; padding: 4px; border-radius: 14px; background: linear-gradient(180deg, #4f86c0, #2d5f96); }
 /* 帯の下のカードの札（何のカードか）。白いカード上で、絵の台と同じ空色の系統の淡い背景＋濃い文字 */
