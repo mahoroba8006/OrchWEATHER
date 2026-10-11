@@ -216,7 +216,8 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
   const timeStr = lastUpdated
     ? (() => {
         const jst = new Date(lastUpdated.getTime() + 9 * 60 * 60 * 1000);
-        return `${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}`;
+        // "10/11 09:05"（開いたまま日をまたいでも、いつの更新か分かるよう日付を付ける）
+        return `${jst.getUTCMonth() + 1}/${jst.getUTCDate()} ${String(jst.getUTCHours()).padStart(2, '0')}:${String(jst.getUTCMinutes()).padStart(2, '0')}`;
       })()
     : null;
 

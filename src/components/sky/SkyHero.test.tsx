@@ -16,7 +16,7 @@ function setup(over: Partial<React.ComponentProps<typeof SkyHero>> = {}) {
     weatherCode: 0,
     tempMax: 23.2,
     tempMin: 17.8,
-    lastUpdated: '23:15',
+    lastUpdated: '10/11 23:15',
     loading: false,
     locationSlot: <span>テスト圃場</span>,
     onLocate: vi.fn(),
@@ -42,7 +42,7 @@ describe('SkyHero', () => {
     expect(screen.getByText('快晴')).toBeTruthy();
     expect(screen.getByText(/最高 23°/)).toBeTruthy();
     expect(screen.getByText(/最低 18°/)).toBeTruthy();
-    expect(screen.getByText('最終更新 23:15')).toBeTruthy();
+    expect(screen.getByText('最終更新 10/11 23:15')).toBeTruthy();
   });
   it('marks the icon when the temperature has 4+ characters', () => {
     setup({ temperature: -12 });
