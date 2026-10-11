@@ -190,7 +190,7 @@ async function fetchViaForecastEndpoint(
     'dew_point_2m', 'relative_humidity_2m',
     'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
     'cape', 'freezinglevel_height',
-    'pressure_msl', 'weather_code', 'shortwave_radiation', 'snowfall', 'uv_index',
+    'pressure_msl', 'weather_code', 'shortwave_radiation', 'sunshine_duration', 'snowfall', 'uv_index',
   ].join(',');
 
   const dailyParams = [
@@ -233,6 +233,7 @@ async function fetchViaForecastEndpoint(
     pressure:      raw.hourly.pressure_msl?.[i]              ?? 1013,
     weatherCode:   raw.hourly.weather_code?.[i]              ?? 0,
     radiation:     raw.hourly.shortwave_radiation?.[i]       ?? 0,
+    sunshine:      (raw.hourly.sunshine_duration?.[i]        ?? 0) / 60,
     snowfall:      raw.hourly.snowfall?.[i]                  ?? 0,
     uvIndex:       raw.hourly.uv_index?.[i]                  ?? 0,
   }));
@@ -262,6 +263,7 @@ async function fetchViaForecastEndpoint(
     freezingLevel: hasValues(raw.hourly.freezinglevel_height),
     uvIndex:       hasValues(raw.hourly.uv_index),
     cape:          hasValues(raw.hourly.cape),
+    sunshine:      hasValues(raw.hourly.sunshine_duration),
   };
 
   return { hourly, daily, pastDaily: [], fetchedAt: Date.now(), availability };
@@ -286,7 +288,7 @@ async function fetchViaArchiveApi(
     'cape',
     'dew_point_2m', 'relative_humidity_2m',
     'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
-    'pressure_msl', 'weather_code', 'shortwave_radiation', 'snowfall',
+    'pressure_msl', 'weather_code', 'shortwave_radiation', 'sunshine_duration', 'snowfall',
   ].join(',');
 
   // アーカイブAPIは precipitation_probability_max を持たない（null → 0 でフォールバック）
@@ -330,6 +332,7 @@ async function fetchViaArchiveApi(
     pressure:      raw.hourly.pressure_msl?.[i]           ?? 1013,
     weatherCode:   raw.hourly.weather_code?.[i]           ?? 0,
     radiation:     raw.hourly.shortwave_radiation?.[i]    ?? 0,
+    sunshine:      (raw.hourly.sunshine_duration?.[i]     ?? 0) / 60,
     snowfall:      raw.hourly.snowfall?.[i]               ?? 0,
     uvIndex:       0,    // archive API はUV指数なし
   }));
@@ -361,6 +364,7 @@ async function fetchViaArchiveApi(
     freezingLevel: hasValues(raw.hourly.freezinglevel_height),
     uvIndex:       hasValues(raw.hourly.uv_index),
     cape:          hasValues(raw.hourly.cape),
+    sunshine:      hasValues(raw.hourly.sunshine_duration),
   };
 
   return { hourly, daily, pastDaily: [], fetchedAt: Date.now(), availability };

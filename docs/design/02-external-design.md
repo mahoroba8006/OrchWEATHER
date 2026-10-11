@@ -89,7 +89,7 @@
 | エンドポイント | `GET https://api.open-meteo.com/v1/forecast` |
 | 認証 | なし |
 | 主パラメータ | `latitude`, `longitude`, `timezone=Asia/Tokyo`, `models=best_match`, `wind_speed_unit=ms`, `past_hours=20`, `past_days=7`, `forecast_days=15`, `forecast_hours=384` |
-| hourly（16項目） | `temperature_2m`, `precipitation`, `precipitation_probability`, `dew_point_2m`, `relative_humidity_2m`, `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`, `cape`, `freezinglevel_height`, `pressure_msl`, `weather_code`, `shortwave_radiation`, `snowfall`, `uv_index` |
+| hourly（16項目） | `temperature_2m`, `precipitation`, `precipitation_probability`, `dew_point_2m`, `relative_humidity_2m`, `wind_speed_10m`, `wind_direction_10m`, `wind_gusts_10m`, `cape`, `freezinglevel_height`, `pressure_msl`, `weather_code`, `shortwave_radiation`, `sunshine_duration`, `snowfall`, `uv_index` |
 | daily（13項目） | `weather_code`, `temperature_2m_max/min`, `precipitation_probability_max`, `precipitation_sum`, `relative_humidity_2m_max/min`, `sunrise`, `sunset`, `shortwave_radiation_sum`, `snowfall_sum`, `wind_speed_10m_max`, `sunshine_duration` |
 | 実装 | `src/api/forecast.ts` |
 

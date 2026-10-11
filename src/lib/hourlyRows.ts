@@ -6,6 +6,8 @@ export const HOURLY_ROW_OPTIONS = [
   { key: 'precipProb', label: '降水確率' },
   { key: 'precip', label: '降水量' },
   { key: 'snowfall', label: '降雪量' },
+  { key: 'sunshine', label: '日照時間' },
+  { key: 'radiation', label: '日射量' },
   { key: 'windSpeed', label: '風速' },
   { key: 'windGusts', label: '瞬間風速' },
   { key: 'windDir', label: '風向き' },

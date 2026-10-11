@@ -259,6 +259,8 @@ export function HelpPage({ onBack }: Props) {
               <tr><td>降水量</td><td>mm</td></tr>
               <tr><td>降水確率</td><td>%</td></tr>
               <tr><td>降雪量</td><td>cm</td></tr>
+              <tr><td>日照時間</td><td>分（その時刻までの1時間に日が差した長さ。短いほど灰色・長いほど黄色）</td></tr>
+              <tr><td>日射量</td><td>MJ/m²（その時刻までの1時間の量。少ないほど灰色・多いほど黄色）</td></tr>
               <tr><td>紫外線指数</td><td>UV index</td></tr>
               <tr><td>飽差</td><td>g/m³（気温・湿度から計算）</td></tr>
               <tr><td>CAPE</td><td>J/kg（対流不安定の指標）</td></tr>

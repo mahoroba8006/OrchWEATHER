@@ -17,7 +17,8 @@ export interface HourlyForecast {
   freezingLevel: number; // m
   pressure: number;      // hPa
   weatherCode: number;   // WMO code
-  radiation: number;     // W/m²
+  radiation: number;     // W/m²（直前1時間の平均）
+  sunshine: number;      // 分（直前1時間のうち日が差した長さ 0〜60）
   snowfall: number;      // cm
   uvIndex: number;       // UV index
 }
@@ -66,6 +67,7 @@ export interface FieldAvailability {
   freezingLevel: boolean;  // 0℃層高度
   uvIndex: boolean;        // 紫外線指数
   cape: boolean;           // CAPE
+  sunshine: boolean;       // 日照時間（時間別）
 }
 
 export interface ForecastData {
@@ -85,7 +87,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     'dew_point_2m', 'relative_humidity_2m',
     'wind_speed_10m', 'wind_direction_10m', 'wind_gusts_10m',
     'cape', 'freezinglevel_height', 'pressure_msl',
-    'weather_code', 'shortwave_radiation', 'snowfall',
+    'weather_code', 'shortwave_radiation', 'sunshine_duration', 'snowfall',
     'uv_index',
   ].join(',');
 
@@ -132,6 +134,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     pressure:      raw.hourly.pressure_msl?.[i]                ?? 1013,
     weatherCode:   raw.hourly.weather_code?.[i]                ?? 0,
     radiation:     raw.hourly.shortwave_radiation?.[i]         ?? 0,
+    sunshine:      (raw.hourly.sunshine_duration?.[i]          ?? 0) / 60,
     snowfall:      raw.hourly.snowfall?.[i]                    ?? 0,
     uvIndex:       raw.hourly.uv_index?.[i]                   ?? 0,
   }));

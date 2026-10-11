@@ -10,8 +10,8 @@ import {
 afterEach(() => localStorage.clear());
 
 describe('hourlyRows', () => {
-  it('選択肢は紫外線指数を含む14項目で、おすすめの非表示は7項目', () => {
-    expect(HOURLY_ROW_OPTIONS).toHaveLength(14);
+  it('選択肢は紫外線指数を含む16項目で、おすすめの非表示は7項目', () => {
+    expect(HOURLY_ROW_OPTIONS).toHaveLength(16);
     expect(HOURLY_ROW_OPTIONS[1]).toEqual({ key: 'temperature', label: '気温' });
     expect(DEFAULT_HIDDEN_HOURLY_ROWS).toEqual(['windGusts', 'pressure', 'humidity', 'vpd', 'dewPoint', 'cape', 'freezing']);
   });

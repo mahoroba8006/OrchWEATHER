@@ -143,6 +143,7 @@ export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | n
     if (!av.freezingLevel) hidden.add('freezing');
     if (!av.uvIndex)       hidden.add('uv');
     if (!av.cape)          hidden.add('cape');
+    if (!av.sunshine)      hidden.add('sunshine');
     return hidden;
   })();
 
