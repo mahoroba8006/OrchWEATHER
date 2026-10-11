@@ -131,6 +131,7 @@
   touch-action: none;
 }
 .ui-sheet__title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--ink-1); }
+.ui-sheet__title-note { margin-left: 0.75em; font-size: 0.9rem; font-weight: 400; }
 .ui-sheet__close {
   width: 36px;
   height: 36px;

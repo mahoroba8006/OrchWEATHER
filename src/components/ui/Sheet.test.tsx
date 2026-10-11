@@ -29,6 +29,12 @@ describe('Sheet', () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
+  it('titleNote は見出しの横に添え、見出しの名前に含める', () => {
+    renderWithMotion(<Sheet open onClose={() => {}} title="秋分" titleNote="9/23〜10/7">中身</Sheet>);
+    expect(screen.getByText('9/23〜10/7').className).toBe('ui-sheet__title-note');
+    expect(screen.getByRole('dialog', { name: '秋分 9/23〜10/7' })).toBeTruthy();
+  });
+
   it('contentMaxWidth で中身の最大幅を指定でき、未指定なら従来どおり', () => {
     const { unmount } = renderWithMotion(<Sheet open onClose={() => {}} title="ふりかえり" contentMaxWidth={528}>中身</Sheet>);
     const dialog = screen.getByRole('dialog');

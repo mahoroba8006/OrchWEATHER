@@ -9,6 +9,8 @@ interface SheetProps {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** 見出しの横に小さく添える補足（節気の期間など） */
+  titleNote?: string;
   /** bottom: モバイルの下から出るシート / side: PCの右から出るパネル */
   placement?: 'bottom' | 'side';
   /** 中身（見出し・本文）の最大幅(px)。広い画面で横に間延びさせたくないときに指定し、中央に寄せる */
@@ -20,7 +22,7 @@ interface SheetProps {
 const DISMISS_OFFSET = 120;
 const DISMISS_VELOCITY = 500;
 
-function SheetPanel({ onClose, title, placement, contentMaxWidth, children }: Omit<SheetProps, 'open'> & { placement: 'bottom' | 'side' }) {
+function SheetPanel({ onClose, title, titleNote, placement, contentMaxWidth, children }: Omit<SheetProps, 'open'> & { placement: 'bottom' | 'side' }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const initialFocusRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -81,7 +83,10 @@ function SheetPanel({ onClose, title, placement, contentMaxWidth, children }: Om
       >
         {isBottom && <div className="ui-sheet__grabber" aria-hidden="true" onPointerDown={startDrag} />}
         <div className="ui-sheet__header" onPointerDown={startDrag}>
-          <h2 id={titleId} className="ui-sheet__title">{title}</h2>
+          <h2 id={titleId} className="ui-sheet__title">
+            {title}
+            {titleNote && <span className="ui-sheet__title-note">{titleNote}</span>}
+          </h2>
           <button ref={initialFocusRef} type="button" className="ui-sheet__close" aria-label="閉じる" onClick={onClose}>
             <X size={18} strokeWidth={1.5} />
           </button>

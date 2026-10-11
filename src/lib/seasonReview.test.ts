@@ -146,7 +146,7 @@ describe('buildSeasonReview', () => {
 
   it('期間・見出し・3項目・雨の棒・記録を組み立てる', () => {
     const r = buildSeasonReview(sampleMap(), '2026-10-01')!;
-    expect(r.periodLabel).toBe('9/7〜9/22（16日間）');
+    expect(r.periodLabel).toBe('9/7〜9/22');
     expect(r.headline).toBe('日差しが多く、雨が少ない');
     expect(r.headlineBase).toBe('5年平均');
     expect(r.rows).toEqual([
@@ -406,8 +406,17 @@ describe('今の節気の途中経過カード', () => {
 
   it('昨日までの値で、比較なし・コメントなし', () => {
     const p = buildProgressForRange(yearsMap(), currentSekkiRange('2026-10-01'), '2026-10-01')!;
-    expect(p.progress).toEqual({ day: 9, total: 15 });
-    expect(p.periodLabel).toBe('9/23〜10/7（9日目／15日間）');
+    expect(p.progress).toEqual({
+      day: 9,
+      total: 15,
+      // 秋分の三候（2026年の暦どおり）。10/1 は次候
+      kou: [
+        { name: '雷乃収声', start: '9/23', current: false },
+        { name: '蟄虫坏戸', start: '9/28', current: true },
+        { name: '水始涸', start: '10/3', current: false },
+      ],
+    });
+    expect(p.periodLabel).toBe('9/23〜10/7');
     expect(p.headline).toBe('');
     expect(p.daily).toHaveLength(8); // 9/23〜9/30
     expect(p.rows.map(r => [r.label, r.value, r.vsLastYear, r.vsAvg])).toEqual([
@@ -419,7 +428,9 @@ describe('今の節気の途中経過カード', () => {
 
   it('最終日も昨日まで、翌日（次の節気の初日）に完成したふりかえりになる', () => {
     const last = buildProgressForRange(yearsMap(), currentSekkiRange('2026-10-07'), '2026-10-07')!;
-    expect(last.progress).toEqual({ day: 15, total: 15 });
+    expect(last.progress).toMatchObject({ day: 15, total: 15 });
+    // 最終日（10/7）は末候
+    expect(last.progress?.kou.map(k => k.current)).toEqual([false, false, true]);
     expect(last.daily).toHaveLength(14);
     const next = computeSeasonView(yearsMap(), '2026-10-08', DEFAULT_PACE_OPTIONS)!;
     expect(next.reviews.at(-1)?.range.name).toBe('秋分');

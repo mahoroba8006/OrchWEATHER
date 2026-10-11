@@ -58,9 +58,9 @@
 .season-card__art { flex-shrink: 0; padding: 4px; border-radius: 14px; background: linear-gradient(180deg, #4f86c0, #2d5f96); }
 .season-card__heading { flex: 1; min-width: 0; }
 /* 帯の下のカードの札（何のカードか）。白いカード上で、絵の台と同じ空色の系統の淡い背景＋濃い文字 */
+.season-card__tag-row { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.6em; margin: 0 0 0.25rem; }
 .season-card__tag {
   display: inline-block;
-  margin: 0 0 0.25rem;
   padding: 0.12rem 0.6rem;
   border-radius: var(--radius-pill);
   background: rgba(79, 134, 192, 0.14);
@@ -88,8 +88,14 @@
 .season-card__close:hover { background: var(--surface-sunken); color: var(--ink-1); }
 .season-card__hint { margin: 0; font-size: 0.75rem; color: var(--ink-3); text-align: center; line-height: 1.5; }
 .season-card__hint:empty { display: none; }
+.season-card__tag-date { font-size: 0.78rem; color: var(--ink-2); }
 .season-card__period { margin: 0; font-size: 0.72rem; color: var(--ink-3); }
-.season-card__base { margin-left: 1em; }
+/* 途中経過の三候。今の候だけ濃く太く */
+.season-card__kou { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; margin: 0; padding: 0; list-style: none; color: var(--ink-3); }
+.season-card__kou li { display: flex; flex-direction: column; line-height: 1.35; }
+.season-card__kou-name { font-size: 0.85rem; }
+.season-card__kou-date { font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+.season-card__kou li.is-current { color: var(--ink-1); font-weight: 700; }
 .season-card__title { margin: 0.15rem 0 0; font-size: 1rem; font-weight: 700; line-height: 1.4; text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
 
 .season-card__table { width: 100%; margin-top: 0.7rem; border-collapse: collapse; font-size: 0.8rem; }

@@ -42,7 +42,8 @@ export function monthDay(date: string): string {
   return `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
 }
 
-const sekkiIndexOf = (date: string) => sekkiForDate(new Date(`${date}T12:00:00+09:00`)).index;
+const sekkiOf = (date: string) => sekkiForDate(new Date(`${date}T12:00:00+09:00`));
+const sekkiIndexOf = (date: string) => sekkiOf(date).index;
 
 export interface SekkiRange { index: number; name: string; start: string; end: string; days: number }
 
@@ -304,7 +305,7 @@ export function estimateSkyCode(d: DayRecord): number {
 
 export interface SeasonReview {
   range: SekkiRange;
-  /** "9/7〜9/22（16日間）"（節気名はシートの見出し・絵で示すので含めない） */
+  /** "9/7〜9/22"（シートの見出し・帯の下の札で節気名の横に添える） */
   periodLabel: string;
   headline: string;
   /** 見出しの比べた相手（期間の横に「〜に比べて」と出す）。途中経過は見出しが無いので null */
@@ -317,8 +318,25 @@ export interface SeasonReview {
   avgYears: string;
   /** 記録の見出し（季節に合わせた「いちばん暑い日」「いちばん寒い日」など） */
   recordLabels: { warm: string; cold: string };
-  /** 今の節気の途中経過なら、今日が何日目か／全日数（昨日までの値で作る）。終わった節気は null */
-  progress: { day: number; total: number } | null;
+  /** 今の節気の途中経過なら、今日が何日目か／全日数と、節気の三候（昨日までの値で作る）。終わった節気は null */
+  progress: { day: number; total: number; kou: KouStep[] } | null;
+}
+
+/** 節気の中の七十二候の一つ。start="10/8"、current=今日がこの候 */
+export interface KouStep { name: string; start: string; current: boolean }
+
+/** range の三候（候に入る日の順）。today が属する候を current にする */
+export function kouSteps(range: SekkiRange, today: string): KouStep[] {
+  const todayKou = sekkiOf(today).kouIndex;
+  const steps: KouStep[] = [];
+  let prev = -1;
+  for (let d = range.start; d <= range.end; d = addDays(d, 1)) {
+    const k = sekkiOf(d);
+    if (k.kouIndex === prev) continue;
+    prev = k.kouIndex;
+    steps.push({ name: k.kou.name, start: monthDay(d), current: k.kouIndex === todayKou });
+  }
+  return steps;
 }
 
 export function buildSeasonReview(map: DayMap, today: string, base: ReviewBase = 'avg'): SeasonReview | null {
@@ -337,7 +355,7 @@ export function buildReviewForRange(map: DayMap, range: SekkiRange, base: Review
   const y = yearOf(range.start);
   return {
     range,
-    periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}（${range.days}日間）`,
+    periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}`,
     headline: headline(cur, base === 'lastYear' ? cmp.lastYear : avg, words),
     headlineBase: base === 'lastYear' ? '去年' : '5年平均',
     rows: [
@@ -379,7 +397,7 @@ export function buildProgressForRange(map: DayMap, range: SekkiRange, today: str
   const y = yearOf(range.start);
   return {
     range,
-    periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}（${days.length + 1}日目／${range.days}日間）`,
+    periodLabel: `${monthDay(range.start)}〜${monthDay(range.end)}`,
     headline: '',
     headlineBase: null,
     rows: [
@@ -393,7 +411,7 @@ export function buildProgressForRange(map: DayMap, range: SekkiRange, today: str
     records: records(days),
     avgYears: `${y - AVG_YEARS}〜${y - 1}年`,
     recordLabels: { warm: words.warmRecord, cold: words.coldRecord },
-    progress: { day: days.length + 1, total: range.days },
+    progress: { day: days.length + 1, total: range.days, kou: kouSteps(range, today) },
   };
 }
 

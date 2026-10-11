@@ -16,7 +16,7 @@ afterEach(cleanup);
 
 const review: SeasonReview = {
   range: { index: 14, name: '白露', start: '2026-09-07', end: '2026-09-22', days: 16 },
-  periodLabel: '9/7〜9/22（16日間）',
+  periodLabel: '9/7〜9/22',
   headline: '日差しが多く、雨が少ない',
   headlineBase: '5年平均',
   progress: null,
@@ -40,10 +40,14 @@ const review: SeasonReview = {
 
 const progressReview: SeasonReview = {
   ...review,
-  progress: { day: 3, total: 16 },
+  progress: { day: 3, total: 16, kou: [
+    { name: '草露白', start: '9/7', current: true },
+    { name: '鶺鴒鳴', start: '9/12', current: false },
+    { name: '玄鳥去', start: '9/17', current: false },
+  ] },
   headline: '',
   headlineBase: null,
-  periodLabel: '9/7〜9/22（3日目／16日間）',
+  periodLabel: '9/7〜9/22',
   rows: review.rows.map(r => ({ ...r, vsLastYear: null, vsAvg: null })),
   daily: review.daily,
 };
@@ -123,13 +127,14 @@ describe('SeasonPaceTicker', () => {
 });
 
 describe('SeasonReviewCard', () => {
-  it('シートでは期間だけ、帯の下では節気名の札を添える', () => {
+  it('シートでは節気名・期間を出さず（見出しにある）、帯の下では節気名の札と期間を添える', () => {
     const { unmount } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
     expect(screen.queryByText(/白露/)).toBeNull();
+    expect(screen.queryByText(/9\/7〜9\/22/)).toBeNull();
     unmount();
     renderWithMotion(<SeasonReviewCard review={review} source="inline" />);
     expect(screen.getByText('白露のふりかえり').className).toBe('season-card__tag');
-    expect(screen.getByText('9/7〜9/22（16日間）')).toBeTruthy();
+    expect(screen.getByText('9/7〜9/22').className).toBe('season-card__tag-date');
   });
 
   it('閉じる手段が渡されたときだけ閉じるボタンを出す', () => {
@@ -142,9 +147,8 @@ describe('SeasonReviewCard', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('期間・見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
+  it('見出し・表・記録を表示し、まとまった雨なしは「なし」', () => {
     renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
-    expect(screen.getByText('9/7〜9/22（16日間）')).toBeTruthy();
     expect(screen.getByText('日差しが多く、雨が少ない')).toBeTruthy();
     expect(screen.getByText('38mm')).toBeTruthy();
     expect(screen.getAllByText('6割')).toHaveLength(2);
@@ -194,10 +198,13 @@ describe('SeasonReviewCard', () => {
 });
 
 describe('SeasonReviewCard 途中経過', () => {
-  it('「途中経過」は出さず期間を出し、見出し・比較列は出さない', () => {
+  it('「途中経過」は出さず三候を並べ、見出し・比較列は出さない', () => {
     const { container } = renderWithMotion(<SeasonReviewCard review={progressReview} source="sheet" />);
     expect(screen.queryByText('途中経過')).toBeNull();
-    expect(screen.getByText('9/7〜9/22（3日目／16日間）')).toBeTruthy();
+    const kou = screen.getAllByRole('listitem').map(li => li.textContent);
+    expect(kou).toEqual(['草露白9/7〜', '鶺鴒鳴9/12〜', '玄鳥去9/17〜']);
+    // 今の候だけ濃く示す
+    expect(screen.getAllByRole('listitem').map(li => li.getAttribute('aria-current'))).toEqual(['true', null, null]);
     expect(screen.queryByText(/に比べて/)).toBeNull();
     expect(screen.queryByText('去年比')).toBeNull();
     expect(screen.queryByText('5年平均比')).toBeNull();

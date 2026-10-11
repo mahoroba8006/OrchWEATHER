@@ -62,13 +62,29 @@ export function SeasonReviewCard({ review, source, onClose }: { review: SeasonRe
       <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         <div className="season-card__heading">
-          {/* シートでは見出しに節気名があるので、帯の下のカードだけ札で何のカードかを示す */}
-          {source === 'inline' && <p className="season-card__tag">{`${review.range.name}のふりかえり`}</p>}
-          <p className="season-card__period">
-            {review.periodLabel}
-            {review.headlineBase && <span className="season-card__base">{`${review.headlineBase}に比べて`}</span>}
-          </p>
-          {!progress && <h3 className="season-card__title">{review.headline}</h3>}
+          {/* シートでは見出しに節気名と期間があるので、帯の下のカードだけ札で何のカードかを示し、期間を添える */}
+          {source === 'inline' && (
+            <p className="season-card__tag-row">
+              <span className="season-card__tag">{`${review.range.name}のふりかえり`}</span>
+              <span className="season-card__tag-date">{review.periodLabel}</span>
+            </p>
+          )}
+          {progress ? (
+            // 途中経過は見出しが無いので、節気の三候と入る日を並べ、今の候を濃く示す
+            <ol className="season-card__kou" aria-label="七十二候">
+              {progress.kou.map(k => (
+                <li key={k.name} className={k.current ? 'is-current' : undefined} aria-current={k.current ? 'true' : undefined}>
+                  <span className="season-card__kou-name">{k.name}</span>
+                  <span className="season-card__kou-date">{`${k.start}〜`}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <>
+              {review.headlineBase && <p className="season-card__period">{`${review.headlineBase}に比べて`}</p>}
+              <h3 className="season-card__title">{review.headline}</h3>
+            </>
+          )}
         </div>
         {onClose && (
           <button type="button" className="season-card__close" aria-label={`${review.range.name}のふりかえりを閉じる`} onClick={onClose}>
