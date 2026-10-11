@@ -95,7 +95,16 @@ export function SeasonPaceTicker({ state }: { state: SeasonState }) {
               <span className="season-strip__label">{`季節のあしどり（${item.period}）`}</span>
               <span className="season-strip__text">
                 <span className="season-strip__name">{item.name}</span>
-                {item.text}
+                {/* 比べる相手（細め・灰色）と差（太字）を分け、2つの比較は「／」で区切る（スマホ幅では2行に分ける） */}
+                <span className="season-strip__clauses">
+                  {item.clauses.map((c, i) => (
+                    <span key={c.lead} className="season-strip__clause">
+                      {i > 0 && <span className="season-strip__sep">／</span>}
+                      <span className="season-strip__lead">{c.lead}</span>
+                      <span className="season-strip__value">{c.value}</span>
+                    </span>
+                  ))}
+                </span>
               </span>
             </m.span>
           </AnimatePresence>

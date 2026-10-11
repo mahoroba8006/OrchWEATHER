@@ -49,8 +49,8 @@ const progressReview: SeasonReview = {
 };
 
 const paceItems: PaceItem[] = [
-  { kind: 'temp', name: '気温', period: 'この30日', text: '去年より+1.0℃・5年平均より+0.4℃' },
-  { kind: 'gdd', name: '積算温度', period: '1月1日から・10℃基準', text: '去年より4日遅い・5年平均と同じペース' },
+  { kind: 'temp', name: '気温', period: 'この30日', clauses: [{ lead: '去年より', value: '+1.0℃' }, { lead: '5年平均より', value: '+0.4℃' }], text: '去年より+1.0℃・5年平均より+0.4℃' },
+  { kind: 'gdd', name: '積算温度', period: '1月1日から・10℃基準', clauses: [{ lead: '去年より', value: '4日遅い' }, { lead: '5年平均と', value: '同じペース' }], text: '去年より4日遅い・5年平均と同じペース' },
 ];
 // 退場アニメーション中は旧項目が残りうるので、1つになる（切り替えが済む）まで待ってから読む
 const shown = (el: Element) => {
@@ -81,11 +81,11 @@ describe('SeasonPaceTicker', () => {
     renderWithMotion(<SeasonPaceTicker state={readyState(paceItems)} />);
     const btn = screen.getByRole('button', { name: '季節のあしどり 次の項目を表示' });
     const expectShown = (text: string) => waitFor(() => expect(shown(btn)).toBe(text));
-    await expectShown('気温去年より+1.0℃・5年平均より+0.4℃');
+    await expectShown('気温去年より+1.0℃／5年平均より+0.4℃');
     act(() => btn.click());
-    await expectShown('積算温度去年より4日遅い・5年平均と同じペース');
+    await expectShown('積算温度去年より4日遅い／5年平均と同じペース');
     act(() => btn.click());
-    await expectShown('気温去年より+1.0℃・5年平均より+0.4℃');
+    await expectShown('気温去年より+1.0℃／5年平均より+0.4℃');
   });
   it('8秒ごとに自動で次へ進む（読み終える時間を確保）', () => {
     vi.useFakeTimers();
@@ -107,7 +107,7 @@ describe('SeasonPaceTicker', () => {
     try {
       renderWithMotion(<SeasonPaceTicker state={readyState(paceItems.slice(0, 1))} />);
       act(() => { vi.advanceTimersByTime(20000); });
-      expect(shown(screen.getByRole('button'))).toBe('気温去年より+1.0℃・5年平均より+0.4℃');
+      expect(shown(screen.getByRole('button'))).toBe('気温去年より+1.0℃／5年平均より+0.4℃');
     } finally {
       vi.useRealTimers();
     }
@@ -268,9 +268,13 @@ describe('カード閲覧の計測', () => {
 
 describe('SeasonPaceTicker の表示', () => {
   it('本文の先頭に項目名、見出しに期間を出す', () => {
-    renderWithMotion(<SeasonPaceTicker state={{ status: 'ready', view: { paceItems: [{ kind: 'precip', name: '降水量', period: '1月1日から', text: '去年の1.8倍・5年平均の1.4倍' }], review: null, reviews: [], showCard: false } }} />);
+    renderWithMotion(<SeasonPaceTicker state={{ status: 'ready', view: { paceItems: [{ kind: 'precip', name: '降水量', period: '1月1日から', clauses: [{ lead: '去年の', value: '1.8倍' }, { lead: '5年平均の', value: '1.4倍' }], text: '去年の1.8倍・5年平均の1.4倍' }], review: null, reviews: [], showCard: false } }} />);
     expect(document.querySelector('.season-strip__name')?.textContent).toBe('降水量');
     expect(document.querySelector('.season-strip__label')?.textContent).toBe('季節のあしどり（1月1日から）');
+    // 比べる相手と差を分けて出し、2つの比較を「／」で区切る
+    expect(Array.from(document.querySelectorAll('.season-strip__lead')).map(e => e.textContent)).toEqual(['去年の', '5年平均の']);
+    expect(Array.from(document.querySelectorAll('.season-strip__value')).map(e => e.textContent)).toEqual(['1.8倍', '1.4倍']);
+    expect(document.querySelectorAll('.season-strip__sep')).toHaveLength(1);
   });
 });
 

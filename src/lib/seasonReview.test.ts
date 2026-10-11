@@ -196,12 +196,20 @@ describe('季節のあしどり（computePaceItems）', () => {
   const opts = (o: Partial<PaceOptions> = {}): PaceOptions => ({ ...DEFAULT_PACE_OPTIONS, baseTemp: 0, ...o });
 
   it('空くらべに合わせる: 気温（30日）・降水量・積算温度・日照時間の順', () => {
-    expect(computePaceItems(warmYear(), '2026-10-03', opts())).toEqual([
+    const items = computePaceItems(warmYear(), '2026-10-03', opts());
+    expect(items.map(({ kind, name, period, text }) => ({ kind, name, period, text }))).toEqual([
       { kind: 'temp', name: '気温', period: 'この30日', text: '去年より+1.0℃・5年平均より+1.0℃' },
       { kind: 'precip', name: '降水量', period: '1月1日から', text: '去年の1.5倍・5年平均の1.5倍' },
       { kind: 'gdd', name: '積算温度', period: '1月1日から・0℃基準', text: '去年より28日早い・5年平均より28日早い' },
       // 5年平均には閏年 2024 を含む（1/1〜10/2 が1日多い）ため 1376h → +274h
       { kind: 'sunshine', name: '日照時間', period: '1月1日から', text: '去年より+275h・5年平均より+274h' },
+    ]);
+    // 帯で見た目を分けるため、比べる相手と差を分けて持つ
+    expect(items.map(i => i.clauses)).toEqual([
+      [{ lead: '去年より', value: '+1.0℃' }, { lead: '5年平均より', value: '+1.0℃' }],
+      [{ lead: '去年の', value: '1.5倍' }, { lead: '5年平均の', value: '1.5倍' }],
+      [{ lead: '去年より', value: '28日早い' }, { lead: '5年平均より', value: '28日早い' }],
+      [{ lead: '去年より', value: '+275h' }, { lead: '5年平均より', value: '+274h' }],
     ]);
   });
 

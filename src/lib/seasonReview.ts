@@ -429,8 +429,13 @@ export const DEFAULT_PACE_OPTIONS: PaceOptions = {
 };
 
 export type PaceItemKind = 'temp' | 'precip' | 'gdd' | 'sunshine';
-/** name=項目名（本文の先頭に出す）、period=比べた期間（見出しに出す）、text=去年・5年平均との比較 */
-export interface PaceItem { kind: PaceItemKind; name: string; period: string; text: string }
+/** 比較の一句。lead=比べる相手（「去年より」「5年平均の」など）、value=差（「−150h」「6割」など）。帯では見た目を分けて出す */
+export interface PaceClause { lead: string; value: string }
+/** name=項目名（本文の先頭に出す）、period=比べた期間（見出しに出す）、clauses=去年・5年平均との比較、text=clauses をつないだ文（読み上げ用） */
+export interface PaceItem { kind: PaceItemKind; name: string; period: string; clauses: PaceClause[]; text: string }
+
+const paceItem = (kind: PaceItemKind, name: string, period: string, clauses: PaceClause[]): PaceItem =>
+  ({ kind, name, period, clauses, text: clauses.map(c => c.lead + c.value).join('・') });
 
 /** 正 = 何日早い、負 = 何日遅い、'ahead' = 比較年が年末までに届かない（今年がかなり早い） */
 type PaceDiff = number | 'ahead';
@@ -459,21 +464,24 @@ const lastOf = (s: number[]) => s[s.length - 1];
 /** 直近30日の積算温度の差。単位は℃（累積は日数差で示すので℃日は使わない） */
 const degrees = (v: number) => `${signed(Math.round(v), 0)}℃`;
 
-function paceClause(subject: string, d: PaceDiff): string {
-  if (d === 'ahead') return `${subject}より早いペース`;
-  if (d === 0) return `${subject}と同じペース`;
-  return d > 0 ? `${subject}より${d}日早い` : `${subject}より${-d}日遅い`;
+function paceClause(subject: string, d: PaceDiff): PaceClause {
+  if (d === 'ahead') return { lead: `${subject}より`, value: '早いペース' };
+  if (d === 0) return { lead: `${subject}と`, value: '同じペース' };
+  return { lead: `${subject}より`, value: d > 0 ? `${d}日早い` : `${-d}日遅い` };
 }
 
 /** 「6割」「1.5倍」は「去年の〜」、「同じくらい」は「去年と〜」、mm 差は「去年より〜」 */
-function ratioClause(subject: string, c: CompareCell): string {
-  if (c.text === '同じくらい') return `${subject}と同じくらい`;
-  if (c.text.endsWith('割') || c.text.endsWith('倍')) return `${subject}の${c.text}`;
-  return `${subject}より${c.text}`;
+function ratioClause(subject: string, c: CompareCell): PaceClause {
+  if (c.text === '同じくらい') return { lead: `${subject}と`, value: c.text };
+  if (c.text.endsWith('割') || c.text.endsWith('倍')) return { lead: `${subject}の`, value: c.text };
+  return { lead: `${subject}より`, value: c.text };
 }
 
+/** 差の値だけの比較（「去年より+1.0℃」） */
+const diffClause = (subject: string, value: string): PaceClause => ({ lead: `${subject}より`, value });
+
 /** 去年と5年平均の比較文。5年平均がまだ無ければ去年だけ */
-const both = (f: (subject: string) => string, hasAvg = true) => (hasAvg ? `${f('去年')}・${f('5年平均')}` : f('去年'));
+const both = (f: (subject: string) => PaceClause, hasAvg = true): PaceClause[] => (hasAvg ? [f('去年'), f('5年平均')] : [f('去年')]);
 
 /** 期間 [start, last] と、去年・5年平均の同じ月日範囲 */
 function windowStats(map: DayMap, start: string, last: string) {
@@ -483,7 +491,7 @@ function windowStats(map: DayMap, start: string, last: string) {
 }
 
 /** 開始日からの積算温度の早い・遅い（比較年が今年の現在値に届いた日との差）。積算が小さい序盤は出さない */
-function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): string | null {
+function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): PaceClause[] | null {
   const cur = cumulative(map, start, last, opts.baseTemp);
   if (!cur || cur.length === 0) return null;
   const series: number[][] = [];
@@ -510,7 +518,7 @@ function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): s
 }
 
 /** 直近期間の積算温度の差（℃） */
-function gddRecent(map: DayMap, start: string, last: string, base: number): string | null {
+function gddRecent(map: DayMap, start: string, last: string, base: number): PaceClause[] | null {
   const cur = cumulative(map, start, last, base);
   if (!cur || cur.length === 0) return null;
   const per: number[] = [];
@@ -521,7 +529,7 @@ function gddRecent(map: DayMap, start: string, last: string, base: number): stri
   }
   if (per.length === 0) return null;
   const avg = per.length === AVG_YEARS ? per.reduce((a, v) => a + v, 0) / per.length : null;
-  return both(s => `${s}より${degrees(lastOf(cur) - (s === '去年' || avg === null ? per[0] : avg))}`, avg !== null);
+  return both(s => diffClause(s, degrees(lastOf(cur) - (s === '去年' || avg === null ? per[0] : avg))), avg !== null);
 }
 
 /**
@@ -539,12 +547,8 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
   // 気温は常に直近30日の平均（起点からの平均は季節がまざって差が見えにくい）
   const t = windowStats(map, recentStart, last);
   if (t) {
-    items.push({
-      kind: 'temp',
-      name: '気温',
-      period: recentLabel,
-      text: both(s => `${s}より${tempCell(t.cur.meanTemp, (s === '去年' || !t.avg ? t.lastYear : t.avg).meanTemp).text}`, !!t.avg),
-    });
+    items.push(paceItem('temp', '気温', recentLabel,
+      both(s => diffClause(s, tempCell(t.cur.meanTemp, (s === '去年' || !t.avg ? t.lastYear : t.avg).meanTemp).text), !!t.avg)));
   }
 
   // 比べる期間（項目ごとの設定）: recent は直近30日、analysis は今年の開始日から（開始日がまだ来ていなければ出さない）
@@ -558,12 +562,8 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
   const pw = windowOf('precip');
   const p = pw && windowStats(map, pw.start, last);
   if (pw && p) {
-    items.push({
-      kind: 'precip',
-      name: '降水量',
-      period: pw.label,
-      text: both(s => ratioClause(s, rainCell(p.cur.precip, (s === '去年' || !p.avg ? p.lastYear : p.avg).precip)), !!p.avg),
-    });
+    items.push(paceItem('precip', '降水量', pw.label,
+      both(s => ratioClause(s, rainCell(p.cur.precip, (s === '去年' || !p.avg ? p.lastYear : p.avg).precip)), !!p.avg)));
   }
 
   const gw = windowOf('gdd');
@@ -571,18 +571,14 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
     ? gddRecent(map, gw.start, last, opts.baseTemp)
     : gddPace(map, gw.start, last, opts));
   if (gw && g) {
-    items.push({ kind: 'gdd', name: '積算温度', period: `${gw.label}・${opts.baseTemp}℃基準`, text: g });
+    items.push(paceItem('gdd', '積算温度', `${gw.label}・${opts.baseTemp}℃基準`, g));
   }
 
   const sw = windowOf('sunshine');
   const sun = sw && windowStats(map, sw.start, last);
   if (sw && sun) {
-    items.push({
-      kind: 'sunshine',
-      name: '日照時間',
-      period: sw.label,
-      text: both(s => `${s}より${sunCell(sun.cur.sunshine, (s === '去年' || !sun.avg ? sun.lastYear : sun.avg).sunshine).text}`, !!sun.avg),
-    });
+    items.push(paceItem('sunshine', '日照時間', sw.label,
+      both(s => diffClause(s, sunCell(sun.cur.sunshine, (s === '去年' || !sun.avg ? sun.lastYear : sun.avg).sunshine).text), !!sun.avg)));
   }
   return items;
 }

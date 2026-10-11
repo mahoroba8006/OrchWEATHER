@@ -39,7 +39,7 @@
 .season-strip__dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
 .season-strip__dots i.is-current { background: var(--ink-3); }
 .season-strip__label { font-size: 0.7rem; color: var(--ink-3); line-height: 1.3; }
-.season-strip__text { font-size: 0.85rem; font-weight: 600; color: var(--ink-1); line-height: 1.4; }
+.season-strip__text { display: flex; align-items: baseline; font-size: 0.85rem; font-weight: 600; color: var(--ink-1); line-height: 1.4; }
 
 .season-card {
   /* PC など広い画面でも間延びしないよう幅を抑えて中央に置く（スマホは画面幅いっぱいのまま） */
@@ -137,7 +137,20 @@
   list-style: none;
 }
 /* 本文先頭の項目名（何の比較かを一目で分かるように） */
-.season-strip__name { margin-right: 0.5em; padding: 0 0.4em; border-radius: 4px; background: rgba(var(--accent-rgb), 0.12); color: var(--accent); font-weight: 700; }
+.season-strip__name { flex-shrink: 0; margin-right: 0.5em; padding: 0 0.4em; border-radius: 4px; background: rgba(var(--accent-rgb), 0.12); color: var(--accent); font-weight: 700; }
+/* 比較文: 比べる相手は細め・灰色、差は太字。2つの比較は「／」で区切る */
+.season-strip__clauses { display: flex; min-width: 0; }
+.season-strip__clause { white-space: nowrap; }
+.season-strip__lead { font-weight: 500; color: var(--ink-2); }
+.season-strip__value { margin-left: 0.25em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.season-strip__sep { margin: 0 0.45em; font-weight: 400; color: var(--ink-3); }
+/* スマホ幅では1行に収まらない（積算温度は区切りを足す前から 360px で溢れていた）ので、
+   2つの比較を2行に分けて項目名の右に揃える。帯は2行分の高さにする（取得中の骨組みも同じ高さ） */
+@media (max-width: 480px) {
+  .season-strip { min-height: 70px; }
+  .season-strip__clauses { flex-direction: column; }
+  .season-strip__sep { display: none; }
+}
 
 /* ふりかえりカードの左右スライド（シート内） */
 .season-carousel { display: flex; flex-direction: column; gap: 0.6rem; }
