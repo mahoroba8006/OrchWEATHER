@@ -103,7 +103,7 @@
 | 予備経路 | `functions/api/archive.ts`（`/api/archive`）— 日本網からの到達不能時のみ手動切替 |
 | 実装 | `src/api/weather.ts` |
 
-### 3.3 Open-Meteo Historical Forecast API（空しらべ・過去10日）
+### 3.3 Open-Meteo Historical Forecast API（空しらべ・過去16日）
 過去実績を3段階で使い分ける（`src/api/historicalForecast.ts`）。
 
 | 段階 | 条件（startDate 基準） | エンドポイント／モデル | 備考 |

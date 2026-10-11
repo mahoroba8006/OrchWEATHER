@@ -64,6 +64,11 @@ export function logSeasonCardDismiss(): void {
   track('season_card_dismiss');
 }
 
+/** ふりかえりカードの「詳しく見る」で空しらべへ移った（source: inline=帯の下 / sheet=シート） */
+export function logSeasonCardDetail(source: 'inline' | 'sheet'): void {
+  track('season_card_detail', { source });
+}
+
 /** ヒーローの節気名からふりかえりカードを開いた。 */
 export function logSeasonCardOpen(): void {
   track('season_card_open');

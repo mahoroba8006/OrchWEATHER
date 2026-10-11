@@ -11,9 +11,11 @@ import './season.css';
 interface Props {
   reviews: SeasonReview[];
   onIndexChange?: (index: number) => void;
+  /** 「詳しく見る」で節気の開始日を渡す */
+  onDetail?: (start: string) => void;
 }
 
-export function SeasonReviewCarousel({ reviews, onIndexChange }: Props) {
+export function SeasonReviewCarousel({ reviews, onIndexChange, onDetail }: Props) {
   const n = reviews.length;
   const trackRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
@@ -61,7 +63,7 @@ export function SeasonReviewCarousel({ reviews, onIndexChange }: Props) {
   };
 
   if (n === 0) return null;
-  if (n === 1) return <SeasonReviewCard review={reviews[0]} source="sheet" />;
+  if (n === 1) return <SeasonReviewCard review={reviews[0]} source="sheet" onDetail={onDetail} />;
 
   return (
     <div className="season-carousel">
@@ -82,7 +84,7 @@ export function SeasonReviewCarousel({ reviews, onIndexChange }: Props) {
             aria-label={`${i + 1}/${n} ${r.range.name}`}
           >
             {rendered.has(i)
-              ? <SeasonReviewCard review={r} source="sheet" />
+              ? <SeasonReviewCard review={r} source="sheet" onDetail={onDetail} />
               : <div className="season-carousel__placeholder" aria-hidden="true" />}
           </div>
         ))}

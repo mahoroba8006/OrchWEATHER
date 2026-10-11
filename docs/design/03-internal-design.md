@@ -126,7 +126,7 @@ store ─┬ locationRepository ─ firebase(Firestore)
 |-----------|------|----------|
 | `forecast.ts` | 予報取得整形 | Open-Meteo Forecast を1回叩き、hourly を整形、hourly から午前/午後/夜間別に weatherCode/降水確率/降水量/気温/風を集計、daily を整形（欠損は`isPlaceholder`）、今日基準で past/future に分割して返す。 |
 | `weather.ts` | 年実績取得整形 | Archive を叩き、年モデル（jma_msm/era5_land）を選択、日別実績＋累積（降水/日射/日照）を計算、前年12月・翌年1月の月平均も補間用に取得。メモリキャッシュ。 |
-| `historicalForecast.ts` | 過去10日取得整形 | 開始日で3段階（forecast/historical-forecast/archive+ecmwf_ifs）にAPIを切替、`availability` を判定、今日以降はプレースホルダー補完。 |
+| `historicalForecast.ts` | 過去16日取得整形（`HISTORY_DAYS`） | 開始日で3段階（forecast/historical-forecast/archive+ecmwf_ifs）にAPIを切替、`availability` を判定、今日以降はプレースホルダー補完。 |
 | `jmaWarning.ts` | 警報取得整形 | r8 JSON を取得し、対象エリアの `kinds` を走査、status/現象/レベルを判定して名称生成、重複排除、有効なもののみ返す。 |
 | `aiComment.ts` | AI Function 呼出 | `/api/ai-comment`・`/api/ai-custom` への fetch。Bearer トークン付与、非JSON応答（dev）をエラー化。 |
 | `me.ts` | 認可取得 | `/api/me` を Bearer 付きで叩き `aiAllowed` を返す。 |

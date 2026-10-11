@@ -6,7 +6,7 @@ import { AnimatePresence, m } from 'motion/react';
 import { SekkiArt } from '../sky/sekkiArt';
 import { WeatherIcon } from '../weather/WeatherIcon';
 import { springs } from '../../lib/motion';
-import { logSeasonCardDismiss, logSeasonCardView } from '../../lib/analytics';
+import { logSeasonCardDetail, logSeasonCardDismiss, logSeasonCardView } from '../../lib/analytics';
 import { dismissSeasonCard, isSeasonCardDismissed } from '../../lib/seasonCardDismiss';
 import { HEAVY_RAIN_MM, monthDay, type CompareCell, type SeasonReview } from '../../lib/seasonReview';
 import './season.css';
@@ -25,7 +25,10 @@ function Cell({ c }: { c: CompareCell | null }) {
   return <td className={`season-card__cmp season-card__cmp--${c.tone}`}>{c.text}</td>;
 }
 
-export function SeasonReviewCard({ review, source, onClose }: { review: SeasonReview; source: 'inline' | 'sheet'; onClose?: () => void }) {
+/** onDetail: 「詳しく見る」で節気の開始日を渡す（空しらべへ移る）。渡されたときだけボタンを出す */
+export function SeasonReviewCard({ review, source, onClose, onDetail }: {
+  review: SeasonReview; source: 'inline' | 'sheet'; onClose?: () => void; onDetail?: (start: string) => void;
+}) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -61,14 +64,19 @@ export function SeasonReviewCard({ review, source, onClose }: { review: SeasonRe
     <article className="season-card" aria-label={`${review.range.name}のふりかえり`}>
       <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
-        <div className="season-card__heading">
+        {/* 上の段（札・小見出し）は右上のボタンと並べ、下の段（一言・三候）はボタンの下まで幅を使う */}
+        <div className="season-card__top">
           {/* シートでは見出しに節気名と期間があるので、帯の下のカードだけ札で何のカードかを示し、期間を添える */}
-          {source === 'inline' && (
+          {source === 'inline' ? (
             <p className="season-card__tag-row">
               <span className="season-card__tag">{`${review.range.name}のふりかえり`}</span>
               <span className="season-card__tag-date">{review.periodLabel}</span>
             </p>
+          ) : (
+            <p className="season-card__period">{progress ? '七十二候' : `${review.headlineBase}に比べて`}</p>
           )}
+        </div>
+        <div className="season-card__main">
           {progress ? (
             // 途中経過は見出しが無いので、節気の三候と入る日を並べ、今の候を濃く示す
             <ol className="season-card__kou" aria-label="七十二候">
@@ -81,15 +89,29 @@ export function SeasonReviewCard({ review, source, onClose }: { review: SeasonRe
             </ol>
           ) : (
             <>
-              {review.headlineBase && <p className="season-card__period">{`${review.headlineBase}に比べて`}</p>}
+              {source === 'inline' && <p className="season-card__period">{`${review.headlineBase}に比べて`}</p>}
               <h3 className="season-card__title">{review.headline}</h3>
             </>
           )}
         </div>
-        {onClose && (
-          <button type="button" className="season-card__close" aria-label={`${review.range.name}のふりかえりを閉じる`} onClick={onClose}>
-            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-          </button>
+        {(onDetail || onClose) && (
+          <div className="season-card__actions">
+            {onDetail && (
+              <button
+                type="button"
+                className="season-card__detail"
+                aria-label={`${review.range.name}を空しらべで詳しく見る`}
+                onClick={() => { logSeasonCardDetail(source); onDetail(review.range.start); }}
+              >
+                詳しく見る
+              </button>
+            )}
+            {onClose && (
+              <button type="button" className="season-card__close" aria-label={`${review.range.name}のふりかえりを閉じる`} onClick={onClose}>
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+              </button>
+            )}
+          </div>
         )}
       </header>
 
@@ -189,7 +211,7 @@ export function SeasonReviewCard({ review, source, onClose }: { review: SeasonRe
 
 /** 帯の下に、高さを滑らかに広げて登場させる（reduced-motion は MotionProvider 側で即時化）。
  *  閉じたらその節気のカードは端末では二度と出さず、節気名から見られることを数秒だけ知らせる */
-export function SeasonInlineCard({ review }: { review: SeasonReview }) {
+export function SeasonInlineCard({ review, onDetail }: { review: SeasonReview; onDetail?: (start: string) => void }) {
   const start = review.range.start;
   const [closed, setClosed] = useState(() => isSeasonCardDismissed(start));
   const [hint, setHint] = useState(false);
@@ -216,7 +238,7 @@ export function SeasonInlineCard({ review }: { review: SeasonReview }) {
             exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
             transition={springs.enter}
           >
-            <SeasonReviewCard review={review} source="inline" onClose={close} />
+            <SeasonReviewCard review={review} source="inline" onClose={close} onDetail={onDetail} />
           </m.div>
         )}
       </AnimatePresence>

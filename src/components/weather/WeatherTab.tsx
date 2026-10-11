@@ -25,6 +25,7 @@ import { useSeasonReview } from '../../hooks/useSeasonReview';
 import { SeasonPaceTicker } from '../season/SeasonPaceTicker';
 import { SeasonInlineCard } from '../season/SeasonReviewCard';
 import { SeasonReviewCarousel } from '../season/SeasonReviewCarousel';
+import type { HistoryRequest } from './HistoricalWeatherTab';
 import { DEFAULT_PACE_OPTIONS, type PaceOptions, type SeasonReview } from '../../lib/seasonReview';
 import { logAppError, logSeasonCardOpen } from '../../lib/analytics';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
@@ -32,7 +33,8 @@ import {
   classifyWeather, currentHourIndex, hhmmToMinutes, jstDateString, jstMinutesOfDay, skyPalette, timeOfDay,
 } from '../../lib/sky';
 
-export function WeatherTab() {
+/** onOpenHistory: ふりかえりカードの「詳しく見る」で空しらべへ移る（節気の開始日とこの画面の地点を渡す） */
+export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryRequest) => void }) {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user, updateWeatherCodeMode, aiAllowed } = useAppStore();
   const weatherCodeMode = useWeatherCodeMode();
   const [selectedLocationId, setSelectedLocationId] = useState<string>('');
@@ -104,6 +106,10 @@ export function WeatherTab() {
     reviewBase: userSettings?.seasonReviewBase ?? DEFAULT_PACE_OPTIONS.reviewBase,
   };
   const season = useSeasonReview(location?.lat ?? null, location?.lon ?? null, data, paceOptions);
+  // 地点は解決済みの location（未選択時の既定地点も含む）を渡し、空しらべでも同じ地点を開く
+  const openSeasonDetail = onOpenHistory && location
+    ? (start: string) => onOpenHistory({ start, locationId: location.id })
+    : undefined;
   const seasonReview = season.status === 'ready' ? season.view.review : null;
   const seasonReviews = season.status === 'ready' ? season.view.reviews : [];
   // シート内でいま見えている節気（スワイプで変わる）。閉じたら null に戻す
@@ -296,7 +302,7 @@ export function WeatherTab() {
           <ErrorBoundary onError={e => logAppError('season', e)} fallback={() => null}>
             <SeasonPaceTicker state={season} />
             {season.status === 'ready' && season.view.showCard && season.view.review && (
-              <SeasonInlineCard review={season.view.review} />
+              <SeasonInlineCard review={season.view.review} onDetail={openSeasonDetail} />
             )}
           </ErrorBoundary>
 
@@ -431,7 +437,7 @@ export function WeatherTab() {
         contentMaxWidth={528} /* カード520px＋スライドの左右の余白 */
       >
         <ErrorBoundary onError={e => logAppError('season-sheet', e)} fallback={() => <p style={{ padding: '1rem', color: 'var(--ink-3)' }}>ふりかえりを表示できませんでした。</p>}>
-          {seasonReviews.length > 0 && <SeasonReviewCarousel reviews={seasonReviews} onIndexChange={setSheetIndex} />}
+          {seasonReviews.length > 0 && <SeasonReviewCarousel reviews={seasonReviews} onIndexChange={setSheetIndex} onDetail={openSeasonDetail} />}
         </ErrorBoundary>
       </Sheet>
       <Footer />

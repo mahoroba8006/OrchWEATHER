@@ -4,6 +4,7 @@ import { MapPin, Loader2 } from 'lucide-react';
 import { useAppStore, useWeatherCodeMode } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useHistoricalForecast } from '../../hooks/useHistoricalForecast';
+import { HISTORY_DAYS } from '../../api/historicalForecast';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { Button } from '../ui/Button';
 import { DailyForecast } from './DailyForecast';
@@ -26,14 +27,18 @@ function jstDaysAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function HistoricalWeatherTab() {
+/** 空しらべを開くときの指定（節気のふりかえりの「詳しく見る」から：節気の開始日と、カードの地点） */
+export interface HistoryRequest { start: string; locationId: string }
+
+export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | null }) {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, updateWeatherCodeMode } = useAppStore();
   const weatherCodeMode = useWeatherCodeMode();
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
+  const [selectedLocationId, setSelectedLocationId] = useState<string>(request?.locationId ?? '');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');
   const [yesterday] = useState(jstYesterday);
-  const [startDate, setStartDate] = useState<string>(() => jstDaysAgo(10));
+  // 既定は昨日までの HISTORY_DAYS 日分
+  const [startDate, setStartDate] = useState<string>(() => request?.start ?? jstDaysAgo(HISTORY_DAYS));
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
   const hourlySectionRef = useRef<HTMLElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
@@ -192,7 +197,7 @@ export function HistoricalWeatherTab() {
           style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
         />
         <span style={{ fontSize: '0.78rem', color: 'var(--ink-3)' }}>
-          から10日分を表示
+          {`から${HISTORY_DAYS}日分を表示`}
         </span>
       </div>
 

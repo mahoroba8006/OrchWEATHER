@@ -48,8 +48,8 @@
 
 **検証観点:** 2016年境でモデルが切り替わるか／当年で終了日が昨日になるか／欠測日が累積に混入しないか。
 
-### A-3. `api/historicalForecast.ts` — 過去10日取得・整形（`fetchHistoricalForecast`）
-**責務:** 開始日に応じてデータ源を切替え、10日分を整形（空しらべ）。
+### A-3. `api/historicalForecast.ts` — 過去16日取得・整形（`fetchHistoricalForecast`）
+**責務:** 開始日に応じてデータ源を切替え、`HISTORY_DAYS`（16日）分を整形（空しらべ）。既定の開始日は16日前（昨日まで）。節気のふりかえりの「詳しく見る」からは節気の開始日・カードの地点で開く。
 
 **分岐・判断ロジック（3段階）:**
 - 取得実施は `startDate <= yesterday` のときのみ（未来開始は API を叩かない）。
@@ -57,8 +57,8 @@
   - `startDate >= today-14`（`forecastCutoff`）→ Forecast API（完全データ）
   - `2022-01-01 <= startDate < today-14` → Historical Forecast API（完全データ）
   - `startDate < 2022-01-01` → Archive API ＋ `ecmwf_ifs`（CAPE可・0℃層高度9999固定・降水確率/UV不在）
-- API終了日 `apiEndDate` = `min(startDate+9, yesterday)`。
-- 10日配列構築: 各日について `date >= today` → プレースホルダー、∴ API結果に該当日があればそれ、無ければプレースホルダー。
+- API終了日 `apiEndDate` = `min(startDate+15, yesterday)`。
+- 16日配列構築: 各日について `date >= today` → プレースホルダー、∴ API結果に該当日があればそれ、無ければプレースホルダー。
 - `availability`: `hasValues()` で各項目（降水確率/0℃層高度/UV/CAPE）の実在を判定（値0からの推測はしない＝誤非表示防止）。
 
 **検証観点:** today-14 と 2022-01-01 の各境界で正しい API が選ばれるか／段階3で availability が降水確率=false になるか。

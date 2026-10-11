@@ -3,8 +3,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { SeasonReview } from '../../lib/seasonReview';
 
-vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn(), logSeasonCardBrowse: vi.fn(), logSeasonCardDismiss: vi.fn() }));
-import { logSeasonCardView, logSeasonCardBrowse, logSeasonCardDismiss } from '../../lib/analytics';
+vi.mock('../../lib/analytics', () => ({ logSeasonCardView: vi.fn(), logSeasonCardBrowse: vi.fn(), logSeasonCardDismiss: vi.fn(), logSeasonCardDetail: vi.fn() }));
+import { logSeasonCardView, logSeasonCardBrowse, logSeasonCardDismiss, logSeasonCardDetail } from '../../lib/analytics';
 import { SeasonPaceTicker } from './SeasonPaceTicker';
 import type { PaceItem } from '../../lib/seasonReview';
 import type { SeasonState } from '../../hooks/useSeasonReview';
@@ -394,5 +394,26 @@ describe('SeasonInlineCard を閉じる', () => {
     localStorage.setItem('seasonCardDismissed', '2026-08-23');
     renderWithMotion(<SeasonInlineCard review={review} />);
     expect(screen.getByRole('article', { name: '白露のふりかえり' })).toBeTruthy();
+  });
+});
+
+describe('SeasonReviewCard 詳しく見る', () => {
+  it('onDetail を渡したときだけボタンを出し、押すと節気の開始日を渡す', () => {
+    const { unmount } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    expect(screen.queryByRole('button', { name: /詳しく見る/ })).toBeNull();
+    unmount();
+    const onDetail = vi.fn();
+    renderWithMotion(<SeasonReviewCard review={review} source="sheet" onDetail={onDetail} />);
+    fireEvent.click(screen.getByRole('button', { name: '白露を空しらべで詳しく見る' }));
+    expect(onDetail).toHaveBeenCalledWith(review.range.start);
+    expect(logSeasonCardDetail).toHaveBeenCalledWith('sheet');
+  });
+
+  it('帯の下のカードでは閉じるボタンと並べて出す', () => {
+    localStorage.clear();
+    renderWithMotion(<SeasonInlineCard review={review} onDetail={() => {}} />);
+    const actions = document.querySelector('.season-card__actions')!;
+    expect(Array.from(actions.querySelectorAll('button')).map(b => b.getAttribute('aria-label')))
+      .toEqual(['白露を空しらべで詳しく見る', '白露のふりかえりを閉じる']);
   });
 });

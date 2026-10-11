@@ -6,7 +6,7 @@ import { SettingsTab } from './components/settings/SettingsTab';
 import { auth } from './lib/firebase';
 import { ensureUserDocument } from './lib/userRepository';
 import { WeatherTab } from './components/weather/WeatherTab';
-import { HistoricalWeatherTab } from './components/weather/HistoricalWeatherTab';
+import { HistoricalWeatherTab, type HistoryRequest } from './components/weather/HistoricalWeatherTab';
 import { WeatherLoader } from './components/weather/WeatherLoader';
 import { HelpPage } from './components/HelpPage';
 import { AppHeader } from './components/shell/AppHeader';
@@ -42,6 +42,8 @@ function AppContent() {
   const [sinkOriginY, setSinkOriginY] = useState(0);
   /** タブ切替のスライド方向（-1: 左へ戻る / 0: 初回 / 1: 右へ進む） */
   const [slideDir, setSlideDir] = useState(0);
+  // ふりかえりカードの「詳しく見る」から空しらべを開くときの指定（ナビで普通に移ったら消して既定の表示に戻す）
+  const [historyRequest, setHistoryRequest] = useState<HistoryRequest | null>(null);
 
   // モバイル判定（マウント時1回のみ。リサイズで再判定しないことで操作中のリセットを防ぐ）
   const [isMobile] = useState(() => window.innerWidth < 768);
@@ -118,9 +120,18 @@ function AppContent() {
     );
   }
 
-  const handleTabChange = (t: MainTab) => {
+  const switchTab = (t: MainTab) => {
     setSlideDir(Math.sign(tabIndex(t) - tabIndex(topTab)));
     setTopTab(t);
+  };
+  const handleTabChange = (t: MainTab) => {
+    setHistoryRequest(null);
+    switchTab(t);
+  };
+  const openHistory = (req: HistoryRequest) => {
+    setHistoryRequest(req);
+    switchTab('history');
+    window.scrollTo(0, 0);
   };
   const openSheet = (target: 'settings' | 'help') => {
     setSinkOriginY(window.scrollY);
@@ -163,12 +174,12 @@ function AppContent() {
         animate={{ opacity: 1, x: 0 }}
         transition={springs.move}
       >
-      {topTab === 'weather' && <WeatherTab />}
+      {topTab === 'weather' && <WeatherTab onOpenHistory={openHistory} />}
 
       {topTab === 'history' && (
         <>
           <SkyBand title="空しらべ" />
-          <div className="sky-overlap"><HistoricalWeatherTab /></div>
+          <div className="sky-overlap"><HistoricalWeatherTab request={historyRequest} /></div>
         </>
       )}
 

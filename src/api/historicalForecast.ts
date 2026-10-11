@@ -21,6 +21,8 @@ import { weatherFetch, weatherDataError } from '../lib/weatherFetch';
 
 /** forecast API が過去を遡れる日数（open-meteo の仕様上 ~14日） */
 const FORECAST_LOOKBACK_DAYS = 14;
+/** 空しらべで表示する日数（節気は14〜16日なので、節気のふりかえりから開いても1節気が収まる） */
+export const HISTORY_DAYS = 16;
 
 /**
  * historical-forecast API のデータ開始日（実測により 2022-01-01 から有効値が返る）
@@ -367,7 +369,7 @@ async function fetchViaArchiveApi(
 // ── エクスポート ──────────────────────────────────────────────────────────────
 
 /**
- * startDate から 10 日分の過去気象データを取得する。
+ * startDate から HISTORY_DAYS 日分の過去気象データを取得する。
  *
  * API 選択ロジック（3段階）:
  *   段階1: startDate >= today-14
@@ -389,8 +391,8 @@ export async function fetchHistoricalForecast(
   // forecast API が遡れる上限日（inclusive）
   const forecastCutoff = addDays(today, -FORECAST_LOOKBACK_DAYS);
 
-  // API に渡す終了日: startDate+9 と昨日の小さい方
-  const tentativeEnd = addDays(startDate, 9);
+  // API に渡す終了日: 表示の最終日と昨日の小さい方
+  const tentativeEnd = addDays(startDate, HISTORY_DAYS - 1);
   const apiEndDate   = tentativeEnd < yesterday ? tentativeEnd : yesterday;
 
   let apiData: ForecastData | null = null;
@@ -413,8 +415,8 @@ export async function fetchHistoricalForecast(
     }
   }
 
-  // 10 日分の配列を構築（今日以降はプレースホルダー）
-  const fullDaily: DailyForecastData[] = Array.from({ length: 10 }, (_, i) => {
+  // HISTORY_DAYS 日分の配列を構築（今日以降はプレースホルダー）
+  const fullDaily: DailyForecastData[] = Array.from({ length: HISTORY_DAYS }, (_, i) => {
     const dateStr = addDays(startDate, i);
     if (dateStr >= today) return createPlaceholderDay(dateStr);
     const existing = apiData?.daily.find(d => d.date === dateStr);
