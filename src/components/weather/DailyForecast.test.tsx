@@ -56,14 +56,18 @@ describe('DailyForecast', () => {
 });
 
 describe('DailyForecast の「今日」の示し方', () => {
-  it('今日の列は塗らず囲まず、上端の栞と「今日」の札で示す', () => {
+  it('今日の列は塗らず囲まず、日付と時間帯の間の線と「今日」の札で示す', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-01T10:00:00+09:00'));
     const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
     const painted = Array.from(container.querySelectorAll<HTMLElement>('td')).filter(td => td.style.background.includes('accent-soft'));
     expect(painted).toHaveLength(0);
     expect(container.querySelector('[data-testid="today-frame"]')).toBeNull();
-    expect(container.querySelector('[data-testid="today-bookmark"]')).toBeTruthy();
+    // 線は今日の日付セルの中（日付の行と「午前・午後・夜間」の間）にある
+    const line = container.querySelectorAll('[data-testid="today-bookmark"]');
+    expect(line).toHaveLength(1);
+    expect(line[0].previousElementSibling?.textContent).toContain('10/1');
+    expect(line[0].nextElementSibling?.textContent).toBe('午前午後夜間');
     vi.useRealTimers();
   });
 

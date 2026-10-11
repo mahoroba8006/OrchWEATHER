@@ -307,8 +307,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   };
 
   const daySep = (i: number) => (i < daily.length - 1 ? '1px solid var(--line)' : undefined);
-  // 今日の列は塗らず、上端の栞（細い帯）で示す（塗ると、くもりなど淡い色の天気の絵が背景に溶けて見えにくい）
-  const todayIdx = daily.findIndex(d => d.date === today);
+  // 今日の列は塗らず、日付と「午前・午後・夜間」の間の細い線で示す（塗ると、くもりなど淡い色の天気の絵が背景に溶けて見えにくい）
 
   const cellStyle = (period: Period, i: number, extra?: CSSProperties): CSSProperties => ({
     width: PERIOD_W,
@@ -347,17 +346,6 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   return (
     <div>
       <div style={{ position: 'relative', overflowX: 'auto', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
-        {todayIdx >= 0 && dayX && dayWidths && (
-          <div
-            aria-hidden
-            data-testid="today-bookmark"
-            style={{
-              position: 'absolute', top: 0, left: dayX[todayIdx] + 6, width: Math.max(0, dayWidths[todayIdx] - 12), height: 3,
-              background: 'var(--accent)', borderRadius: '0 0 3px 3px',
-              pointerEvents: 'none', zIndex: 1,
-            }}
-          />
-        )}
         <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed', fontVariantNumeric: 'tabular-nums' }}>
           <colgroup>
             {daily.flatMap(day => [
@@ -406,7 +394,13 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', marginTop: '0.35rem' }}>
+                    {/* 今日の線。他の日も同じ高さの透明な線を置き、「午前・午後・夜間」の高さを揃える */}
+                    <div
+                      aria-hidden
+                      data-testid={isToday ? 'today-bookmark' : undefined}
+                      style={{ height: 3, marginTop: '0.3rem', borderRadius: 3, background: isToday ? 'var(--accent)' : undefined }}
+                    />
+                    <div style={{ display: 'flex', marginTop: '0.3rem' }}>
                       {([['am', '午前'], ['pm', '午後'], ['night', '夜間']] as const).map(([period, p]) => {
                         const isNow = isToday && period === nowPeriod;
                         return (
