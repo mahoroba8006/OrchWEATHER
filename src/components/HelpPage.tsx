@@ -256,8 +256,8 @@ export function HelpPage({ onBack }: Props) {
               <tr><td>風速</td><td>m/s</td></tr>
               <tr><td>風向</td><td>16方位（北・北北東・北東 …）</td></tr>
               <tr><td>瞬間風速</td><td>m/s</td></tr>
-              <tr><td>降水量</td><td>mm</td></tr>
-              <tr><td>降水確率</td><td>%</td></tr>
+              <tr><td>降水量</td><td>mm（0は白・多いほど水色）</td></tr>
+              <tr><td>降水確率</td><td>%（0は白・高いほど水色）</td></tr>
               <tr><td>降雪量</td><td>cm</td></tr>
               <tr><td>日照時間</td><td>分（その時刻までの1時間に日が差した長さ。短いほど灰色・長いほど黄色）</td></tr>
               <tr><td>日射量</td><td>MJ/m²（その時刻までの1時間の量。少ないほど灰色・多いほど黄色）</td></tr>

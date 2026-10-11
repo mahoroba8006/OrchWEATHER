@@ -219,29 +219,37 @@ function degreesToCompass(deg: number): string {
 /** W/m²（1時間の平均）→ その1時間の日射量 MJ/m² */
 const toMJ = (w: number) => w * 0.0036;
 
-/** 日照・日射の色の物差し（固定。日や季節が違っても同じ色は同じ明るさ）。0=灰色 → max=黄色 */
-const SUN_GRAY: [number, number, number] = [236, 239, 241];
-const SUN_YELLOW: [number, number, number] = [255, 213, 79];
-function sunHeat(v: number, max: number): string {
-  const t = Math.max(0, Math.min(1, v / max));
-  const c = SUN_GRAY.map((g, k) => Math.round(g + (SUN_YELLOW[k] - g) * t));
-  return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-}
+// ── セルの濃淡（ヒートマップ）。物差しは固定で、日や季節が違っても同じ色は同じ量 ──
+type RGB = readonly [number, number, number];
+const HEAT_WHITE: RGB = [255, 255, 255];
+const HEAT_GRAY: RGB = [236, 239, 241];
+const HEAT_YELLOW: RGB = [255, 213, 79];
+const HEAT_RAIN: RGB = [151, 190, 235]; // 降水の色（--chart-precip #2E7DD7）を白に半分混ぜた水色
+const mixRgb = (from: RGB, to: RGB, t: number) => {
+  const k = Math.max(0, Math.min(1, t));
+  return `rgb(${from.map((f, j) => Math.round(f + (to[j] - f) * k)).join(', ')})`;
+};
+/** 日照・日射: 0=灰色 → max=黄色 */
+const sunHeat = (max: number) => (v: number) => mixRgb(HEAT_GRAY, HEAT_YELLOW, v / max);
+/** 降水: 0=白（塗らない）→ max=水色 */
+const rainHeat = (max: number, curve: (t: number) => number = t => t) => (v: number) =>
+  v > 0 ? mixRgb(HEAT_WHITE, HEAT_RAIN, curve(v / max)) : undefined;
 
 // key は lib/hourlyRows の HOURLY_ROW_OPTIONS と同じ並び・同じキー
-// sun: 日照・日射の行。値の濃淡で塗り、夜で値が0のときは「–」で塗らない
-// （値は直前1時間の量なので、日の入り直後の列にはまだ値が残る＝夜の時刻だけでは消さない）
+// heat: 値の濃淡でセルを塗る。nightDash: 夜で値が0のときは「–」で塗らない
+// （日照・日射は直前1時間の量なので、日の入り直後の列にはまだ値が残る＝夜の時刻だけでは消さない）
 const DATA_ROWS: {
   key: HourlyRowKey; label: string; unit?: string; fmt: (h: HourlyForecast) => string;
-  sun?: { value: (h: HourlyForecast) => number; max: number };
+  heat?: { value: (h: HourlyForecast) => number; color: (v: number) => string | undefined; nightDash?: boolean };
 }[] = [
   { key: 'temperature',  label: '気温',     unit: '℃',     fmt: h => h.temperature.toFixed(1) },
-  { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb) },
-  { key: 'precip',       label: '降水量',    unit: 'mm',    fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1) },
+  { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb), heat: { value: h => h.precipProb, color: rainHeat(100) } },
+  // 10mm/h で最も濃い。弱い雨（1mm/h 前後）も見えるよう平方根で持ち上げる
+  { key: 'precip',       label: '降水量',    unit: 'mm',    fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1), heat: { value: h => h.precipitation, color: rainHeat(10, Math.sqrt) } },
   { key: 'snowfall',     label: '降雪量',    unit: 'cm',    fmt: h => h.snowfall === 0 ? '0.0' : (Math.ceil(h.snowfall * 10) / 10).toFixed(1) },
-  { key: 'sunshine',     label: '日照時間',  unit: '分',    fmt: h => String(Math.round(h.sunshine)), sun: { value: h => Math.round(h.sunshine), max: 60 } },
+  { key: 'sunshine',     label: '日照時間',  unit: '分',    fmt: h => String(Math.round(h.sunshine)), heat: { value: h => Math.round(h.sunshine), color: sunHeat(60), nightDash: true } },
   // 3.2 MJ/m² ≒ 890 W/m²（夏の快晴の正午ごろ）
-  { key: 'radiation',    label: '日射量',    unit: 'MJ/m²', fmt: h => toMJ(h.radiation).toFixed(2), sun: { value: h => Number(toMJ(h.radiation).toFixed(2)), max: 3.2 } },
+  { key: 'radiation',    label: '日射量',    unit: 'MJ/m²', fmt: h => toMJ(h.radiation).toFixed(2), heat: { value: h => Number(toMJ(h.radiation).toFixed(2)), color: sunHeat(3.2), nightDash: true } },
   { key: 'windSpeed',    label: '風速',      unit: 'm/s',   fmt: h => h.windSpeed.toFixed(1) },
   { key: 'windGusts',    label: '瞬間風速',  unit: 'm/s',   fmt: h => h.windGusts.toFixed(1) },
   { key: 'windDir',      label: '風向き',                   fmt: h => degreesToCompass(h.windDirection) },
@@ -526,22 +534,12 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W }} />;
                   const h = entry.data;
                   const faded = isPast(entry);
-                  const isPrecip = row.key === 'precip';
-                  const barPct = isPrecip && h.precipitation > 0
-                    ? Math.round(Math.min(1, h.precipitation / 10) * 70 * 10) / 10
-                    : 0;
-                  const sunValue = row.sun?.value(h);
-                  const sunDark = sunValue === 0 && isNighttime(h.time);
-                  const heat = row.sun && sunValue !== undefined && !sunDark ? sunHeat(sunValue, row.sun.max) : undefined;
+                  const heatValue = row.heat?.value(h);
+                  const dash = !!row.heat?.nightDash && heatValue === 0 && isNighttime(h.time);
+                  const heat = row.heat && heatValue !== undefined && !dash ? row.heat.color(heatValue) : undefined;
                   return (
-                    <td key={`${row.key}-${i}`} data-heat={heat ? 'true' : undefined} style={{ position: 'relative', padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, background: heat, color: faded ? FADED_COLOR : 'var(--ink-1)', opacity: faded ? FADED_OPACITY : undefined, ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
-                      {barPct > 0 && (
-                        <span
-                          data-testid="precip-bar"
-                          style={{ position: 'absolute', left: 6, right: 6, bottom: 0, height: `${barPct}%`, background: 'var(--chart-precip)', opacity: 0.35, borderRadius: '2px 2px 0 0' }}
-                        />
-                      )}
-                      <span style={{ position: 'relative' }}>{sunDark ? '–' : row.fmt(h)}</span>
+                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, background: heat, color: faded ? FADED_COLOR : 'var(--ink-1)', opacity: faded ? FADED_OPACITY : undefined, ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
+                      {dash ? '–' : row.fmt(h)}
                     </td>
                   );
                 })}

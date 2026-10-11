@@ -1,3 +1,15 @@
+/* 固定ラベル列の下端の区切り線。行の線（--line）は半透明なので、色を塗ったセルが下を通ると線ごしに透ける。
+   ラベル列の分だけ、白地に同じ線を重ねた不透明な線で覆う */
+.hourly-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(var(--line), var(--line)), var(--surface-card);
+  pointer-events: none;
+}
 /* 時間別予報：固定ラベル列の右端に、内容が下を通ることを示す淡い影 */
 .hourly-label::after {
   content: '';

@@ -28,14 +28,18 @@ const daily = [{
 } as DailyForecastData];
 
 describe('HourlyTable', () => {
-  it('draws a precip bar scaled to mm/10 x 70% only for non-zero cells', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-10-01T10:20:00+09:00'));
-    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} />);
-    const bars = Array.from(container.querySelectorAll<HTMLElement>('[data-testid="precip-bar"]'));
-    expect(bars).toHaveLength(2);
-    expect(bars[0].style.height).toBe('35%');
-    expect(bars[1].style.height).toBe('70%'); // 12mm は上限 10mm 扱い
+  it('降水量は棒を付けず、0は白（塗らない）・多いほど水色に塗る（10mm 以上は最も濃い）', () => {
+    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />);
+    expect(container.querySelector('[data-testid="precip-bar"]')).toBeNull();
+    const row = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('降水量'))!;
+    const tds = Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).filter(td => td.textContent !== '');
+    expect(tds.map(td => td.textContent)).toEqual(['0.0', '5.0', '0.0', '12.0']);
+    expect(tds[0].style.background).toBe('');
+    expect(tds[1].style.background).not.toBe('');
+    expect(tds[3].style.background).toBe('rgb(151, 190, 235)');
+    // 降水確率も同じ水色で塗る（30% は薄い水色）
+    const prob = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('降水確率'))!;
+    expect(prob.querySelectorAll<HTMLElement>('td')[1].style.background).toBe('rgb(224, 236, 249)');
   });
 
   it('marks exactly one column as current', () => {
