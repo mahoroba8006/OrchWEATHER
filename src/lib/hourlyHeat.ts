@@ -2,7 +2,7 @@ import type { HourlyForecast } from '../api/forecast';
 
 // ── セルの濃淡（ヒートマップ）。物差しは固定で、日や季節が違っても同じ色は同じ量 ──
 export type RGB = readonly [number, number, number];
-// 背景は淡い色（文字は --ink-1 のまま読める）、量の行は下端の細い線に鮮やかな色を寄せる
+// 背景は淡い色（文字は --ink-1 のまま読める）
 const HEAT_WHITE: RGB = [255, 255, 255];
 const HEAT_GRAY: RGB = [236, 239, 241];
 const HEAT_YELLOW: RGB = [255, 213, 79];
@@ -16,7 +16,7 @@ const mixRgb = (from: RGB, to: RGB, t: number): RGB => {
 };
 export const rgbCss = (c: RGB) => `rgb(${c.join(', ')})`;
 /** 位置 0〜1 に色を置いた物差し。間は直線で混ぜる */
-export type Ramp = readonly (readonly [number, RGB])[];
+type Ramp = readonly (readonly [number, RGB])[];
 const rampColor = (ramp: Ramp, t: number): RGB => {
   const k = Math.max(0, Math.min(1, t));
   for (let j = 1; j < ramp.length; j++) {
@@ -31,22 +31,21 @@ const PRECIP_MAX = 50;
 const PRECIP_MID = Math.sqrt(10 / PRECIP_MAX);
 
 /**
- * t: 値 → 物差し上の位置 0〜1（undefined は塗らない）。bg: 背景の物差し。accent: 下端の線の物差し（量の行だけ）。
+ * t: 値 → 物差し上の位置 0〜1（undefined は塗らない）。bg: 色の物差し。
  * legend: 凡例に並べる値（物差しの上限を最後に置く）
  */
 export type Heat = {
   value: (h: HourlyForecast) => number;
   t: (v: number) => number | undefined;
   bg: Ramp;
-  accent?: Ramp;
   nightDash?: boolean;
   legend: number[];
   /** 上限を超える値がありうる（凡例の最後に「以上」） */
   legendOver?: boolean;
 };
-export const heatColor = (heat: Heat, v: number, ramp: Ramp): RGB | undefined => {
+export const heatColor = (heat: Heat, v: number): RGB | undefined => {
   const t = heat.t(v);
-  return t === undefined ? undefined : rampColor(ramp, t);
+  return t === undefined ? undefined : rampColor(heat.bg, t);
 };
 
 export const PROB_HEAT: Omit<Heat, 'value'> = {
@@ -57,21 +56,18 @@ export const PROB_HEAT: Omit<Heat, 'value'> = {
 export const PRECIP_HEAT: Omit<Heat, 'value'> = {
   t: v => (v > 0 ? Math.sqrt(Math.min(v, PRECIP_MAX) / PRECIP_MAX) : undefined),
   bg: [[0, HEAT_WHITE], [PRECIP_MID, HEAT_RAIN], [1, HEAT_RAIN_DEEP]],
-  accent: [[0, HEAT_WHITE], [PRECIP_MID, [46, 125, 215]], [1, [22, 78, 168]]],
   legend: [0, 0.5, 1, 5, 10, 20, 50],
   legendOver: true,
 };
 export const SUN_HEAT: Omit<Heat, 'value'> = {
   t: v => v / 60,
   bg: [[0, HEAT_GRAY], [1, HEAT_YELLOW]],
-  accent: [[0, HEAT_GRAY], [1, [234, 168, 0]]],
   nightDash: true,
   legend: [0, 15, 30, 45, 60],
 };
 export const RADIATION_HEAT: Omit<Heat, 'value'> = {
   t: v => v / 3.2,
   bg: [[0, HEAT_GRAY], [1, HEAT_AMBER]],
-  accent: [[0, HEAT_GRAY], [1, [222, 118, 20]]],
   nightDash: true,
   legend: [0, 0.8, 1.6, 2.4, 3.2],
   legendOver: true,

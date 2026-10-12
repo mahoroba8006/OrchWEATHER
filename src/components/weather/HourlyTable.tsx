@@ -6,7 +6,7 @@ import { currentHourIndex } from '../../lib/sky';
 import './hourly.css';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import type { HourlyRowKey } from '../../lib/hourlyRows';
-import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, type Heat, type Ramp, type RGB } from '../../lib/hourlyHeat';
+import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
 // ガントバー再表示時は以下2行のコメントを外す
 // import { computeWarningLanes } from '../../lib/warningGantt';
 // import { WarningBar } from './WarningBar';
@@ -287,44 +287,33 @@ const DATA_ROWS: {
 // }
 
 // ── Main component ────────────────────────────────────────
-/** 行の各列の塗り。背景の帯に、量の行は下端 2px の線を重ねる（どちらも境目をぼかす） */
+/**
+ * 上下の端を白へ溶かす重ね塗り。上下の行は別の項目なので、隣の行とは色を混ぜない
+ * （混ぜると降水確率の色が降水量に見えるなど、値の取り違えになる）
+ */
+const VERTICAL_SOFTEN = 'linear-gradient(to bottom, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0) 72%, rgb(255, 255, 255) 100%)';
+
+/** 行の各列の塗り（左右は隣の時刻と、上下は白とぼかした帯） */
 function heatFills(heat: Heat, tl: TLEntry[], isNighttime: (t: string) => boolean): (CSSProperties | undefined)[] {
-  const cellsFor = (ramp: Ramp) => tl.map((entry): RGB | null | 'bridge' => {
+  const cells = tl.map((entry): RGB | null | 'bridge' => {
     if (entry.kind === 'sun') return 'bridge';
     const v = heat.value(entry.data);
     if (heat.nightDash && v === 0 && isNighttime(entry.data.time)) return null;
-    return heatColor(heat, v, ramp) ?? null;
+    return heatColor(heat, v) ?? null;
   });
-  const bg = heatRibbon(cellsFor(heat.bg));
-  const accent = heat.accent ? heatRibbon(cellsFor(heat.accent)) : [];
-  return bg.map((b, i) => {
-    const a = accent[i];
-    if (!b && !a) return undefined;
-    if (!a?.image) return { backgroundColor: b?.color, backgroundImage: b?.image };
-    return {
-      backgroundColor: b?.color,
-      backgroundImage: b?.image ? `${a.image}, ${b.image}` : a.image,
-      backgroundSize: b?.image ? '100% 2px, 100% 100%' : '100% 2px',
-      backgroundPosition: b?.image ? 'left bottom, left top' : 'left bottom',
-      backgroundRepeat: 'no-repeat',
-    };
-  });
+  return heatRibbon(cells).map(b => b && { backgroundColor: b.color, backgroundImage: `${VERTICAL_SOFTEN}, ${b.image}` });
 }
 
-/** 凡例: 物差しの値ごとに色見本（背景＋下端の線）と数値を並べる。予報や判断の言葉は入れない */
+/** 凡例: 物差しの値ごとに色見本と数値を並べる。予報や判断の言葉は入れない */
 function HeatLegend({ heat, unit }: { heat: Heat; unit: string }) {
   const last = heat.legend.length - 1;
   return (
     <div className="hourly-legend" role="note">
       {heat.legend.map((v, j) => {
-        const bg = heatColor(heat, v, heat.bg);
-        const ac = heat.accent && heatColor(heat, v, heat.accent);
+        const bg = heatColor(heat, v);
         return (
           <div key={v} className="hourly-legend__item">
-            <span className="hourly-legend__swatch" style={{
-              background: bg ? rgbCss(bg) : 'var(--surface-card)',
-              boxShadow: ac ? `inset 0 -2px 0 ${rgbCss(ac)}` : undefined,
-            }} />
+            <span className="hourly-legend__swatch" style={{ background: bg ? rgbCss(bg) : 'var(--surface-card)' }} />
             <span>{v}{heat.legendOver && j === last ? '以上' : ''}</span>
           </div>
         );
