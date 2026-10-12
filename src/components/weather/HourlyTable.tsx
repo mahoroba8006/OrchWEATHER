@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties, type RefObject } from 'react';
+import { Fragment, useEffect, useState, type CSSProperties, type RefObject } from 'react';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
@@ -6,6 +6,7 @@ import { currentHourIndex } from '../../lib/sky';
 import './hourly.css';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import type { HourlyRowKey } from '../../lib/hourlyRows';
+import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, type Heat, type Ramp, type RGB } from '../../lib/hourlyHeat';
 // ガントバー再表示時は以下2行のコメントを外す
 // import { computeWarningLanes } from '../../lib/warningGantt';
 // import { WarningBar } from './WarningBar';
@@ -219,37 +220,22 @@ function degreesToCompass(deg: number): string {
 /** W/m²（1時間の平均）→ その1時間の日射量 MJ/m² */
 const toMJ = (w: number) => w * 0.0036;
 
-// ── セルの濃淡（ヒートマップ）。物差しは固定で、日や季節が違っても同じ色は同じ量 ──
-type RGB = readonly [number, number, number];
-const HEAT_WHITE: RGB = [255, 255, 255];
-const HEAT_GRAY: RGB = [236, 239, 241];
-const HEAT_YELLOW: RGB = [255, 213, 79];
-const HEAT_RAIN: RGB = [151, 190, 235]; // 降水の色（--chart-precip #2E7DD7）を白に半分混ぜた水色
-const mixRgb = (from: RGB, to: RGB, t: number) => {
-  const k = Math.max(0, Math.min(1, t));
-  return `rgb(${from.map((f, j) => Math.round(f + (to[j] - f) * k)).join(', ')})`;
-};
-/** 日照・日射: 0=灰色 → max=黄色 */
-const sunHeat = (max: number) => (v: number) => mixRgb(HEAT_GRAY, HEAT_YELLOW, v / max);
-/** 降水: 0=白（塗らない）→ max=水色 */
-const rainHeat = (max: number, curve: (t: number) => number = t => t) => (v: number) =>
-  v > 0 ? mixRgb(HEAT_WHITE, HEAT_RAIN, curve(v / max)) : undefined;
 
 // key は lib/hourlyRows の HOURLY_ROW_OPTIONS と同じ並び・同じキー
 // heat: 値の濃淡でセルを塗る。nightDash: 夜で値が0のときは「–」で塗らない
 // （日照・日射は直前1時間の量なので、日の入り直後の列にはまだ値が残る＝夜の時刻だけでは消さない）
 const DATA_ROWS: {
   key: HourlyRowKey; label: string; unit?: string; fmt: (h: HourlyForecast) => string;
-  heat?: { value: (h: HourlyForecast) => number; color: (v: number) => string | undefined; nightDash?: boolean };
+  heat?: Heat;
 }[] = [
   { key: 'temperature',  label: '気温',     unit: '℃',     fmt: h => h.temperature.toFixed(1) },
-  { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb), heat: { value: h => h.precipProb, color: rainHeat(100) } },
-  // 10mm/h で最も濃い。弱い雨（1mm/h 前後）も見えるよう平方根で持ち上げる
-  { key: 'precip',       label: '降水量',    unit: 'mm',    fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1), heat: { value: h => h.precipitation, color: rainHeat(10, Math.sqrt) } },
+  { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb), heat: { ...PROB_HEAT, value: h => h.precipProb } },
+  // 50mm/h で最も濃い。弱い雨（1mm/h 前後）も見えるよう平方根で持ち上げる
+  { key: 'precip',       label: '降水量',    unit: 'mm',    fmt: h => h.precipitation === 0 ? '0.0' : (Math.ceil(h.precipitation * 10) / 10).toFixed(1), heat: { ...PRECIP_HEAT, value: h => h.precipitation } },
   { key: 'snowfall',     label: '降雪量',    unit: 'cm',    fmt: h => h.snowfall === 0 ? '0.0' : (Math.ceil(h.snowfall * 10) / 10).toFixed(1) },
-  { key: 'sunshine',     label: '日照時間',  unit: '分',    fmt: h => String(Math.round(h.sunshine)), heat: { value: h => Math.round(h.sunshine), color: sunHeat(60), nightDash: true } },
+  { key: 'sunshine',     label: '日照時間',  unit: '分',    fmt: h => String(Math.round(h.sunshine)), heat: { ...SUN_HEAT, value: h => Math.round(h.sunshine) } },
   // 3.2 MJ/m² ≒ 890 W/m²（夏の快晴の正午ごろ）
-  { key: 'radiation',    label: '日射量',    unit: 'MJ/m²', fmt: h => toMJ(h.radiation).toFixed(2), heat: { value: h => Number(toMJ(h.radiation).toFixed(2)), color: sunHeat(3.2), nightDash: true } },
+  { key: 'radiation',    label: '日射量',    unit: 'MJ/m²', fmt: h => toMJ(h.radiation).toFixed(2), heat: { ...RADIATION_HEAT, value: h => Number(toMJ(h.radiation).toFixed(2)) } },
   { key: 'windSpeed',    label: '風速',      unit: 'm/s',   fmt: h => h.windSpeed.toFixed(1) },
   { key: 'windGusts',    label: '瞬間風速',  unit: 'm/s',   fmt: h => h.windGusts.toFixed(1) },
   { key: 'windDir',      label: '風向き',                   fmt: h => degreesToCompass(h.windDirection) },
@@ -301,9 +287,58 @@ const DATA_ROWS: {
 // }
 
 // ── Main component ────────────────────────────────────────
+/** 行の各列の塗り。背景の帯に、量の行は下端 2px の線を重ねる（どちらも境目をぼかす） */
+function heatFills(heat: Heat, tl: TLEntry[], isNighttime: (t: string) => boolean): (CSSProperties | undefined)[] {
+  const cellsFor = (ramp: Ramp) => tl.map((entry): RGB | null | 'bridge' => {
+    if (entry.kind === 'sun') return 'bridge';
+    const v = heat.value(entry.data);
+    if (heat.nightDash && v === 0 && isNighttime(entry.data.time)) return null;
+    return heatColor(heat, v, ramp) ?? null;
+  });
+  const bg = heatRibbon(cellsFor(heat.bg));
+  const accent = heat.accent ? heatRibbon(cellsFor(heat.accent)) : [];
+  return bg.map((b, i) => {
+    const a = accent[i];
+    if (!b && !a) return undefined;
+    if (!a?.image) return { backgroundColor: b?.color, backgroundImage: b?.image };
+    return {
+      backgroundColor: b?.color,
+      backgroundImage: b?.image ? `${a.image}, ${b.image}` : a.image,
+      backgroundSize: b?.image ? '100% 2px, 100% 100%' : '100% 2px',
+      backgroundPosition: b?.image ? 'left bottom, left top' : 'left bottom',
+      backgroundRepeat: 'no-repeat',
+    };
+  });
+}
+
+/** 凡例: 物差しの値ごとに色見本（背景＋下端の線）と数値を並べる。予報や判断の言葉は入れない */
+function HeatLegend({ heat, unit }: { heat: Heat; unit: string }) {
+  const last = heat.legend.length - 1;
+  return (
+    <div className="hourly-legend" role="note">
+      {heat.legend.map((v, j) => {
+        const bg = heatColor(heat, v, heat.bg);
+        const ac = heat.accent && heatColor(heat, v, heat.accent);
+        return (
+          <div key={v} className="hourly-legend__item">
+            <span className="hourly-legend__swatch" style={{
+              background: bg ? rgbCss(bg) : 'var(--surface-card)',
+              boxShadow: ac ? `inset 0 -2px 0 ${rgbCss(ac)}` : undefined,
+            }} />
+            <span>{v}{heat.legendOver && j === last ? '以上' : ''}</span>
+          </div>
+        );
+      })}
+      <span className="hourly-legend__unit">{unit}{heat.nightDash ? '・夜の0は「–」' : ''}</span>
+    </div>
+  );
+}
+
 export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, hiddenRowKeys }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
+  // 項目名をタップすると、その行の色と値の対応（凡例）を行の下に開く
+  const [legendKey, setLegendKey] = useState<HourlyRowKey | null>(null);
 
   // 履歴タブはすべての時刻が「過去」になるため、グレーアウトを無効化する
   const effectiveCutoff = disablePastOpacity ? new Date(0) : cutoff;
@@ -524,27 +559,50 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
             {DATA_ROWS
               .filter(row => row.key !== 'snowfall' || hasSnow)
               .filter(row => !hiddenRowKeys?.has(row.key))
-              .map(row => (
-              <tr key={row.key} style={{ borderBottom: ROW_BORDER }}>
-                <td className="hourly-label" style={STICKY}>
+              .map(row => {
+              const heat = row.heat;
+              const fills = heat && heatFills(heat, tl, isNighttime);
+              const legendOpen = !!heat && legendKey === row.key;
+              const labelInner = (
+                <>
                   <div>{row.label}</div>
-                  {row.unit && <div style={{ fontSize: '0.65rem', fontWeight: 400, lineHeight: 1, marginTop: 1, color: 'var(--ink-3)' }}>{row.unit}</div>}
+                  {row.unit && <div style={{ fontSize: '0.65rem', fontWeight: 400, lineHeight: 1, marginTop: 1, color: 'var(--ink-3)' }}>{row.unit}{heat && <span aria-hidden className={`hourly-legend-mark${legendOpen ? ' is-open' : ''}`}>▾</span>}</div>}
+                </>
+              );
+              return (
+              <Fragment key={row.key}>
+              <tr style={{ borderBottom: ROW_BORDER }}>
+                <td className="hourly-label" style={STICKY}>
+                  {heat ? (
+                    <button type="button" className="hourly-label-button" aria-expanded={legendOpen} aria-label={`${row.label}の色の見かた`}
+                      onClick={() => setLegendKey(legendOpen ? null : row.key)}>
+                      {labelInner}
+                    </button>
+                  ) : labelInner}
                 </td>
                 {tl.map((entry, i) => {
-                  if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W }} />;
-                  const h = entry.data;
                   const faded = isPast(entry);
-                  const heatValue = row.heat?.value(h);
-                  const dash = !!row.heat?.nightDash && heatValue === 0 && isNighttime(h.time);
-                  const heat = row.heat && heatValue !== undefined && !dash ? row.heat.color(heatValue) : undefined;
+                  const bg = fills?.[i];
+                  if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W, ...bg, opacity: faded ? FADED_OPACITY : undefined }} />;
+                  const h = entry.data;
+                  const dash = !!heat?.nightDash && heat.value(h) === 0 && isNighttime(h.time);
                   return (
-                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, background: heat, color: faded ? FADED_COLOR : 'var(--ink-1)', opacity: faded ? FADED_OPACITY : undefined, ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
+                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, ...bg, color: faded ? FADED_COLOR : 'var(--ink-1)', opacity: faded ? FADED_OPACITY : undefined, ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
                       {dash ? '–' : row.fmt(h)}
                     </td>
                   );
                 })}
               </tr>
-            ))}
+              {legendOpen && heat && (
+                <tr style={{ borderBottom: ROW_BORDER }}>
+                  <td colSpan={tl.length + 1} style={{ padding: 0 }}>
+                    <HeatLegend heat={heat} unit={row.unit ?? ''} />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
+              );
+            })}
           </tbody>
         </table>
         </div>
