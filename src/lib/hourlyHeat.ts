@@ -10,6 +10,7 @@ const HEAT_AMBER: RGB = [255, 188, 102];     // 日射: 日照の黄と並べて
 const HEAT_PROB: RGB = [205, 218, 234];      // 降水確率: 降水量と取り違えないよう青灰色で淡く
 const HEAT_WIND: RGB = [168, 214, 172];      // 風速: 淡い緑（雨・太陽より目立たせない）15m/s
 const HEAT_WIND_DEEP: RGB = [100, 172, 108]; // 風速 20m/s 以上（--ink-1 の文字とのコントラスト約6:1）
+const HEAT_UV: RGB = [184, 164, 230];        // 紫外線: 淡い紫（雨・太陽・風の色と重ならない）
 const HEAT_RAIN: RGB = [151, 190, 235];      // 降水の色（--chart-precip #2E7DD7）を白に半分混ぜた水色
 const HEAT_RAIN_30: RGB = [105, 160, 226];   // 降水量 30mm
 const HEAT_RAIN_DEEP: RGB = [70, 135, 215];  // 降水量 50mm 以上（--ink-1 の文字とのコントラスト約4.8:1）
@@ -68,6 +69,14 @@ export const WIND_HEAT: Omit<Heat, 'value'> = {
   t: v => (v > 0 ? v / 20 : undefined),
   bg: [[0, HEAT_WHITE], [0.75, HEAT_WIND], [1, HEAT_WIND_DEEP]],
   legend: [0, 3, 5, 10, 15, 20],
+  legendOver: true,
+};
+/** 紫外線指数: 0=白（塗らない）→ 11 以上で最も濃い淡紫。凡例の区切りは WHO の段階の境目（3・6・8・11） */
+export const UV_HEAT: Omit<Heat, 'value'> = {
+  t: v => (v > 0 ? v / 11 : undefined),
+  bg: [[0, HEAT_WHITE], [1, HEAT_UV]],
+  nightDash: true,
+  legend: [0, 3, 6, 8, 11],
   legendOver: true,
 };
 export const SUN_HEAT: Omit<Heat, 'value'> = {

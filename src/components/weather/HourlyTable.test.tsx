@@ -174,3 +174,20 @@ describe('HourlyTable の風速の色', () => {
     expect(bg).toEqual(['', 'rgb(212, 235, 214)', 'rgb(168, 214, 172)', 'rgb(100, 172, 108)', 'rgb(100, 172, 108)']);
   });
 });
+describe('HourlyTable の紫外線指数', () => {
+  it('アイコンでなく数字＋淡い紫。夜で0は「–」、11 以上で最も濃い', () => {
+    const uv = [
+      { ...hour('2026-10-01T04:00', 0), uvIndex: 0 },
+      { ...hour('2026-10-01T10:00', 0), uvIndex: 5.6 },
+      { ...hour('2026-10-01T12:00', 0), uvIndex: 12 },
+    ];
+    const { container, getByRole } = renderWithMotion(<HourlyTable hourly={uv} daily={daily} disablePastOpacity />);
+    expect(container.querySelector('img[alt^="UV"]')).toBeNull();
+    const row = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('紫外線指数'))!;
+    const tds = Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).filter(td => td.textContent !== '');
+    expect(tds.map(td => td.textContent)).toEqual(['–', '6', '12']);
+    expect(tds[0].style.backgroundColor).toBe('');
+    expect(tds[2].style.backgroundColor).toBe('rgb(184, 164, 230)');
+    expect(getByRole('button', { name: '紫外線指数の色の見かた' })).toBeTruthy();
+  });
+});

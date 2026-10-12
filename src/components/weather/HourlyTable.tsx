@@ -6,7 +6,7 @@ import { currentHourIndex } from '../../lib/sky';
 import './hourly.css';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import type { HourlyRowKey } from '../../lib/hourlyRows';
-import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, WIND_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
+import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, UV_HEAT, WIND_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
 // ガントバー再表示時は以下2行のコメントを外す
 // import { computeWarningLanes } from '../../lib/warningGantt';
 // import { WarningBar } from './WarningBar';
@@ -19,7 +19,7 @@ interface Props {
   disablePastOpacity?: boolean; // true: 過去時刻のグレーアウトを無効化（履歴タブ用）
   jmaWarnings?: JmaWarningItem[];
   // 非表示にするデータ行のキー集合（過去APIで欠落する項目用）。
-  // DATA_ROWS の key および UV行の 'uv' を指定可。未指定は全行表示。
+  // DATA_ROWS の key（紫外線指数の 'uv' を含む）を指定可。未指定は全行表示。
   hiddenRowKeys?: ReadonlySet<string>;
 }
 
@@ -170,45 +170,6 @@ function MiniChartRow({ tl, hourlyPos }: { tl: TLEntry[]; hourlyPos: number[] })
   );
 }
 
-// UV index → Meteocons filename
-function uvToIconFile(uvIndex: number): string {
-  const v = Math.round(uvIndex);
-  if (v <= 1)  return 'uv-index-1';
-  if (v >= 11) return 'uv-index-11-plus';
-  return `uv-index-${v}`;
-}
-
-function UVRow({ tl, isNighttime, cutoff }: {
-  tl: TLEntry[];
-  isNighttime: (t: string) => boolean;
-  cutoff: Date;
-}) {
-  return (
-    <tr>
-      <td className="hourly-label" style={STICKY}>紫外線指数</td>
-      {tl.map((entry, i) => {
-        if (entry.kind === 'sun') return <td key={`uv-sun-${i}`} style={{ minWidth: COL_W }} />;
-        const h = entry.data;
-        const isPast = new Date(h.time) < cutoff;
-        if (isNighttime(h.time)) {
-          return <td key={`uv-${h.time}`} style={{ minWidth: COL_W, opacity: isPast ? 0.35 : undefined }} />;
-        }
-        return (
-          <td key={`uv-${h.time}`} style={{ padding: '0.1rem 0', textAlign: 'center', minWidth: COL_W, verticalAlign: 'middle', opacity: isPast ? 0.35 : undefined }}>
-            <img
-              src={`/icons/weather/${uvToIconFile(h.uvIndex)}.svg`}
-              width={36}
-              height={36}
-              alt={`UV ${Math.round(h.uvIndex)}`}
-              style={{ display: 'inline-block' }}
-            />
-          </td>
-        );
-      })}
-    </tr>
-  );
-}
-
 // 度数 → 16方位の日本語
 function degreesToCompass(deg: number): string {
   const dirs = ['北', '北北東', '北東', '東北東', '東', '東南東', '南東', '南南東', '南', '南南西', '南西', '西南西', '西', '西北西', '北西', '北北西'];
@@ -228,6 +189,7 @@ const DATA_ROWS: {
   key: HourlyRowKey; label: string; unit?: string; fmt: (h: HourlyForecast) => string;
   heat?: Heat;
 }[] = [
+  { key: 'uv',           label: '紫外線指数',             fmt: h => String(Math.round(h.uvIndex)), heat: { ...UV_HEAT, value: h => Math.round(h.uvIndex) } },
   { key: 'temperature',  label: '気温',     unit: '℃',     fmt: h => h.temperature.toFixed(1) },
   { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb), heat: { ...PROB_HEAT, value: h => h.precipProb } },
   // 50mm/h で最も濃い。弱い雨（1mm/h 前後）も見えるよう平方根で持ち上げる
@@ -318,7 +280,7 @@ function HeatLegend({ heat, unit }: { heat: Heat; unit: string }) {
           </div>
         );
       })}
-      <span className="hourly-legend__unit">{unit}{heat.nightDash ? '・夜の0は「–」' : ''}</span>
+      <span className="hourly-legend__unit">{[unit, heat.nightDash && '夜の0は「–」'].filter(Boolean).join('・')}</span>
     </div>
   );
 }
@@ -541,9 +503,6 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 </tr>
               ));
             })()} */}
-            {!hiddenRowKeys?.has('uv') && (
-              <UVRow tl={tl} isNighttime={isNighttime} cutoff={effectiveCutoff} />
-            )}
             {/* データ行 */}
             {DATA_ROWS
               .filter(row => row.key !== 'snowfall' || hasSnow)
@@ -555,7 +514,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               const labelInner = (
                 <>
                   <div>{row.label}</div>
-                  {row.unit && <div style={{ fontSize: '0.65rem', fontWeight: 400, lineHeight: 1, marginTop: 1, color: 'var(--ink-3)' }}>{row.unit}{heat && <span aria-hidden className={`hourly-legend-mark${legendOpen ? ' is-open' : ''}`}>▾</span>}</div>}
+                  {(row.unit || heat) && <div style={{ fontSize: '0.65rem', fontWeight: 400, lineHeight: 1, marginTop: 1, color: 'var(--ink-3)' }}>{row.unit}{heat && <span aria-hidden className={`hourly-legend-mark${legendOpen ? ' is-open' : ''}`}>▾</span>}</div>}
                 </>
               );
               return (
