@@ -6,7 +6,7 @@ import { currentHourIndex } from '../../lib/sky';
 import './hourly.css';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import type { HourlyRowKey } from '../../lib/hourlyRows';
-import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
+import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, WIND_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
 // ガントバー再表示時は以下2行のコメントを外す
 // import { computeWarningLanes } from '../../lib/warningGantt';
 // import { WarningBar } from './WarningBar';
@@ -236,7 +236,7 @@ const DATA_ROWS: {
   { key: 'sunshine',     label: '日照時間',  unit: '分',    fmt: h => String(Math.round(h.sunshine)), heat: { ...SUN_HEAT, value: h => Math.round(h.sunshine) } },
   // 3.2 MJ/m² ≒ 890 W/m²（夏の快晴の正午ごろ）
   { key: 'radiation',    label: '日射量',    unit: 'MJ/m²', fmt: h => toMJ(h.radiation).toFixed(2), heat: { ...RADIATION_HEAT, value: h => Number(toMJ(h.radiation).toFixed(2)) } },
-  { key: 'windSpeed',    label: '風速',      unit: 'm/s',   fmt: h => h.windSpeed.toFixed(1) },
+  { key: 'windSpeed',    label: '風速',      unit: 'm/s',   fmt: h => h.windSpeed.toFixed(1), heat: { ...WIND_HEAT, value: h => h.windSpeed } },
   { key: 'windGusts',    label: '瞬間風速',  unit: 'm/s',   fmt: h => h.windGusts.toFixed(1) },
   { key: 'windDir',      label: '風向き',                   fmt: h => degreesToCompass(h.windDirection) },
   { key: 'pressure',     label: '気圧',      unit: 'hPa',   fmt: h => Math.round(h.pressure).toString() },

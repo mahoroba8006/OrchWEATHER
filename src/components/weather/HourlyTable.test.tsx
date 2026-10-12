@@ -165,3 +165,12 @@ describe('HourlyTable の凡例', () => {
     expect(queryByRole('button', { name: '気温の色の見かた' })).toBeNull();
   });
 });
+describe('HourlyTable の風速の色', () => {
+  it('0 は塗らず、15m/s 以上で最も濃い淡緑', () => {
+    const wind = [0, 7.5, 15, 20].map((w, k) => ({ ...hour(`2026-10-01T1${k}:00`, 0), windSpeed: w }));
+    const { container } = renderWithMotion(<HourlyTable hourly={wind} daily={daily} disablePastOpacity />);
+    const row = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('風速'))!;
+    const bg = Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).map(td => td.style.backgroundColor);
+    expect(bg).toEqual(['', 'rgb(212, 235, 214)', 'rgb(168, 214, 172)', 'rgb(168, 214, 172)']);
+  });
+});
