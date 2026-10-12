@@ -19,6 +19,16 @@ const mixRgb = (from: RGB, to: RGB, t: number): RGB => {
   return from.map((f, j) => Math.round(f + (to[j] - f) * k)) as unknown as RGB;
 };
 export const rgbCss = (c: RGB) => `rgb(${c.join(', ')})`;
+/**
+ * 白の上に重ねると c と同じ色に見える、できるだけ透明な色。
+ * 帯の後ろの景色を透かすため（白地では今までの不透明な色と同じ見た目になる）
+ */
+export const overWhite = (c: RGB): string => {
+  const a = Math.max(...c.map(v => 255 - v)) / 255;
+  if (a === 0) return 'rgba(255, 255, 255, 0)';
+  const base = c.map(v => Math.round(255 - (255 - v) / a));
+  return `rgba(${base.join(', ')}, ${Math.round(a * 1000) / 1000})`;
+};
 /** 位置 0〜1 に色を置いた物差し。間は直線で混ぜる */
 type Ramp = readonly (readonly [number, RGB])[];
 const rampColor = (ramp: Ramp, t: number): RGB => {
@@ -97,9 +107,12 @@ export const RADIATION_HEAT: Omit<Heat, 'value'> = {
  * 隣の時刻との境目をぼかす。各列の中央（30〜70%）は値どおりの色のまま数字の下に残し、
  * 左右の端は隣の列との中間色にする（両側から同じ色になるので継ぎ目が出ない）。
  * null は塗らない列（雨0・夜の「–」）＝白として扱う。'bridge' は日の出・日の入りの列で、両隣の色をつなぐ。
- * 返り値: 列ごとの { color: 中央の色, image: 境目のグラデーション }。両隣も含めて塗らない列は undefined。
+ * 返り値: 列ごとの { color: 中央の色, image: 境目のグラデーション（paint で色を書く） }。両隣も含めて塗らない列は undefined。
  */
-export function heatRibbon(cells: (RGB | null | 'bridge')[]): ({ color?: string; image?: string } | undefined)[] {
+export function heatRibbon(
+  cells: (RGB | null | 'bridge')[],
+  paint: (c: RGB) => string = rgbCss,
+): ({ color?: string; image?: string } | undefined)[] {
   const solid = (k: number): RGB | null => {
     const c = cells[k];
     return c === 'bridge' ? null : c ?? null;
@@ -121,11 +134,11 @@ export function heatRibbon(cells: (RGB | null | 'bridge')[]): ({ color?: string;
     const r = i < resolved.length - 1 ? resolved[i + 1] : c;
     if (!c && !l && !r) return undefined;
     const self = c ?? HEAT_WHITE;
-    const left = rgbCss(mixRgb(self, l ?? HEAT_WHITE, 0.5));
-    const right = rgbCss(mixRgb(self, r ?? HEAT_WHITE, 0.5));
-    const mid = rgbCss(self);
+    const left = paint(mixRgb(self, l ?? HEAT_WHITE, 0.5));
+    const right = paint(mixRgb(self, r ?? HEAT_WHITE, 0.5));
+    const mid = paint(self);
     return {
-      color: c ? mid : undefined,
+      color: c ? rgbCss(self) : undefined,
       image: `linear-gradient(to right, ${left} 0%, ${mid} 30%, ${mid} 70%, ${right} 100%)`,
     };
   });

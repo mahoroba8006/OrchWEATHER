@@ -1,12 +1,13 @@
-import { Fragment, useEffect, useState, type CSSProperties, type RefObject } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
 import { currentHourIndex } from '../../lib/sky';
 import './hourly.css';
+import { sceneryBackground } from '../../lib/hourlyScenery';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import type { HourlyRowKey } from '../../lib/hourlyRows';
-import { heatColor, heatRibbon, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, UV_HEAT, WIND_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
+import { heatColor, heatRibbon, overWhite, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, UV_HEAT, WIND_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
 // ガントバー再表示時は以下2行のコメントを外す
 // import { computeWarningLanes } from '../../lib/warningGantt';
 // import { WarningBar } from './WarningBar';
@@ -250,21 +251,25 @@ const DATA_ROWS: {
 
 // ── Main component ────────────────────────────────────────
 /**
- * 上下の端を白へ溶かす重ね塗り。上下の行は別の項目なので、隣の行とは色を混ぜない
- * （混ぜると降水確率の色が降水量に見えるなど、値の取り違えになる）
+ * 行の各列の塗り。左右は隣の時刻とぼかし、上下の端は透明へ溶かす（hourly.css の .hourly-heat）。
+ * 上下の行は別の項目なので、隣の行とは色を混ぜない（混ぜると降水確率の色が降水量に見えるなど、値の取り違えになる）。
+ * 色は「白の上で同じに見える半透明」で塗り、帯の後ろの景色を透かす。color は中央の不透明な色（data-heat）
  */
-const VERTICAL_SOFTEN = 'linear-gradient(to bottom, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0) 72%, rgb(255, 255, 255) 100%)';
-
-/** 行の各列の塗り（左右は隣の時刻と、上下は白とぼかした帯） */
-function heatFills(heat: Heat, tl: TLEntry[], isNighttime: (t: string) => boolean): (CSSProperties | undefined)[] {
+type HeatFill = { color?: string; image?: string };
+function heatFills(heat: Heat, tl: TLEntry[], isNighttime: (t: string) => boolean): (HeatFill | undefined)[] {
   const cells = tl.map((entry): RGB | null | 'bridge' => {
     if (entry.kind === 'sun') return 'bridge';
     const v = heat.value(entry.data);
     if (heat.nightDash && v === 0 && isNighttime(entry.data.time)) return null;
     return heatColor(heat, v) ?? null;
   });
-  return heatRibbon(cells).map(b => b && { backgroundColor: b.color, backgroundImage: `${VERTICAL_SOFTEN}, ${b.image}` });
+  return heatRibbon(cells, overWhite);
 }
+const heatProps = (f: HeatFill | undefined) => f && {
+  className: 'hourly-heat',
+  'data-heat': f.color,
+  style: { '--heat': f.image } as CSSProperties,
+};
 
 /** 凡例: 物差しの値ごとに色見本と数値を並べる。予報や判断の言葉は入れない */
 function HeatLegend({ heat, unit }: { heat: Heat; unit: string }) {
@@ -290,6 +295,43 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
   const cutoff = new Date(now.getTime() - 3600 * 1000);
   // 項目名をタップすると、その行の色と値の対応（凡例）を行の下に開く
   const [legendKey, setLegendKey] = useState<HourlyRowKey | null>(null);
+  const ownScrollRef = useRef<HTMLDivElement>(null);
+  const scroller = scrollRef ?? ownScrollRef;
+
+  // 景色を横スクロールより遅く流す（再描画せず CSS 変数だけ更新）
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        el.style.setProperty('--sx', String(Math.round(el.scrollLeft)));
+      });
+    };
+    onScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => { el.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf); };
+  }, [scroller]);
+
+  // 山の麓を、色のある行のうち一番下の行の下端に置く（無ければ表の下端）。行の増減・凡例の開閉で表の高さが変わったら測り直す
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    const table = el?.querySelector('table');
+    if (!el || !table) return;
+    const place = () => {
+      const rows = table.querySelectorAll<HTMLElement>('tr[data-heat-row]');
+      const last = rows[rows.length - 1];
+      const foot = table.offsetTop + (last ? last.offsetTop + last.offsetHeight : table.offsetHeight);
+      el.style.setProperty('--foot', String(foot));
+    };
+    place();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(place);
+    ro.observe(table);
+    return () => ro.disconnect();
+  }, [scroller, hiddenRowKeys, hourly]); // 色の行と色のない行の入れ替えは表の高さが変わらないことがある
 
   // 履歴タブはすべての時刻が「過去」になるため、グレーアウトを無効化する
   const effectiveCutoff = disablePastOpacity ? new Date(0) : cutoff;
@@ -371,7 +413,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
 
   return (
     <div>
-      <div ref={scrollRef ?? undefined} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
+      <div ref={scroller} data-scenery="mountains" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', ...sceneryBackground(), borderBottom: '1px solid var(--line)' }}>
         {/* width を明示しないと table-layout:fixed が colgroup 幅を厳密適用せず、
             列がセル内容に合わせて COL_W より広くなる。すると固定ピクセルで描く
             ミニグラフSVG(W=列数×COL_W)が実列幅と食い違い、右へ行くほどバーがずれる。
@@ -519,7 +561,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               );
               return (
               <Fragment key={row.key}>
-              <tr>
+              <tr data-heat-row={heat ? '' : undefined}>
                 <td className="hourly-label" style={STICKY}>
                   {heat ? (
                     <button type="button" className="hourly-label-button" aria-expanded={legendOpen} aria-label={`${row.label}の色の見かた`}
@@ -530,12 +572,12 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 </td>
                 {tl.map((entry, i) => {
                   const faded = isPast(entry);
-                  const bg = fills?.[i];
-                  if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} style={{ minWidth: COL_W, ...bg, opacity: faded ? FADED_OPACITY : undefined }} />;
+                  const fill = heatProps(fills?.[i]);
+                  if (entry.kind === 'sun') return <td key={`${row.key}-${i}`} {...fill} style={{ minWidth: COL_W, ...fill?.style, opacity: faded ? FADED_OPACITY : undefined }} />;
                   const h = entry.data;
                   const dash = !!heat?.nightDash && heat.value(h) === 0 && isNighttime(h.time);
                   return (
-                    <td key={`${row.key}-${i}`} style={{ padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, ...bg, color: faded ? FADED_COLOR : 'var(--ink-1)', opacity: faded ? FADED_OPACITY : undefined, ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
+                    <td key={`${row.key}-${i}`} {...fill} style={{ padding: '0.3rem 0.1rem', textAlign: 'center', minWidth: COL_W, ...fill?.style, color: faded ? FADED_COLOR : 'var(--ink-1)', opacity: faded ? FADED_OPACITY : undefined, ...(row.key === 'windDir' ? { fontSize: '0.7rem' } : {}) }}>
                       {dash ? '–' : row.fmt(h)}
                     </td>
                   );

@@ -1,7 +1,7 @@
 import { cleanup, fireEvent } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { HourlyTable } from './HourlyTable';
-import { heatRibbon } from '../../lib/hourlyHeat';
+import { heatRibbon, overWhite, type RGB } from '../../lib/hourlyHeat';
 import { HOURLY_ROW_OPTIONS } from '../../lib/hourlyRows';
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
@@ -36,12 +36,12 @@ describe('HourlyTable', () => {
     const row = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('降水量'))!;
     const tds = Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).filter(td => td.textContent !== '');
     expect(tds.map(td => td.textContent)).toEqual(['0.0', '5.0', '0.0', '12.0']);
-    expect(tds[0].style.backgroundColor).toBe('');
-    expect(tds[1].style.backgroundColor).not.toBe('');
-    expect(tds[3].style.backgroundColor).toBe('rgb(145, 186, 234)');
+    expect(tds[0].getAttribute('data-heat') ?? '').toBe('');
+    expect(tds[1].getAttribute('data-heat') ?? '').not.toBe('');
+    expect(tds[3].getAttribute('data-heat') ?? '').toBe('rgb(145, 186, 234)');
     // 降水確率は降水量と取り違えないよう青灰色で淡く（30%）
     const prob = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('降水確率'))!;
-    expect(prob.querySelectorAll<HTMLElement>('td')[1].style.backgroundColor).toBe('rgb(240, 244, 249)');
+    expect(prob.querySelectorAll<HTMLElement>('td')[1].getAttribute('data-heat') ?? '').toBe('rgb(240, 244, 249)');
   });
 
   it('marks exactly one column as current', () => {
@@ -100,15 +100,41 @@ describe('HourlyTable の日照時間・日射量', () => {
     const { container } = renderWithMotion(<HourlyTable hourly={sunHourly} daily={daily} disablePastOpacity />);
     const sun = cells(container, '日照時間');
     expect(sun.map(td => td.textContent)).toEqual(['–', '60', '0', '12']);
-    expect(sun[0].style.backgroundColor).toBe('');
-    expect(sun[1].style.backgroundColor).toBe('rgb(255, 213, 79)');
-    expect(sun[2].style.backgroundColor).toBe('rgb(236, 239, 241)');
+    expect(sun[0].getAttribute('data-heat') ?? '').toBe('');
+    expect(sun[1].getAttribute('data-heat') ?? '').toBe('rgb(255, 213, 79)');
+    expect(sun[2].getAttribute('data-heat') ?? '').toBe('rgb(236, 239, 241)');
     const rad = cells(container, '日射量');
     expect(rad.map(td => td.textContent)).toEqual(['–', '3.20', '0.00', '0.18']);
-    expect(rad[1].style.backgroundColor).toBe('rgb(255, 188, 102)'); // 日射は橙寄り（日照の黄と見分ける）
+    expect(rad[1].getAttribute('data-heat') ?? '').toBe('rgb(255, 188, 102)'); // 日射は橙寄り（日照の黄と見分ける）
   });
 });
 
+describe('景色を透かす帯の色', () => {
+  it('overWhite は白の上で元の色と同じに見える半透明（白は完全に透明）', () => {
+    const cases: RGB[] = [[255, 213, 79], [236, 239, 241], [70, 135, 215], [212, 235, 214]];
+    for (const c of cases) {
+      const [r, g, b, a] = overWhite(c).match(/[\d.]+/g)!.map(Number);
+      const seen = [r, g, b].map(v => v * a + 255 * (1 - a));
+      seen.forEach((v, j) => expect(Math.abs(v - c[j])).toBeLessThanOrEqual(1));
+    }
+    expect(overWhite([255, 255, 255])).toBe('rgba(255, 255, 255, 0)');
+  });
+  it('色のある列は半透明のぼかしを CSS 変数で渡し、表の枠には景色を敷く', () => {
+    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />);
+    const cell = container.querySelector<HTMLElement>('td.hourly-heat[data-heat]')!;
+    expect(cell.style.getPropertyValue('--heat')).toMatch(/^linear-gradient\(to right, rgba\(/);
+    expect(cell.style.backgroundColor).toBe('');
+    expect(container.querySelector('[data-scenery="mountains"]')).toBeTruthy();
+  });
+  it('山の麓の位置（--foot）は色のある行のうち一番下の行で決める', () => {
+    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />);
+    const marked = Array.from(container.querySelectorAll('tr[data-heat-row]')).map(tr => tr.querySelector('.hourly-label')?.textContent);
+    const expected = ['降水確率', '降水量', '日照時間', '日射量', '紫外線指数', '風速'];
+    expect(marked).toHaveLength(expected.length);
+    marked.forEach((t, k) => expect(t?.startsWith(expected[k])).toBe(true));
+    expect(container.querySelector<HTMLElement>('[data-scenery]')!.style.getPropertyValue('--foot')).not.toBe('');
+  });
+});
 describe('heatRibbon（境目のぼかし）', () => {
   const Y = [255, 213, 79] as const;
   const G = [236, 239, 241] as const;
@@ -141,7 +167,7 @@ describe('heatRibbon（境目のぼかし）', () => {
 describe('HourlyTable の降水量の色', () => {
   const bg = (container: HTMLElement) => {
     const row = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('降水量'))!;
-    return Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).map(td => td.style.backgroundColor);
+    return Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).map(td => td.getAttribute('data-heat') ?? '');
   };
 
   it('0 は塗らず、10mm は水色、50mm 以上は濃い青（上限）', () => {
@@ -171,7 +197,7 @@ describe('HourlyTable の風速の色', () => {
     const wind = [0, 7.5, 15, 20, 25].map((w, k) => ({ ...hour(`2026-10-01T1${k}:00`, 0), windSpeed: w }));
     const { container } = renderWithMotion(<HourlyTable hourly={wind} daily={daily} disablePastOpacity />);
     const row = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('風速'))!;
-    const bg = Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).map(td => td.style.backgroundColor);
+    const bg = Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).map(td => td.getAttribute('data-heat') ?? '');
     expect(bg).toEqual(['', 'rgb(212, 235, 214)', 'rgb(168, 214, 172)', 'rgb(100, 172, 108)', 'rgb(100, 172, 108)']);
   });
 });
@@ -187,8 +213,8 @@ describe('HourlyTable の紫外線指数', () => {
     const row = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('紫外線指数'))!;
     const tds = Array.from(row.querySelectorAll<HTMLElement>('td')).slice(1).filter(td => td.textContent !== '');
     expect(tds.map(td => td.textContent)).toEqual(['–', '6', '12']);
-    expect(tds[0].style.backgroundColor).toBe('');
-    expect(tds[2].style.backgroundColor).toBe('rgb(184, 164, 230)');
+    expect(tds[0].getAttribute('data-heat') ?? '').toBe('');
+    expect(tds[2].getAttribute('data-heat') ?? '').toBe('rgb(184, 164, 230)');
     expect(getByRole('button', { name: '紫外線指数の色の見かた' })).toBeTruthy();
   });
 });

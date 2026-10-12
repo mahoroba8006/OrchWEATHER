@@ -50,3 +50,15 @@
 .hourly-legend__item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .hourly-legend__swatch { width: 26px; height: 14px; border-radius: 2px; border: 1px solid var(--line); }
 .hourly-legend__unit { color: var(--ink-3); align-self: center; }
+/* 色の帯: 上下の端を透明へ溶かし、後ろの景色を透かす（文字は消さないよう塗りだけを ::before に置いて mask する） */
+.hourly-heat { position: relative; z-index: 0; }
+.hourly-heat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--heat);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 28%, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 28%, #000 72%, transparent 100%);
+  pointer-events: none;
+}
