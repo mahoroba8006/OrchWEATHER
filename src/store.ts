@@ -3,6 +3,7 @@ import type { User } from 'firebase/auth';
 import type { WeatherCodeMode } from './lib/wmoSeverity';
 import type { ReviewBase, SeasonPaceModes } from './lib/seasonReview';
 import { loadGuestHiddenHourlyRows, saveGuestHiddenHourlyRows, DEFAULT_HIDDEN_HOURLY_ROWS, type HourlyRowKey } from './lib/hourlyRows';
+import { loadGuestHourlyScenery, saveGuestHourlyScenery, type HourlyScenery } from './lib/hourlyScenery';
 import { fetchAiAllowed } from './api/me';
 import {
   fetchLocations,
@@ -22,6 +23,7 @@ import {
   updateSeasonPaceModes as updateSeasonPaceModesRemote,
   updateSeasonReviewBase as updateSeasonReviewBaseRemote,
   updateHiddenHourlyRows as updateHiddenHourlyRowsRemote,
+  updateHourlyScenery as updateHourlySceneryRemote,
 } from './lib/userRepository';
 
 export interface LocationInfo {
@@ -75,6 +77,8 @@ export interface UserSettings {
   seasonPaceModes:      SeasonPaceModes;
   seasonReviewBase:     ReviewBase;
   hiddenHourlyRows:     HourlyRowKey[];
+  /** 時間別の表の後ろの景色 */
+  hourlyScenery:        HourlyScenery;
 }
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -100,6 +104,7 @@ interface AppState {
   aiAllowed: boolean;
   guestMode: boolean;
   guestHiddenHourlyRows: HourlyRowKey[];
+  guestHourlyScenery: HourlyScenery;
   /** ゲスト（未ログイン）の天気アイコンの表示基準（localStorage に保存） */
   guestWeatherCodeMode: WeatherCodeMode;
 
@@ -123,6 +128,7 @@ interface AppState {
   updateSeasonPaceModes: (modes: SeasonPaceModes) => Promise<void>;
   updateSeasonReviewBase: (base: ReviewBase) => Promise<void>;
   updateHiddenHourlyRows: (rows: HourlyRowKey[]) => Promise<void>;
+  updateHourlyScenery: (scenery: HourlyScenery) => Promise<void>;
   addLocation: (loc: Omit<LocationInfo, 'id'>) => Promise<void>;
   updateLocation: (id: string, loc: Partial<LocationInfo>) => Promise<void>;
   deleteLocation: (id: string) => Promise<void>;
@@ -142,6 +148,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   aiAllowed: false,
   guestMode: typeof localStorage !== 'undefined' && localStorage.getItem('guestMode') === '1',
   guestHiddenHourlyRows: loadGuestHiddenHourlyRows(),
+  guestHourlyScenery: loadGuestHourlyScenery(),
   guestWeatherCodeMode: loadGuestWeatherCodeMode(),
 
   setUser: (user) => set({ user }),
@@ -230,6 +237,22 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set((state) => ({
       userSettings: state.userSettings
         ? { ...state.userSettings, hiddenHourlyRows: rows }
+        : null,
+    }));
+  },
+
+  // ログイン中は Firestore、ゲストは localStorage に保存（成功してから状態を更新）
+  updateHourlyScenery: async (scenery) => {
+    const uid = get().user?.uid;
+    if (!uid) {
+      saveGuestHourlyScenery(scenery);
+      set({ guestHourlyScenery: scenery });
+      return;
+    }
+    await updateHourlySceneryRemote(uid, scenery);
+    set((state) => ({
+      userSettings: state.userSettings
+        ? { ...state.userSettings, hourlyScenery: scenery }
         : null,
     }));
   },
@@ -347,6 +370,11 @@ export function useWeatherCodeMode(): WeatherCodeMode {
 /** 時間別の表で非表示にする行（ログイン設定 → ゲスト値 → おすすめ） */
 export function useHiddenHourlyRows(): HourlyRowKey[] {
   return useAppStore(s => s.userSettings?.hiddenHourlyRows ?? s.guestHiddenHourlyRows ?? DEFAULT_HIDDEN_HOURLY_ROWS);
+}
+
+/** 時間別の表の後ろの景色（ログイン設定 → ゲスト値） */
+export function useHourlyScenery(): HourlyScenery {
+  return useAppStore(s => s.userSettings?.hourlyScenery ?? s.guestHourlyScenery);
 }
 
 export {

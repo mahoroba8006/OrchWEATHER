@@ -119,8 +119,10 @@ describe('景色を透かす帯の色', () => {
     }
     expect(overWhite([255, 255, 255])).toBe('rgba(255, 255, 255, 0)');
   });
-  it('色のある列は半透明のぼかしを CSS 変数で渡し、表の枠には景色を敷く', () => {
-    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />);
+  it('色のある列は半透明のぼかしを CSS 変数で渡し、表の枠には景色を敷く（未指定は景色なし）', () => {
+    expect(renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />).container.querySelector('[data-scenery="none"]')).toBeTruthy();
+    cleanup();
+    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity scenery="mountains" />);
     const cell = container.querySelector<HTMLElement>('td.hourly-heat[data-heat]')!;
     expect(cell.style.getPropertyValue('--heat')).toMatch(/^linear-gradient\(to right, rgba\(/);
     expect(cell.style.backgroundColor).toBe('');

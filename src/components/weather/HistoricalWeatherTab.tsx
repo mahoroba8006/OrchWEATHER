@@ -1,7 +1,7 @@
 // src/components/weather/HistoricalWeatherTab.tsx
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
-import { useAppStore, useWeatherCodeMode } from '../../store';
+import { useAppStore, useHourlyScenery, useWeatherCodeMode } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useHistoricalForecast } from '../../hooks/useHistoricalForecast';
 import { HISTORY_DAYS } from '../../api/historicalForecast';
@@ -33,6 +33,7 @@ export interface HistoryRequest { start: string; locationId: string }
 export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | null }) {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, updateWeatherCodeMode } = useAppStore();
   const weatherCodeMode = useWeatherCodeMode();
+  const hourlyScenery = useHourlyScenery();
   const [selectedLocationId, setSelectedLocationId] = useState<string>(request?.locationId ?? '');
   const [buttonGeoLoading, setButtonGeoLoading] = useState(false);
   const [buttonGeoError, setButtonGeoError] = useState('');
@@ -262,6 +263,7 @@ export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | n
                 scrollTarget={scrollTarget}
                 disablePastOpacity
                 hiddenRowKeys={hiddenRowKeys}
+                scenery={hourlyScenery}
               />
             </section>
           )}

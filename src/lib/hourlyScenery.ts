@@ -1,12 +1,15 @@
 import type { CSSProperties } from 'react';
 
-// ── 時間別の表の後ろの景色（和風の淡い山並み）。色の帯を雲に見立てる ──
+// ── 時間別の表の後ろの景色（和風の淡い山並み・海・丘）。色の帯を雲に見立てる ──
 // 各層は横に継ぎ目なく繰り返す SVG。層ごとに幅を変えて繰り返しの周期をずらす。
 // 横スクロールに対して遠い層ほどゆっくり動かす（--sx = scrollLeft。background は枠に固定されるので、
 // 位置を -sx × 速さ だけずらすと、その速さで流れて見える）。
 
-/** 稜線の波。cycles は1枚の幅に入る山の数（整数なので横に継ぎ目なく繰り返す） */
-type Wave = { cycles: number; amp: number; phase: number };
+/**
+ * 稜線の波。cycles は1枚の幅に入る山の数（整数なので横に継ぎ目なく繰り返す）。
+ * bump: 平らな線の上に、ところどころ膨らみだけを出す（水平線の島など）
+ */
+type Wave = { cycles: number; amp: number; phase: number; bump?: boolean };
 type Layer = {
   w: number;
   h: number;
@@ -28,7 +31,10 @@ const inkOnWhite = (a: number) => `rgb(${INK.map(v => Math.round(255 + (v - 255)
 const ridgePath = ({ w, base, waves }: Layer) => {
   const pts: string[] = [];
   for (let x = 0; x <= w; x += 4) {
-    const lift = waves.reduce((sum, { cycles, amp, phase }) => sum + amp * (0.5 + 0.5 * Math.sin(2 * Math.PI * (cycles * x / w + phase))), 0);
+    const lift = waves.reduce((sum, { cycles, amp, phase, bump }) => {
+      const s = Math.sin(2 * Math.PI * (cycles * x / w + phase));
+      return sum + amp * (bump ? Math.max(0, s) ** 6 : 0.5 + 0.5 * s);
+    }, 0);
     pts.push(`${x} ${(base - lift).toFixed(1)}`);
   }
   return `M${pts.join(' L')}`;
@@ -66,8 +72,40 @@ const MOUNTAINS: Layer[] = [
   },
 ];
 
-/** 枠（横スクロールする要素）に付ける背景。後ろに白地を敷く。
- * 塗りはごく淡く: 帯は半透明なので、後ろが濃い灰色だと色がくすみ凡例の色見本とずれる */
+/** 海: 水平線（麓から HORIZON px 上）に遠くの島、手前へうねりの層 */
+const HORIZON = 96;
+const SEA: Layer[] = [
+  {
+    w: 1500, h: HORIZON + 44, base: 44, tone: 0.08, foot: 0.06, speed: 1 / 24,
+    waves: [{ cycles: 2, amp: 22, phase: 0.15, bump: true }, { cycles: 3, amp: 12, phase: 0.55, bump: true }, { cycles: 5, amp: 7, phase: 0.85, bump: true }],
+  },
+  { w: 1000, h: HORIZON, base: 0, tone: 0.07, foot: 0.03, speed: 1 / 16, waves: [] },
+  {
+    w: 1100, h: 64, base: 3, tone: 0.09, foot: 0.035, speed: 1 / 8,
+    waves: [{ cycles: 11, amp: 2.5, phase: 0.2 }, { cycles: 29, amp: 1, phase: 0.6 }],
+  },
+  {
+    w: 1300, h: 34, base: 4, tone: 0.11, foot: 0.055, speed: 1 / 5,
+    waves: [{ cycles: 7, amp: 4, phase: 0.4 }, { cycles: 17, amp: 1.5, phase: 0.1 }],
+  },
+];
+
+/** 丘: 山並みより低く、長くなだらかな3層 */
+const HILLS: Layer[] = [
+  {
+    w: 1400, h: 150, base: 150, tone: 0.06, foot: 0.015, speed: 1 / 16,
+    waves: [{ cycles: 2, amp: 56, phase: 0.2 }, { cycles: 5, amp: 16, phase: 0.7 }],
+  },
+  {
+    w: 1250, h: 110, base: 110, tone: 0.08, foot: 0.025, speed: 1 / 9,
+    waves: [{ cycles: 3, amp: 46, phase: 0.55 }, { cycles: 7, amp: 10, phase: 0.1 }],
+  },
+  {
+    w: 1550, h: 64, base: 64, tone: 0.1, foot: 0.05, speed: 1 / 5,
+    waves: [{ cycles: 2, amp: 34, phase: 0.35 }, { cycles: 5, amp: 8, phase: 0.8 }],
+  },
+];
+
 /** 麓より下（色のない行の後ろ）は、いちばん手前の層の麓の色から始めて谷の霧のように消していく */
 const GROUND_FADE = 160;
 const groundUri = (near: Layer) =>
@@ -89,5 +127,43 @@ const layered = (scene: Layer[]): CSSProperties => {
     backgroundColor: 'var(--surface-card)',
   };
 };
-const MOUNTAINS_BG = layered(MOUNTAINS);
-export const sceneryBackground = (): CSSProperties => MOUNTAINS_BG;
+
+/** 景色の選択肢（設定の並び順）。塗りはごく淡く: 帯は半透明なので、後ろが濃い灰色だと色がくすみ凡例の色見本とずれる */
+export const SCENERY_OPTIONS = [
+  { value: 'mountains', label: '山並み' },
+  { value: 'sea', label: '海' },
+  { value: 'hills', label: '丘' },
+  { value: 'none', label: 'なし' },
+] as const;
+export type HourlyScenery = (typeof SCENERY_OPTIONS)[number]['value'];
+export const DEFAULT_HOURLY_SCENERY: HourlyScenery = 'mountains';
+
+const BACKGROUNDS: Record<HourlyScenery, CSSProperties> = {
+  mountains: layered(MOUNTAINS),
+  sea: layered(SEA),
+  hills: layered(HILLS),
+  none: { backgroundColor: 'var(--surface-card)' },
+};
+/** 枠（横スクロールする要素）に付ける背景。後ろに白地を敷く */
+export const sceneryBackground = (kind: HourlyScenery): CSSProperties => BACKGROUNDS[kind];
+
+/** 保存値の読み取り。知らない値は既定（山並み） */
+export function parseHourlyScenery(raw: unknown): HourlyScenery {
+  return SCENERY_OPTIONS.some(o => o.value === raw) ? raw as HourlyScenery : DEFAULT_HOURLY_SCENERY;
+}
+
+export const GUEST_HOURLY_SCENERY_KEY = 'hourlyScenery';
+
+export function loadGuestHourlyScenery(): HourlyScenery {
+  try {
+    return parseHourlyScenery(localStorage.getItem(GUEST_HOURLY_SCENERY_KEY));
+  } catch {
+    return DEFAULT_HOURLY_SCENERY;
+  }
+}
+
+export function saveGuestHourlyScenery(kind: HourlyScenery): void {
+  try {
+    localStorage.setItem(GUEST_HOURLY_SCENERY_KEY, kind);
+  } catch { /* localStorage 不可環境は無視 */ }
+}

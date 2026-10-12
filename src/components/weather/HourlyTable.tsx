@@ -4,7 +4,7 @@ import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
 import { currentHourIndex } from '../../lib/sky';
 import './hourly.css';
-import { sceneryBackground } from '../../lib/hourlyScenery';
+import { sceneryBackground, type HourlyScenery } from '../../lib/hourlyScenery';
 import type { JmaWarningItem } from '../../api/jmaWarning';
 import type { HourlyRowKey } from '../../lib/hourlyRows';
 import { heatColor, heatRibbon, overWhite, rgbCss, PRECIP_HEAT, PROB_HEAT, RADIATION_HEAT, SUN_HEAT, UV_HEAT, WIND_HEAT, type Heat, type RGB } from '../../lib/hourlyHeat';
@@ -22,6 +22,8 @@ interface Props {
   // 非表示にするデータ行のキー集合（過去APIで欠落する項目用）。
   // DATA_ROWS の key（紫外線指数の 'uv' を含む）を指定可。未指定は全行表示。
   hiddenRowKeys?: ReadonlySet<string>;
+  /** 表の後ろの景色（色の帯を雲に見立てる）。未指定は景色なし */
+  scenery?: HourlyScenery;
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -290,7 +292,7 @@ function HeatLegend({ heat, unit }: { heat: Heat; unit: string }) {
   );
 }
 
-export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, hiddenRowKeys }: Props) {
+export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePastOpacity, hiddenRowKeys, scenery = 'none' }: Props) {
   const now    = new Date();
   const cutoff = new Date(now.getTime() - 3600 * 1000);
   // 項目名をタップすると、その行の色と値の対応（凡例）を行の下に開く
@@ -413,7 +415,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
 
   return (
     <div>
-      <div ref={scroller} data-scenery="mountains" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', ...sceneryBackground(), borderBottom: '1px solid var(--line)' }}>
+      <div ref={scroller} data-scenery={scenery} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', ...sceneryBackground(scenery), borderBottom: '1px solid var(--line)' }}>
         {/* width を明示しないと table-layout:fixed が colgroup 幅を厳密適用せず、
             列がセル内容に合わせて COL_W より広くなる。すると固定ピクセルで描く
             ミニグラフSVG(W=列数×COL_W)が実列幅と食い違い、右へ行くほどバーがずれる。

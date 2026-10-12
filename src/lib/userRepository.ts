@@ -4,6 +4,7 @@ import type { UserSettings, AccumStartDates, AccumDeltaThresholds, AiSection } f
 import type { WeatherCodeMode } from './wmoSeverity';
 import type { ReviewBase, SeasonPaceMode, SeasonPaceModes } from './seasonReview';
 import { parseHiddenHourlyRows, type HourlyRowKey } from './hourlyRows';
+import { parseHourlyScenery, type HourlyScenery } from './hourlyScenery';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
 const DEFAULT_ACCUM_START_DATES: AccumStartDates = {
@@ -73,6 +74,7 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     defaultLocationId, enabledAiSections, aiCustomPrompt,
     weatherCodeMode, seasonPaceModes, seasonReviewBase,
     hiddenHourlyRows: parseHiddenHourlyRows(data?.hiddenHourlyRows),
+    hourlyScenery: parseHourlyScenery(data?.hourlyScenery),
   };
 }
 
@@ -144,4 +146,11 @@ export async function updateHiddenHourlyRows(
   rows: HourlyRowKey[],
 ): Promise<void> {
   await setDoc(doc(db, 'users', uid), { hiddenHourlyRows: rows }, { merge: true });
+}
+
+export async function updateHourlyScenery(
+  uid: string,
+  scenery: HourlyScenery,
+): Promise<void> {
+  await setDoc(doc(db, 'users', uid), { hourlyScenery: scenery }, { merge: true });
 }

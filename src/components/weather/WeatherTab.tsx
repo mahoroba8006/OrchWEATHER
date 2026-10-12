@@ -1,7 +1,7 @@
 // src/components/weather/WeatherTab.tsx
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Loader2, ChevronDown } from 'lucide-react';
-import { useAppStore, useHiddenHourlyRows, useWeatherCodeMode, DEFAULT_AI_SECTIONS } from '../../store';
+import { useAppStore, useHiddenHourlyRows, useHourlyScenery, useWeatherCodeMode, DEFAULT_AI_SECTIONS } from '../../store';
 import { GEO_OPTIONS, getGeoErrorMessage } from '../../lib/geo';
 import { useForecast } from '../../hooks/useForecast';
 import { useJmaWarning } from '../../hooks/useJmaWarning';
@@ -17,6 +17,7 @@ import { useAiCustomComment } from '../../hooks/useAiCustomComment';
 import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
 import { HourlyTable } from './HourlyTable';
 import { HourlyRowsEditor } from './HourlyRowsEditor';
+import { HourlySceneryPicker } from './HourlySceneryPicker';
 import { Footer } from '../Footer';
 import { SkyHero } from '../sky/SkyHero';
 import { fallbackSky, useSkyStore, type SkyState, type SkySummary } from '../../skyStore';
@@ -45,6 +46,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
   const aiSectionRef = useRef<HTMLDivElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
   const hiddenHourlyRows = useHiddenHourlyRows();
+  const hourlyScenery = useHourlyScenery();
   const hiddenRowKeySet = useMemo(() => new Set<string>(hiddenHourlyRows), [hiddenHourlyRows]);
   const [hourlyRowsOpen, setHourlyRowsOpen] = useState(false);
 
@@ -391,7 +393,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
 
           <Reveal index={2}>
           <section ref={hourlySectionRef} className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
-            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={jmaWarning?.items} hiddenRowKeys={hiddenRowKeySet} />
+            <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={jmaWarning?.items} hiddenRowKeys={hiddenRowKeySet} scenery={hourlyScenery} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem 0' }}>
               <span style={{ fontSize: '0.7rem', color: 'var(--ink-3)' }}>
                 {hiddenHourlyRows.length > 0 ? `${hiddenHourlyRows.length}項目を非表示にしています` : ''}
@@ -406,6 +408,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
             </div>
           </section>
           <Sheet open={hourlyRowsOpen} onClose={() => setHourlyRowsOpen(false)} title="時間別の表示項目">
+            <HourlySceneryPicker layoutId="sheet-hourly-scenery" />
             <HourlyRowsEditor />
           </Sheet>
           </Reveal>
