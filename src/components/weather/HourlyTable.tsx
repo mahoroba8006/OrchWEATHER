@@ -445,8 +445,11 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                   const label = `${mm}/${dd}(${dow})`;
                   cells.push(
                     <td key={`d-${i}`} colSpan={span} style={{ padding: '0.3rem 0.4rem', textAlign: 'left', ...(i > 0 ? { borderLeft: '1px solid var(--line-strong)' } : {}) }}>
-                      <span style={{
+                      {/* 横スクロールしても、その日の範囲にいる間は項目名の列のすぐ右に留まる（次の日が来たら押し出される） */}
+                      <span data-testid="date-label" style={{
                         display: 'inline-block',
+                        position: 'sticky',
+                        left: LABEL_W + 6,
                         fontSize: '0.75rem',
                         color: isPastDate ? FADED_COLOR : 'var(--ink-1)',
                         opacity: isPastDate ? FADED_OPACITY : undefined,

@@ -109,6 +109,14 @@ describe('HourlyTable の日照時間・日射量', () => {
   });
 });
 
+describe('HourlyTable の日付', () => {
+  it('日付は横スクロールしても項目名の列のすぐ右に留まる（日ごとのセルの中で sticky）', () => {
+    const { getAllByTestId } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />);
+    const label = getAllByTestId('date-label')[0];
+    expect(label.style.position).toBe('sticky');
+    expect(label.style.left).toBe('82px');
+  });
+});
 describe('景色を透かす帯の色', () => {
   it('overWhite は白の上で元の色と同じに見える半透明（白は完全に透明）', () => {
     const cases: RGB[] = [[255, 213, 79], [236, 239, 241], [70, 135, 215], [212, 235, 214]];
