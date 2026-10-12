@@ -8,7 +8,8 @@ const HEAT_GRAY: RGB = [236, 239, 241];
 const HEAT_YELLOW: RGB = [255, 213, 79];
 const HEAT_AMBER: RGB = [255, 188, 102];     // 日射: 日照の黄と並べて見分けられる橙寄り
 const HEAT_PROB: RGB = [205, 218, 234];      // 降水確率: 降水量と取り違えないよう青灰色で淡く
-const HEAT_WIND: RGB = [168, 214, 172];      // 風速: 淡い緑（雨・太陽より目立たせない）
+const HEAT_WIND: RGB = [168, 214, 172];      // 風速: 淡い緑（雨・太陽より目立たせない）15m/s
+const HEAT_WIND_DEEP: RGB = [100, 172, 108]; // 風速 20m/s 以上（--ink-1 の文字とのコントラスト約6:1）
 const HEAT_RAIN: RGB = [151, 190, 235];      // 降水の色（--chart-precip #2E7DD7）を白に半分混ぜた水色
 const HEAT_RAIN_30: RGB = [105, 160, 226];   // 降水量 30mm
 const HEAT_RAIN_DEEP: RGB = [70, 135, 215];  // 降水量 50mm 以上（--ink-1 の文字とのコントラスト約4.8:1）
@@ -62,11 +63,11 @@ export const PRECIP_HEAT: Omit<Heat, 'value'> = {
   legend: [0, 0.5, 1, 5, 10, 20, 30, 50],
   legendOver: true,
 };
-/** 風速: 0=白（塗らない）→ 15m/s 以上で最も濃い淡緑。弱い風はほぼ白のまま */
+/** 風速: 0=白（塗らない）→ 15m/s で淡い緑 → 20m/s 以上で最も濃い緑。弱い風はほぼ白のまま */
 export const WIND_HEAT: Omit<Heat, 'value'> = {
-  t: v => (v > 0 ? v / 15 : undefined),
-  bg: [[0, HEAT_WHITE], [1, HEAT_WIND]],
-  legend: [0, 3, 5, 10, 15],
+  t: v => (v > 0 ? v / 20 : undefined),
+  bg: [[0, HEAT_WHITE], [0.75, HEAT_WIND], [1, HEAT_WIND_DEEP]],
+  legend: [0, 3, 5, 10, 15, 20],
   legendOver: true,
 };
 export const SUN_HEAT: Omit<Heat, 'value'> = {
