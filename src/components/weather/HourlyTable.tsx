@@ -116,7 +116,7 @@ function MiniChartRow({ tl, hourlyPos }: { tl: TLEntry[]; hourlyPos: number[] })
   for (let v = gMin; v <= gMax; v += gridStep) gridTemps.push(v);
 
   return (
-    <tr style={{ borderBottom: ROW_BORDER }}>
+    <tr>
       <td className="hourly-label" style={STICKY}>気温/降水</td>
       <td colSpan={tl.length} style={{ padding: 0, position: 'relative' }}>
         {/* SVG: バー・気温ライン。列が固定幅(COL_W)になったので td 幅 = 列数×COL_W = W と一致し、
@@ -184,7 +184,7 @@ function UVRow({ tl, isNighttime, cutoff }: {
   cutoff: Date;
 }) {
   return (
-    <tr style={{ borderBottom: ROW_BORDER }}>
+    <tr>
       <td className="hourly-label" style={STICKY}>紫外線指数</td>
       {tl.map((entry, i) => {
         if (entry.kind === 'sun') return <td key={`uv-sun-${i}`} style={{ minWidth: COL_W }} />;
@@ -423,7 +423,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
           <tbody>
             {/* 日付 */}
             <tr style={{ borderBottom: ROW_BORDER }}>
-              <td className="hourly-label" style={STICKY}>日付</td>
+              <td className="hourly-label hourly-label--ruled" style={STICKY}>日付</td>
               {(() => {
                 const cells: React.ReactElement[] = [];
                 let i = 0;
@@ -457,7 +457,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
             </tr>
             {/* 時刻 */}
             <tr style={{ borderBottom: ROW_BORDER }}>
-              <td className="hourly-label" style={STICKY}>時刻</td>
+              <td className="hourly-label hourly-label--ruled" style={STICKY}>時刻</td>
               {tl.map((entry, i) => {
                 const t = tlTime(entry);
                 const faded = isPast(entry);
@@ -495,7 +495,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               })}
             </tr>
             {/* 天気 */}
-            <tr style={{ borderBottom: ROW_BORDER }}>
+            <tr>
               <td className="hourly-label" style={STICKY}>天気</td>
               {tl.map((entry, i) => {
                 const faded = isPast(entry);
@@ -560,7 +560,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
               );
               return (
               <Fragment key={row.key}>
-              <tr style={{ borderBottom: ROW_BORDER }}>
+              <tr>
                 <td className="hourly-label" style={STICKY}>
                   {heat ? (
                     <button type="button" className="hourly-label-button" aria-expanded={legendOpen} aria-label={`${row.label}の色の見かた`}
@@ -583,7 +583,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
                 })}
               </tr>
               {legendOpen && heat && (
-                <tr style={{ borderBottom: ROW_BORDER }}>
+                <tr>
                   <td colSpan={tl.length + 1} style={{ padding: 0 }}>
                     <HeatLegend heat={heat} unit={row.unit ?? ''} />
                   </td>

@@ -1,15 +1,17 @@
-/* 固定ラベル列の下端の区切り線。行の線（--line）は半透明なので、色を塗ったセルが下を通ると線ごしに透ける。
-   ラベル列の分だけ、白地に同じ線を重ねた不透明な線で覆う */
+/* 固定ラベル列の下端の区切り線。行の横線は日付・時刻の下だけで、ほかの行はこの線が項目名の列にだけ出る（右側は線なしで帯をつなげる）。
+   日付・時刻の行の線（--line）は半透明なので、白地に同じ線を重ねた不透明な線にしている */
 .hourly-label::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -1px;
+  bottom: 0;
   height: 1px;
   background: linear-gradient(var(--line), var(--line)), var(--surface-card);
   pointer-events: none;
 }
+/* 日付・時刻の行は行全体に線があるので、その線に重ねる（内側に描くと2本に見える） */
+.hourly-label--ruled::before { bottom: -1px; }
 /* 時間別予報：固定ラベル列の右端に、内容が下を通ることを示す淡い影 */
 .hourly-label::after {
   content: '';
