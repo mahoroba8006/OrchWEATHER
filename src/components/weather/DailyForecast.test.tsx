@@ -55,6 +55,34 @@ describe('DailyForecast', () => {
   });
 });
 
+describe('DailyForecast の開いた時点の枠', () => {
+  const markedCell = (container: HTMLElement) =>
+    container.querySelector('[data-testid="daily-selected"]')?.closest('[data-cell]')?.getAttribute('data-cell');
+  afterEach(() => vi.useRealTimers());
+
+  it('今の時間帯（午前4〜12時・午後12〜20時・夜間20〜翌4時）に枠を付ける', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T10:00:00+09:00'));
+    const a = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" onHalfDayClick={vi.fn()} />);
+    expect(markedCell(a.container)).toBe('2026-10-01-am');
+    cleanup();
+    vi.setSystemTime(new Date('2026-10-01T21:00:00+09:00'));
+    const b = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" onHalfDayClick={vi.fn()} />);
+    expect(markedCell(b.container)).toBe('2026-10-01-night');
+  });
+
+  it('0〜4時は前日の夜間に枠を付け、その日が表に無ければ付けない', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-02T02:00:00+09:00'));
+    const a = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" onHalfDayClick={vi.fn()} />);
+    expect(markedCell(a.container)).toBe('2026-10-01-night');
+    cleanup();
+    vi.setSystemTime(new Date('2026-10-20T10:00:00+09:00'));
+    const b = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" onHalfDayClick={vi.fn()} />);
+    expect(b.container.querySelector('[data-testid="daily-selected"]')).toBeNull();
+  });
+});
+
 describe('DailyForecast の「今日」の示し方', () => {
   it('今日の列は塗らず囲まず、日付と時間帯の間の線と「今日」の札で示す', () => {
     vi.useFakeTimers();

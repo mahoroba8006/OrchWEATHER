@@ -300,7 +300,11 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   const isPastPeriod = (date: string, period: Period) => date === today && jstHour >= 4 && jstHour >= PERIOD_END[period];
 
 
-  const [selected, setSelected] = useState<{ date: string; period: Period } | null>(null);
+  // 開いた時点では今の時間帯に枠を付ける（0〜4時は前日の夜間）。その日が表に無ければ付けない
+  const [selected, setSelected] = useState<{ date: string; period: Period } | null>(() => {
+    const date = nowPeriod ? today : new Date(jstNow.getTime() - 86400000).toISOString().slice(0, 10);
+    return daily.some(d => d.date === date) ? { date, period: nowPeriod ?? 'night' } : null;
+  });
   const pick = (date: string, period: Period) => {
     onHalfDayClick?.(date, period);
     setSelected({ date, period });
