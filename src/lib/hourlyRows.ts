@@ -1,13 +1,13 @@
 // 時間別の表（HourlyTable）で、ユーザーが出し入れできる行の定義（唯一の定義元）
 
 export const HOURLY_ROW_OPTIONS = [
-  { key: 'uv', label: '紫外線指数' },
   { key: 'temperature', label: '気温' },
   { key: 'precipProb', label: '降水確率' },
   { key: 'precip', label: '降水量' },
   { key: 'snowfall', label: '降雪量' },
   { key: 'sunshine', label: '日照時間' },
   { key: 'radiation', label: '日射量' },
+  { key: 'uv', label: '紫外線指数' },
   { key: 'windSpeed', label: '風速' },
   { key: 'windGusts', label: '瞬間風速' },
   { key: 'windDir', label: '風向き' },

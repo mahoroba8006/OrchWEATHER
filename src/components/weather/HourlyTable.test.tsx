@@ -2,6 +2,7 @@ import { cleanup, fireEvent } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { HourlyTable } from './HourlyTable';
 import { heatRibbon } from '../../lib/hourlyHeat';
+import { HOURLY_ROW_OPTIONS } from '../../lib/hourlyRows';
 import { renderWithMotion, setupMotionTestEnv } from '../ui/testUtils';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 
@@ -189,5 +190,15 @@ describe('HourlyTable の紫外線指数', () => {
     expect(tds[0].style.backgroundColor).toBe('');
     expect(tds[2].style.backgroundColor).toBe('rgb(184, 164, 230)');
     expect(getByRole('button', { name: '紫外線指数の色の見かた' })).toBeTruthy();
+  });
+});
+describe('HourlyTable の行の並び', () => {
+  it('表の行は設定の項目一覧（HOURLY_ROW_OPTIONS）と同じ順。紫外線指数は日射量と風速の間', () => {
+    const { container } = renderWithMotion(<HourlyTable hourly={[{ ...hour('2026-10-01T10:00', 0), snowfall: 1 }]} daily={daily} disablePastOpacity />);
+    const labels = Array.from(container.querySelectorAll('.hourly-label'))
+      .map(td => td.querySelector('div')?.textContent ?? td.textContent)
+      .filter(l => HOURLY_ROW_OPTIONS.some(o => o.label === l));
+    expect(labels).toEqual(HOURLY_ROW_OPTIONS.map(o => o.label));
+    expect(labels.slice(labels.indexOf('日射量'), labels.indexOf('日射量') + 3)).toEqual(['日射量', '紫外線指数', '風速']);
   });
 });

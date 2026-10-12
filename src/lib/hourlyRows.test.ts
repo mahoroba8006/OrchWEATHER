@@ -12,7 +12,7 @@ afterEach(() => localStorage.clear());
 describe('hourlyRows', () => {
   it('選択肢は紫外線指数を含む16項目で、おすすめの非表示は7項目', () => {
     expect(HOURLY_ROW_OPTIONS).toHaveLength(16);
-    expect(HOURLY_ROW_OPTIONS[1]).toEqual({ key: 'temperature', label: '気温' });
+    expect(HOURLY_ROW_OPTIONS[0]).toEqual({ key: 'temperature', label: '気温' });
     expect(DEFAULT_HIDDEN_HOURLY_ROWS).toEqual(['windGusts', 'pressure', 'humidity', 'vpd', 'dewPoint', 'cape', 'freezing']);
   });
 
@@ -37,8 +37,9 @@ describe('hourlyRows', () => {
 });
 
 describe('紫外線指数', () => {
-  it('表示可否を選べる項目に含まれ、先頭（表の並び順）にあり、初期状態は表示', () => {
-    expect(HOURLY_ROW_OPTIONS[0]).toEqual({ key: 'uv', label: '紫外線指数' });
+  it('表示可否を選べる項目に含まれ、日射量と風速の間（表の並び順）にあり、初期状態は表示', () => {
+    const keys = HOURLY_ROW_OPTIONS.map(o => o.key);
+    expect(keys.slice(keys.indexOf('radiation'), keys.indexOf('radiation') + 3)).toEqual(['radiation', 'uv', 'windSpeed']);
     expect(sanitizeHiddenHourlyRows(['uv'])).toEqual(['uv']);
     expect(DEFAULT_HIDDEN_HOURLY_ROWS).not.toContain('uv');
   });

@@ -189,7 +189,6 @@ const DATA_ROWS: {
   key: HourlyRowKey; label: string; unit?: string; fmt: (h: HourlyForecast) => string;
   heat?: Heat;
 }[] = [
-  { key: 'uv',           label: '紫外線指数',             fmt: h => String(Math.round(h.uvIndex)), heat: { ...UV_HEAT, value: h => Math.round(h.uvIndex) } },
   { key: 'temperature',  label: '気温',     unit: '℃',     fmt: h => h.temperature.toFixed(1) },
   { key: 'precipProb',   label: '降水確率',  unit: '%',     fmt: h => String(h.precipProb), heat: { ...PROB_HEAT, value: h => h.precipProb } },
   // 50mm/h で最も濃い。弱い雨（1mm/h 前後）も見えるよう平方根で持ち上げる
@@ -198,6 +197,7 @@ const DATA_ROWS: {
   { key: 'sunshine',     label: '日照時間',  unit: '分',    fmt: h => String(Math.round(h.sunshine)), heat: { ...SUN_HEAT, value: h => Math.round(h.sunshine) } },
   // 3.2 MJ/m² ≒ 890 W/m²（夏の快晴の正午ごろ）
   { key: 'radiation',    label: '日射量',    unit: 'MJ/m²', fmt: h => toMJ(h.radiation).toFixed(2), heat: { ...RADIATION_HEAT, value: h => Number(toMJ(h.radiation).toFixed(2)) } },
+  { key: 'uv',           label: '紫外線指数',             fmt: h => String(Math.round(h.uvIndex)), heat: { ...UV_HEAT, value: h => Math.round(h.uvIndex) } },
   { key: 'windSpeed',    label: '風速',      unit: 'm/s',   fmt: h => h.windSpeed.toFixed(1), heat: { ...WIND_HEAT, value: h => h.windSpeed } },
   { key: 'windGusts',    label: '瞬間風速',  unit: 'm/s',   fmt: h => h.windGusts.toFixed(1) },
   { key: 'windDir',      label: '風向き',                   fmt: h => degreesToCompass(h.windDirection) },
