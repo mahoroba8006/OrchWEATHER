@@ -30,7 +30,7 @@ export function HourlySceneryPicker({ layoutId }: { layoutId: string }) {
 
   return (
     <div className="set-stack" style={{ marginBottom: '1rem' }}>
-      <div className="set-hint">背景の景色。色の帯が、景色にかかる雲のように見えます。</div>
+      <div className="set-hint">背景の景色。</div>
       <SegmentedControl<HourlyScenery>
         options={SCENERY_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
         value={scenery}

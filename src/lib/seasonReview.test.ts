@@ -7,6 +7,8 @@ import {
 import { addDays } from './dateUtils';
 import type { DailyForecastData } from '../api/forecast';
 
+const ALL_ANALYSIS = { precip: 'analysis', gdd: 'analysis', sunshine: 'analysis' } as const;
+
 const rec = (date: string, r: Partial<DayRecord> = {}): DayRecord => ({
   date, tempMean: 10, tempMax: 15, tempMin: 5, precip: 0, sunshine: 5, ...r,
 });
@@ -193,7 +195,8 @@ describe('季節のあしどり（computePaceItems）', () => {
     fill(map, '2026-01-01', '2026-10-02', { tempMean: 11, precip: 3, sunshine: 6 });
     return map;
   }
-  const opts = (o: Partial<PaceOptions> = {}): PaceOptions => ({ ...DEFAULT_PACE_OPTIONS, baseTemp: 0, ...o });
+  // 比べ方は全項目「累積」を基準に書いたテスト（既定の比べ方は項目ごとに違う）
+  const opts = (o: Partial<PaceOptions> = {}): PaceOptions => ({ ...DEFAULT_PACE_OPTIONS, modes: ALL_ANALYSIS, baseTemp: 0, ...o });
 
   it('空くらべに合わせる: 気温（30日）・降水量・積算温度・日照時間の順', () => {
     const items = computePaceItems(warmYear(), '2026-10-03', opts());
@@ -349,7 +352,7 @@ describe('去年分だけ届いた段階（5年平均はまだ）', () => {
     fill(map, '2026-01-01', '2026-10-02', { tempMean: 11, precip: 3, sunshine: 6 });
     return map;
   }
-  const opts0 = { ...DEFAULT_PACE_OPTIONS, baseTemp: 0 };
+  const opts0 = { ...DEFAULT_PACE_OPTIONS, modes: ALL_ANALYSIS, baseTemp: 0 };
 
   it('季節のあしどりは「去年より」だけで出す', () => {
     expect(computePaceItems(lastYearOnly(), '2026-10-03', opts0).map(i => [i.kind, i.text])).toEqual([

@@ -2,7 +2,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import type { UserSettings, AccumStartDates, AccumDeltaThresholds, AiSection } from '../store';
 import type { WeatherCodeMode } from './wmoSeverity';
-import type { ReviewBase, SeasonPaceMode, SeasonPaceModes } from './seasonReview';
+import { DEFAULT_PACE_OPTIONS, type ReviewBase, type SeasonPaceMode, type SeasonPaceModes } from './seasonReview';
 import { parseHiddenHourlyRows, type HourlyRowKey } from './hourlyRows';
 import { parseHourlyScenery, type HourlyScenery } from './hourlyScenery';
 
@@ -61,14 +61,18 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   const weatherCodeMode: WeatherCodeMode =
     data?.weatherCodeMode === 'frequency' ? 'frequency' : 'severity';
   // 項目ごとの比べ方。旧形式（全項目共通の seasonPaceMode、develop のみで使用）からも引き継ぐ
-  const legacyPaceMode: SeasonPaceMode = data?.seasonPaceMode === 'recent' ? 'recent' : 'analysis';
-  const paceModeOf = (v: unknown): SeasonPaceMode => (v === 'recent' || v === 'analysis' ? v : legacyPaceMode);
+  // どちらも無ければ項目ごとの既定（降水量・日照時間=直近30日、積算温度=累積）
+  const isPaceMode = (v: unknown): v is SeasonPaceMode => v === 'recent' || v === 'analysis';
+  const legacyPaceMode = data?.seasonPaceMode;
+  const paceModeOf = (v: unknown, metric: keyof SeasonPaceModes): SeasonPaceMode =>
+    isPaceMode(v) ? v : isPaceMode(legacyPaceMode) ? legacyPaceMode : DEFAULT_PACE_OPTIONS.modes[metric];
   const seasonPaceModes: SeasonPaceModes = {
-    precip: paceModeOf(data?.seasonPaceModes?.precip),
-    gdd: paceModeOf(data?.seasonPaceModes?.gdd),
-    sunshine: paceModeOf(data?.seasonPaceModes?.sunshine),
+    precip: paceModeOf(data?.seasonPaceModes?.precip, 'precip'),
+    gdd: paceModeOf(data?.seasonPaceModes?.gdd, 'gdd'),
+    sunshine: paceModeOf(data?.seasonPaceModes?.sunshine, 'sunshine'),
   };
-  const seasonReviewBase: ReviewBase = data?.seasonReviewBase === 'lastYear' ? 'lastYear' : 'avg';
+  // 未設定は去年と比べる（明示的に5年平均を選んだ人だけ avg）
+  const seasonReviewBase: ReviewBase = data?.seasonReviewBase === 'avg' ? 'avg' : 'lastYear';
   return {
     baseTempSettings, accumStartDates, accumDeltaThresholds,
     defaultLocationId, enabledAiSections, aiCustomPrompt,

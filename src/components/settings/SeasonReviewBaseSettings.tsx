@@ -28,19 +28,18 @@ export function SeasonReviewBaseSettings() {
 
   return (
     <div className="set-card">
-      <h3 className="set-title">ふりかえりの一言の比べる相手</h3>
+      <h3 className="set-title">節気の比較</h3>
       <div className="set-hint">
-        節気のふりかえりカードの一言（「雨が少なく、日差しが多い」など）を、どちらと比べて書くかを選びます。
-        表の去年比・5年平均比は、どちらを選んでも両方表示します。
+        節気のふりかえりカードの一言を、どちらと比べて書くかを選びます。
       </div>
       <SegmentedControl<ReviewBase>
         options={[
-          { value: 'avg', label: '5年平均' },
           { value: 'lastYear', label: '去年' },
+          { value: 'avg', label: '5年平均' },
         ]}
         value={base}
         onChange={handleChange}
-        ariaLabel="ふりかえりの一言の比べる相手"
+        ariaLabel="節気の比較"
         layoutId="settings-season-review-base"
       />
       <div className="set-actions">

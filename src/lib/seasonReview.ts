@@ -439,11 +439,11 @@ export interface PaceOptions {
 }
 
 export const DEFAULT_PACE_OPTIONS: PaceOptions = {
-  modes: { precip: 'analysis', gdd: 'analysis', sunshine: 'analysis' },
+  modes: { precip: 'recent', gdd: 'analysis', sunshine: 'recent' },
   baseTemp: 10,
   startDates: { precip: '01-01', sunshine: '01-01', gdd: '01-01' },
   gddDaysMin: 30,
-  reviewBase: 'avg',
+  reviewBase: 'lastYear',
 };
 
 export type PaceItemKind = 'temp' | 'precip' | 'gdd' | 'sunshine';

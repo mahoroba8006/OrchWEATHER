@@ -23,7 +23,7 @@ describe('SeasonPaceSettings', () => {
     useAppStore.setState({ userSettings: { seasonPaceModes: DEFAULT_PACE_OPTIONS.modes }, updateSeasonPaceModes: vi.fn(async () => { throw new Error('offline'); }) } as never);
     renderWithMotion(<SeasonPaceSettings />);
     const group = screen.getByRole('tablist', { name: '季節のあしどり 降水量の比べ方' });
-    fireEvent.click(group.querySelectorAll('[role="tab"]')[1]);
+    fireEvent.click(group.querySelectorAll('[role="tab"]')[0]); // 既定は直近30日なので累積へ
     await waitFor(() => expect(screen.getByText('保存失敗: offline')).toBeTruthy());
   });
 });
