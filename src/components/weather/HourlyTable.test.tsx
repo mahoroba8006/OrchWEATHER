@@ -37,7 +37,7 @@ describe('HourlyTable', () => {
     expect(tds.map(td => td.textContent)).toEqual(['0.0', '5.0', '0.0', '12.0']);
     expect(tds[0].style.backgroundColor).toBe('');
     expect(tds[1].style.backgroundColor).not.toBe('');
-    expect(tds[3].style.backgroundColor).toBe('rgb(146, 187, 234)');
+    expect(tds[3].style.backgroundColor).toBe('rgb(145, 186, 234)');
     // 降水確率は降水量と取り違えないよう青灰色で淡く（30%）
     const prob = Array.from(container.querySelectorAll('tr')).find(tr => tr.querySelector('.hourly-label')?.textContent?.startsWith('降水確率'))!;
     expect(prob.querySelectorAll<HTMLElement>('td')[1].style.backgroundColor).toBe('rgb(240, 244, 249)');
@@ -146,7 +146,7 @@ describe('HourlyTable の降水量の色', () => {
   it('0 は塗らず、10mm は水色、50mm 以上は濃い青（上限）', () => {
     const rain = [hour('2026-10-01T09:00', 0), hour('2026-10-01T10:00', 10), hour('2026-10-01T11:00', 50), hour('2026-10-01T12:00', 80)];
     const { container } = renderWithMotion(<HourlyTable hourly={rain} daily={daily} disablePastOpacity />);
-    expect(bg(container)).toEqual(['', 'rgb(151, 190, 235)', 'rgb(90, 150, 222)', 'rgb(90, 150, 222)']);
+    expect(bg(container)).toEqual(['', 'rgb(151, 190, 235)', 'rgb(70, 135, 215)', 'rgb(70, 135, 215)']);
   });
 });
 describe('HourlyTable の凡例', () => {
@@ -156,6 +156,7 @@ describe('HourlyTable の凡例', () => {
     expect(btn.getAttribute('aria-expanded')).toBe('false');
     fireEvent.click(btn);
     expect(btn.getAttribute('aria-expanded')).toBe('true');
+    expect(getByRole('note').textContent).toContain('30');
     expect(getByRole('note').textContent).toContain('50以上');
     expect(getByText('0.5')).toBeTruthy();
     fireEvent.click(btn);

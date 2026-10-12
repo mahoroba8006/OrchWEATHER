@@ -9,7 +9,8 @@ const HEAT_YELLOW: RGB = [255, 213, 79];
 const HEAT_AMBER: RGB = [255, 188, 102];     // 日射: 日照の黄と並べて見分けられる橙寄り
 const HEAT_PROB: RGB = [205, 218, 234];      // 降水確率: 降水量と取り違えないよう青灰色で淡く
 const HEAT_RAIN: RGB = [151, 190, 235];      // 降水の色（--chart-precip #2E7DD7）を白に半分混ぜた水色
-const HEAT_RAIN_DEEP: RGB = [90, 150, 222];  // 降水量の上限の色（--ink-1 の文字とのコントラスト約5.7:1）
+const HEAT_RAIN_30: RGB = [105, 160, 226];   // 降水量 30mm
+const HEAT_RAIN_DEEP: RGB = [70, 135, 215];  // 降水量 50mm 以上（--ink-1 の文字とのコントラスト約4.8:1）
 const mixRgb = (from: RGB, to: RGB, t: number): RGB => {
   const k = Math.max(0, Math.min(1, t));
   return from.map((f, j) => Math.round(f + (to[j] - f) * k)) as unknown as RGB;
@@ -26,9 +27,10 @@ const rampColor = (ramp: Ramp, t: number): RGB => {
   }
   return ramp[ramp.length - 1][1];
 };
-/** 降水量: 平方根で小雨も見えるように。50mm で頭打ち、0〜10mm は上限10mmの頃と同じ色 */
+/** 降水量: 平方根で小雨も見えるように。10mm=水色 → 30mm → 50mm 以上で最も濃い青（0〜10mm は上限10mmの頃と同じ色） */
 const PRECIP_MAX = 50;
-const PRECIP_MID = Math.sqrt(10 / PRECIP_MAX);
+const PRECIP_10 = Math.sqrt(10 / PRECIP_MAX);
+const PRECIP_30 = Math.sqrt(30 / PRECIP_MAX);
 
 /**
  * t: 値 → 物差し上の位置 0〜1（undefined は塗らない）。bg: 色の物差し。
@@ -55,8 +57,8 @@ export const PROB_HEAT: Omit<Heat, 'value'> = {
 };
 export const PRECIP_HEAT: Omit<Heat, 'value'> = {
   t: v => (v > 0 ? Math.sqrt(Math.min(v, PRECIP_MAX) / PRECIP_MAX) : undefined),
-  bg: [[0, HEAT_WHITE], [PRECIP_MID, HEAT_RAIN], [1, HEAT_RAIN_DEEP]],
-  legend: [0, 0.5, 1, 5, 10, 20, 50],
+  bg: [[0, HEAT_WHITE], [PRECIP_10, HEAT_RAIN], [PRECIP_30, HEAT_RAIN_30], [1, HEAT_RAIN_DEEP]],
+  legend: [0, 0.5, 1, 5, 10, 20, 30, 50],
   legendOver: true,
 };
 export const SUN_HEAT: Omit<Heat, 'value'> = {
