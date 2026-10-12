@@ -122,11 +122,11 @@ describe('景色を透かす帯の色', () => {
   it('色のある列は半透明のぼかしを CSS 変数で渡し、表の枠には景色を敷く（未指定は景色なし）', () => {
     expect(renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />).container.querySelector('[data-scenery="none"]')).toBeTruthy();
     cleanup();
-    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity scenery="mountains" />);
+    const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity scenery="seasonal" />);
     const cell = container.querySelector<HTMLElement>('td.hourly-heat[data-heat]')!;
     expect(cell.style.getPropertyValue('--heat')).toMatch(/^linear-gradient\(to right, rgba\(/);
     expect(cell.style.backgroundColor).toBe('');
-    expect(container.querySelector('[data-scenery="mountains"]')).toBeTruthy();
+    expect(container.querySelector('[data-scenery="seasonal"]')).toBeTruthy();
   });
   it('山の麓の位置（--foot）は色のある行のうち一番下の行で決める', () => {
     const { container } = renderWithMotion(<HourlyTable hourly={hourly} daily={daily} disablePastOpacity />);

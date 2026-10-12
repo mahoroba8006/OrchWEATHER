@@ -415,7 +415,7 @@ export function HourlyTable({ hourly, daily, scrollRef, scrollTarget, disablePas
 
   return (
     <div>
-      <div ref={scroller} data-scenery={scenery} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', ...sceneryBackground(scenery), borderBottom: '1px solid var(--line)' }}>
+      <div ref={scroller} data-scenery={scenery} style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', ...sceneryBackground(scenery, now), borderBottom: '1px solid var(--line)' }}>
         {/* width を明示しないと table-layout:fixed が colgroup 幅を厳密適用せず、
             列がセル内容に合わせて COL_W より広くなる。すると固定ピクセルで描く
             ミニグラフSVG(W=列数×COL_W)が実列幅と食い違い、右へ行くほどバーがずれる。
