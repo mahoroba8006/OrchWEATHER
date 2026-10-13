@@ -31,6 +31,13 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
           },
+          {
+            // 太陽は中心から半径 0.4 の安全域に収まる（Android の円形切り抜きで欠けない）
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
         ],
       },
     }),

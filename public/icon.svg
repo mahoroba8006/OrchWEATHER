@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1F5FAE"/><stop offset="1" stop-color="#7DB0E0"/></linearGradient>
+    <filter id="brush" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="4"/>
+      <feDisplacementMap in="SourceGraphic" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <g filter="url(#brush)">
+    <circle cx="680" cy="330" r="190" fill="#fff" opacity=".18"/><circle cx="680" cy="330" r="132" fill="#fff" opacity=".96"/>
+    <path d="M-40 610 L0 610 C140 540 270 590 390 548 S630 452 760 520 S950 590 1024 548 H1064 V1064 H-40Z" fill="#fff" opacity=".32"/>
+    <path d="M-40 704 L0 704 C140 642 262 690 384 656 S604 600 730 664 S924 712 1024 676 H1064 V1064 H-40Z" fill="#fff" opacity=".58"/>
+    <path d="M-40 812 L0 812 C180 752 330 796 470 772 S762 730 884 784 S992 796 1024 786 H1064 V1064 H-40Z" fill="#fff" opacity=".95"/>
+  </g>
+</svg>
