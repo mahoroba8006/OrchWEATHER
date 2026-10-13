@@ -1,3 +1,20 @@
+## 2026-10-13 セッション（125回目）
+
+### 作業内容
+- アプリのアイコンを案A「空と山並み」に差し替え（eeb6088）: 元の絵を public/icon.svg に置き、icon-512/192・apple-touch-icon(180)・icon.png(48・旧は 792×745 の非正方形)を Playwright で書き出し（screenshots/icon-proposal/render.mjs・git 管理外）。筆の揺らぎで山の端が内側に寄り左端・下端に細い線が出たため、山の形を絵の外まで伸ばして解消。タブは PNG＋SVG を指定・manifest に maskable を追加
+- 角丸・円形切り抜き・16px タブ（明/暗）を撮影確認（screenshots/icon-proposal/verify.png）。tsc・テスト432件・build（manifest にアイコン3件）
+- develop push（bdce076 も同時）→ 指示で main へ fast-forward（9f615c5..eeb6088）
+
+### 決定事項
+- manifest の theme_color/background_color は --accent・--surface-ground と一致するため据え置き
+
+### 未完了・次回への引き継ぎ
+- 実機でのアイコン確認（ホーム画面追加済み端末は更新に時間がかかる／再追加が必要な場合あり）
+- branch feature/sekki-art-bokuga（ローカルのみ）と .worktrees 3つの削除
+- 別件（要相談）: iOS ホーム起動時のリダイレクト認証
+- 未コミットのまま: AGENTS.md・note記事ドラフト2本・tasks/codex-sekki-art-sumi.md
+- public/favicon.svg（Vite 既定のロゴ・未参照）が残っている
+
 ## 2026-10-12〜13 セッション（124回目）
 
 ### 作業内容
