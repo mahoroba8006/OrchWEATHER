@@ -79,7 +79,7 @@ export function SekkiChapter() {
       </div>
       <div className="lp-sekki__band">
         <p className="lp-sekki__bandlead">毎日、トップに一行で。</p>
-        <Shot variant="band" src="/lp/season-band.webp" alt="季節のあしどり — 積算温度 去年より18日遅い・5年平均より12日遅い" width={780} height={106} />
+        <Shot variant="band" src="/lp/season-band.webp" alt="季節のあしどり — 積算温度 去年より18日遅い・5年平均より12日遅い" width={780} height={140} />
       </div>
     </section>
   );

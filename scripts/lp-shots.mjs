@@ -2,7 +2,9 @@
 // 使い方: 別ターミナルで `npm run dev -- --port 5180 --strictPort` を起動し、
 //         `LAT=35.681 LON=139.767 node scripts/lp-shots.mjs` を実行する。出力は screenshots/lp/（git 管理外）。
 //         空もようの2枚だけ撮るときは ONLY=moyo、時間別の表と空くらべだけは ONLY=extra、
-//         時間別の表をすべての項目・雨の日で2枚に分けて撮るときは ONLY=hourly（RAIN_DAY で日付）を付ける。
+//         時間別の表を「おすすめの項目」と「そのほかの項目」の2枚に分けて撮るときは ONLY=hourly（RAIN_DAY・RAIN_HOUR で日付と左端の時刻）、
+//         季節のあしどりの帯だけは ONLY=band を付ける。FIXED_NOW（例 2026-10-05T00:30:00+09:00）で画面の「今」を固定できる
+//         （帯の数字を LP の lpFacts と同じ時点に揃えるため）。
 //         空くらべは TEMP_DAY（既定 9/20）・GDD_DAY（既定 10/5）の日付に指を置いた状態で撮る。
 // Open-Meteo の利用上限を消費するので、実行回数は絞ること。
 import { chromium } from 'playwright';
@@ -29,6 +31,7 @@ if (process.env.HAR) {
 }
 await context.addInitScript(() => { localStorage.setItem('guestMode', '1'); });
 const page = await context.newPage();
+if (process.env.FIXED_NOW) await page.clock.setFixedTime(new Date(process.env.FIXED_NOW));
 // ONLY=moyo: 空もようの2枚だけ／ONLY=extra: 空もようの時間別と空くらべ（値を表示した状態）だけ
 const only = process.env.ONLY;
 const save = async (locator, name) => { await locator.screenshot({ path: join(outDir, `${name}.png`) }); console.log('saved', name); };
@@ -36,6 +39,14 @@ const save = async (locator, name) => { await locator.screenshot({ path: join(ou
 try {
   await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(6000); // 季節のあしどりの集計待ち
+
+  if (only === 'band') {
+    const strip = page.locator('.season-strip').first();
+    await strip.getByText('積算温度', { exact: true }).waitFor({ timeout: 40000 });
+    await page.waitForTimeout(1200); // 切り替えの動きが終わるまで
+    await save(strip, 'season-band');
+    process.exit(0);
+  }
 
   // 1) 空もよう: 「リスクでみる」「概況でみる」の2枚（空に節気・候が写る）
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -47,16 +58,16 @@ try {
   }
   if (only === 'moyo') process.exit(0);
 
-  // 1a) 時間別の表（すべての項目・雨の時間帯）。空しらべで RAIN_DAY（既定 2026-09-20、東京で日中に雨）を開き、
-  //     RAIN_HOUR 時の列へ横に送って、「作業の行」と「データの行」の2枚に分けて撮る
+  // 1a) 時間別の表（すべての項目）。空しらべで RAIN_DAY（既定 2026-09-08、東京で朝に雨・昼に晴れ）を開き、
+  //     RAIN_HOUR 時の列へ横に送って、「おすすめの項目（色の付く行を含む）」と「そのほかの項目」の2枚に分けて撮る
   if (only === 'hourly') {
     await page.evaluate(() => localStorage.setItem('hiddenHourlyRows', '[]'));
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'load' }); // archive が落ちていると networkidle にならないため
     await page.waitForTimeout(3000);
     await page.getByRole('button', { name: '空しらべ' }).first().click();
     await page.addStyleTag({ content: '.shell-bottomnav { display: none !important; }' });
     await page.waitForTimeout(1500);
-    await page.locator('input[type="date"]').fill(process.env.RAIN_DAY ?? '2026-09-20');
+    await page.locator('input[type="date"]').fill(process.env.RAIN_DAY ?? '2026-09-08');
     await page.waitForTimeout(8000);
     const label = (txt) => page.locator('td.hourly-label', { hasText: txt }).first();
     const table = label('時刻').locator('xpath=ancestor::table');
@@ -69,12 +80,13 @@ try {
       const timeRow = [...t.querySelectorAll('tr')].find((r) => r.querySelector('td.hourly-label')?.textContent === '時刻');
       const cell = [...timeRow.querySelectorAll('td:not(.hourly-label)')].find((c) => c.textContent.trim() === hour);
       sc.scrollLeft = cell.offsetLeft - timeRow.querySelector('td.hourly-label').offsetWidth;
-    }, process.env.RAIN_HOUR ?? '10');
+    }, process.env.RAIN_HOUR ?? '7');
     console.log('widths', await table.evaluate((t) => { const out = []; for (let e = t; e && out.length < 8; e = e.parentElement) out.push(`${e.tagName}.${(e.className || '').toString().slice(0, 24)} cw=${e.clientWidth} sw=${e.scrollWidth} ox=${getComputedStyle(e).overflowX}`); return out; }));
     await page.waitForTimeout(800);
+    // おすすめ＝src/lib/hourlyRows.ts の DEFAULT_HIDDEN_HOURLY_ROWS に入っていない行
     const groups = {
-      'moyo-hourly-work': ['日付', '時刻', '天気', '気温/降水', '気温', '降水確率', '降水量', '降雪量', '風速', '瞬間風速', '風向き'],
-      'moyo-hourly-data': ['日付', '時刻', '紫外線指数', '気圧', '湿度', '飽差', '露点', 'CAPE', '0℃層高度'],
+      'moyo-hourly-work': ['日付', '時刻', '天気', '気温/降水', '気温', '降水確率', '降水量', '降雪量', '日照時間', '日射量', '紫外線指数', '風速', '風向き'],
+      'moyo-hourly-data': ['日付', '時刻', '瞬間風速', '気圧', '湿度', '飽差', '露点', 'CAPE', '0℃層高度'],
     };
     for (const [name, keep] of Object.entries(groups)) {
       await table.evaluate((t, keep) => {
@@ -83,8 +95,16 @@ try {
           r.style.display = keep.some((k) => l === k || (l.startsWith(k) && !keep.some((o) => o.length > k.length && l.startsWith(o)))) ? '' : 'none';
         }
       }, keep);
+      // 色の付く行が無い2枚目は、山並みの麓の霧が表全体にかかってくすむので景色を外す
+      if (name === 'moyo-hourly-data') await page.locator('[data-shot-scroller]').evaluate((sc) => { sc.style.backgroundImage = 'none'; });
       await page.waitForTimeout(500);
-      await page.locator('[data-shot-scroller]').screenshot({ path: join(outDir, `${name}.png`) });
+      // 右端で列が切れないよう、項目名の列＋ COLS（既定 7）列ちょうどで切り抜く
+      const box = await page.locator('[data-shot-scroller]').boundingBox();
+      const width = await table.evaluate((t, cols) => {
+        const timeRow = [...t.querySelectorAll('tr')].find((r) => r.querySelector('td.hourly-label')?.textContent === '時刻');
+        return timeRow.querySelector('td.hourly-label').offsetWidth + timeRow.querySelector('td:not(.hourly-label)').offsetWidth * cols;
+      }, Number(process.env.COLS ?? 7));
+      await page.screenshot({ path: join(outDir, `${name}.png`), clip: { x: box.x, y: box.y, width: Math.min(width, box.width), height: box.height } });
       console.log('saved', name);
     }
     process.exit(0);

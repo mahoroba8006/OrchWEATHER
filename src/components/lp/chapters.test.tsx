@@ -100,7 +100,7 @@ describe('MoyoChapter', () => {
     expect(container.querySelector('.lp-moyo__device .lp-moyo__rain')).toBeNull();
     expect(container.querySelector('.lp-moyo__hourlylead')!.textContent).toBe('1時間ごとの空がわかる。作業が決まる。');
     expect(screen.getAllByRole('img', { name: /時間別の表/ })).toHaveLength(2);
-    expect(screen.getByText('画面は東京・2026年9月20日（雨の日）の実績。')).toBeTruthy();
+    expect(screen.getByText('画面は東京・2026年9月8日（雨のち晴れ）の実績。')).toBeTruthy();
   });
   it('押すと写真と説明が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
     const { container } = render(<MoyoChapter />);
