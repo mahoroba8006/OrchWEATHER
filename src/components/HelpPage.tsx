@@ -71,6 +71,17 @@ const WARNING_BOX: CSSProperties = {
   marginTop: '0.75rem',
 };
 
+const FORMULA_BOX: CSSProperties = {
+  background: 'rgba(var(--accent-rgb), 0.06)',
+  border: '1px solid rgba(var(--accent-rgb), 0.2)',
+  borderRadius: 'var(--radius-md)',
+  padding: '0.6rem 1rem',
+  fontSize: '0.88rem',
+  fontWeight: 600,
+  color: 'var(--ink-1)',
+  marginBottom: '0.75rem',
+};
+
 const NOTE_BOX: CSSProperties = {
   background: 'rgba(245, 158, 11, 0.08)',
   border: '1px solid rgba(245, 158, 11, 0.3)',
@@ -332,7 +343,7 @@ export function HelpPage({ onBack }: Props) {
             <tbody>
               <tr>
                 <td>積算温度の基準温度</td>
-                <td>有効積算温度を計算するための基準温度を2種類まで設定できます。基準温度ごとに上限温度（任意・空欄で上限なし）も設定でき、上限を超えた分は数えません。</td>
+                <td>有効積算温度の基準温度と上限温度を2組（設定1・設定2）まで設定できます。計算方法は下の「積算温度の計算方法」をご覧ください。</td>
               </tr>
               <tr>
                 <td>累計の集計開始日</td>
@@ -341,9 +352,48 @@ export function HelpPage({ onBack }: Props) {
             </tbody>
           </table>
 
+          <h3 style={H3_STYLE}>積算温度の計算方法</h3>
+          <p style={P_STYLE}>
+            有効積算温度は、作物の生育に効いた暖かさを毎日足し上げた値です。1日分は次のように計算します（0を下回る日は0）。
+          </p>
+          <div style={FORMULA_BOX}>1日分 ＝ 日平均気温 − 基準温度 − 上限を超えた分</div>
+          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%' }}>
+            <colgroup><col style={{ width: '6.5em' }} /><col /></colgroup>
+            <tbody>
+              <tr>
+                <td>基準温度</td>
+                <td>作物が育ち始める温度です。日平均気温がこれを下回る日は0として数えます。</td>
+              </tr>
+              <tr>
+                <td>上限温度</td>
+                <td>これより暑くても、生育はそれ以上速く進まないとみなす温度です（任意）。設定すると、上限を超えた分を数えません。空欄なら上限なしで計算します。20〜50℃で、基準温度より高い値を設定できます。</td>
+              </tr>
+              <tr>
+                <td>計算方式</td>
+                <td>上限を超えた分の見積もり方です。日別のデータには1時間ごとの気温がないため、最高・最低気温から一日の気温の上がり下がりをなめらかな波（正弦曲線）として見積もり、上限より上にはみ出した部分だけを差し引きます（米国カリフォルニア大学の病害虫管理プログラム UC IPM が勧める「正弦法＋水平カットオフ」）。最高気温が上限を超えない日は何も差し引きません。</td>
+              </tr>
+              <tr>
+                <td>設定1・2</td>
+                <td>2組まで設定でき、グラフの上で切り替えられます。同じ基準温度で上限温度だけ変えて比べることもできます。設定1は空もようの「季節のあしどり」にも使います。</td>
+              </tr>
+              <tr>
+                <td>開始日</td>
+                <td>設定した日（MM-DD）から足し上げます。</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style={{ ...P_STYLE, marginTop: '0.6rem' }}>
+            計算例：最高36℃・最低24℃（日平均30℃）、基準温度10℃の日は、上限なしで20.0℃、上限33℃では昼過ぎに33℃を超えた分（約0.7℃）を差し引いて約19.3℃になります。
+          </p>
+          <div style={NOTE_BOX}>
+            <strong>気温データについて</strong><br />
+            日平均気温は1時間ごとの気温の平均（24時間平均）です。予報（点線）の期間は（最高＋最低）÷2で計算します。<br />
+            気温は約10km四方の推計値のため、畑で測った値より最高気温が低めに出ることがあり、そのぶん上限温度の効き目も小さめに出ます。
+          </div>
+
           <h3 style={H3_STYLE}>CSVダウンロード</h3>
           <p style={P_STYLE}>
-            日別データをCSV形式でエクスポートできます。基本項目に加え、累計列（降水量・日照・日射）と積算温度列（日別・累計 × 2種類の基準温度）も含まれます。
+            日別データをCSV形式でエクスポートできます。基本項目に加え、累計列（降水量・日照・日射）と積算温度列（日別・累計 × 設定1・設定2）も含まれます。
           </p>
 
           <div style={NOTE_BOX}>

@@ -151,8 +151,7 @@ export function AnalysisSettings() {
         {([0, 1] as const).map((i) => (
           <div className="set-gdd" key={i}>
             <div className="set-gdd__head">
-              <span className="set-gdd__num">{i + 1}</span>
-              <span className="set-gdd__name">{i === 0 ? 'メイン' : 'サブ'}</span>
+              <span className="set-gdd__name">設定{i + 1}</span>
               {i === 0 && <span className="set-gdd__note">空もようの「季節のあしどり」にも使います</span>}
             </div>
             <div className="set-gdd__fields">
@@ -188,9 +187,6 @@ export function AnalysisSettings() {
             </div>
           </div>
         ))}
-        <div className="set-hint">
-          上限温度は空欄なら上限なし（{UPPER_TEMP_MIN}〜{UPPER_TEMP_MAX}℃）。上限を超えた分は数えません（最高・最低気温から一日の気温の波を見積もり、上限より上を切り落とします）。
-        </div>
         <div className="set-actions">
           {renderStatus(baseTempStatus)}
           <SaveButton
