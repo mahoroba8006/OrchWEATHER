@@ -13,7 +13,7 @@ import {
 } from './lib/locationRepository';
 import {
   getUserSettings,
-  updateBaseTempSettings as updateBaseTempSettingsRemote,
+  updateGddSettings as updateGddSettingsRemote,
   updateAccumStartDates as updateAccumStartDatesRemote,
   updateAccumDeltaThresholds as updateAccumDeltaThresholdsRemote,
   updateDefaultLocationId as updateDefaultLocationIdRemote,
@@ -68,6 +68,8 @@ export const DEFAULT_AI_SECTIONS: AiSection[] = [
 
 export interface UserSettings {
   baseTempSettings:     [number, number];
+  /** 基準温度ごとの上限温度（null は上限なし） */
+  gddUpperTemps:        [number | null, number | null];
   accumStartDates:      AccumStartDates;
   accumDeltaThresholds: AccumDeltaThresholds;
   defaultLocationId:    string | null;
@@ -118,7 +120,7 @@ interface AppState {
   setGuestMode: (on: boolean) => void;
   loadLocations: (uid: string) => Promise<void>;
   loadUserSettings: (uid: string) => Promise<void>;
-  updateBaseTempSettings: (settings: [number, number]) => Promise<void>;
+  updateGddSettings: (bases: [number, number], uppers: [number | null, number | null]) => Promise<void>;
   updateAccumStartDates: (dates: AccumStartDates) => Promise<void>;
   updateAccumDeltaThresholds: (thresholds: AccumDeltaThresholds) => Promise<void>;
   updateDefaultLocationId: (id: string | null) => Promise<void>;
@@ -181,13 +183,13 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set({ userSettings: settings });
   },
 
-  updateBaseTempSettings: async (settings) => {
+  updateGddSettings: async (bases, uppers) => {
     const uid = get().user?.uid;
     if (!uid) return;
-    await updateBaseTempSettingsRemote(uid, settings);
+    await updateGddSettingsRemote(uid, bases, uppers);
     set((state) => ({
       userSettings: state.userSettings
-        ? { ...state.userSettings, baseTempSettings: settings }
+        ? { ...state.userSettings, baseTempSettings: bases, gddUpperTemps: uppers }
         : null,
     }));
   },

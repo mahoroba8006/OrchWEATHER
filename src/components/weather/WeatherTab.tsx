@@ -99,6 +99,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
   const paceOptions: PaceOptions = {
     modes: userSettings?.seasonPaceModes ?? DEFAULT_PACE_OPTIONS.modes,
     baseTemp: userSettings?.baseTempSettings?.[0] ?? 10,
+    upperTemp: userSettings?.gddUpperTemps?.[0] ?? null,
     startDates: {
       precip: userSettings?.accumStartDates?.precip ?? '01-01',
       sunshine: userSettings?.accumStartDates?.sunshine ?? '01-01',

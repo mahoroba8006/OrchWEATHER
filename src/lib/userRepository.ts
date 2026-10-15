@@ -4,6 +4,7 @@ import type { UserSettings, AccumStartDates, AccumDeltaThresholds, AiSection } f
 import type { WeatherCodeMode } from './wmoSeverity';
 import { DEFAULT_PACE_OPTIONS, type ReviewBase, type SeasonPaceMode, type SeasonPaceModes } from './seasonReview';
 import { parseHiddenHourlyRows, type HourlyRowKey } from './hourlyRows';
+import { parseUpperTemps } from './gdd';
 import { parseHourlyScenery, type HourlyScenery } from './hourlyScenery';
 
 const DEFAULT_BASE_TEMP_SETTINGS: [number, number] = [10, 3.5];
@@ -74,7 +75,7 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   // 未設定は去年と比べる（明示的に5年平均を選んだ人だけ avg）
   const seasonReviewBase: ReviewBase = data?.seasonReviewBase === 'avg' ? 'avg' : 'lastYear';
   return {
-    baseTempSettings, accumStartDates, accumDeltaThresholds,
+    baseTempSettings, gddUpperTemps: parseUpperTemps(data?.gddUpperTemps), accumStartDates, accumDeltaThresholds,
     defaultLocationId, enabledAiSections, aiCustomPrompt,
     weatherCodeMode, seasonPaceModes, seasonReviewBase,
     hiddenHourlyRows: parseHiddenHourlyRows(data?.hiddenHourlyRows),
@@ -82,11 +83,12 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
   };
 }
 
-export async function updateBaseTempSettings(
+export async function updateGddSettings(
   uid: string,
-  settings: [number, number]
+  bases: [number, number],
+  uppers: [number | null, number | null]
 ): Promise<void> {
-  await setDoc(doc(db, 'users', uid), { baseTempSettings: settings }, { merge: true });
+  await setDoc(doc(db, 'users', uid), { baseTempSettings: bases, gddUpperTemps: uppers }, { merge: true });
 }
 
 export async function updateAccumStartDates(

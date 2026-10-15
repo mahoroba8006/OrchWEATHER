@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 import type { CompareTarget } from '../hooks/useWeather';
 import type { WeatherData } from '../api/weather';
 import { useAppStore } from '../store';
+import { dailyGdd, gddLabel } from '../lib/gdd';
 
 interface DailyRawTableProps {
   targets: CompareTarget[];
@@ -11,6 +12,7 @@ interface DailyRawTableProps {
   getLocationName: (id: string) => string;
   accumStartDates: { precip: string; sunshine: string; radiation: string; gdd: string };
   baseTempSettings: [number, number];
+  gddUpperTemps: [number | null, number | null];
 }
 
 interface AccumRow {
@@ -55,7 +57,7 @@ const METRICS: { label: string; key: keyof DayRow; fixed: number }[] = [
   { label: '最低飽差(g/m³)', key: 'vpdMin',          fixed: 2 },
 ];
 
-export function DailyRawTable({ targets, weatherData, getLocationName, accumStartDates, baseTempSettings }: DailyRawTableProps) {
+export function DailyRawTable({ targets, weatherData, getLocationName, accumStartDates, baseTempSettings, gddUpperTemps }: DailyRawTableProps) {
   // CSV出力は有料（AI許可）ユーザー限定。未許可は押せないロック表示にする。
   const aiAllowed = useAppStore(s => s.aiAllowed);
   // すべてのターゲットの MM-DD を収集してソート
@@ -97,6 +99,7 @@ export function DailyRawTable({ targets, weatherData, getLocationName, accumStar
   // ターゲットごとの累積値マップ（CSV専用）
   const accumMaps = React.useMemo(() => {
     const [b1, b2] = baseTempSettings;
+    const [u1, u2] = gddUpperTemps;
     return targets.map(t => {
       const map = new Map<string, AccumRow>();
       const wd = weatherData[t.id];
@@ -112,8 +115,8 @@ export function DailyRawTable({ targets, weatherData, getLocationName, accumStar
         if (inPrecip)    runPrecip    += d.precipSum;
         if (inRadiation) runRadiation += d.radiation;
         if (inSunshine)  runSunshine  += d.sunshineDuration;
-        const daily1 = Math.max(0, d.tempMean - b1);
-        const daily2 = Math.max(0, d.tempMean - b2);
+        const daily1 = dailyGdd(d, b1, u1);
+        const daily2 = dailyGdd(d, b2, u2);
         if (inGdd) { runGdd1 += daily1; runGdd2 += daily2; }
         map.set(mmdd, {
           accumPrecip:    inPrecip    ? runPrecip    : null,
@@ -127,7 +130,7 @@ export function DailyRawTable({ targets, weatherData, getLocationName, accumStar
       });
       return map;
     });
-  }, [targets, weatherData, accumStartDates, baseTempSettings]);
+  }, [targets, weatherData, accumStartDates, baseTempSettings, gddUpperTemps]);
 
   const isTwoTargets = targets.length >= 2;
 
@@ -151,15 +154,16 @@ export function DailyRawTable({ targets, weatherData, getLocationName, accumStar
 
     const fileName = `weather_${getLocationName(firstTarget.locationId)}_${firstTarget.year}.csv`;
     const [b1, b2] = baseTempSettings;
+    const [u1, u2] = gddUpperTemps;
 
     const ACCUM_COLS: { label: string; key: keyof AccumRow; fixed: number }[] = [
       { label: `累計降水量(mm)`,                    key: 'accumPrecip',    fixed: 1 },
       { label: `累計日射量(MJ/m²)`,                 key: 'accumRadiation', fixed: 2 },
       { label: `累計日照時間(h)`,                    key: 'accumSunshine',  fixed: 1 },
-      { label: `有効積算温度_日別(基準${b1}℃)`,      key: 'dailyGdd1',      fixed: 1 },
-      { label: `累計積算温度(基準${b1}℃)`,           key: 'accumGdd1',      fixed: 1 },
-      { label: `有効積算温度_日別(基準${b2}℃)`,      key: 'dailyGdd2',      fixed: 1 },
-      { label: `累計積算温度(基準${b2}℃)`,           key: 'accumGdd2',      fixed: 1 },
+      { label: `有効積算温度_日別(基準${gddLabel(b1, u1)})`, key: 'dailyGdd1',      fixed: 1 },
+      { label: `累計積算温度(基準${gddLabel(b1, u1)})`, key: 'accumGdd1',      fixed: 1 },
+      { label: `有効積算温度_日別(基準${gddLabel(b2, u2)})`, key: 'dailyGdd2',      fixed: 1 },
+      { label: `累計積算温度(基準${gddLabel(b2, u2)})`, key: 'accumGdd2',      fixed: 1 },
     ];
 
     function formatAccum(row: AccumRow | undefined, col: { key: keyof AccumRow; fixed: number }): string {

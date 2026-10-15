@@ -27,3 +27,19 @@ describe('節気の比較・季節のあしどりの既定', () => {
     expect((await getUserSettings('u1')).seasonPaceModes).toEqual({ precip: 'analysis', gdd: 'analysis', sunshine: 'analysis' });
   });
 });
+
+describe('有効積算温度の上限温度の読み取り', () => {
+  it('未設定は両方 null（上限なし）', async () => {
+    withData(undefined);
+    expect((await getUserSettings('u1')).gddUpperTemps).toEqual([null, null]);
+  });
+
+  it('保存済みはそのまま。数値でない・範囲外は null', async () => {
+    withData({ gddUpperTemps: [33, null] });
+    expect((await getUserSettings('u1')).gddUpperTemps).toEqual([33, null]);
+    withData({ gddUpperTemps: ['33', 60] });
+    expect((await getUserSettings('u1')).gddUpperTemps).toEqual([null, null]);
+    withData({ gddUpperTemps: [19.9, 50] });
+    expect((await getUserSettings('u1')).gddUpperTemps).toEqual([null, 50]);
+  });
+});

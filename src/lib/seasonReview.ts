@@ -4,6 +4,7 @@
 import type { DailyActual } from '../api/weather';
 import type { DailyForecastData } from '../api/forecast';
 import { addDays } from './dateUtils';
+import { dailyGdd } from './gdd';
 import { SEKKI, sekkiForDate } from './sekki';
 
 /** 5年平均に使う年数（去年〜5年前） */
@@ -430,6 +431,8 @@ export interface PaceOptions {
   modes: SeasonPaceModes;
   /** 積算温度の基準温度（℃）。空くらべの基準温度1 */
   baseTemp: number;
+  /** 積算温度の上限温度（℃）。null は上限なし。空くらべの基準温度1の組 */
+  upperTemp: number | null;
   /** 空くらべの累積開始日（MM-DD） */
   startDates: { precip: string; sunshine: string; gdd: string };
   /** 累積の積算温度がこの値未満のうちは日数差が安定しないので出さない。空くらべの「日数差」ガードと共有 */
@@ -441,6 +444,7 @@ export interface PaceOptions {
 export const DEFAULT_PACE_OPTIONS: PaceOptions = {
   modes: { precip: 'recent', gdd: 'analysis', sunshine: 'recent' },
   baseTemp: 10,
+  upperTemp: null,
   startDates: { precip: '01-01', sunshine: '01-01', gdd: '01-01' },
   gddDaysMin: 30,
   reviewBase: 'lastYear',
@@ -465,14 +469,14 @@ function latestDate(map: DayMap, onOrBefore: string): string | null {
   return best;
 }
 
-/** start〜end の日ごとの有効積算温度（base℃を引いた分。下回る日は0）。欠けがあれば null */
-function cumulative(map: DayMap, start: string, end: string, base: number): number[] | null {
+/** start〜end の日ごとの有効積算温度（base℃を引いた分。下回る日は0。upper℃を超えた分は数えない）。欠けがあれば null */
+function cumulative(map: DayMap, start: string, end: string, base: number, upper: number | null): number[] | null {
   const out: number[] = [];
   let sum = 0;
   for (let d = start; d <= end; d = addDays(d, 1)) {
     const r = map.get(d);
     if (!r) return null;
-    sum += Math.max(0, r.tempMean - base);
+    sum += dailyGdd(r, base, upper);
     out.push(sum);
   }
   return out;
@@ -510,11 +514,11 @@ function windowStats(map: DayMap, start: string, last: string) {
 
 /** 開始日からの積算温度の早い・遅い（比較年が今年の現在値に届いた日との差）。積算が小さい序盤は出さない */
 function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): PaceClause[] | null {
-  const cur = cumulative(map, start, last, opts.baseTemp);
+  const cur = cumulative(map, start, last, opts.baseTemp, opts.upperTemp);
   if (!cur || cur.length === 0) return null;
   const series: number[][] = [];
   for (let k = 1; k <= AVG_YEARS; k++) {
-    const s = cumulative(map, shiftYear(start, -k), `${yearOf(start) - k}-12-31`, opts.baseTemp);
+    const s = cumulative(map, shiftYear(start, -k), `${yearOf(start) - k}-12-31`, opts.baseTemp, opts.upperTemp);
     if (!s) break;
     series.push(s);
   }
@@ -536,12 +540,12 @@ function gddPace(map: DayMap, start: string, last: string, opts: PaceOptions): P
 }
 
 /** 直近期間の積算温度の差（℃） */
-function gddRecent(map: DayMap, start: string, last: string, base: number): PaceClause[] | null {
-  const cur = cumulative(map, start, last, base);
+function gddRecent(map: DayMap, start: string, last: string, base: number, upper: number | null): PaceClause[] | null {
+  const cur = cumulative(map, start, last, base, upper);
   if (!cur || cur.length === 0) return null;
   const per: number[] = [];
   for (let k = 1; k <= AVG_YEARS; k++) {
-    const s = cumulative(map, shiftYear(start, -k), shiftYear(last, -k), base);
+    const s = cumulative(map, shiftYear(start, -k), shiftYear(last, -k), base, upper);
     if (!s || s.length === 0) break;
     per.push(lastOf(s));
   }
@@ -586,10 +590,10 @@ export function computePaceItems(map: DayMap, today: string, opts: PaceOptions):
 
   const gw = windowOf('gdd');
   const g = gw && (opts.modes.gdd === 'recent'
-    ? gddRecent(map, gw.start, last, opts.baseTemp)
+    ? gddRecent(map, gw.start, last, opts.baseTemp, opts.upperTemp)
     : gddPace(map, gw.start, last, opts));
   if (gw && g) {
-    items.push(paceItem('gdd', '積算温度', `${gw.label}・${opts.baseTemp}℃基準`, g));
+    items.push(paceItem('gdd', '積算温度', `${gw.label}・${opts.baseTemp}℃基準${opts.upperTemp === null ? '' : `・上限${opts.upperTemp}℃`}`, g));
   }
 
   const sw = windowOf('sunshine');

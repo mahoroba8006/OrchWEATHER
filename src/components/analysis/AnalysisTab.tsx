@@ -12,6 +12,7 @@ import { Button } from '../ui/Button';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { CustomWideBar, CustomRangeBar, ForecastRangeBar } from './chartShapes';
 import type { ChartId, useAnalysisState } from './useAnalysisState';
+import { gddLabel } from '../../lib/gdd';
 import './analysis.css';
 
 const CHART_TABS: { id: ChartId; label: string }[] = [
@@ -1017,7 +1018,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               className="ui-seg--compact"
               layoutId="analysis-basetemp"
               ariaLabel="基準温度"
-              options={(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => ({ value: String(i), label: `基準温度 ${temp}℃` }))}
+              options={(userSettings?.baseTempSettings ?? [10, 3.5]).map((temp, i) => ({ value: String(i), label: `基準温度 ${gddLabel(temp, userSettings?.gddUpperTemps?.[i] ?? null)}` }))}
               value={String(selectedBaseTempIndex)}
               onChange={v => setSelectedBaseTempIndex(Number(v) as 0 | 1)}
             />
@@ -1226,6 +1227,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
               getLocationName={getLocationName}
               accumStartDates={userSettings?.accumStartDates ?? { precip: '01-01', sunshine: '01-01', radiation: '01-01', gdd: '01-01' }}
               baseTempSettings={userSettings?.baseTempSettings ?? [10, 3.5]}
+              gddUpperTemps={userSettings?.gddUpperTemps ?? [null, null]}
             />
           </section>
         )}

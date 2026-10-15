@@ -3,6 +3,7 @@ import { useAppStore } from '../../store';
 import { useWeatherData, type CompareTarget } from '../../hooks/useWeather';
 import { useForecast } from '../../hooks/useForecast';
 import { logWeatherView } from '../../lib/analytics';
+import { dailyGdd } from '../../lib/gdd';
 import {
   createViewportAround,
   horizontalPinchDistance,
@@ -428,6 +429,7 @@ export function useAnalysisState(isMobile: boolean) {
 
   const gddData = useMemo(() => {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const upperTemp = userSettings?.gddUpperTemps?.[selectedBaseTempIndex] ?? null;
     const gddStart = userSettings?.accumStartDates?.gdd ?? '01-01';
     const overlay = new Map<string, Record<string, number | null>>();
     const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
@@ -440,8 +442,7 @@ export function useAnalysisState(isMobile: boolean) {
       data.daily.forEach(day => {
         const mmdd = day.date.substring(5);
         const inRange = mmdd >= gddStart;
-        const diff = day.tempMean - selectedBaseTemp;
-        const dailyAccum = diff > 0 ? diff : 0;
+        const dailyAccum = dailyGdd(day, selectedBaseTemp, upperTemp);
         const existing = overlay.get(mmdd) ?? {};
         if (inRange) {
           runningAccumTemp += dailyAccum;
@@ -470,9 +471,7 @@ export function useAnalysisState(isMobile: boolean) {
 
           if (mmdd >= gddStart) {
             const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
-            const diff = tempMean - selectedBaseTemp;
-            const dailyGdd = diff > 0 ? diff : 0;
-            forecastGddRunning += dailyGdd;
+            forecastGddRunning += dailyGdd({ ...fDay, tempMean }, selectedBaseTemp, upperTemp);
             existing[`forecast_accum_gdd_${target.id}`] = forecastGddRunning;
             // Δ日逆引き用に予報期間も series に追加（確定データだけでは未到達と誤判定されるため）
             series.push({ mmdd, accum: forecastGddRunning });
@@ -551,14 +550,14 @@ export function useAnalysisState(isMobile: boolean) {
   const forecastDailyMap = useMemo(() => {
     if (!forecastData || !committedTargets[0] || committedTargets[0].year !== currentYear) return null;
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const upperTemp = userSettings?.gddUpperTemps?.[selectedBaseTempIndex] ?? null;
     const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
     forecastData.daily.forEach(fDay => {
       if (fDay.isPlaceholder) return; // データ未作成日は予報タップ値に含めない
       const mmdd = fDay.date.slice(5);
       const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
-      const diff = tempMean - selectedBaseTemp;
       map.set(mmdd, {
-        gdd: diff > 0 ? diff : 0,
+        gdd: dailyGdd({ ...fDay, tempMean }, selectedBaseTemp, upperTemp),
         radiation: fDay.radiationSum,
         sunshine: fDay.sunshineDuration,
         precip: fDay.precipSum,
@@ -570,14 +569,14 @@ export function useAnalysisState(isMobile: boolean) {
   const forecastDailyMap2 = useMemo(() => {
     if (!forecastData2 || !committedTargets[1] || committedTargets[1].year !== currentYear) return null;
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const upperTemp = userSettings?.gddUpperTemps?.[selectedBaseTempIndex] ?? null;
     const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
     forecastData2.daily.forEach(fDay => {
       if (fDay.isPlaceholder) return; // データ未作成日は予報タップ値に含めない
       const mmdd = fDay.date.slice(5);
       const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
-      const diff = tempMean - selectedBaseTemp;
       map.set(mmdd, {
-        gdd: diff > 0 ? diff : 0,
+        gdd: dailyGdd({ ...fDay, tempMean }, selectedBaseTemp, upperTemp),
         radiation: fDay.radiationSum,
         sunshine: fDay.sunshineDuration,
         precip: fDay.precipSum,
@@ -604,6 +603,7 @@ export function useAnalysisState(isMobile: boolean) {
     if (Object.keys(weatherData).length === 0) return {};
     const stats: Record<string, any> = {};
     const baseT = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const upperT = userSettings?.gddUpperTemps?.[selectedBaseTempIndex] ?? null;
     const precipStart = userSettings?.accumStartDates?.precip ?? '01-01';
     const sunshineStart = userSettings?.accumStartDates?.sunshine ?? '01-01';
     const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
@@ -656,18 +656,14 @@ export function useAnalysisState(isMobile: boolean) {
 
         let monthAccumSum = 0;
         monthDays.forEach(d => {
-          const diff = d.tempMean - baseT;
-          if (diff > 0) monthAccumSum += diff;
+          monthAccumSum += dailyGdd(d, baseT, upperT);
         });
 
         // 開始日適用版（月別バー・累積バー用）
         const sumPrecipPartial = partialSum(monthDays, monthMM, precipStart, d => d.precipSum);
         const sumSunshinePartial = partialSum(monthDays, monthMM, sunshineStart, d => d.sunshineDuration);
         const sumRadPartial = partialSum(monthDays, monthMM, radiationStart, d => d.radiation);
-        const monthAccumSumPartial = partialSum(monthDays, monthMM, gddStart, d => {
-          const diff = d.tempMean - baseT;
-          return diff > 0 ? diff : 0;
-        });
+        const monthAccumSumPartial = partialSum(monthDays, monthMM, gddStart, d => dailyGdd(d, baseT, upperT));
         
         const monthMeanAccum = monthAccumSum / monthDays.length;
         

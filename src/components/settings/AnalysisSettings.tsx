@@ -6,6 +6,7 @@ import {
   type AccumStartDates,
   type AccumDeltaThresholds,
 } from '../../store';
+import { UPPER_TEMP_MIN, UPPER_TEMP_MAX } from '../../lib/gdd';
 import { Button } from '../ui/Button';
 import { SaveButton } from '../ui/SaveButton';
 import './settings.css';
@@ -47,7 +48,7 @@ type SaveStatus = { kind: 'idle' | 'saving' | 'saved' | 'error'; msg?: string };
 export function AnalysisSettings() {
   const {
     userSettings,
-    updateBaseTempSettings,
+    updateGddSettings,
     updateAccumStartDates,
     updateAccumDeltaThresholds,
   } = useAppStore();
@@ -55,6 +56,11 @@ export function AnalysisSettings() {
   const [baseTempForm, setBaseTempForm] = useState<[number, number]>(
     userSettings?.baseTempSettings ?? [10, 3.5]
   );
+
+  // 上限温度は入力途中の文字列で持つ（空欄＝上限なし）
+  const upperToForm = (u: [number | null, number | null] | undefined): [string, string] =>
+    [u?.[0] == null ? '' : String(u[0]), u?.[1] == null ? '' : String(u[1])];
+  const [upperTempForm, setUpperTempForm] = useState<[string, string]>(upperToForm(userSettings?.gddUpperTemps));
 
   const [accumStartForm, setAccumStartForm] = useState<AccumStartDates>(
     userSettings?.accumStartDates ?? DEFAULT_ACCUM_START_DATES
@@ -70,19 +76,35 @@ export function AnalysisSettings() {
   useEffect(() => {
     if (userSettings) {
       setBaseTempForm([...userSettings.baseTempSettings]);
+      setUpperTempForm(upperToForm(userSettings.gddUpperTemps));
       setAccumStartForm({ ...userSettings.accumStartDates });
       setAccumThresholdForm({ ...userSettings.accumDeltaThresholds });
     }
   }, [userSettings]);
 
   const handleSaveBaseTempSettings = async () => {
+    const sanitised: [number, number] = [
+      isNaN(baseTempForm[0]) ? 10 : baseTempForm[0],
+      isNaN(baseTempForm[1]) ? 3.5 : baseTempForm[1],
+    ];
+    // 空欄は上限なし。範囲外・基準温度以下は保存しない
+    const uppers: Array<number | null> = [];
+    for (const i of [0, 1] as const) {
+      const text = upperTempForm[i].trim();
+      const v = text === '' ? null : Number(text);
+      if (v !== null && (!Number.isFinite(v) || v < UPPER_TEMP_MIN || v > UPPER_TEMP_MAX)) {
+        setBaseTempStatus({ kind: 'error', msg: `上限温度${i + 1}は${UPPER_TEMP_MIN}〜${UPPER_TEMP_MAX}℃で入力してください` });
+        return;
+      }
+      if (v !== null && v <= sanitised[i]) {
+        setBaseTempStatus({ kind: 'error', msg: `上限温度${i + 1}は基準温度${i + 1}より高くしてください` });
+        return;
+      }
+      uppers.push(v);
+    }
     setBaseTempStatus({ kind: 'saving' });
     try {
-      const sanitised: [number, number] = [
-        isNaN(baseTempForm[0]) ? 10 : baseTempForm[0],
-        isNaN(baseTempForm[1]) ? 3.5 : baseTempForm[1],
-      ];
-      await updateBaseTempSettings(sanitised);
+      await updateGddSettings(sanitised, [uppers[0], uppers[1]]);
       setBaseTempStatus({ kind: 'saved', msg: '基準温度を保存しました' });
       setTimeout(() => setBaseTempStatus({ kind: 'idle' }), 2500);
     } catch (err: unknown) {
@@ -139,10 +161,25 @@ export function AnalysisSettings() {
                   setBaseTempForm(next);
                 }}
               />
+              <label>上限温度{i + 1} (℃)</label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="なし"
+                value={upperTempForm[i]}
+                onChange={(e) => {
+                  const next: [string, string] = [...upperTempForm] as [string, string];
+                  next[i] = e.target.value;
+                  setUpperTempForm(next);
+                }}
+              />
             </div>
           ))}
         </div>
-        <div className="set-hint">基準温度1は空もようの「季節のあしどり」にも使います。</div>
+        <div className="set-hint">基準温度1と上限温度1は空もようの「季節のあしどり」にも使います。</div>
+        <div className="set-hint">
+          上限温度は空欄なら上限なし（{UPPER_TEMP_MIN}〜{UPPER_TEMP_MAX}℃）。上限を超えた分は数えません（最高・最低気温から一日の気温の波を見積もり、上限より上を切り落とします）。
+        </div>
         <div className="set-actions">
           {renderStatus(baseTempStatus)}
           <SaveButton
