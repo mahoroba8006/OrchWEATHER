@@ -66,6 +66,14 @@ const GDD_DELTA_DAYS_MIN_V0 = 30;
 // 累積日射量 序盤の Δ日 表示を抑制する閾値（MJ/m²）
 const RADIATION_DELTA_DAYS_MIN_V0 = 100;
 
+// 累積キー → 予報（点線）キーの対応表
+const ACCUM_FORECAST_PREFIX: Record<string, string> = {
+  'accum_':           'forecast_accum_gdd_',
+  'accumRadiation_':  'forecast_accum_radiation_',
+  'accumPrecip_':     'forecast_accum_precip_',
+  'accumSunshine_':   'forecast_accum_sunshine_',
+};
+
 export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysis: ReturnType<typeof useAnalysisState> }) {
   const { locations, userSettings, geoLocation, setGeoLocation } = useAppStore();
   const {
@@ -242,14 +250,8 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
           const refId = accumDiffConfig && committedTargets.length > 1 ? committedTargets[1]?.id : null;
           const refKey = refId && accumDiffConfig ? `${accumDiffConfig.refKeyPrefix}${refId}` : null;
           // regular キーで値が取れない場合（予報日付）は forecast キーにフォールバック
-          const refForecastPrefixMap: Record<string, string> = {
-            'accum_':           'forecast_accum_gdd_',
-            'accumRadiation_':  'forecast_accum_radiation_',
-            'accumPrecip_':     'forecast_accum_precip_',
-            'accumSunshine_':   'forecast_accum_sunshine_',
-          };
           const refForecastKey = accumDiffConfig && refId
-            ? `${refForecastPrefixMap[accumDiffConfig.refKeyPrefix] ?? ''}${refId}`
+            ? `${ACCUM_FORECAST_PREFIX[accumDiffConfig.refKeyPrefix] ?? ''}${refId}`
             : null;
           const v0 = refKey
             ? (hover.payload.find((p: any) => p.dataKey === refKey)?.value
@@ -264,13 +266,7 @@ export function AnalysisTab({ isMobile, analysis }: { isMobile: boolean; analysi
 
             // 通常キーと予報キーの両方を許容する
             const prefix = accumDiffConfig.refKeyPrefix;
-            const forecastPrefixMap: Record<string, string> = {
-              'accum_':           'forecast_accum_gdd_',
-              'accumRadiation_':  'forecast_accum_radiation_',
-              'accumPrecip_':     'forecast_accum_precip_',
-              'accumSunshine_':   'forecast_accum_sunshine_',
-            };
-            const forecastPrefix = forecastPrefixMap[prefix];
+            const forecastPrefix = ACCUM_FORECAST_PREFIX[prefix];
             const isRegularKey  = p.dataKey === `${prefix}${t0id}`;
             const isForecastKey = !!forecastPrefix && p.dataKey === `${forecastPrefix}${t0id}`;
             if (!isRegularKey && !isForecastKey) return null;

@@ -33,9 +33,6 @@ export interface DailyWeather {
   humidMin: number;
   radiation: number; // 日射量(MJ/m²)
   sunshineDuration: number; // 日照時間(h)
-  accumPrecip: number;
-  accumRadiation: number;
-  accumSunshineDuration: number; // 累積日照時間(h)
 }
 
 export interface WeatherData {
@@ -92,10 +89,6 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
   const rawData = await response.json();
   const daily = rawData.daily;
 
-  let currentAccumPrecip = 0;
-  let currentAccumRadiation = 0;
-  let currentAccumSunshineDuration = 0;
-
   const processedData: DailyWeather[] = [];
 
   daily.time.forEach((timeStr: string, index: number) => {
@@ -111,10 +104,6 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
     const radiation = daily.shortwave_radiation_sum ? daily.shortwave_radiation_sum[index] : 0;
     const sunshineDuration = daily.sunshine_duration ? (daily.sunshine_duration[index] ?? 0) / 3600 : 0;
 
-    currentAccumPrecip += precipSum;
-    currentAccumRadiation += radiation;
-    currentAccumSunshineDuration += sunshineDuration;
-
     processedData.push({
       date: timeStr,
       tempMean,
@@ -126,9 +115,6 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
       humidMin,
       radiation,
       sunshineDuration,
-      accumPrecip: currentAccumPrecip,
-      accumRadiation: currentAccumRadiation,
-      accumSunshineDuration: currentAccumSunshineDuration,
     });
   });
 

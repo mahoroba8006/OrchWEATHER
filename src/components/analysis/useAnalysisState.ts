@@ -2,8 +2,11 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '../../store';
 import { useWeatherData, type CompareTarget } from '../../hooks/useWeather';
 import { useForecast } from '../../hooks/useForecast';
+import type { ForecastData } from '../../api/forecast';
 import { logWeatherView } from '../../lib/analytics';
 import { dailyGdd } from '../../lib/gdd';
+import { calcVPD } from '../../lib/vpd';
+import { accumulate, toAccumSeries, type AccumPoint } from '../../lib/accum';
 import {
   createViewportAround,
   horizontalPinchDistance,
@@ -18,14 +21,41 @@ import {
 
 export type ChartId = 'temp' | 'precip' | 'sunshine' | 'radiation' | 'gdd' | 'humid' | 'vpd';
 
-// 飽差 = 飽和水蒸気量 - 実水蒸気量 [g/m³]（施設園芸の現場標準単位）
-// e_s(T)[hPa] = 6.1078 × 10^(7.5T/(T+237.3))（Tetens式）
-// 飽和水蒸気量[g/m³] = 216.67 × e_s / (T + 273.15) （理想気体の状態方程式）
-const calcVPD = (tempC: number, humidPct: number): number => {
-  const e_s_hPa = 6.1078 * Math.pow(10, 7.5 * tempC / (tempC + 237.3));
-  const a_max = 216.67 * e_s_hPa / (tempC + 273.15);
-  return a_max * (1 - humidPct / 100);
-};
+// 予報の空欄日（取得データなし）は累積・予報タップ値に含めない
+const liveForecastDays = (f: ForecastData | null) => f ? f.daily.filter(d => !d.isPlaceholder) : [];
+
+type AccumKind = 'precip' | 'sunshine' | 'radiation';
+type AccumByTarget = Map<string, Record<AccumKind, { hist: AccumPoint[]; forecast: AccumPoint[] }>>;
+
+// Δ日逆引き用：累積の MM-DD 系列（履歴＋予報。開始日以降のみ）
+function accumSeriesOf(accumByTarget: AccumByTarget, kind: AccumKind) {
+  const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
+  accumByTarget.forEach((a, id) => seriesByTarget.set(id, toAccumSeries([...a[kind].hist, ...a[kind].forecast])));
+  return { seriesByTarget };
+}
+
+// 予報ホバー日別値マップ（積算温度・日射量・日照時間の予報点タップ用）。今年のターゲットのみ
+function buildForecastDailyMap(
+  fData: ForecastData | null,
+  target: CompareTarget | undefined,
+  currentYear: number,
+  baseTemp: number,
+  upperTemp: number | null,
+) {
+  if (!fData || !target || target.year !== currentYear) return null;
+  const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
+  liveForecastDays(fData).forEach(fDay => {
+    const mmdd = fDay.date.slice(5);
+    const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
+    map.set(mmdd, {
+      gdd: dailyGdd({ ...fDay, tempMean }, baseTemp, upperTemp),
+      radiation: fDay.radiationSum,
+      sunshine: fDay.sunshineDuration,
+      precip: fDay.precipSum,
+    });
+  });
+  return { targetId: target.id, values: map };
+}
 
 const MOBILE_INITIAL_DAILY_WINDOW = 120;
 const DESKTOP_INITIAL_DAILY_WINDOW = 180;
@@ -240,6 +270,39 @@ export function useAnalysisState(isMobile: boolean) {
     return loc ? loc.name : '未設定';
   };
 
+  // 対象（index 番目）の予報データ。今年のターゲットのみ（それ以外は null）
+  const forecastFor = useCallback((target: CompareTarget, index: number): ForecastData | null => {
+    const f = index === 0 ? forecastData : index === 1 ? forecastData2 : null;
+    return f && target.year === currentYear ? f : null;
+  }, [forecastData, forecastData2, currentYear]);
+
+  // 降水量・日照時間・日射量の累積（開始日以降）。今年の対象は予報を履歴の最終値から継ぎ足す
+  const precipStart = userSettings?.accumStartDates?.precip ?? '01-01';
+  const sunshineStart = userSettings?.accumStartDates?.sunshine ?? '01-01';
+  const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
+  const accumByTarget = useMemo(() => {
+    const result: AccumByTarget = new Map();
+    committedTargets.forEach((target, index) => {
+      const data = weatherData[target.id];
+      if (!data) return;
+      const fDays = liveForecastDays(forecastFor(target, index));
+      const build = (
+        start: string,
+        hist: (d: typeof data.daily[number]) => number,
+        fc: (d: typeof fDays[number]) => number,
+      ) => {
+        const h = accumulate(data.daily, start, hist);
+        return { hist: h.points, forecast: accumulate(fDays, start, fc, h.total).points };
+      };
+      result.set(target.id, {
+        precip: build(precipStart, d => d.precipSum, d => d.precipSum),
+        sunshine: build(sunshineStart, d => d.sunshineDuration, d => d.sunshineDuration),
+        radiation: build(radiationStart, d => d.radiation, d => d.radiationSum),
+      });
+    });
+    return result;
+  }, [weatherData, committedTargets, forecastFor, precipStart, sunshineStart, radiationStart]);
+
   // Convert raw API data into Recharts format grouped by MM-DD
   const baseChartData = useMemo(() => {
     if (Object.keys(weatherData).length === 0) return [];
@@ -278,15 +341,9 @@ export function useAnalysisState(isMobile: boolean) {
 
       const plotDayStr = index === 0 ? '09' : index === 1 ? '16' : '23';
 
-      // 累積開始日（MM-DD）— ユーザー設定。未設定はデフォルト '01-01'
-      const precipStart = userSettings?.accumStartDates?.precip ?? '01-01';
-      const sunshineStart = userSettings?.accumStartDates?.sunshine ?? '01-01';
-      const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
-      let accumPrecipRunning = 0;
-      let accumSunshineRunning = 0;
-      let accumRadiationRunning = 0;
+      const accums = accumByTarget.get(target.id)!;
 
-      data.daily.forEach(day => {
+      data.daily.forEach((day, i) => {
         const mmdd = day.date.substring(5);
         const monthStr = day.date.substring(5, 7);
         const dayStr = day.date.substring(8, 10);
@@ -349,25 +406,10 @@ export function useAnalysisState(isMobile: boolean) {
         entry[`radiation_${target.id}`] = day.radiation;
         entry[`sunshine_${target.id}`] = day.sunshineDuration;
 
-        // 累積系：開始日 (MM-DD) 以降のみ加算。開始日より前は折線非表示用に null
-        if (mmdd >= precipStart) {
-          accumPrecipRunning += day.precipSum;
-          entry[`accumPrecip_${target.id}`] = accumPrecipRunning;
-        } else {
-          entry[`accumPrecip_${target.id}`] = null;
-        }
-        if (mmdd >= sunshineStart) {
-          accumSunshineRunning += day.sunshineDuration;
-          entry[`accumSunshine_${target.id}`] = accumSunshineRunning;
-        } else {
-          entry[`accumSunshine_${target.id}`] = null;
-        }
-        if (mmdd >= radiationStart) {
-          accumRadiationRunning += day.radiation;
-          entry[`accumRadiation_${target.id}`] = accumRadiationRunning;
-        } else {
-          entry[`accumRadiation_${target.id}`] = null;
-        }
+        // 累積系：開始日より前は折線非表示用に null
+        entry[`accumPrecip_${target.id}`] = accums.precip.hist[i].accum;
+        entry[`accumSunshine_${target.id}`] = accums.sunshine.hist[i].accum;
+        entry[`accumRadiation_${target.id}`] = accums.radiation.hist[i].accum;
       });
 
       // 12/31：12月と翌年1月の中間値（翌年データがある場合のみ）
@@ -391,10 +433,9 @@ export function useAnalysisState(isMobile: boolean) {
       }
 
       // ── 予報オーバーレイ（今年のターゲットのみ） ──────────────────────────
-      const fData = index === 0 ? forecastData : forecastData2;
-      if (fData && target.year === currentYear) {
-        fData.daily.forEach(fDay => {
-          if (fDay.isPlaceholder) return; // データ未作成日はオーバーレイに描かない
+      const fData = forecastFor(target, index);
+      if (fData) {
+        liveForecastDays(fData).forEach((fDay, j) => { // データ未作成日はオーバーレイに描かない
           const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
 
           if (!map.has(mmdd)) {
@@ -407,25 +448,19 @@ export function useAnalysisState(isMobile: boolean) {
           entry[`forecast_humidRange_${target.id}`] = [fDay.humidMin, fDay.humidMax];
           entry[`forecast_vpdRange_${target.id}`]   = [calcVPD(fDay.tempMin, fDay.humidMax), calcVPD(fDay.tempMax, fDay.humidMin)];
 
-          // 累積系（前の accumXxxRunning 変数が履歴ループ後の最終値を保持している）
-          if (mmdd >= precipStart) {
-            accumPrecipRunning += fDay.precipSum;
-            entry[`forecast_accum_precip_${target.id}`] = accumPrecipRunning;
-          }
-          if (mmdd >= sunshineStart) {
-            accumSunshineRunning += fDay.sunshineDuration;
-            entry[`forecast_accum_sunshine_${target.id}`] = accumSunshineRunning;
-          }
-          if (mmdd >= radiationStart) {
-            accumRadiationRunning += fDay.radiationSum;
-            entry[`forecast_accum_radiation_${target.id}`] = accumRadiationRunning;
-          }
+          // 累積系（履歴の最終値から継ぎ足し。開始日より前は描かない）
+          const fp = accums.precip.forecast[j].accum;
+          const fs = accums.sunshine.forecast[j].accum;
+          const fr = accums.radiation.forecast[j].accum;
+          if (fp !== null) entry[`forecast_accum_precip_${target.id}`] = fp;
+          if (fs !== null) entry[`forecast_accum_sunshine_${target.id}`] = fs;
+          if (fr !== null) entry[`forecast_accum_radiation_${target.id}`] = fr;
         });
       }
     });
 
     return Array.from(map.values()).sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-  }, [weatherData, committedTargets, userSettings, forecastData, forecastData2, currentYear]);
+  }, [weatherData, committedTargets, forecastFor, accumByTarget]);
 
   const gddData = useMemo(() => {
     const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
@@ -434,155 +469,54 @@ export function useAnalysisState(isMobile: boolean) {
     const overlay = new Map<string, Record<string, number | null>>();
     const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
 
-    committedTargets.forEach((target) => {
+    committedTargets.forEach((target, index) => {
       const data = weatherData[target.id];
       if (!data) return;
-      let runningAccumTemp = 0;
-      const series: Array<{ mmdd: string; accum: number }> = [];
-      data.daily.forEach(day => {
-        const mmdd = day.date.substring(5);
-        const inRange = mmdd >= gddStart;
-        const dailyAccum = dailyGdd(day, selectedBaseTemp, upperTemp);
-        const existing = overlay.get(mmdd) ?? {};
-        if (inRange) {
-          runningAccumTemp += dailyAccum;
-          existing[`dailyAccum_${target.id}`] = dailyAccum;
-          existing[`accum_${target.id}`] = runningAccumTemp;
-          series.push({ mmdd, accum: runningAccumTemp });
-        } else {
-          // 開始日より前は折線非表示・バー非表示
-          existing[`dailyAccum_${target.id}`] = null;
-          existing[`accum_${target.id}`] = null;
-        }
-        overlay.set(mmdd, existing);
+      const hist = accumulate(data.daily, gddStart, d => dailyGdd(d, selectedBaseTemp, upperTemp));
+      hist.points.forEach(p => {
+        const existing = overlay.get(p.mmdd) ?? {};
+        // 開始日より前は折線非表示・バー非表示（null）
+        existing[`dailyAccum_${target.id}`] = p.daily;
+        existing[`accum_${target.id}`] = p.accum;
+        overlay.set(p.mmdd, existing);
       });
+      const series = toAccumSeries(hist.points);
       seriesByTarget.set(target.id, series);
 
-      // ── 予報GDD累積（今年のターゲットのみ） ────────────────────────────────
-      const targetIdx = committedTargets.findIndex(t => t.id === target.id);
-      const fData = targetIdx === 0 ? forecastData : (targetIdx === 1 ? forecastData2 : null);
-      if (fData && target.year === currentYear) {
-        let forecastGddRunning = runningAccumTemp; // 昨日時点の累積GDD
-
-        fData.daily.forEach(fDay => {
-          if (fDay.isPlaceholder) return; // データ未作成日は累積に加算しない
-          const mmdd = fDay.date.slice(5); // "YYYY-MM-DD" → "MM-DD"
-          const existing = overlay.get(mmdd) ?? {};
-
-          if (mmdd >= gddStart) {
-            const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
-            forecastGddRunning += dailyGdd({ ...fDay, tempMean }, selectedBaseTemp, upperTemp);
-            existing[`forecast_accum_gdd_${target.id}`] = forecastGddRunning;
-            // Δ日逆引き用に予報期間も series に追加（確定データだけでは未到達と誤判定されるため）
-            series.push({ mmdd, accum: forecastGddRunning });
-          }
-          overlay.set(mmdd, existing);
-        });
-      }
+      // ── 予報GDD累積（今年のターゲットのみ。昨日時点の累積から継ぎ足し） ──────
+      const fDays = liveForecastDays(forecastFor(target, index));
+      const fc = accumulate(fDays, gddStart, fDay => {
+        const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
+        return dailyGdd({ ...fDay, tempMean }, selectedBaseTemp, upperTemp);
+      }, hist.total);
+      fc.points.forEach(p => {
+        const existing = overlay.get(p.mmdd) ?? {};
+        if (p.accum !== null) {
+          existing[`forecast_accum_gdd_${target.id}`] = p.accum;
+          // Δ日逆引き用に予報期間も series に追加（確定データだけでは未到達と誤判定されるため）
+          series.push({ mmdd: p.mmdd, accum: p.accum });
+        }
+        overlay.set(p.mmdd, existing);
+      });
     });
 
     return { overlay, seriesByTarget };
-  }, [weatherData, committedTargets, userSettings, selectedBaseTempIndex, forecastData, forecastData2, currentYear]);
+  }, [weatherData, committedTargets, userSettings, selectedBaseTempIndex, forecastFor]);
 
-  // 日射量チャート Δ日 逆引き用：累積日射量の MM-DD 系列
-  // 累積は baseChartData と同じ開始日ベースで自前計算
-  const radiationData = useMemo(() => {
-    const radiationStart = userSettings?.accumStartDates?.radiation ?? '01-01';
-    const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
-    committedTargets.forEach((target) => {
-      const data = weatherData[target.id];
-      if (!data) return;
-      const series: Array<{ mmdd: string; accum: number }> = [];
-      let running = 0;
-      data.daily.forEach(day => {
-        const mmdd = day.date.substring(5);
-        if (mmdd < radiationStart) return;
-        running += day.radiation;
-        series.push({ mmdd, accum: running });
-      });
-      seriesByTarget.set(target.id, series);
-      // Δ日逆引き用に予報期間も series に追加（今年のターゲットのみ）
-      const rTargetIdx = committedTargets.findIndex(t => t.id === target.id);
-      const rFData = rTargetIdx === 0 ? forecastData : (rTargetIdx === 1 ? forecastData2 : null);
-      if (rFData && target.year === currentYear) {
-        rFData.daily.forEach(fDay => {
-          const mmdd = fDay.date.slice(5);
-          if (mmdd < radiationStart) return;
-          running += fDay.radiationSum;
-          series.push({ mmdd, accum: running });
-        });
-      }
-    });
-    return { seriesByTarget };
-  }, [weatherData, committedTargets, userSettings, forecastData, forecastData2, currentYear]);
+  // 日射量・日照時間チャート Δ日 逆引き用（baseChartData と同じ累積結果から作る）
+  const radiationData = useMemo(() => accumSeriesOf(accumByTarget, 'radiation'), [accumByTarget]);
+  const sunshineData = useMemo(() => accumSeriesOf(accumByTarget, 'sunshine'), [accumByTarget]);
 
-  // 日照時間チャート Δ日 逆引き用：累積日照時間の MM-DD 系列
-  const sunshineData = useMemo(() => {
-    const sunshineStart = userSettings?.accumStartDates?.sunshine ?? '01-01';
-    const seriesByTarget = new Map<string, Array<{ mmdd: string; accum: number }>>();
-    committedTargets.forEach((target) => {
-      const data = weatherData[target.id];
-      if (!data) return;
-      const series: Array<{ mmdd: string; accum: number }> = [];
-      let running = 0;
-      data.daily.forEach(day => {
-        const mmdd = day.date.substring(5);
-        if (mmdd < sunshineStart) return;
-        running += day.sunshineDuration;
-        series.push({ mmdd, accum: running });
-      });
-      seriesByTarget.set(target.id, series);
-      const sTargetIdx = committedTargets.findIndex(t => t.id === target.id);
-      const sFData = sTargetIdx === 0 ? forecastData : (sTargetIdx === 1 ? forecastData2 : null);
-      if (sFData && target.year === currentYear) {
-        sFData.daily.forEach(fDay => {
-          const mmdd = fDay.date.slice(5);
-          if (mmdd < sunshineStart) return;
-          running += fDay.sunshineDuration;
-          series.push({ mmdd, accum: running });
-        });
-      }
-    });
-    return { seriesByTarget };
-  }, [weatherData, committedTargets, userSettings, forecastData, forecastData2, currentYear]);
-
-  // 予報ホバー日別値マップ（積算温度・日射量・日照時間の予報点タップ用）
   const forecastDailyMap = useMemo(() => {
-    if (!forecastData || !committedTargets[0] || committedTargets[0].year !== currentYear) return null;
-    const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const baseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
     const upperTemp = userSettings?.gddUpperTemps?.[selectedBaseTempIndex] ?? null;
-    const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
-    forecastData.daily.forEach(fDay => {
-      if (fDay.isPlaceholder) return; // データ未作成日は予報タップ値に含めない
-      const mmdd = fDay.date.slice(5);
-      const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
-      map.set(mmdd, {
-        gdd: dailyGdd({ ...fDay, tempMean }, selectedBaseTemp, upperTemp),
-        radiation: fDay.radiationSum,
-        sunshine: fDay.sunshineDuration,
-        precip: fDay.precipSum,
-      });
-    });
-    return { targetId: committedTargets[0].id, values: map };
+    return buildForecastDailyMap(forecastData, committedTargets[0], currentYear, baseTemp, upperTemp);
   }, [forecastData, committedTargets, userSettings, selectedBaseTempIndex, currentYear]);
 
   const forecastDailyMap2 = useMemo(() => {
-    if (!forecastData2 || !committedTargets[1] || committedTargets[1].year !== currentYear) return null;
-    const selectedBaseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
+    const baseTemp = userSettings?.baseTempSettings[selectedBaseTempIndex] ?? 10;
     const upperTemp = userSettings?.gddUpperTemps?.[selectedBaseTempIndex] ?? null;
-    const map = new Map<string, { gdd: number; radiation: number; sunshine: number; precip: number }>();
-    forecastData2.daily.forEach(fDay => {
-      if (fDay.isPlaceholder) return; // データ未作成日は予報タップ値に含めない
-      const mmdd = fDay.date.slice(5);
-      const tempMean = (fDay.tempMax + fDay.tempMin) / 2;
-      map.set(mmdd, {
-        gdd: dailyGdd({ ...fDay, tempMean }, selectedBaseTemp, upperTemp),
-        radiation: fDay.radiationSum,
-        sunshine: fDay.sunshineDuration,
-        precip: fDay.precipSum,
-      });
-    });
-    return { targetId: committedTargets[1].id, values: map };
+    return buildForecastDailyMap(forecastData2, committedTargets[1], currentYear, baseTemp, upperTemp);
   }, [forecastData2, committedTargets, userSettings, selectedBaseTempIndex, currentYear]);
 
   const filteredBaseChartData = baseChartData;
@@ -645,28 +579,12 @@ export function useAnalysisState(isMobile: boolean) {
         const maxTemp = Math.max(...monthDays.map(d => d.tempMax));
         const minTemp = Math.min(...monthDays.map(d => d.tempMin));
 
-        const sumPrecip = monthDays.reduce((sum, d) => sum + d.precipSum, 0);
-        const meanPrecip = sumPrecip / monthDays.length;
-
-        const sumRad = monthDays.reduce((sum, d) => sum + d.radiation, 0);
-        const meanRad = sumRad / monthDays.length;
-
-        const sumSunshine = monthDays.reduce((sum, d) => sum + d.sunshineDuration, 0);
-        const meanSunshine = sumSunshine / monthDays.length;
-
-        let monthAccumSum = 0;
-        monthDays.forEach(d => {
-          monthAccumSum += dailyGdd(d, baseT, upperT);
-        });
-
         // 開始日適用版（月別バー・累積バー用）
         const sumPrecipPartial = partialSum(monthDays, monthMM, precipStart, d => d.precipSum);
         const sumSunshinePartial = partialSum(monthDays, monthMM, sunshineStart, d => d.sunshineDuration);
         const sumRadPartial = partialSum(monthDays, monthMM, radiationStart, d => d.radiation);
         const monthAccumSumPartial = partialSum(monthDays, monthMM, gddStart, d => dailyGdd(d, baseT, upperT));
-        
-        const monthMeanAccum = monthAccumSum / monthDays.length;
-        
+
         const meanHumid = monthDays.reduce((sum, d) => sum + d.humidMean, 0) / monthDays.length;
         const maxHumid = Math.max(...monthDays.map(d => d.humidMax));
         const minHumid = Math.min(...monthDays.map(d => d.humidMin));
@@ -679,14 +597,6 @@ export function useAnalysisState(isMobile: boolean) {
           meanTemp,
           maxTemp,
           minTemp,
-          meanPrecip,
-          sumPrecip,
-          meanRad,
-          sumRad,
-          meanSunshine,
-          sumSunshine,
-          monthAccumSum,
-          monthMeanAccum,
           meanHumid,
           maxHumid,
           minHumid,

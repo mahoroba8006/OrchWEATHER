@@ -7,12 +7,11 @@
 
 import type { ForecastData } from '../api/forecast';
 import type { JmaWarningItem } from '../api/jmaWarning';
+import { calcVPD } from './vpd';
 
-/** 飽差 (g/m³) を気温・湿度から計算 */
+/** 飽差 (g/m³) を気温・湿度から計算（小数1桁） */
 function calcVpd(tmp: number, hum: number): number {
-  const es = 6.112 * Math.exp(17.67 * tmp / (tmp + 243.5)); // 飽和水蒸気圧 hPa
-  const as = 217 * es / (tmp + 273.15);                      // 飽和絶対湿度 g/m³
-  return Math.round(as * (1 - hum / 100) * 10) / 10;
+  return Math.round(calcVPD(tmp, hum) * 10) / 10;
 }
 
 /** 角度(°)を16方位文字列に変換 */

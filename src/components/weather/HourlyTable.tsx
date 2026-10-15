@@ -3,6 +3,7 @@ import { Sunrise, Sunset } from 'lucide-react';
 import type { HourlyForecast, DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
 import { currentHourIndex } from '../../lib/sky';
+import { calcVPD } from '../../lib/vpd';
 import './hourly.css';
 import { sceneryBackground, type HourlyScenery } from '../../lib/hourlyScenery';
 import type { JmaWarningItem } from '../../api/jmaWarning';
@@ -40,13 +41,6 @@ function precipToLabel(mm: number): string {
   if (mm < 50.0) return '激しい雨';   // 激しい雨
   if (mm < 80.0) return '滝のよう';   // 非常に激しい雨
   return '猛烈';                      // 猛烈な雨
-}
-
-// 飽差 (g/m³): e_s(T)[hPa] = 6.1078 × 10^(7.5T/(T+237.3))、飽和水蒸気量 = 216.67 × e_s / (T+273.15)
-function calcVPD(tempC: number, humidPct: number): number {
-  const e_s = 6.1078 * Math.pow(10, 7.5 * tempC / (tempC + 237.3));
-  const a_max = 216.67 * e_s / (tempC + 273.15);
-  return a_max * (1 - humidPct / 100);
 }
 
 // 各時間の固定列幅。table-layout:fixed + colgroup で全列をこの幅に統一する（太陽列も同じ）。

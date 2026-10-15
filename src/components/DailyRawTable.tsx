@@ -5,6 +5,8 @@ import type { CompareTarget } from '../hooks/useWeather';
 import type { WeatherData } from '../api/weather';
 import { useAppStore } from '../store';
 import { dailyGdd, gddLabel } from '../lib/gdd';
+import { calcVPD } from '../lib/vpd';
+import { accumulate } from '../lib/accum';
 
 interface DailyRawTableProps {
   targets: CompareTarget[];
@@ -23,12 +25,6 @@ interface AccumRow {
   accumGdd1:  number | null;
   dailyGdd2:  number | null;
   accumGdd2:  number | null;
-}
-
-function calcVPD(tempC: number, humidPct: number): number {
-  const e_s_hPa = 6.1078 * Math.pow(10, 7.5 * tempC / (tempC + 237.3));
-  const a_max = 216.67 * e_s_hPa / (tempC + 273.15);
-  return a_max * (1 - humidPct / 100);
 }
 
 interface DayRow {
@@ -104,28 +100,20 @@ export function DailyRawTable({ targets, weatherData, getLocationName, accumStar
       const map = new Map<string, AccumRow>();
       const wd = weatherData[t.id];
       if (!wd) return map;
-      let runPrecip = 0, runRadiation = 0, runSunshine = 0;
-      let runGdd1 = 0, runGdd2 = 0;
-      wd.daily.forEach(d => {
-        const mmdd = d.date.substring(5);
-        const inPrecip    = mmdd >= accumStartDates.precip;
-        const inRadiation = mmdd >= accumStartDates.radiation;
-        const inSunshine  = mmdd >= accumStartDates.sunshine;
-        const inGdd       = mmdd >= accumStartDates.gdd;
-        if (inPrecip)    runPrecip    += d.precipSum;
-        if (inRadiation) runRadiation += d.radiation;
-        if (inSunshine)  runSunshine  += d.sunshineDuration;
-        const daily1 = dailyGdd(d, b1, u1);
-        const daily2 = dailyGdd(d, b2, u2);
-        if (inGdd) { runGdd1 += daily1; runGdd2 += daily2; }
-        map.set(mmdd, {
-          accumPrecip:    inPrecip    ? runPrecip    : null,
-          accumRadiation: inRadiation ? runRadiation : null,
-          accumSunshine:  inSunshine  ? runSunshine  : null,
-          dailyGdd1: inGdd ? daily1   : null,
-          accumGdd1: inGdd ? runGdd1  : null,
-          dailyGdd2: inGdd ? daily2   : null,
-          accumGdd2: inGdd ? runGdd2  : null,
+      const precip    = accumulate(wd.daily, accumStartDates.precip,    d => d.precipSum).points;
+      const radiation = accumulate(wd.daily, accumStartDates.radiation, d => d.radiation).points;
+      const sunshine  = accumulate(wd.daily, accumStartDates.sunshine,  d => d.sunshineDuration).points;
+      const gdd1 = accumulate(wd.daily, accumStartDates.gdd, d => dailyGdd(d, b1, u1)).points;
+      const gdd2 = accumulate(wd.daily, accumStartDates.gdd, d => dailyGdd(d, b2, u2)).points;
+      wd.daily.forEach((d, i) => {
+        map.set(d.date.substring(5), {
+          accumPrecip:    precip[i].accum,
+          accumRadiation: radiation[i].accum,
+          accumSunshine:  sunshine[i].accum,
+          dailyGdd1: gdd1[i].daily,
+          accumGdd1: gdd1[i].accum,
+          dailyGdd2: gdd2[i].daily,
+          accumGdd2: gdd2[i].accum,
         });
       });
       return map;
