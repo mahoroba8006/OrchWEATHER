@@ -147,36 +147,47 @@ export function AnalysisSettings() {
       {/* 有効積算温度の設定 */}
       <div className="set-card">
         <h3 className="set-title">有効積算温度の設定</h3>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          {([0, 1] as const).map((i) => (
-            <div className="form-group" key={i} style={{ flex: 1, minWidth: '120px' }}>
-              <label>基準温度{i + 1} (℃){i === 0 ? '・メイン' : ''}</label>
-              <input
-                type="number"
-                step="0.1"
-                value={baseTempForm[i]}
-                onChange={(e) => {
-                  const next: [number, number] = [...baseTempForm] as [number, number];
-                  next[i] = parseFloat(e.target.value);
-                  setBaseTempForm(next);
-                }}
-              />
-              <label>上限温度{i + 1} (℃)</label>
-              <input
-                type="number"
-                step="0.1"
-                placeholder="なし"
-                value={upperTempForm[i]}
-                onChange={(e) => {
-                  const next: [string, string] = [...upperTempForm] as [string, string];
-                  next[i] = e.target.value;
-                  setUpperTempForm(next);
-                }}
-              />
+        {/* 1行＝1組（上段が1・下段が2）。基準温度と上限温度を横に並べる */}
+        {([0, 1] as const).map((i) => (
+          <div className="set-gdd" key={i}>
+            <div className="set-gdd__head">
+              <span className="set-gdd__num">{i + 1}</span>
+              <span className="set-gdd__name">{i === 0 ? 'メイン' : 'サブ'}</span>
+              {i === 0 && <span className="set-gdd__note">空もようの「季節のあしどり」にも使います</span>}
             </div>
-          ))}
-        </div>
-        <div className="set-hint">基準温度1と上限温度1は空もようの「季節のあしどり」にも使います。</div>
+            <div className="set-gdd__fields">
+              <div className="form-group">
+                <label htmlFor={`gdd-base-${i}`}>基準温度{i + 1} (℃)</label>
+                <input
+                  id={`gdd-base-${i}`}
+                  type="number"
+                  step="0.1"
+                  value={baseTempForm[i]}
+                  onChange={(e) => {
+                    const next: [number, number] = [...baseTempForm] as [number, number];
+                    next[i] = parseFloat(e.target.value);
+                    setBaseTempForm(next);
+                  }}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor={`gdd-upper-${i}`}>上限温度{i + 1} (℃)</label>
+                <input
+                  id={`gdd-upper-${i}`}
+                  type="number"
+                  step="0.1"
+                  placeholder="なし"
+                  value={upperTempForm[i]}
+                  onChange={(e) => {
+                    const next: [string, string] = [...upperTempForm] as [string, string];
+                    next[i] = e.target.value;
+                    setUpperTempForm(next);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
         <div className="set-hint">
           上限温度は空欄なら上限なし（{UPPER_TEMP_MIN}〜{UPPER_TEMP_MAX}℃）。上限を超えた分は数えません（最高・最低気温から一日の気温の波を見積もり、上限より上を切り落とします）。
         </div>
