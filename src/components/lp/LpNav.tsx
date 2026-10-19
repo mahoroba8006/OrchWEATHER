@@ -15,7 +15,7 @@ export function LpNav({ loading, onLogin }: { loading: boolean; onLogin: () => v
     <header className={scrolled ? 'lp-nav is-scrolled' : 'lp-nav'}>
       <a className="lp-nav__brand" href="#top">
         <img src="/icons/yamamatsu-mark-white.svg" alt="" width={26} height={26} />
-        <span>Orch.Weather</span>
+        <span>農のそら</span>
       </a>
       <button type="button" className="lp-nav__login" onClick={onLogin} disabled={loading}>ログイン</button>
     </header>

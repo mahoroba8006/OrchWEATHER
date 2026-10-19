@@ -31,7 +31,7 @@ export function LpFooter() {
       </div>
       <div className="lp-footer__brand">
         <img src="/icons/yamamatsu-mark-white.svg" alt="" width={20} height={20} />
-        <span>Orch.Weather</span>
+        <span>農のそら</span>
       </div>
       <p className="lp-footer__links">
         <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>
@@ -42,7 +42,7 @@ export function LpFooter() {
         <span>気象データ提供：<a href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">Open-Meteo</a></span>
         <span>注意報・警報：<a href="https://www.jma.go.jp" target="_blank" rel="noopener noreferrer">気象庁</a></span>
       </p>
-      <p className="lp-footer__copy">© 2025 Orch.Weather — Orchシリーズ農業専用ツール</p>
+      <p className="lp-footer__copy">© 2025 農のそら</p>
     </footer>
   );
 }

@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png'],
       manifest: {
-        name: 'Orch.Weather',
-        short_name: 'Orch.Weather',
+        name: '農のそら',
+        short_name: '農のそら',
         lang: 'ja',
         start_url: '/',
         scope: '/',
