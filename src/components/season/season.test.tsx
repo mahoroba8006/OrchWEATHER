@@ -127,14 +127,22 @@ describe('SeasonPaceTicker', () => {
 });
 
 describe('SeasonReviewCard', () => {
-  it('シートでは節気名・期間を出さず（見出しにある）、帯の下では節気名の札と期間を添える', () => {
-    const { unmount } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
-    expect(screen.queryByText(/白露/)).toBeNull();
-    expect(screen.queryByText(/9\/7〜9\/22/)).toBeNull();
+  it('シートではカードの最上部に節気名と期間、帯の下では節気名の札と期間を添える', () => {
+    const { container, unmount } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    const card = container.querySelector('article.season-card')!;
+    expect(card.firstElementChild?.className).toBe('season-card__name');
+    expect(card.firstElementChild?.textContent).toBe('白露9/7〜9/22');
     unmount();
     renderWithMotion(<SeasonReviewCard review={review} source="inline" />);
     expect(screen.getByText('白露のふりかえり').className).toBe('season-card__tag');
     expect(screen.getByText('9/7〜9/22').className).toBe('season-card__tag-date');
+  });
+
+  it('注記はカードの枠の外（すぐ下）に置く', () => {
+    const { container } = renderWithMotion(<SeasonReviewCard review={review} source="sheet" />);
+    const note = screen.getByText(/比較は同じ月日の期間の実績/);
+    expect(note.closest('article')).toBeNull();
+    expect(container.querySelector('article.season-card')?.nextElementSibling).toBe(note);
   });
 
   it('閉じる手段が渡されたときだけ閉じるボタンを出す', () => {

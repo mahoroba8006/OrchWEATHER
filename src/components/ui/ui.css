@@ -132,6 +132,16 @@
 }
 .ui-sheet__title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--ink-1); }
 .ui-sheet__title-note { margin-left: 0.75em; font-size: 0.9rem; font-weight: 400; }
+/* 見出しを中身の側で見せるシート: 見出しは読み上げ用にだけ残し、閉じるボタンを右に寄せる */
+.ui-sheet__header--title-hidden { justify-content: flex-end; }
+.ui-sheet__title--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 .ui-sheet__close {
   width: 36px;
   height: 36px;

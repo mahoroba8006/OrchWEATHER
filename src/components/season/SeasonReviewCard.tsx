@@ -61,7 +61,15 @@ export function SeasonReviewCard({ review, source, onClose, onDetail }: {
   const range = `${monthDay(review.range.start)}〜${monthDay(review.range.end)}`;
   const { hottest, coldest, heavyRain } = review.records;
   return (
+    <>
     <article className="season-card" aria-label={`${review.range.name}のふりかえり`}>
+      {/* シートでは節気名と期間をカードの最上部に（シートの見出しと同じ大きさ。帯の下のカードは札で示す） */}
+      {source === 'sheet' && (
+        <p className="season-card__name">
+          {review.range.name}
+          <span className="season-card__name-note">{review.periodLabel}</span>
+        </p>
+      )}
       <header ref={ref} className="season-card__head">
         <SekkiArt index={review.range.index} size={56} className="season-card__art" />
         {/* 上の段（札・小見出し）は右上のボタンと並べ、下の段（一言）はボタンの下まで幅を使う。三候は1候1行で幅が要らないので、ボタンの左に縦に並べる */}
@@ -201,13 +209,14 @@ export function SeasonReviewCard({ review, source, onClose, onDetail }: {
         <div><dt>{review.recordLabels.cold}</dt><dd>{`${monthDay(coldest.date)} 最低 ${coldest.value.toFixed(1)}℃`}</dd></div>
         <div><dt>まとまった雨</dt><dd>{heavyRain ? `${monthDay(heavyRain.date)} ${Math.round(heavyRain.value)}mm` : 'なし'}</dd></div>
       </dl>
-
-      <p className="season-card__note">
-        {progress
-          ? '昨日までの実績です。天気は雨量と日照からの目安です。'
-          : `比較は同じ月日の期間の実績。5年平均は${review.avgYears}の平均です。天気は雨量と日照からの目安です。`}
-      </p>
     </article>
+    {/* 注記はカードの枠の外（下）に */}
+    <p className="season-card__note">
+      {progress
+        ? '昨日までの実績です。天気は雨量と日照からの目安です。'
+        : `比較は同じ月日の期間の実績。5年平均は${review.avgYears}の平均です。天気は雨量と日照からの目安です。`}
+    </p>
+    </>
   );
 }
 

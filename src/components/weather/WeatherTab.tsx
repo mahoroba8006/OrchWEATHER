@@ -443,6 +443,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
         onClose={() => { setOpenedReview(null); setSheetIndex(null); }}
         title={shownReview ? shownReview.range.name : 'ふりかえり'}
         titleNote={shownReview?.periodLabel}
+        hideTitle /* 節気名と期間はカードの中の最上部に出す（スライドごとに変わるため） */
         contentMaxWidth={528} /* カード520px＋スライドの左右の余白 */
       >
         <ErrorBoundary onError={e => logAppError('season-sheet', e)} fallback={() => <p style={{ padding: '1rem', color: 'var(--ink-3)' }}>ふりかえりを表示できませんでした。</p>}>

@@ -160,7 +160,11 @@
 .season-card__records dt { color: var(--ink-2); }
 .season-card__records dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.season-card__note { margin: 0.6rem 0 0; font-size: 0.7rem; color: var(--ink-3); line-height: 1.5; }
+/* 注記はカードの枠の外。カードと同じ幅・左右の余白で、中身の左端に揃える */
+.season-card__note { box-sizing: border-box; max-width: 520px; margin: 0.5rem auto 0; padding-inline: 1rem; font-size: 0.7rem; color: var(--ink-3); line-height: 1.5; }
+/* シートのカードの最上部の節気名と期間（シートの見出し .ui-sheet__title と同じ大きさ） */
+.season-card__name { margin: 0 0 0.6rem; font-size: 1.05rem; font-weight: 700; color: var(--ink-1); line-height: 1.4; }
+.season-card__name-note { margin-left: 0.75em; font-size: 0.9rem; font-weight: 400; }
 .season-sr,
 .season-card__sr {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;

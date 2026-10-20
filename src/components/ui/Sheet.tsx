@@ -11,6 +11,8 @@ interface SheetProps {
   title: string;
   /** 見出しの横に小さく添える補足（節気の期間など） */
   titleNote?: string;
+  /** 見出しを中身の側で見せるとき true（画面には出さず、読み上げ用のダイアログ名としてだけ残す） */
+  hideTitle?: boolean;
   /** bottom: モバイルの下から出るシート / side: PCの右から出るパネル */
   placement?: 'bottom' | 'side';
   /** 中身（見出し・本文）の最大幅(px)。広い画面で横に間延びさせたくないときに指定し、中央に寄せる */
@@ -22,7 +24,7 @@ interface SheetProps {
 const DISMISS_OFFSET = 120;
 const DISMISS_VELOCITY = 500;
 
-function SheetPanel({ onClose, title, titleNote, placement, contentMaxWidth, children }: Omit<SheetProps, 'open'> & { placement: 'bottom' | 'side' }) {
+function SheetPanel({ onClose, title, titleNote, hideTitle, placement, contentMaxWidth, children }: Omit<SheetProps, 'open'> & { placement: 'bottom' | 'side' }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const initialFocusRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
@@ -82,8 +84,8 @@ function SheetPanel({ onClose, title, titleNote, placement, contentMaxWidth, chi
         onDragEnd={isBottom ? handleDragEnd : undefined}
       >
         {isBottom && <div className="ui-sheet__grabber" aria-hidden="true" onPointerDown={startDrag} />}
-        <div className="ui-sheet__header" onPointerDown={startDrag}>
-          <h2 id={titleId} className="ui-sheet__title">
+        <div className={`ui-sheet__header${hideTitle ? ' ui-sheet__header--title-hidden' : ''}`} onPointerDown={startDrag}>
+          <h2 id={titleId} className={`ui-sheet__title${hideTitle ? ' ui-sheet__title--hidden' : ''}`}>
             {title}
             {titleNote && <span className="ui-sheet__title-note">{titleNote}</span>}
           </h2>
