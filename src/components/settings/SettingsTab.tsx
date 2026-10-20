@@ -10,6 +10,7 @@ import { HourlyRowsEditor } from '../weather/HourlyRowsEditor';
 import { HourlySceneryPicker } from '../weather/HourlySceneryPicker';
 import { SeasonPaceSettings } from './SeasonPaceSettings';
 import { SeasonReviewBaseSettings } from './SeasonReviewBaseSettings';
+import { AI_ADVICE_ENABLED } from '../../lib/features';
 import { Button } from '../ui/Button';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import './settings.css';
@@ -23,7 +24,10 @@ const SUB_TAB_LABELS: Record<SettingsSubTab, string> = {
   analysis: '空くらべ',
 };
 
-const SUB_TABS: SettingsSubTab[] = ['location', 'weather', 'ai', 'analysis'];
+// 空のアドバイスは停止中（lib/features.ts）。停止中はタブごと出さない
+const SUB_TABS: SettingsSubTab[] = AI_ADVICE_ENABLED
+  ? ['location', 'weather', 'ai', 'analysis']
+  : ['location', 'weather', 'analysis'];
 
 export function SettingsTab() {
   const [subTab, setSubTab] = useState<SettingsSubTab>('location');
@@ -80,7 +84,7 @@ export function SettingsTab() {
           </div>
         </div>
       )}
-      {subTab === 'ai'        && <AiCommentSettings />}
+      {AI_ADVICE_ENABLED && subTab === 'ai' && <AiCommentSettings />}
       {subTab === 'analysis'  && <AnalysisSettings />}
     </div>
   );

@@ -6,6 +6,7 @@
 // GEMINI_API_KEY はサーバーサイド（CF 環境変数）にのみ存在し、クライアントには露出しない。
 //
 // 重要: AI には新たな気象予想を一切させない。既に発表された予報値の解説のみ。
+// 停止中（_auth.ts の AI_ENDPOINTS_ENABLED=false）は requireAiAccess が 503 を返し、Gemini は呼ばない。
 
 import { requireAiAccess } from './_auth';
 

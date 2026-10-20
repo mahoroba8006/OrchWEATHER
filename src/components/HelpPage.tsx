@@ -60,17 +60,6 @@ const P_STYLE: CSSProperties = {
   marginBottom: '0.5rem',
 };
 
-const WARNING_BOX: CSSProperties = {
-  background: 'rgba(239, 68, 68, 0.08)',
-  border: '1px solid rgba(239, 68, 68, 0.3)',
-  borderRadius: 'var(--radius-md)',
-  padding: '0.75rem 1rem',
-  fontSize: '0.85rem',
-  color: '#b91c1c',
-  lineHeight: 1.6,
-  marginTop: '0.75rem',
-};
-
 const FORMULA_BOX: CSSProperties = {
   background: 'rgba(var(--accent-rgb), 0.06)',
   border: '1px solid rgba(var(--accent-rgb), 0.2)',
@@ -179,7 +168,7 @@ export function HelpPage({ onBack }: Props) {
         <section id="weather">
           <h2 style={H2_STYLE}>2. 空もよう</h2>
           <p style={P_STYLE}>
-            登録した地点の現在の天気予報を表示します。日別予報・時間別予報・空のアドバイス（AI）の3つのセクションで構成されています。
+            登録した地点の現在の天気予報を表示します。日別予報・時間別予報の2つのセクションで構成されています。
           </p>
 
           <h3 style={H3_STYLE}>天気アイコンの表示モード</h3>
@@ -211,113 +200,6 @@ export function HelpPage({ onBack }: Props) {
             「リスクでみる」選択中はティール色のタグが概況の天気を、「概況でみる」選択中はピンク色のタグがリスクの天気を補足表示します。
             2つのモードの違いが大きい日（たとえば夜だけ雨が降るなど）を一目で確認できます。
           </p>
-
-          <h3 style={H3_STYLE}>AIコメントの各タブ</h3>
-          <p style={P_STYLE}>
-            空のアドバイスは農作業の観点から気象データを解説します。設定タブ「空のアドバイス」で表示するタブを有効／無効に切り替えられます。
-          </p>
-          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%' }}>
-            <thead>
-              <tr>
-                <th>タブ名</th>
-                <th>内容</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ fontWeight: 600 }}>空ごよみ</td>
-                <td>今日・明日の天気概況と数日先の傾向、作物への影響を解説します。</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 600 }}>畑しごと</td>
-                <td>管理作業・収穫・定植など外作業のタイミングと注意点を提案します。</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 600 }}>散布どき</td>
-                <td>農薬・液肥の散布に適した条件から、作業のタイミングや時間帯を提案します。</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 600 }}>施肥どき</td>
-                <td>粒状・粉状肥料の施用タイミングを雨・土の状態から最適化して提案します。</td>
-              </tr>
-
-              <tr>
-                <td style={{ fontWeight: 600 }}>じぶん好み</td>
-                <td>自分でプロンプトを入力して、天気データに基づく任意の回答を取得できます。</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <h3 style={H3_STYLE}>じぶん好みタブ — AIに渡しているデータ一覧</h3>
-          <p style={P_STYLE}>
-            じぶん好みタブでは以下のデータをAIに送信しています。プロンプトを書くときの参考にしてください。
-          </p>
-
-          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>時間別予報（1時間ごと × 72エントリ／今後72時間（3日）分）</p>
-          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
-            <thead>
-              <tr>
-                <th>項目</th>
-                <th>内容</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>気温</td><td>℃</td></tr>
-              <tr><td>湿度</td><td>%</td></tr>
-              <tr><td>風速</td><td>m/s</td></tr>
-              <tr><td>風向</td><td>16方位（北・北北東・北東 …）</td></tr>
-              <tr><td>瞬間風速</td><td>m/s</td></tr>
-              <tr><td>降水量</td><td>mm（0は白・多いほど水色）</td></tr>
-              <tr><td>降水確率</td><td>%（0は白・高いほど水色）</td></tr>
-              <tr><td>降雪量</td><td>cm</td></tr>
-              <tr><td>日照時間</td><td>分（その時刻までの1時間に日が差した長さ。短いほど灰色・長いほど黄色）</td></tr>
-              <tr><td>日射量</td><td>MJ/m²（その時刻までの1時間の量。少ないほど灰色・多いほど黄色）</td></tr>
-              <tr><td>紫外線指数</td><td>UV index</td></tr>
-              <tr><td>飽差</td><td>g/m³（気温・湿度から計算）</td></tr>
-              <tr><td>CAPE</td><td>J/kg（対流不安定の指標）</td></tr>
-              <tr><td>0℃層高度</td><td>m（雪・雨の境界の目安）</td></tr>
-              <tr><td>海面気圧</td><td>hPa</td></tr>
-            </tbody>
-          </table>
-
-          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>日別実績（過去7日分）+日別予報（今後7日分）</p>
-          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
-            <thead>
-              <tr>
-                <th>項目</th>
-                <th>内容</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>最高気温 / 最低気温</td><td>℃</td></tr>
-              <tr><td>降水確率（最大）</td><td>%</td></tr>
-              <tr><td>降水量</td><td>mm</td></tr>
-              <tr><td>日射量合計</td><td>MJ/m²</td></tr>
-              <tr><td>日照時間</td><td>h</td></tr>
-              <tr><td>最大風速</td><td>m/s</td></tr>
-            </tbody>
-          </table>
-
-          <p style={{ ...P_STYLE, fontWeight: 600, marginBottom: '0.2rem' }}>その他</p>
-          <table className="glass-table text-wrap" style={{ fontSize: '0.85rem', width: '100%', marginBottom: '0.75rem' }}>
-            <thead>
-              <tr>
-                <th>項目</th>
-                <th>内容</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>現在日時</td><td>日本時間（M/D(曜日) H時 形式）</td></tr>
-              <tr><td>地点名</td><td>登録した地点の名称</td></tr>
-              <tr><td>気象庁 注意報・警報</td><td>現在発令中のもの（なければ空）</td></tr>
-            </tbody>
-          </table>
-
-          <div style={WARNING_BOX}>
-            <strong>⚠️ ハルシネーション（AI の誤情報）に注意</strong><br />
-            上記一覧にないデータをプロンプトで指定すると、AIが実際には存在しない数値を作り出して回答する場合があります。<br />
-            例：「今日の露点温度は？」「蒸発散量は？」などは渡していないため、AIが数値を捏造するリスクがあります。プロンプトは上記一覧にあるデータを根拠にした内容にしてください。
-          </div>
         </section>
 
         {/* ── 3. 空くらべ ── */}

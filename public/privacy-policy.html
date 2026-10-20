@@ -178,9 +178,6 @@
 
           <h3>ユーザー設定</h3>
           <p>積算開始日・基準温度・表示設定等のアプリ内設定を Cloud Firestore に保存します。これらはアプリの動作に必要な最低限の情報のみです。</p>
-
-          <h3>AIコメントのキャッシュ</h3>
-          <p>AI（Google Gemini）が生成した気象コメントは、過剰な API 呼び出しを防ぐため Firestore に一時保存されます。コメントには個人を特定できる情報は含まれません。</p>
         </div>
       </section>
 
@@ -191,7 +188,6 @@
           <ul>
             <li>Google OAuth によるログイン認証・セッション管理</li>
             <li>ユーザー設定（積算開始日・基準温度等）の保存・復元</li>
-            <li>AIコメントの生成キャッシュ管理</li>
           </ul>
           <p>収集した情報を広告配信・第三者への販売・マーケティング目的に使用することはありません。</p>
         </div>
@@ -202,7 +198,7 @@
         <div class="content">
           <ul>
             <li><strong>認証情報</strong>：Firebase Authentication（Google LLC 管理）</li>
-            <li><strong>ユーザー設定・AIコメントキャッシュ</strong>：Cloud Firestore（Google LLC 管理、東京リージョン）</li>
+            <li><strong>ユーザー設定</strong>：Cloud Firestore（Google LLC 管理、東京リージョン）</li>
             <li><strong>気象データ</strong>：本アプリのサーバーには保存されません。Open-Meteo API からリアルタイムに取得し、ブラウザのメモリ内にのみ一時的に保持されます。</li>
           </ul>
           <p>本アプリが独自に管理するサーバー（自社データベース）にユーザーの個人情報を蓄積することはありません。</p>
@@ -214,11 +210,10 @@
         <div class="content">
           <p>本アプリは以下の第三者サービスを利用しています。</p>
 
-          <h3>Google LLC（Firebase・Gemini）</h3>
+          <h3>Google LLC（Firebase）</h3>
           <ul>
             <li>Firebase Authentication による Google ログイン認証</li>
-            <li>Cloud Firestore によるユーザー設定・AIコメントキャッシュの保存</li>
-            <li>Gemini API による気象コメントの AI 生成（送信されるのは気象数値データのみ。個人情報は送信されません）</li>
+            <li>Cloud Firestore によるユーザー設定の保存</li>
             <li>Google Analytics による利用状況の分析（詳細は「8. アクセス解析ツール」をご覧ください）</li>
           </ul>
           <p><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google プライバシーポリシー →</a></p>
@@ -241,7 +236,6 @@
           <h3>Cloudflare, Inc.</h3>
           <ul>
             <li>本アプリのホスティング（Cloudflare Pages）</li>
-            <li>Gemini API へのリクエスト中継（Cloudflare Workers）</li>
           </ul>
           <p><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare プライバシーポリシー →</a></p>
 

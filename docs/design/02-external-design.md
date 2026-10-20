@@ -159,6 +159,9 @@
 | `/api/archive` | GET | なし | archive クエリ透過 | Open-Meteo archive JSON | 200 / 502（予備・通常未使用） |
 
 ### 3.9 Google Gemini API（Functions 経由のみ）
+
+> **停止中（2026-10-20）:** 空のアドバイスは表示と AI への送信を停止した。ロジックは残し、`src/lib/features.ts` の `AI_ADVICE_ENABLED` と `functions/api/_auth.ts` の `AI_ENDPOINTS_ENABLED`（どちらも false）で止めている（→ [ADR-0028](06-adr.md)）。
+
 | 項目 | 内容 |
 |------|------|
 | エンドポイント | `POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}` |

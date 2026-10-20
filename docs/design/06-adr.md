@@ -277,6 +277,13 @@
 | dotfiles バックアップ整備 | 保留（中優先） | バス係数1の緩和策として未整備（→ [R-16](05-risk-register.md)） |
 | Task6 登録地域のオンデマンド集計 | 保留 | firebase-admin サービスアカウント鍵が要・地域は参考程度 |
 
+## ADR-0028: 空のアドバイス（AI コメント）を停止・ロジックは残す
+- **日付:** 2026-10-20
+- **決定:** 空のアドバイスの表示（空もようのカード・上部の帯・近日提供予定カード・設定のタブ）と AI への送信をすべて止める。クライアントは `src/lib/features.ts` の `AI_ADVICE_ENABLED=false` で hooks に uid を渡さず描画もしない。サーバーは `functions/api/_auth.ts` の `AI_ENDPOINTS_ENABLED=false` で `requireAiAccess` が 503 を返し、Gemini を呼ばない。ヘルプ・免責事項・プライバシーポリシーの AI の記述は削除（規約の最終更新日は据え置き）。
+- **理由:** AI コメントが読まれていない（→ 代替の AI 機能を検討中）。将来また使うときのため、hooks・API・プロンプト・キャッシュ・設定部品は削除しない。
+- **残したもの:** `aiAllowed`（有料枠の判定。CSV出力・地点上限50に使用）・Firestore の `aiComments` キャッシュと `enabledAiSections`／`aiCustomPrompt` の保存値。
+- **戻し方:** 2つのフラグを true にし、ヘルプ・規約類の記述を git 履歴から戻す。
+
 ---
 
 ## 更新履歴

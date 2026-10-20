@@ -137,6 +137,8 @@
 
 ### 4.6 AI 気象・農作業コメント（横断機能）
 
+> **停止中（2026-10-20）:** 空のアドバイスは表示と AI への送信を停止した。ロジックは残し、`src/lib/features.ts` の `AI_ADVICE_ENABLED` と `functions/api/_auth.ts` の `AI_ENDPOINTS_ENABLED`（どちらも false）で止めている（→ [ADR-0028](06-adr.md)）。
+
 Cloudflare Pages Function 上で Gemini により生成。設定→空のアドバイスでセクションを選択。
 
 | ID | 機能 | 動作 |

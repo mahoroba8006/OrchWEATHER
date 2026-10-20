@@ -66,6 +66,10 @@ export function isAllowlisted(email: string | null, allowlist: string | undefine
   return set.includes(email.toLowerCase());
 }
 
+// 空のアドバイス（AI コメント）は 2026-10-20 に停止。false の間は AI エンドポイントが Gemini を呼ばずに 503 を返す。
+// 戻すときは true にし、クライアント側の src/lib/features.ts の AI_ADVICE_ENABLED も true にする。
+export const AI_ENDPOINTS_ENABLED = false;
+
 /** AI エンドポイント共通の認可ガード。拒否時はその Response を、許可時は null を返す。 */
 export async function requireAiAccess(
   request: Request,
@@ -73,6 +77,7 @@ export async function requireAiAccess(
 ): Promise<Response | null> {
   const json = (body: unknown, status: number) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+  if (!AI_ENDPOINTS_ENABLED) return json({ error: 'ai disabled' }, 503);
   const token = getBearerToken(request);
   if (!token) return json({ error: 'unauthorized' }, 401);
   let email: string | null;

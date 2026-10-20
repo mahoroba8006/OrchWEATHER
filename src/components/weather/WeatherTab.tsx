@@ -15,6 +15,7 @@ import { AiComingSoonCard } from './AiComingSoonCard';
 import { useAiComment } from '../../hooks/useAiComment';
 import { useAiCustomComment } from '../../hooks/useAiCustomComment';
 import { DEFAULT_AI_CUSTOM_PROMPT } from '../../lib/userRepository';
+import { AI_ADVICE_ENABLED } from '../../lib/features';
 import { HourlyTable } from './HourlyTable';
 import { HourlyRowsEditor } from './HourlyRowsEditor';
 import { HourlySceneryPicker } from './HourlySceneryPicker';
@@ -128,9 +129,10 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
   const enabledAiSections = userSettings?.enabledAiSections ?? DEFAULT_AI_SECTIONS;
   const aiCustomPrompt = userSettings?.aiCustomPrompt ?? '';
 
-  // AI 農作業コメント（予報・警報が揃ったら非同期取得）
+  // AI 農作業コメント（予報・警報が揃ったら非同期取得）。停止中は uid を渡さず、AI へは送らない
+  const aiEnabled = AI_ADVICE_ENABLED && aiAllowed;
   const { comment: aiComment, loading: aiCommentLoading } = useAiComment(
-    aiAllowed ? user?.uid : null,
+    aiEnabled ? user?.uid : null,
     location?.name,
     data,
     jmaWarning?.items,
@@ -139,7 +141,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
   // カスタマイズAIコメント（'custom' セクションが有効かつプロンプト設定済みのとき取得）
   const customEnabled = enabledAiSections.includes('custom');
   const { text: aiCustomText, loading: aiCustomLoading } = useAiCustomComment(
-    aiAllowed && customEnabled ? user?.uid : null,
+    aiEnabled && customEnabled ? user?.uid : null,
     customEnabled ? location?.name : null,
     customEnabled ? data : null,
     customEnabled ? jmaWarning?.items : undefined,
@@ -311,7 +313,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
           </ErrorBoundary>
 
           {/* AI ステータスバー */}
-          {enabledAiSections.some(s => s !== 'custom') && (
+          {AI_ADVICE_ENABLED && enabledAiSections.some(s => s !== 'custom') && (
             aiCommentLoading ? (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
@@ -414,6 +416,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
           </Sheet>
           </Reveal>
 
+          {AI_ADVICE_ENABLED && (
           <Reveal index={3}>
           <div ref={aiSectionRef}>
             {aiAllowed ? (
@@ -430,6 +433,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
             )}
           </div>
           </Reveal>
+          )}
 
         </>
       )}

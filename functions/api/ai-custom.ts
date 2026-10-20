@@ -3,6 +3,7 @@
 //
 // クライアントから天気予報ペイロード + ユーザー入力プロンプトを受け取り、
 // Gemini に自由形式のテキスト回答を生成させて返す。
+// 停止中（_auth.ts の AI_ENDPOINTS_ENABLED=false）は requireAiAccess が 503 を返し、Gemini は呼ばない。
 
 import { requireAiAccess } from './_auth';
 

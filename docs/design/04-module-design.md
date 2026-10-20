@@ -232,6 +232,9 @@
 **検証観点:** 無トークンで401／改竄トークンで401／名簿外メールで403／許可メールで通過。
 
 ### E-2. `ai-comment.ts` — 標準AIプロキシ
+
+> **停止中（2026-10-20）:** 空のアドバイスは表示と AI への送信を停止した。ロジックは残し、`src/lib/features.ts` の `AI_ADVICE_ENABLED` と `functions/api/_auth.ts` の `AI_ENDPOINTS_ENABLED`（どちらも false）で止めている（停止中は `requireAiAccess` が 503 を返す。→ [ADR-0028](06-adr.md)）。
+
 **分岐・判断ロジック:**
 - メソッド `!= POST` → **405**。`requireAiAccess` 拒否→その Response。`GEMINI_API_KEY` 無し→**500**。body JSON パース失敗→**400**。
 - `responseSchema`（4フィールド `minLength:200`・required）、`thinkingBudget:1024`、`temperature:0.6`。
