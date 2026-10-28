@@ -112,6 +112,24 @@ describe('DailyForecast の「今日」の示し方', () => {
     vi.useRealTimers();
   });
 
+  it('時間帯の札を 今=緑・これから=青・過ぎた=灰 に分ける（13時は午後）', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T13:00:00+09:00'));
+    const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
+    const statuses = Array.from(container.querySelectorAll('[data-period-status]')).map(el => `${el.textContent}:${el.getAttribute('data-period-status')}`);
+    expect(statuses.slice(0, 6)).toEqual(['午前:past', '午後:now', '夜間:future', '午前:future', '午後:future', '夜間:future']);
+    vi.useRealTimers();
+  });
+
+  it('0〜4時は前日の夜間が「今」、前日の午前・午後は過ぎた札にする', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-02T02:00:00+09:00'));
+    const { container } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
+    const statuses = Array.from(container.querySelectorAll('[data-period-status]')).map(el => el.getAttribute('data-period-status'));
+    expect(statuses.slice(0, 6)).toEqual(['past', 'past', 'now', 'future', 'future', 'future']);
+    vi.useRealTimers();
+  });
+
   it('0〜4時は前日の夜間なので、今日の列の時間帯に印を付けず薄くもしない', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-01T02:00:00+09:00'));

@@ -21,6 +21,13 @@ const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 type Period = 'am' | 'pm' | 'night';
 const PERIOD_W = 50;  // px per AM / PM / Night cell
 const PAST_OPACITY = 0.5; // 今日の過ぎた時間帯（時間別の表の過去の時刻と同じ薄さ）
+type PeriodStatus = 'past' | 'now' | 'future';
+// 日付の下の「午前・午後・夜間」の札。今=緑・これから=青・過ぎた=灰
+const PERIOD_TAG_STYLE: Record<PeriodStatus, CSSProperties> = {
+  now:    { background: 'var(--accent)',                  color: '#fff' },
+  future: { background: 'rgba(3, 105, 161, 0.10)',       color: 'var(--accent-blue)' },
+  past:   { background: 'var(--surface-sunken)',          color: 'var(--ink-3)' },
+};
 const CHART_H  = 80;
 
 function probColor(p: number): string {
@@ -298,13 +305,17 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   const nowPeriod: Period | null = jstHour >= 20 ? 'night' : jstHour >= 12 ? 'pm' : jstHour >= 4 ? 'am' : null;
   const PERIOD_END: Record<Period, number> = { am: 12, pm: 20, night: 28 };
   const isPastPeriod = (date: string, period: Period) => date === today && jstHour >= 4 && jstHour >= PERIOD_END[period];
-
+  // 今の時間帯（0〜4時は前日の夜間）と比べて、時間帯の札を 今・これから・過ぎた に分ける
+  const nowSlot = { date: nowPeriod ? today : new Date(jstNow.getTime() - 86400000).toISOString().slice(0, 10), period: nowPeriod ?? 'night' };
+  const periodStatus = (date: string, period: Period): PeriodStatus =>
+    date !== nowSlot.date ? (date < nowSlot.date ? 'past' : 'future')
+      : period === nowSlot.period ? 'now'
+      : PERIOD_END[period] < PERIOD_END[nowSlot.period] ? 'past' : 'future';
 
   // 開いた時点では今の時間帯に枠を付ける（0〜4時は前日の夜間）。その日が表に無ければ付けない
-  const [selected, setSelected] = useState<{ date: string; period: Period } | null>(() => {
-    const date = nowPeriod ? today : new Date(jstNow.getTime() - 86400000).toISOString().slice(0, 10);
-    return daily.some(d => d.date === date) ? { date, period: nowPeriod ?? 'night' } : null;
-  });
+  const [selected, setSelected] = useState<{ date: string; period: Period } | null>(() =>
+    daily.some(d => d.date === nowSlot.date) ? nowSlot : null,
+  );
   const pick = (date: string, period: Period) => {
     onHalfDayClick?.(date, period);
     setSelected({ date, period });
@@ -404,17 +415,18 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                       data-testid={isToday ? 'today-bookmark' : undefined}
                       style={{ height: 3, marginTop: '0.3rem', borderRadius: 3, background: isToday ? 'var(--accent)' : undefined }}
                     />
-                    <div style={{ display: 'flex', marginTop: '0.3rem' }}>
+                    <div style={{ display: 'flex', gap: 4, marginTop: '0.3rem' }}>
                       {([['am', '午前'], ['pm', '午後'], ['night', '夜間']] as const).map(([period, p]) => {
-                        const isNow = isToday && period === nowPeriod;
+                        const status = periodStatus(day.date, period);
                         return (
                           <div
                             key={p}
-                            data-now-period={isNow ? 'true' : undefined}
+                            data-now-period={status === 'now' ? 'true' : undefined}
+                            data-period-status={status}
                             style={{
-                              flex: 1, textAlign: 'center', fontSize: '0.7rem', fontWeight: isNow ? 600 : 500,
-                              color: isNow ? 'var(--accent)' : 'var(--ink-3)',
-                              opacity: isPastPeriod(day.date, period) ? PAST_OPACITY : undefined,
+                              flex: 1, textAlign: 'center', fontSize: '0.7rem', lineHeight: 1.6,
+                              fontWeight: status === 'now' ? 600 : 500, borderRadius: 999,
+                              ...PERIOD_TAG_STYLE[status],
                             }}
                           >
                             {p}
