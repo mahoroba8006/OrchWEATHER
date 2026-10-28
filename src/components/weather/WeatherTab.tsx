@@ -9,7 +9,7 @@ import { SegmentedControl } from '../ui/SegmentedControl';
 import { Skeleton } from '../ui/Skeleton';
 import { Reveal } from '../ui/Reveal';
 import { DailyForecast } from './DailyForecast';
-import { WeatherCalendar, type CalendarVariant } from './WeatherCalendar';
+import { WeatherCalendar } from './WeatherCalendar';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
 import { AiComingSoonCard } from './AiComingSoonCard';
@@ -47,6 +47,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
   const hourlySectionRef = useRef<HTMLElement>(null);
   const aiSectionRef = useRef<HTMLDivElement>(null);
   const [scrollTarget, setScrollTarget] = useState<string | undefined>();
+  const [calendarFocus, setCalendarFocus] = useState<{ date: string; seq: number } | undefined>();
   const hiddenHourlyRows = useHiddenHourlyRows();
   const hourlyScenery = useHourlyScenery();
   const hiddenRowKeySet = useMemo(() => new Set<string>(hiddenHourlyRows), [hiddenHourlyRows]);
@@ -381,13 +382,12 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
                   : '時間帯でいちばん多い天気を表示'}
               </span>
             </div>
-            {/* 試作: ?cal=a|b|c で見た目を切り替える */}
             <WeatherCalendar
               pastDaily={data.pastDaily}
               daily={data.daily}
               weatherCodeMode={weatherCodeMode}
-              variant={(new URLSearchParams(window.location.search).get('cal') as CalendarVariant) || 'a'}
               today={new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)}
+              onPick={date => setCalendarFocus(f => ({ date, seq: (f?.seq ?? 0) + 1 }))}
             />
             <DailyForecast
               daily={data.daily}
@@ -395,6 +395,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
               onHalfDayClick={scrollToHour}
               jmaWarnings={jmaWarning?.items}
               hourlyLastDate={hourlyLastDate}
+              focus={calendarFocus}
             />
           </section>
           </Reveal>
