@@ -20,13 +20,13 @@ const day = (date: string): DailyForecastData => ({
 const today = '2026-10-28';
 const days = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => day(addDays(today, from + i)));
 const view = (onPick = vi.fn()) => render(
-  <WeatherCalendar pastDaily={days(-14, -1)} daily={days(0, 14)} weatherCodeMode="severity" today={today} onPick={onPick} />,
+  <WeatherCalendar pastDaily={days(-17, -1)} daily={days(0, 14)} weatherCodeMode="severity" today={today} onPick={onPick} />,
 );
 const dateChip = (c: HTMLElement, date: string) => c.querySelector<HTMLElement>(`[data-date="${date}"] span`)!;
 
 describe('WeatherCalendar', () => {
-  it('左上の期間に西暦を付ける', () => {
-    expect(view().container.textContent).toContain('2026/10/14〜11/11');
+  it('左上の期間に西暦を付ける（1行目の日曜から）', () => {
+    expect(view().container.textContent).toContain('2026/10/11〜11/11');
   });
 
   it('今日だけ日付を緑の反転にし、日曜・祝日は赤系・土曜は青系', () => {
@@ -57,12 +57,13 @@ describe('WeatherCalendar', () => {
 });
 
 describe('WeatherCalendar の前後2週間の外のマス', () => {
-  it('空白にせず日付だけ淡く出す（先頭のマスは月/日、範囲の始まりは日だけ）', () => {
+  it('2週間後より先は空白にせず日付だけ淡く出す。過去側は1行目の日曜から天気がある（先頭は月/日）', () => {
     const { container } = view();
     const outside = Array.from(container.querySelectorAll<HTMLElement>('[data-outside="true"]')).map(el => el.textContent);
-    expect(outside).toEqual(['10/11', '12', '13', '12', '13', '14']);
-    expect(container.querySelector('[data-date="2026-10-11"] span')!.getAttribute('style')).toContain('opacity: 0.4');
-    expect(dateChip(container, '2026-10-14').textContent).toBe('14');
+    expect(outside).toEqual(['12', '13', '14']);
+    expect(container.querySelector('[data-date="2026-11-12"] span')!.getAttribute('style')).toContain('opacity: 0.4');
+    expect(dateChip(container, '2026-10-11').textContent).toBe('10/11');
+    expect(container.querySelector('[data-date="2026-10-11"] img')).not.toBeNull();
     expect(container.querySelector('[data-date="2026-11-12"]')!.textContent).toBe('12');
   });
 });

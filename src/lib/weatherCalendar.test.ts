@@ -17,15 +17,16 @@ const day = (date: string, extra: Partial<DailyForecastData> = {}): DailyForecas
 
 const today = '2026-10-28'; // 水曜
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => day(addDays(today, from + i)));
-const past = range(-14, -1);
+const past = range(-17, -1);
 const future = range(0, 14);
 
 describe('buildCalendar', () => {
-  it('日曜始まりで今日の2週間前〜2週間後を並べ、範囲外は空きマス', () => {
+  it('日曜始まりで、2週間前を含む週の日曜から天気を埋め、2週間後より先は空きマス', () => {
     const cells = buildCalendar(past, future, today, 'severity');
     expect(cells).toHaveLength(35);
-    expect(cells.slice(0, 3)).toEqual([null, null, null]); // 10/11〜10/13
-    expect(cells[3]!.date).toBe('2026-10-14');
+    expect(cells.slice(0, 4).map(c => [c!.date, c!.status, c!.code !== null])).toEqual([
+      ['2026-10-11', 'past', true], ['2026-10-12', 'past', true], ['2026-10-13', 'past', true], ['2026-10-14', 'past', true],
+    ]);
     expect(cells[31]!.date).toBe('2026-11-11');
     expect(cells.slice(32)).toEqual([null, null, null]);
     expect(cells.filter(c => c?.status === 'today').map(c => c!.date)).toEqual([today]);

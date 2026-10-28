@@ -73,7 +73,7 @@ export interface FieldAvailability {
 export interface ForecastData {
   hourly: HourlyForecast[];        // 今日〜3日後（HourlyTable 用 72h）
   daily: DailyForecastData[];      // 今日〜14日後（最大15日）
-  pastDaily: DailyForecastData[];  // 過去14日分
+  pastDaily: DailyForecastData[];  // 過去21日分（カレンダーの1行目の日曜まで）
   fetchedAt: number;               // Date.now()
   availability?: FieldAvailability; // 過去API用。未指定は全項目利用可（通常予報）
   /** 取得した地点（fetchForecast のみ設定）。表示中の地点の予報かを照合するために使う */
@@ -105,8 +105,8 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + '&timezone=Asia%2FTokyo'
     + '&models=best_match'
     + '&wind_speed_unit=ms'
-    + '&past_hours=360'
-    + '&past_days=14'
+    + '&past_hours=528'
+    + '&past_days=21'
     + '&forecast_days=15'
     + '&forecast_hours=384'
     + `&hourly=${hourlyParams}`
@@ -257,7 +257,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
   const pastDaily = daily.filter(d => d.date < todayJst);
   const futureDaily = daily.filter(d => d.date >= todayJst);
 
-  // HourlyTable 用は 20時間前から 260h（今日含め10日分）のみ返す（dayAmPm は過去14日を含む全時間で構築済み）
+  // HourlyTable 用は 20時間前から 260h（今日含め10日分）のみ返す（dayAmPm は過去21日を含む全時間で構築済み）
   const from = new Date(jstNow.getTime() - 20 * 60 * 60 * 1000).toISOString().slice(0, 13);
   const start = Math.max(0, hourly.findIndex(h => h.time.slice(0, 13) >= from));
   return { hourly: hourly.slice(start, start + 20 + 240), daily: futureDaily, pastDaily, fetchedAt: Date.now(), lat, lon };

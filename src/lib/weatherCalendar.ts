@@ -20,23 +20,27 @@ export interface CalendarDay {
 export const CALENDAR_RANGE = 14;
 const FAR_FROM = 8;
 
+/** マスの並び。過去側は今日の2週間前を含む週の日曜から（その日まで天気を埋める）、未来側は2週間後まで */
+export function calendarRange(today: string): { first: string; last: string; gridEnd: string } {
+  const back = addDays(today, -CALENDAR_RANGE);
+  const dow = (s: string) => new Date(`${s}T00:00:00Z`).getUTCDay();
+  const last = addDays(today, CALENDAR_RANGE);
+  return { first: addDays(back, -dow(back)), last, gridEnd: addDays(last, 6 - dow(last)) };
+}
+
 const sum3 = (d: DailyForecastData) =>
   d.amPrecipSum === null || d.pmPrecipSum === null || d.nightPrecipSum === null
     ? d.precipSum
     : d.amPrecipSum + d.pmPrecipSum + d.nightPrecipSum;
 
-/** 1日=4時〜翌4時（午前・午後・夜間の合計）。時間別が無い日は日別の値で補う。範囲外のマスは null */
+/** 1日=4時〜翌4時（午前・午後・夜間の合計）。時間別が無い日は日別の値で補う。2週間後より先のマスは null */
 export function buildCalendar(pastDaily: DailyForecastData[], daily: DailyForecastData[], today: string, mode: WeatherCodeMode): (CalendarDay | null)[] {
   const byDate = new Map([...pastDaily, ...daily].map(d => [d.date, d]));
   const tableDates = new Set(daily.filter(d => !d.isPlaceholder).map(d => d.date));
-  const first = addDays(today, -CALENDAR_RANGE);
-  const last = addDays(today, CALENDAR_RANGE);
-  const dow = (s: string) => new Date(`${s}T00:00:00Z`).getUTCDay();
-  const gridStart = addDays(first, -dow(first));
-  const gridEnd = addDays(last, 6 - dow(last));
+  const { first, last, gridEnd } = calendarRange(today);
   const cells: (CalendarDay | null)[] = [];
-  for (let date = gridStart; date <= gridEnd; date = addDays(date, 1)) {
-    if (date < first || date > last) { cells.push(null); continue; }
+  for (let date = first; date <= gridEnd; date = addDays(date, 1)) {
+    if (date > last) { cells.push(null); continue; }
     const d = byDate.get(date);
     const status: CalendarStatus = date < today ? 'past' : date === today ? 'today' : 'future';
     const has = d && !d.isPlaceholder;
