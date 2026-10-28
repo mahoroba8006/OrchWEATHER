@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCalendar } from './weatherCalendar';
+import { buildCalendar, skyKind } from './weatherCalendar';
 import { addDays } from './dateUtils';
 import type { DailyForecastData } from '../api/forecast';
 
@@ -59,5 +59,15 @@ describe('buildCalendar', () => {
     const t = cells.find(x => x?.date === today)!;
     expect([t.code, t.tempMax, t.precipProb, t.pickable]).toEqual([null, null, null, false]);
     expect(cells.find(x => x?.date === '2026-10-21')!.code).toBeNull();
+  });
+});
+
+describe('skyKind', () => {
+  it('太陽が描かれる 快晴・晴れ・晴れ時々曇り は晴れ、曇り・霧はくもり', () => {
+    expect([0, 1, 2].map(skyKind)).toEqual(['clear', 'clear', 'clear']);
+    expect([3, 45, 48].map(skyKind)).toEqual(['cloud', 'cloud', 'cloud']);
+    expect([51, 61, 80, 66].map(skyKind)).toEqual(['rain', 'rain', 'rain', 'rain']);
+    expect([71, 77, 85, 86].map(skyKind)).toEqual(['snow', 'snow', 'snow', 'snow']);
+    expect([95, 99].map(skyKind)).toEqual(['thunder', 'thunder']);
   });
 });

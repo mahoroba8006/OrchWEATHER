@@ -56,3 +56,13 @@ export function buildCalendar(pastDaily: DailyForecastData[], daily: DailyForeca
   }
   return cells;
 }
+
+/** マスの地の色の系統。マークに太陽が描かれる「晴れ時々曇り」（2）までは晴れ */
+export type SkyKind = 'thunder' | 'snow' | 'rain' | 'cloud' | 'clear';
+export function skyKind(code: number): SkyKind {
+  if (code >= 95) return 'thunder';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+  if (code >= 51) return 'rain';
+  if (code >= 3) return 'cloud';
+  return 'clear';
+}

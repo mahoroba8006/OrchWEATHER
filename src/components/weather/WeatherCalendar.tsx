@@ -3,7 +3,7 @@ import type { DailyForecastData } from '../../api/forecast';
 import { WeatherIcon } from './WeatherIcon';
 import { addDays } from '../../lib/dateUtils';
 import { holidayName } from '../../lib/jpHolidays';
-import { buildCalendar, CALENDAR_RANGE as RANGE, type CalendarDay } from '../../lib/weatherCalendar';
+import { buildCalendar, CALENDAR_RANGE as RANGE, skyKind, type CalendarDay, type SkyKind } from '../../lib/weatherCalendar';
 import type { WeatherCodeMode } from '../../lib/wmoSeverity';
 
 // 今日の2週間前〜2週間後を、日曜始まりのカレンダーで見せる。マスの地の色はその日の天気
@@ -29,23 +29,14 @@ function probColor(p: number): string {
   return 'var(--ink-3)';
 }
 
-// マスの地の色＝天気の系統。過ぎた日は彩度を落とした色
-const TINT = {
-  thunder: ['#ECE6F6', '#ECEAEF'],
-  snow:    ['#EEF2F8', '#EEEFF1'],
-  rain:    ['#E1EEFA', '#E9ECEF'],
-  cloud:   ['#F0F0EE', '#EFEFED'],
-  clear:   ['#FBF3DC', '#F3F0E8'],
-} as const;
-function skyTint(code: number | null, past: boolean): string {
-  if (code === null) return 'var(--surface-sunken)';
-  const kind = code >= 95 ? 'thunder'
-    : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow'
-    : code >= 51 ? 'rain'
-    : code >= 2 ? 'cloud'
-    : 'clear';
-  return TINT[kind][past ? 1 : 0];
-}
+// マスの地の色＝天気の系統（マークに太陽が描かれる「晴れ時々曇り」までは晴れ）。過ぎた日は同じ色を淡くする
+const TINT: Record<SkyKind, readonly [string, string]> = {
+  thunder: ['#E8DEF6', '#F1ECF8'],
+  snow:    ['#F4F7FC', '#F8FAFD'],
+  rain:    ['#D9E9FA', '#EAF2FB'],
+  cloud:   ['#E6E9ED', '#F0F2F4'],
+  clear:   ['#FCEBB0', '#FDF4D6'],
+};
 
 /** 日付の文字色: 日曜・祝日=赤系、土曜=青系 */
 function dateColor(date: string): string {
@@ -67,7 +58,7 @@ function DayCell({ day, index, onPick }: { day: CalendarDay; index: number; onPi
   const style: CSSProperties = {
     display: 'block', width: '100%', minWidth: 0, border: 'none', font: 'inherit', color: 'inherit',
     borderRadius: 12, padding: '5px 0 4px', minHeight: 96,
-    background: skyTint(day.code, day.status === 'past'),
+    background: day.code === null ? 'var(--surface-sunken)' : TINT[skyKind(day.code)][day.status === 'past' ? 1 : 0],
     boxShadow: isToday ? 'inset 0 0 0 2px var(--accent)' : 'inset 0 0 0 1px rgba(23,25,28,0.04)',
     cursor: pick ? 'pointer' : 'default',
   };
