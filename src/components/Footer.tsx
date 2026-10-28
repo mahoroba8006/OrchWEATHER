@@ -28,7 +28,7 @@ const LOGO_STYLE: CSSProperties = {
 export function Footer() {
   return (
     <footer style={FOOTER_STYLE}>
-      <span style={LOGO_STYLE}>農のそら</span>
+      <span style={LOGO_STYLE}>畑のてんき</span>
       <a href="/privacy-policy" style={LINK_STYLE}>プライバシーポリシー</a>
       <a href="/disclaimer" style={LINK_STYLE}>免責事項</a>
       <a href="/contact" style={LINK_STYLE}>お問い合わせ</a>

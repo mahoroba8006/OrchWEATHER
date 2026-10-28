@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png'],
       manifest: {
-        name: '農のそら',
-        short_name: '農のそら',
+        name: '畑のてんき',
+        short_name: '畑のてんき',
         lang: 'ja',
         start_url: '/',
         scope: '/',

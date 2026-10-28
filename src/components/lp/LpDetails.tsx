@@ -78,7 +78,7 @@ function CompareTable() {
           <thead>
             <tr>
               <th></th>
-              <th style={{ color: 'var(--lp-leaf)' }}>農のそら</th>
+              <th style={{ color: 'var(--lp-leaf)' }}>畑のてんき</th>
               <th>一般天気アプリ</th>
               <th>気象庁HP</th>
             </tr>
