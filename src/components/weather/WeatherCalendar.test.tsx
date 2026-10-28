@@ -39,6 +39,14 @@ describe('WeatherCalendar', () => {
     expect(dateChip(container, '2026-11-02').style.color).toBe('var(--ink-1)');
   });
 
+  it('過去の日は日付を淡くする（色は曜日・祝日のまま）', () => {
+    const { container } = view();
+    expect(dateChip(container, '2026-10-25').style.opacity).toBe('0.5');
+    expect(dateChip(container, '2026-10-25').style.color).toBe('rgb(194, 73, 63)');
+    expect(dateChip(container, today).style.opacity).toBe('');
+    expect(dateChip(container, '2026-10-29').style.opacity).toBe('');
+  });
+
   it('下の表にある日だけ押せて、押した日を知らせる', () => {
     const onPick = vi.fn();
     const { container } = view(onPick);

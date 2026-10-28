@@ -35,7 +35,7 @@ const TINT: Record<SkyKind, readonly [string, string]> = {
   snow:    ['#F4F7FC', '#F8FAFD'],
   rain:    ['#D9E9FA', '#EAF2FB'],
   cloud:   ['#E6E9ED', '#F0F2F4'],
-  clear:   ['#FCEBB0', '#FDF4D6'],
+  clear:   ['#FDF4D6', '#FDF4D6'], // これからの日も過去と同じ淡さ（濃いと明るすぎる）
 };
 
 /** 日付の文字色: 日曜・祝日=赤系、土曜=青系 */
@@ -68,6 +68,7 @@ function DayCell({ day, index, onPick }: { day: CalendarDay; index: number; onPi
         <span style={{
           fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.5, padding: '0 0.45em', borderRadius: 999,
           ...(isToday ? { background: 'var(--accent)', color: '#fff' } : { color: dateColor(day.date) }),
+          opacity: day.status === 'past' ? 0.5 : undefined,
         }}>{label}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, opacity: day.status === 'past' ? 0.75 : day.far ? 0.62 : undefined }}>
