@@ -60,7 +60,7 @@ export async function getUserSettings(uid: string): Promise<UserSettings> {
     : DEFAULT_AI_SECTIONS;
   const aiCustomPrompt: string = typeof data?.aiCustomPrompt === 'string' ? data.aiCustomPrompt : DEFAULT_AI_CUSTOM_PROMPT;
   const weatherCodeMode: WeatherCodeMode =
-    data?.weatherCodeMode === 'frequency' ? 'frequency' : 'severity';
+    data?.weatherCodeMode === 'severity' ? 'severity' : 'frequency'; // 既定は概況
   // 項目ごとの比べ方。旧形式（全項目共通の seasonPaceMode、develop のみで使用）からも引き継ぐ
   // どちらも無ければ項目ごとの既定（降水量・日照時間=直近30日、積算温度=累積）
   const isPaceMode = (v: unknown): v is SeasonPaceMode => v === 'recent' || v === 'analysis';

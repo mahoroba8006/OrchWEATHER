@@ -352,9 +352,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
 export function loadGuestWeatherCodeMode(): WeatherCodeMode {
   try {
-    return localStorage.getItem(GUEST_WEATHER_CODE_MODE_KEY) === 'frequency' ? 'frequency' : 'severity';
+    // 既定は概況（明示的にリスクを選んだ人だけリスク）
+    return localStorage.getItem(GUEST_WEATHER_CODE_MODE_KEY) === 'severity' ? 'severity' : 'frequency';
   } catch {
-    return 'severity';
+    return 'frequency';
   }
 }
 

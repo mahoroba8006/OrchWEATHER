@@ -43,3 +43,14 @@ describe('有効積算温度の上限温度の読み取り', () => {
     expect((await getUserSettings('u1')).gddUpperTemps).toEqual([null, 50]);
   });
 });
+
+describe('天気の表示（リスク／概況）の既定', () => {
+  it('未設定・不正なら概況、リスクを選んで保存した人はリスクのまま', async () => {
+    withData(undefined);
+    expect((await getUserSettings('u1')).weatherCodeMode).toBe('frequency');
+    withData({ weatherCodeMode: 'xxx' });
+    expect((await getUserSettings('u1')).weatherCodeMode).toBe('frequency');
+    withData({ weatherCodeMode: 'severity' });
+    expect((await getUserSettings('u1')).weatherCodeMode).toBe('severity');
+  });
+});

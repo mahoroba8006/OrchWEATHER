@@ -184,12 +184,12 @@ export function HelpPage({ onBack }: Props) {
             </thead>
             <tbody>
               <tr>
-                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>リスクでみる</td>
-                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も悪い天気コード</strong>を代表アイコンとして表示します。悪天候を見逃したくないときに使います。（デフォルト）</td>
+                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>概況でみる</td>
+                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も多い天気コード</strong>を代表アイコンとして表示します。その時間帯全体の天気の傾向を把握したいときに使います。（デフォルト）</td>
               </tr>
               <tr>
-                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>概況でみる</td>
-                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も多い天気コード</strong>を代表アイコンとして表示します。その時間帯全体の天気の傾向を把握したいときに使います。</td>
+                <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>リスクでみる</td>
+                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も悪い天気コード</strong>を代表アイコンとして表示します。悪天候を見逃したくないときに使います。</td>
               </tr>
             </tbody>
           </table>
@@ -197,7 +197,7 @@ export function HelpPage({ onBack }: Props) {
           <h3 style={H3_STYLE}>ミニアイコンタグ</h3>
           <p style={P_STYLE}>
             各時間帯セルのアイコン下には、<strong>現在選んでいないモードの天気</strong>を小さなタグで表示しています。
-            「リスクでみる」選択中はティール色のタグが概況の天気を、「概況でみる」選択中はピンク色のタグがリスクの天気を補足表示します。
+            「概況でみる」選択中はピンク色のタグがリスクの天気を、「リスクでみる」選択中はティール色のタグが概況の天気を補足表示します。
             2つのモードの違いが大きい日（たとえば夜だけ雨が降るなど）を一目で確認できます。
           </p>
         </section>

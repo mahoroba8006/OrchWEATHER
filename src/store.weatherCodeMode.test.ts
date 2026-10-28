@@ -38,20 +38,20 @@ describe('updateWeatherCodeMode', () => {
 });
 
 describe('loadGuestWeatherCodeMode', () => {
-  it('保存値が無い・不正なら severity', () => {
-    expect(loadGuestWeatherCodeMode()).toBe('severity');
-    localStorage.setItem('weatherCodeMode', 'xxx');
-    expect(loadGuestWeatherCodeMode()).toBe('severity');
-    localStorage.setItem('weatherCodeMode', 'frequency');
+  it('保存値が無い・不正なら frequency（概況が既定）。リスクを選んだ人はそのまま', () => {
     expect(loadGuestWeatherCodeMode()).toBe('frequency');
+    localStorage.setItem('weatherCodeMode', 'xxx');
+    expect(loadGuestWeatherCodeMode()).toBe('frequency');
+    localStorage.setItem('weatherCodeMode', 'severity');
+    expect(loadGuestWeatherCodeMode()).toBe('severity');
   });
 });
 
 describe('起動時の復元', () => {
-  it('保存済みの frequency を、ストアの初期化時に読み込む', async () => {
-    localStorage.setItem('weatherCodeMode', 'frequency');
+  it('保存済みの severity を、ストアの初期化時に読み込む', async () => {
+    localStorage.setItem('weatherCodeMode', 'severity');
     vi.resetModules();
     const fresh = await import('./store');
-    expect(fresh.useAppStore.getState().guestWeatherCodeMode).toBe('frequency');
+    expect(fresh.useAppStore.getState().guestWeatherCodeMode).toBe('severity');
   });
 });
