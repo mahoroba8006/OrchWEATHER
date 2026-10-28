@@ -9,6 +9,7 @@ import { SegmentedControl } from '../ui/SegmentedControl';
 import { Skeleton } from '../ui/Skeleton';
 import { Reveal } from '../ui/Reveal';
 import { DailyForecast } from './DailyForecast';
+import { WeatherCalendar, type CalendarVariant } from './WeatherCalendar';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
 import { AiComingSoonCard } from './AiComingSoonCard';
@@ -380,6 +381,14 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
                   : '時間帯でいちばん多い天気を表示'}
               </span>
             </div>
+            {/* 試作: ?cal=a|b|c で見た目を切り替える */}
+            <WeatherCalendar
+              pastDaily={data.pastDaily}
+              daily={data.daily}
+              weatherCodeMode={weatherCodeMode}
+              variant={(new URLSearchParams(window.location.search).get('cal') as CalendarVariant) || 'a'}
+              today={new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)}
+            />
             <DailyForecast
               daily={data.daily}
               weatherCodeMode={weatherCodeMode}
