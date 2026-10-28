@@ -139,3 +139,19 @@ describe('DailyForecast の「今日」の示し方', () => {
     vi.useRealTimers();
   });
 });
+
+describe('DailyForecast のカレンダーからの移動', () => {
+  it('押された日に枠を移す（今日は今の時間帯、ほかの日は午前）', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T13:00:00+09:00'));
+    const markedCell = (c: HTMLElement) =>
+      c.querySelector('[data-testid="daily-selected"]')?.closest('[data-cell]')?.getAttribute('data-cell');
+    const { container, rerender } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
+    expect(markedCell(container)).toBe('2026-10-01-pm');
+    rerender(<DailyForecast daily={fixture} weatherCodeMode="severity" focus={{ date: '2026-10-02', seq: 1 }} />);
+    expect(markedCell(container)).toBe('2026-10-02-am');
+    rerender(<DailyForecast daily={fixture} weatherCodeMode="severity" focus={{ date: '2026-10-01', seq: 2 }} />);
+    expect(markedCell(container)).toBe('2026-10-01-pm');
+    vi.useRealTimers();
+  });
+});

@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { DailyForecastData } from '../../api/forecast';
 import { WeatherIcon, codeToLabel } from './WeatherIcon';
 import type { JmaWarningItem } from '../../api/jmaWarning';
@@ -15,6 +15,8 @@ interface Props {
   onHalfDayClick?: (date: string, period: 'am' | 'pm' | 'night') => void;
   jmaWarnings?: JmaWarningItem[];
   hourlyLastDate?: string; // この日付以降はタップ不可（時間別データなし）
+  /** カレンダーで押された日。その日へ横に送り、枠を付ける（seq は同じ日を続けて押したとき用） */
+  focus?: { date: string; seq: number };
 }
 
 const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
@@ -264,7 +266,7 @@ function warningToBar(
   return { left: `${left}px`, width: `${right - left}px` };
 }
 
-export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarnings, hourlyLastDate }: Props) {
+export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarnings, hourlyLastDate, focus }: Props) {
   const tableRef = useRef<HTMLTableElement>(null);
   const [dayX, setDayX] = useState<number[] | null>(null);
   const [dayWidths, setDayWidths] = useState<number[] | null>(null);
@@ -316,6 +318,18 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   const [selected, setSelected] = useState<{ date: string; period: Period } | null>(() =>
     daily.some(d => d.date === nowSlot.date) ? nowSlot : null,
   );
+  // カレンダーで押された日へ送る（今日なら今の時間帯、ほかの日は午前に枠）
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focus) return;
+    const i = daily.findIndex(d => d.date === focus.date);
+    if (i < 0) return;
+    setSelected({ date: focus.date, period: focus.date === nowSlot.date ? nowSlot.period : 'am' });
+    scrollRef.current?.scrollTo?.({ left: dayX?.[i] ?? 0, behavior: 'smooth' });
+    scrollRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 押されたときだけ動かす
+  }, [focus]);
+
   const pick = (date: string, period: Period) => {
     onHalfDayClick?.(date, period);
     setSelected({ date, period });
@@ -360,7 +374,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
 
   return (
     <div>
-      <div style={{ position: 'relative', overflowX: 'auto', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
+      <div ref={scrollRef} style={{ position: 'relative', overflowX: 'auto', background: 'var(--surface-card)', borderBottom: '1px solid var(--line)' }}>
         <table ref={tableRef} style={{ borderCollapse: 'collapse', tableLayout: 'fixed', fontVariantNumeric: 'tabular-nums' }}>
           <colgroup>
             {daily.flatMap(day => [
