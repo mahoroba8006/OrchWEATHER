@@ -48,9 +48,24 @@ function dateColor(date: string): string {
 const md = (s: string) => `${parseInt(s.slice(5, 7), 10)}/${parseInt(s.slice(8, 10), 10)}`;
 const ymdLabel = (s: string) => `${s.slice(0, 4)}/${md(s)}`;
 
-function DayCell({ day, index, onPick }: { day: CalendarDay; index: number; onPick?: (date: string) => void }) {
-  const dd = parseInt(day.date.slice(8, 10), 10);
-  const label = dd === 1 || index === 0 ? md(day.date) : String(dd);
+/** 月の初日とカレンダーの先頭のマスだけ「月/日」 */
+const dateLabel = (date: string, gridIndex: number) => {
+  const dd = parseInt(date.slice(8, 10), 10);
+  return dd === 1 || gridIndex === 0 ? md(date) : String(dd);
+};
+
+const dateChipBase: CSSProperties = { fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.5, padding: '0 0.45em', borderRadius: 999 };
+
+/** 前後2週間の外の日: 予報・実績は出さず日付だけ */
+function OutsideCell({ date, label }: { date: string; label: string }) {
+  return (
+    <div data-date={date} data-outside="true" title={holidayName(date) ?? undefined} style={{ padding: '5px 0 4px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+      <span style={{ ...dateChipBase, color: dateColor(date), opacity: 0.4 }}>{label}</span>
+    </div>
+  );
+}
+
+function DayCell({ day, label, onPick }: { day: CalendarDay; label: string; onPick?: (date: string) => void }) {
   const isToday = day.status === 'today';
   const holiday = holidayName(day.date);
   const mm = fmtMm(day.precipSum);
@@ -66,7 +81,7 @@ function DayCell({ day, index, onPick }: { day: CalendarDay; index: number; onPi
     <>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 2 }}>
         <span style={{
-          fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.5, padding: '0 0.45em', borderRadius: 999,
+          ...dateChipBase,
           ...(isToday ? { background: 'var(--accent)', color: '#fff' } : { color: dateColor(day.date) }),
           opacity: day.status === 'past' ? 0.5 : undefined,
         }}>{label}</span>
@@ -103,6 +118,7 @@ export function WeatherCalendar({ pastDaily, daily, weatherCodeMode, today, onPi
   const cells = buildCalendar(pastDaily, daily, today, weatherCodeMode);
   const first = addDays(today, -RANGE);
   const last = addDays(today, RANGE);
+  const gridStart = addDays(first, -new Date(`${first}T00:00:00Z`).getUTCDay());
   const range = first.slice(0, 4) === last.slice(0, 4)
     ? `${ymdLabel(first)}〜${md(last)}`
     : `${ymdLabel(first)}〜${ymdLabel(last)}`;
@@ -121,9 +137,12 @@ export function WeatherCalendar({ pastDaily, daily, weatherCodeMode, today, onPi
         ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3 }}>
-        {cells.map((day, i) => day
-          ? <DayCell key={day.date} day={day} index={i - cells.findIndex(c => c)} onPick={onPick} />
-          : <div key={`blank-${i}`} />)}
+        {cells.map((day, i) => {
+          const date = addDays(gridStart, i);
+          return day
+            ? <DayCell key={date} day={day} label={dateLabel(date, i)} onPick={onPick} />
+            : <OutsideCell key={date} date={date} label={dateLabel(date, i)} />;
+        })}
       </div>
     </div>
   );

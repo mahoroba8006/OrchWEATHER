@@ -55,3 +55,14 @@ describe('WeatherCalendar', () => {
     expect(onPick).toHaveBeenCalledWith('2026-11-03');
   });
 });
+
+describe('WeatherCalendar の前後2週間の外のマス', () => {
+  it('空白にせず日付だけ淡く出す（先頭のマスは月/日、範囲の始まりは日だけ）', () => {
+    const { container } = view();
+    const outside = Array.from(container.querySelectorAll<HTMLElement>('[data-outside="true"]')).map(el => el.textContent);
+    expect(outside).toEqual(['10/11', '12', '13', '12', '13', '14']);
+    expect(container.querySelector('[data-date="2026-10-11"] span')!.getAttribute('style')).toContain('opacity: 0.4');
+    expect(dateChip(container, '2026-10-14').textContent).toBe('14');
+    expect(container.querySelector('[data-date="2026-11-12"]')!.textContent).toBe('12');
+  });
+});
