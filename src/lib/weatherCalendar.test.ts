@@ -32,13 +32,21 @@ describe('buildCalendar', () => {
     expect(cells.filter(c => c?.status === 'today').map(c => c!.date)).toEqual([today]);
   });
 
-  it('天気は午前・午後・夜間を合わせてリスク／概況で選び、雨は3つの合計・確率は最大', () => {
+  it('天気はリスク・概況で選び、雨は午前・午後・夜間の合計・確率は最大', () => {
     const risk = buildCalendar(past, future, today, 'severity').find(c => c?.date === today)!;
     const freq = buildCalendar(past, future, today, 'frequency').find(c => c?.date === today)!;
     expect(risk.code).toBe(61);
     expect(freq.code).toBe(0);
     expect(risk.precipSum).toBe(1.5);
     expect(risk.precipProb).toBe(40);
+  });
+
+  it('概況は午前・午後（4〜20時）だけで決め、リスクは夜間も含める', () => {
+    // 日中は晴れ4・雨4（同じなら降っている方 → 雨）。夜間まで含めると晴れ11・雨5で晴れになる
+    const d = day(today, { amCodes: [0, 0, 0, 0], pmCodes: [61, 61, 61, 61], nightCodes: [0, 0, 0, 0, 0, 0, 0, 95] });
+    const at = (mode: 'severity' | 'frequency') => buildCalendar(past, [d, ...future.slice(1)], today, mode).find(c => c?.date === today)!;
+    expect(at('frequency').code).toBe(61);
+    expect(at('severity').code).toBe(95);
   });
 
   it('過去の日は降水確率を出さず、データがあれば押せる（空しらべへ）。8日目以降は far', () => {

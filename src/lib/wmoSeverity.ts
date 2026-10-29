@@ -54,23 +54,20 @@ function mostFrequent<T>(counts: Map<T, number>, rank: (key: T) => number): T {
 }
 
 /**
- * frequency モードの代表コード。
- * 晴れ／くもり／雨／雪／雷の種類ごとに時間数を数え、雨・雪・雷のいずれかが
- * 全体の1/4以上で、かつ雨量（precipSum）の合計が1mm以上ならその種類（複数あれば多い方）、
- * なければ最も多い種類を選ぶ。雨量が分からない（undefined/null）ときは時間だけで決める。
- * 1mm 未満の霧雨が数時間あるだけで、晴れの時間帯が雨にならないようにする。
- * 同数は深刻な方。絵はその種類の中で最も多いコード（同数は深刻度が高い方）。
- * 雨は強さ別にコードが分かれるため、コード単位の最頻値だと晴れ・曇りに負ける。
+ * frequency モードの代表コード（その時間帯でいちばん長い天気）。
+ * まず降っていない時間（晴れ＋くもり）と降っている時間（雨＋雪＋雷）を比べ、長い方を選ぶ
+ * （同じなら降っている方）。晴れとくもりは、どちらも外で作業できる時間としてまとめて数える。
+ * 次にその中で最も多い種類（同数は深刻な方）、絵はその種類の中で最も多いコード（同数は深刻度が高い方）。
+ * 雨は強さ別にコードが分かれるため、コード単位の最頻値だと晴れ・曇りに負ける。悪天候は severity が受け持つ。
  */
-export function modeCode(codes: number[], precipSum?: number | null): number | null {
+export function modeCode(codes: number[]): number | null {
   if (codes.length === 0) return null;
-  // 0.1mm に丸めてから比べる（足し算の誤差で 1mm 未満にしない）
-  const enoughRain = precipSum == null || Math.round(precipSum * 10) / 10 >= 1;
   const kindCounts = new Map<Kind, number>();
   for (const c of codes) kindCounts.set(codeKind(c), (kindCounts.get(codeKind(c)) ?? 0) + 1);
-  const wet = new Map([...kindCounts].filter(([k, n]) => enoughRain && WET_KINDS.includes(k) && n * 4 >= codes.length));
-  const kindRank = (k: Kind) => KINDS.indexOf(k);
-  const kind = mostFrequent(wet.size > 0 ? wet : kindCounts, kindRank);
+  const wetHours = [...kindCounts].reduce((n, [k, c]) => n + (WET_KINDS.includes(k) ? c : 0), 0);
+  const wetWins = wetHours * 2 >= codes.length;
+  const side = new Map([...kindCounts].filter(([k]) => WET_KINDS.includes(k) === wetWins));
+  const kind = mostFrequent(side, k => KINDS.indexOf(k));
 
   const freq = new Map<number, number>();
   for (const c of codes) if (codeKind(c) === kind) freq.set(c, (freq.get(c) ?? 0) + 1);
@@ -80,12 +77,12 @@ export function modeCode(codes: number[], precipSum?: number | null): number | n
 /**
  * モードに応じてコード配列から代表値を選択する統一関数。
  * severity: 最深刻度（デフォルト）
- * frequency: 種類ごとの時間数で選ぶ（雨・雪・雷は1/4以上かつ1mm以上で優先。modeCode 参照）
+ * frequency: いちばん長い天気（降る・降らないを先に比べる。modeCode 参照）
  */
-export function selectCode(codes: number[], mode: WeatherCodeMode, precipSum?: number | null): number | null {
+export function selectCode(codes: number[], mode: WeatherCodeMode): number | null {
   if (codes.length === 0) return null;
   if (mode === 'severity') {
     return codes.reduce((a, b) => wmoSeverity(a) >= wmoSeverity(b) ? a : b);
   }
-  return modeCode(codes, precipSum);
+  return modeCode(codes);
 }

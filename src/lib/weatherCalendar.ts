@@ -37,7 +37,8 @@ const sum3 = (d: DailyForecastData) =>
     ? d.precipSum
     : d.amPrecipSum + d.pmPrecipSum + d.nightPrecipSum;
 
-/** 1日=4時〜翌4時（午前・午後・夜間の合計）。時間別が無い日は日別の値で補う。日別の表の最終日より先のマスは null */
+/** 1日=4時〜翌4時（午前・午後・夜間の合計）。ただし概況は外で作業する午前・午後（4〜20時）だけで決める。
+ *  時間別が無い日は日別の値で補う。日別の表の最終日より先のマスは null */
 export function buildCalendar(pastDaily: DailyForecastData[], daily: DailyForecastData[], today: string, mode: WeatherCodeMode): (CalendarDay | null)[] {
   const byDate = new Map([...pastDaily, ...daily].map(d => [d.date, d]));
   const tableDates = new Set(daily.filter(d => !d.isPlaceholder).map(d => d.date));
@@ -48,13 +49,13 @@ export function buildCalendar(pastDaily: DailyForecastData[], daily: DailyForeca
     const d = byDate.get(date);
     const status: CalendarStatus = date < today ? 'past' : date === today ? 'today' : 'future';
     const has = d && !d.isPlaceholder;
-    const codes = d ? [...d.amCodes, ...d.pmCodes, ...d.nightCodes] : [];
+    const codes = !d ? [] : mode === 'frequency' ? [...d.amCodes, ...d.pmCodes] : [...d.amCodes, ...d.pmCodes, ...d.nightCodes];
     const probs = d ? [d.amPrecipProb, d.pmPrecipProb, d.nightPrecipProb].filter((p): p is number => p !== null) : [];
     cells.push({
       date,
       status,
       far: date >= addDays(today, FAR_FROM),
-      code: !has ? null : codes.length > 0 ? selectCode(codes, mode, sum3(d)) : d.weatherCode,
+      code: !has ? null : codes.length > 0 ? selectCode(codes, mode) : d.weatherCode,
       tempMax: has ? d.tempMax : null,
       tempMin: has ? d.tempMin : null,
       precipProb: !has || status === 'past' ? null : probs.length > 0 ? Math.max(...probs) : d.precipProbMax,
