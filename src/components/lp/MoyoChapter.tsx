@@ -1,5 +1,5 @@
 // src/components/lp/MoyoChapter.tsx
-// 4. 空もよう（午後・晩夏）。「概況でみる／リスクでみる」を押すと、カレンダーと午前・午後・夜間の写真が一緒に切り替わる。
+// 4. 空もよう（午後・晩夏）。写真の直前の「概況でみる／リスクでみる」を押すと、カレンダーと午前・午後・夜間の写真が一緒に切り替わる。
 // 押されるまでは、見えている間だけ自動で切り替える（最初は概況＝アプリの既定）。一度押したら自動切替は止める。
 // 動きを減らす設定では、自動切替と切り替えの動きだけを止め、押して切り替える操作は同じにする。
 import { useEffect, useState, type CSSProperties } from 'react';
@@ -53,21 +53,6 @@ export function MoyoChapter() {
     <section ref={ref} className={reduced ? 'lp-ch lp-moyo lp-moyo--still' : 'lp-ch lp-moyo'} data-scene="0.4">
       <div className="lp-moyo__copy">
         <LineReveal lines={['雨マークの日でも、', '畑に出られる時間が', 'すぐわかる。']} />
-        <div className="lp-moyo__modes" role="group" aria-label="空もようの見方">
-          {MODES.map((m, i) => (
-            <button
-              key={m.key}
-              type="button"
-              aria-pressed={i === mode}
-              aria-controls="lp-moyo-screen"
-              className={i === mode ? 'is-on' : ''}
-              onClick={() => choose(i)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-        <p className="lp-moyo__tap">タップで切り替え</p>
         <p className="lp-moyo__caption">天気の見かたを、2つから選べる。</p>
         {/* 切り替えの読み上げは、押したときだけ下の行で知らせる（自動切替のたびに読まれないように）。
             aria-live の領域は最初から置いておかないと、最初の一回が読まれないことがある */}
@@ -82,6 +67,23 @@ export function MoyoChapter() {
         </ul>
       </div>
       <div ref={deviceRef} className={seen || reduced ? 'lp-moyo__screens is-in' : 'lp-moyo__screens'}>
+        <div className="lp-moyo__controls">
+          <div className="lp-moyo__modes" role="group" aria-label="空もようの見方">
+            {MODES.map((m, i) => (
+              <button
+                key={m.key}
+                type="button"
+                aria-pressed={i === mode}
+                aria-controls="lp-moyo-screen"
+                className={i === mode ? 'is-on' : ''}
+                onClick={() => choose(i)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <p className="lp-moyo__tap">タップで切り替え</p>
+        </div>
         <div id="lp-moyo-screen" className="lp-moyo__shots">
           {SHOTS.map((shot) => (
             <figure key={shot.key} className="lp-moyo__shot">

@@ -89,6 +89,11 @@ describe('MoyoChapter', () => {
     expect(buttons).toEqual(['概況でみる', 'リスクでみる']);
     expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
     expect(container.querySelector('.lp-moyo__tap')!.textContent).toBe('タップで切り替え');
+    // 切り替えは見出しの下ではなく、写真のすぐ前
+    expect(container.querySelector('.lp-moyo__copy .lp-moyo__modes')).toBeNull();
+    const screens = container.querySelector('.lp-moyo__screens')!;
+    expect(screens.firstElementChild!.querySelector('.lp-moyo__modes')).toBeTruthy();
+    expect(screens.firstElementChild!.nextElementSibling!.classList.contains('lp-moyo__shots')).toBe(true);
     expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('天気の見かたを、2つから選べる。');
     const points = container.querySelector('.lp-moyo__points')!.textContent;
     expect(points).toContain('概況でみる：いちばん長い天気雨の予報でも、晴れ・くもりの時間が長ければその天気に');
