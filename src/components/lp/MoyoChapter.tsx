@@ -1,6 +1,6 @@
 // src/components/lp/MoyoChapter.tsx
-// 4. 空もよう（午後・晩夏）。「リスクでみる／概況でみる」を押すと、写真と説明が一緒に切り替わる。
-// 押されるまでは、見えている間だけ自動で切り替える（最初はリスク）。一度押したら自動切替は止める。
+// 4. 空もよう（午後・晩夏）。「概況でみる／リスクでみる」を押すと、カレンダーと午前・午後・夜間の写真が一緒に切り替わる。
+// 押されるまでは、見えている間だけ自動で切り替える（最初は概況＝アプリの既定）。一度押したら自動切替は止める。
 // 動きを減らす設定では、自動切替と切り替えの動きだけを止め、押して切り替える操作は同じにする。
 import { useEffect, useState, type CSSProperties } from 'react';
 import { logLpMoyoToggle } from '../../lib/analytics';
@@ -9,13 +9,19 @@ import { LineReveal, Shot } from './primitives';
 import './moyo.css';
 
 const MODES = [
-  { key: 'risk', label: 'リスクでみる', src: '/lp/moyo-risk.webp' },
-  { key: 'gaikyo', label: '概況でみる', src: '/lp/moyo-gaikyo.webp' },
+  { key: 'gaikyo', label: '概況でみる' },
+  { key: 'risk', label: 'リスクでみる' },
+] as const;
+// 画面は東京・2026年10月30日朝の表示（10月29日夜の予報）。見かたごとに1枚ずつ
+const SHOTS = [
+  { key: 'calendar', name: 'カレンダー', width: 780, height: 1046, caption: ['先週の天気、今日の天気、', 'この先の天気を、ひと目で'] },
+  { key: 'daily', name: '午前・午後・夜間の表', width: 780, height: 608, caption: ['作業時間に合わせて、', '午前（4時〜12時）・', '午後（12時〜20時）・', '夜間（20時〜翌4時）で表示'] },
 ] as const;
 const RAIN_WORDS = ['ぽつぽつ', 'カッパ？', 'カッパ！'];
 // 折り返しは意味のまとまり（lp-phrase）ごと
 const POINTS: { text: string[]; sub?: string[] }[] = [
-  { text: ['その時間帯の悪い天気（リスク）と', '多い天気（概況）'], sub: ['タップで切り替え'] },
+  { text: ['概況でみる：', 'いちばん長い天気'], sub: ['雨の予報でも、', '晴れ・くもりの時間が', '長ければその天気に'] },
+  { text: ['リスクでみる：', 'いちばん悪い天気'], sub: ['晴れの予報でも、', 'にわか雨や雷が', '見落としにくい'] },
   { text: ['1日を、作業時間にあわせた3つに'], sub: ['午前（4時〜12時）・', '午後（12時〜20時）・', '夜間（20時〜翌4時）'] },
   { text: ['1時間ごと、', '2週間先までの予報を表示'] },
 ];
@@ -46,7 +52,7 @@ export function MoyoChapter() {
   return (
     <section ref={ref} className={reduced ? 'lp-ch lp-moyo lp-moyo--still' : 'lp-ch lp-moyo'} data-scene="0.4">
       <div className="lp-moyo__copy">
-        <LineReveal lines={['今日の作業、', 'やるかやめるか', 'すぐ決まる。']} />
+        <LineReveal lines={['雨マークの日でも、', '畑に出られる時間が', 'すぐわかる。']} />
         <div className="lp-moyo__modes" role="group" aria-label="空もようの見方">
           {MODES.map((m, i) => (
             <button
@@ -61,7 +67,8 @@ export function MoyoChapter() {
             </button>
           ))}
         </div>
-        <p className="lp-moyo__caption">天気の見かたを自分で選ぶ。</p>
+        <p className="lp-moyo__tap">タップで切り替え</p>
+        <p className="lp-moyo__caption">天気の見かたを、2つから選べる。</p>
         {/* 切り替えの読み上げは、押したときだけ下の行で知らせる（自動切替のたびに読まれないように）。
             aria-live の領域は最初から置いておかないと、最初の一回が読まれないことがある */}
         <p className="lp-sr" aria-live="polite">{announce}</p>
@@ -74,23 +81,30 @@ export function MoyoChapter() {
           ))}
         </ul>
       </div>
-      <div ref={deviceRef} className={seen || reduced ? 'lp-moyo__device is-in' : 'lp-moyo__device'}>
-        <figure id="lp-moyo-screen" className="lp-shot lp-shot--phone lp-moyo__phone">
-          {MODES.map((m, i) => (
-            <img
-              key={m.key}
-              src={m.src}
-              alt={`空もよう — ${m.label}`}
-              aria-hidden={i !== mode}
-              width={780}
-              height={1688}
-              loading="lazy"
-              decoding="async"
-              className={i === mode ? 'is-on' : ''}
-            />
+      <div ref={deviceRef} className={seen || reduced ? 'lp-moyo__screens is-in' : 'lp-moyo__screens'}>
+        <div id="lp-moyo-screen" className="lp-moyo__shots">
+          {SHOTS.map((shot) => (
+            <figure key={shot.key} className="lp-moyo__shot">
+              <div className="lp-moyo__stack">
+                {MODES.map((m, i) => (
+                  <img
+                    key={m.key}
+                    src={`/lp/moyo-${shot.key}-${m.key}.webp`}
+                    alt={`${shot.name} — ${m.label}`}
+                    aria-hidden={i !== mode}
+                    width={shot.width}
+                    height={shot.height}
+                    loading="lazy"
+                    decoding="async"
+                    className={i === mode ? 'is-on' : ''}
+                  />
+                ))}
+              </div>
+              <figcaption>{shot.caption.map((x) => <span key={x} className="lp-phrase">{x}</span>)}</figcaption>
+            </figure>
           ))}
-        </figure>
-        <p className="lp-moyo__devicenote">リスクと概況で、作業を判断</p>
+        </div>
+        <p className="lp-moyo__tablenote">画面は東京・2026年10月30日朝の表示（10月29日時点の予報）。</p>
       </div>
       <div ref={hourlyRef} className={hourlySeen || reduced ? 'lp-moyo__hourly is-in' : 'lp-moyo__hourly'}>
         <p className="lp-moyo__hourlylead"><span className="lp-phrase">1時間ごとの空がわかる。</span><span className="lp-phrase">作業が決まる。</span></p>

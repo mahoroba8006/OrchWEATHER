@@ -1,5 +1,5 @@
 // src/components/lp/chapters.test.tsx
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 const logLpDetailOpen = vi.fn();
 const logLpMoyoToggle = vi.fn();
@@ -82,34 +82,45 @@ describe('KurabeChapter', () => {
 });
 
 describe('MoyoChapter', () => {
-  it('見出し・雨のことば。最初は「リスクでみる」', () => {
+  it('見出し・2つの見かたの説明・画面写真2枚と説明。最初は「概況でみる」', () => {
     const { container } = render(<MoyoChapter />);
-    expect(screen.getByRole('heading', { name: '今日の作業、やるかやめるかすぐ決まる。' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('true');
-    expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('天気の見かたを自分で選ぶ。');
-    expect(container.querySelector('.lp-moyo__points')!.textContent).toContain('タップで切り替え');
-    expect(container.querySelector('.lp-moyo__points')!.textContent).toContain('午前（4時〜12時）・午後（12時〜20時）・夜間（20時〜翌4時）');
-    expect(container.querySelector('.lp-moyo__points')!.textContent).toContain('1時間ごと、2週間先までの予報を表示');
+    expect(screen.getByRole('heading', { name: '雨マークの日でも、畑に出られる時間がすぐわかる。' })).toBeTruthy();
+    const buttons = within(container.querySelector('.lp-moyo__modes') as HTMLElement).getAllByRole('button').map((b) => b.textContent);
+    expect(buttons).toEqual(['概況でみる', 'リスクでみる']);
+    expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('.lp-moyo__tap')!.textContent).toBe('タップで切り替え');
+    expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('天気の見かたを、2つから選べる。');
+    const points = container.querySelector('.lp-moyo__points')!.textContent;
+    expect(points).toContain('概況でみる：いちばん長い天気雨の予報でも、晴れ・くもりの時間が長ければその天気に');
+    expect(points).toContain('リスクでみる：いちばん悪い天気晴れの予報でも、にわか雨や雷が見落としにくい');
+    expect(points).toContain('午前（4時〜12時）・午後（12時〜20時）・夜間（20時〜翌4時）');
+    expect(points).toContain('1時間ごと、2週間先までの予報を表示');
+    expect(points).not.toContain('タップで切り替え');
     // 押されるまでは読み上げない
     expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('');
-    expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-risk.webp');
+    const on = Array.from(container.querySelectorAll('.lp-moyo__shots img.is-on')).map((im) => im.getAttribute('src'));
+    expect(on).toEqual(['/lp/moyo-calendar-gaikyo.webp', '/lp/moyo-daily-gaikyo.webp']);
+    const captions = Array.from(container.querySelectorAll('.lp-moyo__shots figcaption')).map((c) => c.textContent);
+    expect(captions).toEqual([
+      '先週の天気、今日の天気、この先の天気を、ひと目で',
+      '作業時間に合わせて、午前（4時〜12時）・午後（12時〜20時）・夜間（20時〜翌4時）で表示',
+    ]);
+    expect(screen.getByText('画面は東京・2026年10月30日朝の表示（10月29日時点の予報）。')).toBeTruthy();
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
-    // 雨のことばの札は時間別の表（左の画面）に、スマホの画面の下には「リスクと概況」の一行
     expect(container.querySelector('.lp-moyo__tablewrap .lp-moyo__rain')).toBeTruthy();
-    expect(container.querySelector('.lp-moyo__device')!.textContent).toContain('リスクと概況で、作業を判断');
-    expect(container.querySelector('.lp-moyo__device .lp-moyo__rain')).toBeNull();
     expect(container.querySelector('.lp-moyo__hourlylead')!.textContent).toBe('1時間ごとの空がわかる。作業が決まる。');
     expect(screen.getAllByRole('img', { name: /時間別の表/ })).toHaveLength(2);
     expect(screen.getByText('画面は東京・2026年9月8日（雨のち晴れ）の実績。')).toBeTruthy();
   });
-  it('押すと写真と説明が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
+  it('押すと2枚の写真が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
     const { container } = render(<MoyoChapter />);
-    fireEvent.click(screen.getByRole('button', { name: '概況でみる' }));
-    expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('false');
-        expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('概況でみる');
-    expect(container.querySelector('.lp-moyo__phone img.is-on')!.getAttribute('src')).toBe('/lp/moyo-gaikyo.webp');
-    expect(logLpMoyoToggle).toHaveBeenCalledWith('gaikyo');
+    fireEvent.click(screen.getByRole('button', { name: 'リスクでみる' }));
+    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('false');
+    expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('リスクでみる');
+    const on = Array.from(container.querySelectorAll('.lp-moyo__shots img.is-on')).map((im) => im.getAttribute('src'));
+    expect(on).toEqual(['/lp/moyo-calendar-risk.webp', '/lp/moyo-daily-risk.webp']);
+    expect(logLpMoyoToggle).toHaveBeenCalledWith('risk');
   });
 });
 
