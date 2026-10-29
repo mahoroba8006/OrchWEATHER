@@ -29,27 +29,54 @@ export function worstCode(a: number, b: number): number {
 /** 天気コード集計方式 */
 export type WeatherCodeMode = 'severity' | 'frequency';
 
+// 天気の種類。並びは深刻度の順（同数のときは後ろを採用）
+const KINDS = ['clear', 'cloudy', 'rain', 'snow', 'thunder'] as const;
+type Kind = typeof KINDS[number];
+const WET_KINDS: Kind[] = ['rain', 'snow', 'thunder'];
+const SNOW_CODES = new Set([71, 73, 75, 77, 85, 86]);
+
+function codeKind(code: number): Kind {
+  if (code <= 2) return 'clear';
+  if (code <= 48) return 'cloudy';
+  if (code >= 95) return 'thunder';
+  return SNOW_CODES.has(code) ? 'snow' : 'rain';
+}
+
+/** 件数が最も多いキーを返す。同数は rank が大きい方 */
+function mostFrequent<T>(counts: Map<T, number>, rank: (key: T) => number): T {
+  let best: T | undefined, bestCount = 0;
+  for (const [key, count] of counts) {
+    if (best === undefined || count > bestCount || (count === bestCount && rank(key) > rank(best))) {
+      best = key; bestCount = count;
+    }
+  }
+  return best as T;
+}
+
 /**
- * コード配列から最頻値を返す。同頻度の場合は深刻度が高い方を採用。
- * frequency モードで使用。
+ * frequency モードの代表コード。
+ * 晴れ／くもり／雨／雪／雷の種類ごとに時間数を数え、雨・雪・雷のいずれかが
+ * 全体の1/4以上ならその種類（複数あれば多い方）、なければ最も多い種類を選ぶ。
+ * 同数は深刻な方。絵はその種類の中で最も多いコード（同数は深刻度が高い方）。
+ * 雨は強さ別にコードが分かれるため、コード単位の最頻値だと晴れ・曇りに負ける。
  */
 export function modeCode(codes: number[]): number | null {
   if (codes.length === 0) return null;
+  const kindCounts = new Map<Kind, number>();
+  for (const c of codes) kindCounts.set(codeKind(c), (kindCounts.get(codeKind(c)) ?? 0) + 1);
+  const wet = new Map([...kindCounts].filter(([k, n]) => WET_KINDS.includes(k) && n * 4 >= codes.length));
+  const kindRank = (k: Kind) => KINDS.indexOf(k);
+  const kind = mostFrequent(wet.size > 0 ? wet : kindCounts, kindRank);
+
   const freq = new Map<number, number>();
-  for (const c of codes) freq.set(c, (freq.get(c) ?? 0) + 1);
-  let maxFreq = 0, result = 0;
-  for (const [code, count] of freq) {
-    if (count > maxFreq || (count === maxFreq && wmoSeverity(code) > wmoSeverity(result))) {
-      maxFreq = count; result = code;
-    }
-  }
-  return result;
+  for (const c of codes) if (codeKind(c) === kind) freq.set(c, (freq.get(c) ?? 0) + 1);
+  return mostFrequent(freq, wmoSeverity);
 }
 
 /**
  * モードに応じてコード配列から代表値を選択する統一関数。
  * severity: 最深刻度（デフォルト）
- * frequency: 最頻値（同数タイは深刻度高い方）
+ * frequency: 種類ごとの時間数で選ぶ（雨・雪・雷は1/4以上で優先。modeCode 参照）
  */
 export function selectCode(codes: number[], mode: WeatherCodeMode): number | null {
   if (codes.length === 0) return null;
