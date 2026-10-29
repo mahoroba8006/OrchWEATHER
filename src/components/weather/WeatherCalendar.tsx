@@ -29,13 +29,13 @@ function probColor(p: number): string {
   return 'var(--ink-3)';
 }
 
-// マスの地の色＝天気の系統（マークに太陽が描かれる「晴れ時々曇り」までは晴れ）。過ぎた日は同じ色を淡くする
-const TINT: Record<SkyKind, readonly [string, string]> = {
-  thunder: ['#E8DEF6', '#F1ECF8'],
-  snow:    ['#F4F7FC', '#F8FAFD'],
-  rain:    ['#D9E9FA', '#EAF2FB'],
-  cloud:   ['#E6E9ED', '#F0F2F4'],
-  clear:   ['#FDF4D6', '#FDF4D6'], // これからの日も過去と同じ淡さ（濃いと明るすぎる）
+// マスの地の色＝天気の系統（マークに太陽が描かれる「晴れ時々曇り」までは晴れ）。過ぎた日も同じ色で、ふちをぼかす
+const TINT: Record<SkyKind, string> = {
+  thunder: '#E8DEF6',
+  snow:    '#F4F7FC',
+  rain:    '#D9E9FA',
+  cloud:   '#E6E9ED',
+  clear:   '#FDF4D6',
 };
 
 /** 日付の文字色: 日曜・祝日=赤系、土曜=青系 */
@@ -70,11 +70,15 @@ function DayCell({ day, label, onPick }: { day: CalendarDay; label: string; onPi
   const holiday = holidayName(day.date);
   const mm = fmtMm(day.precipSum);
   const pick = day.pickable && onPick ? () => onPick(day.date) : undefined;
+  const tint = day.code === null ? 'var(--surface-sunken)' : TINT[skyKind(day.code)];
+  const past = day.status === 'past';
   const style: CSSProperties = {
     display: 'block', width: '100%', minWidth: 0, border: 'none', font: 'inherit', color: 'inherit',
     borderRadius: 12, padding: '5px 0 4px', minHeight: 96,
-    background: day.code === null ? 'var(--surface-sunken)' : TINT[skyKind(day.code)][day.status === 'past' ? 1 : 0],
-    boxShadow: isToday ? 'inset 0 0 0 2px var(--accent)' : 'inset 0 0 0 1px rgba(23,25,28,0.04)',
+    // 過ぎた日は塗りを後ろの層に置いてぼかす（時間別の表の色の帯と同じく、べた塗りにしない）
+    ...(past
+      ? { position: 'relative', isolation: 'isolate', background: 'transparent' }
+      : { background: tint, boxShadow: isToday ? 'inset 0 0 0 2px var(--accent)' : 'inset 0 0 0 1px rgba(23,25,28,0.04)' }),
     cursor: pick ? 'pointer' : 'default',
   };
   const body = (
@@ -106,6 +110,13 @@ function DayCell({ day, label, onPick }: { day: CalendarDay; label: string; onPi
           {mm && <>{mm}<span style={{ fontSize: '0.85em', fontWeight: 400 }}>mm</span></>}
         </div>
       </div>
+      {past && (
+        <span
+          aria-hidden
+          data-testid="calendar-past-tint"
+          style={{ position: 'absolute', inset: 3, zIndex: -1, borderRadius: 12, background: tint, filter: 'blur(4px)', pointerEvents: 'none' }}
+        />
+      )}
     </>
   );
   const name = `${ymdLabel(day.date)}${holiday ? ` ${holiday}` : ''}`;

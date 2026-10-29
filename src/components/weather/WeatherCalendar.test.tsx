@@ -47,6 +47,16 @@ describe('WeatherCalendar', () => {
     expect(dateChip(container, '2026-10-29').style.opacity).toBe('');
   });
 
+  it('過ぎた日もこれからの日と同じ色で、べた塗りにせずふちをぼかした層に置く', () => {
+    const { container } = view();
+    const pastCell = container.querySelector<HTMLElement>('[data-date="2026-10-27"]')!;
+    const tint = pastCell.querySelector<HTMLElement>('[data-testid="calendar-past-tint"]')!;
+    expect(pastCell.style.background).toBe('transparent');
+    expect(tint.style.filter).toBe('blur(4px)');
+    expect(tint.style.background).toBe(container.querySelector<HTMLElement>('[data-date="2026-10-29"]')!.style.background);
+    expect(container.querySelector('[data-date="2026-10-29"] [data-testid="calendar-past-tint"]')).toBeNull();
+  });
+
   it('下の表にある日だけ押せて、押した日を知らせる', () => {
     const onPick = vi.fn();
     const { container } = view(onPick);
