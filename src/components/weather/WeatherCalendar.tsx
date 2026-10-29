@@ -6,7 +6,7 @@ import { holidayName } from '../../lib/jpHolidays';
 import { buildCalendar, calendarRange, skyKind, type CalendarDay, type SkyKind } from '../../lib/weatherCalendar';
 import type { WeatherCodeMode } from '../../lib/wmoSeverity';
 
-// 今日の2週間前を含む週の日曜〜2週間後を、日曜始まりのカレンダーで見せる。マスの地の色はその日の天気
+// 前週の日曜〜下の日別の表の最終日を、日曜始まりのカレンダーで見せる。マスの地の色はその日の天気
 interface Props {
   pastDaily: DailyForecastData[];
   daily: DailyForecastData[];
@@ -56,7 +56,7 @@ const dateLabel = (date: string, gridIndex: number) => {
 
 const dateChipBase: CSSProperties = { fontSize: '0.66rem', fontWeight: 700, lineHeight: 1.5, padding: '0 0.45em', borderRadius: 999 };
 
-/** 2週間後より先の日: 予報がまだ無いので日付だけ */
+/** 日別の表の最終日より先の日: 予報がまだ無いので日付だけ */
 function OutsideCell({ date, label }: { date: string; label: string }) {
   return (
     <div data-date={date} data-outside="true" title={holidayName(date) ?? undefined} style={{ padding: '5px 0 4px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
@@ -116,7 +116,7 @@ function DayCell({ day, label, onPick }: { day: CalendarDay; label: string; onPi
 
 export function WeatherCalendar({ pastDaily, daily, weatherCodeMode, today, onPick }: Props) {
   const cells = buildCalendar(pastDaily, daily, today, weatherCodeMode);
-  const { first, last } = calendarRange(today);
+  const { first, last } = calendarRange(today, daily);
   const gridStart = first;
   const range = first.slice(0, 4) === last.slice(0, 4)
     ? `${ymdLabel(first)}〜${md(last)}`

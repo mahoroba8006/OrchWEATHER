@@ -2,7 +2,7 @@ import type { DailyForecastData } from '../api/forecast';
 import { addDays } from './dateUtils';
 import { selectCode, type WeatherCodeMode } from './wmoSeverity';
 
-// 空もようのカレンダー（今日の2週間前〜2週間後・日曜始まり）のマス
+// 空もようのカレンダー（前週の日曜〜下の日別の表の最終日・日曜始まり）のマス
 export type CalendarStatus = 'past' | 'today' | 'future';
 
 export interface CalendarDay {
@@ -17,15 +17,19 @@ export interface CalendarDay {
   pickable: boolean;         // 下の日別の表にある日
 }
 
-export const CALENDAR_RANGE = 14;
 const FAR_FROM = 8;
 
-/** マスの並び。過去側は今日の2週間前を含む週の日曜から（その日まで天気を埋める）、未来側は2週間後まで */
-export function calendarRange(today: string): { first: string; last: string; gridEnd: string } {
-  const back = addDays(today, -CALENDAR_RANGE);
+/** 下の日別の表で午前・午後・夜間の予報が出る最後の日（無ければ今日） */
+function lastForecastDate(daily: DailyForecastData[], today: string): string {
+  const days = daily.filter(d => !d.isPlaceholder && d.amCodes.length > 0 && d.pmCodes.length > 0 && d.nightCodes.length > 0);
+  return days.reduce((last, d) => (d.date > last ? d.date : last), today);
+}
+
+/** マスの並び。過去側は前週の日曜から、これから側は下の日別の表の最終日まで天気を埋め、その週の土曜までは日付だけ */
+export function calendarRange(today: string, daily: DailyForecastData[]): { first: string; last: string; gridEnd: string } {
   const dow = (s: string) => new Date(`${s}T00:00:00Z`).getUTCDay();
-  const last = addDays(today, CALENDAR_RANGE);
-  return { first: addDays(back, -dow(back)), last, gridEnd: addDays(last, 6 - dow(last)) };
+  const last = lastForecastDate(daily, today);
+  return { first: addDays(today, -7 - dow(today)), last, gridEnd: addDays(last, 6 - dow(last)) };
 }
 
 const sum3 = (d: DailyForecastData) =>
@@ -33,11 +37,11 @@ const sum3 = (d: DailyForecastData) =>
     ? d.precipSum
     : d.amPrecipSum + d.pmPrecipSum + d.nightPrecipSum;
 
-/** 1日=4時〜翌4時（午前・午後・夜間の合計）。時間別が無い日は日別の値で補う。2週間後より先のマスは null */
+/** 1日=4時〜翌4時（午前・午後・夜間の合計）。時間別が無い日は日別の値で補う。日別の表の最終日より先のマスは null */
 export function buildCalendar(pastDaily: DailyForecastData[], daily: DailyForecastData[], today: string, mode: WeatherCodeMode): (CalendarDay | null)[] {
   const byDate = new Map([...pastDaily, ...daily].map(d => [d.date, d]));
   const tableDates = new Set(daily.filter(d => !d.isPlaceholder).map(d => d.date));
-  const { first, last, gridEnd } = calendarRange(today);
+  const { first, last, gridEnd } = calendarRange(today, daily);
   const cells: (CalendarDay | null)[] = [];
   for (let date = first; date <= gridEnd; date = addDays(date, 1)) {
     if (date > last) { cells.push(null); continue; }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCalendar, skyKind } from './weatherCalendar';
+import { buildCalendar, calendarRange, skyKind } from './weatherCalendar';
 import { addDays } from './dateUtils';
 import type { DailyForecastData } from '../api/forecast';
 
@@ -17,18 +17,18 @@ const day = (date: string, extra: Partial<DailyForecastData> = {}): DailyForecas
 
 const today = '2026-10-28'; // 水曜
 const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => day(addDays(today, from + i)));
-const past = range(-17, -1);
+const past = range(-10, -1);
 const future = range(0, 14);
 
 describe('buildCalendar', () => {
-  it('日曜始まりで、2週間前を含む週の日曜から天気を埋め、2週間後より先は空きマス', () => {
+  it('日曜始まりで、前週の日曜から天気を埋め、日別の表の最終日より先は空きマス', () => {
     const cells = buildCalendar(past, future, today, 'severity');
-    expect(cells).toHaveLength(35);
+    expect(cells).toHaveLength(28);
     expect(cells.slice(0, 4).map(c => [c!.date, c!.status, c!.code !== null])).toEqual([
-      ['2026-10-11', 'past', true], ['2026-10-12', 'past', true], ['2026-10-13', 'past', true], ['2026-10-14', 'past', true],
+      ['2026-10-18', 'past', true], ['2026-10-19', 'past', true], ['2026-10-20', 'past', true], ['2026-10-21', 'past', true],
     ]);
-    expect(cells[31]!.date).toBe('2026-11-11');
-    expect(cells.slice(32)).toEqual([null, null, null]);
+    expect(cells[24]!.date).toBe('2026-11-11');
+    expect(cells.slice(25)).toEqual([null, null, null]);
     expect(cells.filter(c => c?.status === 'today').map(c => c!.date)).toEqual([today]);
   });
 
@@ -60,6 +60,19 @@ describe('buildCalendar', () => {
     const t = cells.find(x => x?.date === today)!;
     expect([t.code, t.tempMax, t.precipProb, t.pickable]).toEqual([null, null, null, false]);
     expect(cells.find(x => x?.date === '2026-10-21')!.code).toBeNull();
+  });
+});
+
+describe('calendarRange', () => {
+  it('前週の日曜から。日曜・土曜の今日でも前週の日曜', () => {
+    expect(calendarRange('2026-11-01', []).first).toBe('2026-10-25'); // 日曜
+    expect(calendarRange('2026-10-31', []).first).toBe('2026-10-18'); // 土曜
+  });
+
+  it('これから側は午前・午後・夜間の予報がそろう最後の日まで（未計算の日・時間別の欠けた日は含めない）', () => {
+    const daily = [...range(0, 12), day(addDays(today, 13), { nightCodes: [] }), day(addDays(today, 14), { isPlaceholder: true })];
+    expect(calendarRange(today, daily)).toMatchObject({ last: '2026-11-09', gridEnd: '2026-11-14' });
+    expect(buildCalendar(past, daily, today, 'severity').filter(c => c === null)).toHaveLength(5);
   });
 });
 
