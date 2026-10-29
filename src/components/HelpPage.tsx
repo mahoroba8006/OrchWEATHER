@@ -189,7 +189,7 @@ export function HelpPage({ onBack }: Props) {
               </tr>
               <tr>
                 <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>リスクでみる</td>
-                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も悪い天気コード</strong>を代表アイコンとして表示します。悪天候を見逃したくないときに使います。</td>
+                <td>午前・午後・夜間それぞれの時間帯で、<strong>最も悪い天気コード</strong>を代表アイコンとして表示します。悪天候を見逃したくないときに使います。カレンダーの1日は、夜間を含めた24時間（4時〜翌4時）で最も悪い天気を表示します。</td>
               </tr>
             </tbody>
           </table>
