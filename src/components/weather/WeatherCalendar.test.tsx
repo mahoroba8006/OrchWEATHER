@@ -58,12 +58,15 @@ describe('WeatherCalendar', () => {
     expect(container.querySelector<HTMLElement>(`[data-date="${today}"]`)!.style.boxShadow).toContain('var(--accent)');
   });
 
-  it('下の表にある日だけ押せて、押した日を知らせる', () => {
+  it('下の表にある日と過ぎた日が押せて、押した日を知らせる（過ぎた日は空しらべで見る）', () => {
     const onPick = vi.fn();
     const { container } = view(onPick);
-    expect(container.querySelector('[data-date="2026-10-27"]')!.tagName).toBe('DIV');
     fireEvent.click(container.querySelector('[data-date="2026-11-03"]')!);
     expect(onPick).toHaveBeenCalledWith('2026-11-03');
+    const pastCell = container.querySelector('[data-date="2026-10-27"]')!;
+    expect(pastCell.getAttribute('aria-label')).toBe('2026/10/27の天気を空しらべで見る');
+    fireEvent.click(pastCell);
+    expect(onPick).toHaveBeenCalledWith('2026-10-27');
   });
 });
 

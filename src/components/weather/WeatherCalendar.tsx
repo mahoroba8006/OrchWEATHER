@@ -12,7 +12,7 @@ interface Props {
   daily: DailyForecastData[];
   weatherCodeMode: WeatherCodeMode;
   today: string;
-  /** 押せる日（下の日別の表にある日）を押したとき */
+  /** 押せる日（下の日別の表にある日・過ぎた日）を押したとき */
   onPick?: (date: string) => void;
 }
 
@@ -117,7 +117,7 @@ function DayCell({ day, label, onPick }: { day: CalendarDay; label: string; onPi
   );
   const name = `${ymdLabel(day.date)}${holiday ? ` ${holiday}` : ''}`;
   return pick
-    ? <button type="button" data-date={day.date} onClick={pick} aria-label={`${name}の予報を下の表で見る`} title={holiday ?? undefined} style={style}>{body}</button>
+    ? <button type="button" data-date={day.date} onClick={pick} aria-label={day.status === 'past' ? `${name}の天気を空しらべで見る` : `${name}の予報を下の表で見る`} title={holiday ?? undefined} style={style}>{body}</button>
     : <div data-date={day.date} title={holiday ?? undefined} style={style}>{body}</div>;
 }
 

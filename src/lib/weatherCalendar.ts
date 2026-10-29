@@ -14,7 +14,7 @@ export interface CalendarDay {
   tempMin: number | null;
   precipProb: number | null; // 過去の日は出さない
   precipSum: number | null;
-  pickable: boolean;         // 下の日別の表にある日
+  pickable: boolean;         // 下の日別の表にある日と、データのある過ぎた日（空しらべへ）
 }
 
 const FAR_FROM = 8;
@@ -59,7 +59,7 @@ export function buildCalendar(pastDaily: DailyForecastData[], daily: DailyForeca
       tempMin: has ? d.tempMin : null,
       precipProb: !has || status === 'past' ? null : probs.length > 0 ? Math.max(...probs) : d.precipProbMax,
       precipSum: has ? sum3(d) : null,
-      pickable: tableDates.has(date),
+      pickable: tableDates.has(date) || (status === 'past' && !!has),
     });
   }
   return cells;

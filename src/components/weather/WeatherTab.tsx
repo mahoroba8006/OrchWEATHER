@@ -36,7 +36,7 @@ import {
   classifyWeather, currentHourIndex, hhmmToMinutes, jstDateString, jstMinutesOfDay, skyPalette, timeOfDay,
 } from '../../lib/sky';
 
-/** onOpenHistory: ふりかえりカードの「詳しく見る」で空しらべへ移る（節気の開始日とこの画面の地点を渡す） */
+/** onOpenHistory: ふりかえりカードの「詳しく見る」・カレンダーの過ぎた日で空しらべへ移る（開始日とこの画面の地点を渡す） */
 export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryRequest) => void }) {
   const { locations, userSettings, geoLocation, geoStatus, setGeoLocation, user, updateWeatherCodeMode, aiAllowed } = useAppStore();
   const weatherCodeMode = useWeatherCodeMode();
@@ -232,6 +232,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
   // ここで追加フィルターをかけると端数時間が除外され、
   // nightPrecipSum など日別集計値と表示値がずれるため、そのまま渡す。
   const filteredHourly = data ? data.hourly : [];
+  const calendarToday = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   const hourlyLastDate = filteredHourly.length > 0 ? filteredHourly[filteredHourly.length - 1].time.slice(0, 10) : undefined;
 
   return (
@@ -386,8 +387,13 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
               pastDaily={data.pastDaily}
               daily={data.daily}
               weatherCodeMode={weatherCodeMode}
-              today={new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)}
+              today={calendarToday}
               onPick={date => {
+                // 過ぎた日は空しらべへ（その日から。地点はこの画面のまま）
+                if (date < calendarToday) {
+                  if (onOpenHistory && location) onOpenHistory({ start: date, locationId: location.id });
+                  return;
+                }
                 setCalendarFocus(f => ({ date, seq: (f?.seq ?? 0) + 1 }));
                 // 時間別の表もその日の朝4時を左端へ（縦には動かさない）
                 setScrollTarget(`${date}T04:00`);

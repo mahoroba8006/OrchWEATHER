@@ -27,7 +27,7 @@ function jstDaysAgo(n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** 空しらべを開くときの指定（節気のふりかえりの「詳しく見る」から：節気の開始日と、カードの地点） */
+/** 空しらべを開くときの指定（節気のふりかえりの「詳しく見る」・カレンダーの過ぎた日から：開始日と、元の画面の地点） */
 export interface HistoryRequest { start: string; locationId: string }
 
 export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | null }) {
@@ -42,7 +42,8 @@ export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | n
   const [startDate, setStartDate] = useState<string>(() => request?.start ?? jstDaysAgo(HISTORY_DAYS));
   const hourlyScrollRef = useRef<HTMLDivElement>(null);
   const hourlySectionRef = useRef<HTMLElement>(null);
-  const [scrollTarget, setScrollTarget] = useState<string | undefined>();
+  // 日付を指定して開いたときは、時間別の表をその日の朝4時から見せる（表は読み込み後に出るので、出たときに送られる）
+  const [scrollTarget, setScrollTarget] = useState<string | undefined>(() => (request ? `${request.start}T04:00` : undefined));
 
   // デフォルト地点 or geoLocation が揃ったとき初期選択を確定させる
   useEffect(() => {

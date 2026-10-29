@@ -41,11 +41,11 @@ describe('buildCalendar', () => {
     expect(risk.precipProb).toBe(40);
   });
 
-  it('過去の日は降水確率を出さず、押せない。8日目以降は far', () => {
+  it('過去の日は降水確率を出さず、データがあれば押せる（空しらべへ）。8日目以降は far', () => {
     const cells = buildCalendar(past, future, today, 'severity');
     const y = cells.find(c => c?.date === '2026-10-27')!;
     expect(y.precipProb).toBeNull();
-    expect(y.pickable).toBe(false);
+    expect(y.pickable).toBe(true);
     expect(cells.find(c => c?.date === today)!.pickable).toBe(true);
     expect(cells.find(c => c?.date === '2026-11-04')!.far).toBe(false);
     expect(cells.find(c => c?.date === '2026-11-05')!.far).toBe(true);
