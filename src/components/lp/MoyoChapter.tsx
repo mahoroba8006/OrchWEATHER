@@ -44,7 +44,7 @@ export function MoyoChapter() {
   };
 
   return (
-    <section ref={ref} className={reduced ? 'lp-ch lp-moyo lp-moyo--still' : 'lp-ch lp-moyo'} data-scene="0.47">
+    <section ref={ref} className={reduced ? 'lp-ch lp-moyo lp-moyo--still' : 'lp-ch lp-moyo'} data-scene="0.4">
       <div className="lp-moyo__copy">
         <LineReveal lines={['今日の作業、', 'やるかやめるか', 'すぐ決まる。']} />
         <div className="lp-moyo__modes" role="group" aria-label="空もようの見方">

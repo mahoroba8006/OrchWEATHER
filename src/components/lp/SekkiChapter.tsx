@@ -44,7 +44,7 @@ export function SekkiChapter() {
 
   const cls = ['lp-ch', 'lp-sekki', reduced ? 'lp-sekki--still' : '', shown || reduced ? 'is-shown' : ''].filter(Boolean).join(' ');
   return (
-    <section ref={ref} className={cls} data-scene="0.27">
+    <section ref={ref} className={cls} data-scene="0.47">
       <div ref={pinRef} className="lp-sekki__pin">
       <div className="lp-sekki__stage" data-sticky-stage>
         <div className="lp-sekki__head">

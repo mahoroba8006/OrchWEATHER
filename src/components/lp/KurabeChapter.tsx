@@ -43,7 +43,7 @@ export function KurabeChapter() {
   const lit = reduced ? 3 : [0.64, 0.74, 0.84].filter((t) => q > t).length;
 
   return (
-    <section ref={ref} className={reduced ? 'lp-ch lp-kurabe lp-kurabe--still' : 'lp-ch lp-kurabe'} data-scene="0.4">
+    <section ref={ref} className={reduced ? 'lp-ch lp-kurabe lp-kurabe--still' : 'lp-ch lp-kurabe'} data-scene="0.27">
       <div ref={pinRef} className="lp-kurabe__pin">
       <div className="lp-kurabe__stage" data-sticky-stage>
         <LineReveal lines={['去年と、あの場所と、', '並べて見える。']} />

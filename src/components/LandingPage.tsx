@@ -56,9 +56,9 @@ export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
       <main className="lp-main">
         <LpHero {...cta} error={error} />
         <HunchChapter />
-        <SekkiChapter />
         <KurabeChapter />
         <MoyoChapter />
+        <SekkiChapter />
         <MakerChapter />
         <FinalChapter {...cta} error={error} />
       </main>

@@ -23,6 +23,8 @@ describe('LandingPage', () => {
     const { container } = render(<LandingPage onTryGuest={() => {}} />);
     const ps = Array.from(container.querySelectorAll<HTMLElement>('[data-scene]')).map((el) => Number(el.dataset.scene));
     expect(ps).toEqual([0, 0.1, 0.27, 0.4, 0.47, 0.64, 0.88]);
+    const order = Array.from(container.querySelectorAll<HTMLElement>('[data-scene]')).map((el) => el.classList[1]);
+    expect(order).toEqual(['lp-hero', 'lp-hunch', 'lp-kurabe', 'lp-moyo', 'lp-sekki', 'lp-maker', 'lp-final']);
   });
 
   it('ボタンは最初と最後の2か所だけ', () => {
