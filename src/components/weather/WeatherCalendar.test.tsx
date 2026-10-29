@@ -6,7 +6,7 @@ import type { DailyForecastData } from '../../api/forecast';
 
 afterEach(cleanup);
 
-const day = (date: string): DailyForecastData => ({
+const day = (date: string, extra: Partial<DailyForecastData> = {}): DailyForecastData => ({
   date, weatherCode: 0, tempMax: 20, tempMin: 10, precipProbMax: 10, precipSum: 0,
   humidMin: 40, humidMax: 80, sunrise: `${date}T05:00`, sunset: `${date}T18:00`,
   radiationSum: 10, snowfallSum: 0, windSpeedMax: 3, sunshineDuration: 8,
@@ -15,6 +15,7 @@ const day = (date: string): DailyForecastData => ({
   amPrecipSum: 0, pmPrecipSum: 0, nightPrecipSum: 0,
   amTempMax: 20, amTempMin: 10, pmTempMax: 20, pmTempMin: 10, nightTempMax: 20, nightTempMin: 10,
   amWindMax: 2, pmWindMax: 2, nightWindMax: 2,
+  ...extra,
 });
 
 const today = '2026-10-28';
@@ -27,6 +28,10 @@ const dateChip = (c: HTMLElement, date: string) => c.querySelector<HTMLElement>(
 describe('WeatherCalendar', () => {
   it('左上の期間に西暦を付ける（1行目の日曜から）', () => {
     expect(view().container.textContent).toContain('2026/10/18〜11/11');
+  });
+
+  it('期間の横に注記は出さない', () => {
+    expect(view().container.textContent).not.toContain('目安');
   });
 
   it('今日だけ日付を緑の反転にし、日曜・祝日は赤系・土曜は青系', () => {
@@ -80,5 +85,22 @@ describe('WeatherCalendar の予報の外のマス', () => {
     expect(container.querySelector('[data-date="2026-10-18"] img')).not.toBeNull();
     expect(container.querySelector('[data-date="2026-10-17"]')).toBeNull();
     expect(container.querySelector('[data-date="2026-11-12"]')!.textContent).toBe('12');
+  });
+});
+
+describe('WeatherCalendar の雨量', () => {
+  it('小数は出さず整数に切り上げる（0.5mm 未満は出さない・3桁もそのまま）', () => {
+    const rain = (date: string, mm: number) => day(date, { amPrecipSum: mm, pmPrecipSum: 0, nightPrecipSum: 0 });
+    const { container } = render(
+      <WeatherCalendar
+        pastDaily={[rain('2026-10-24', 1.1), rain('2026-10-25', 0.4), rain('2026-10-26', 0.5), rain('2026-10-27', 0.1 + 0.2 + 1.7)]}
+        daily={[rain(today, 11), rain('2026-10-29', 10.06), rain('2026-10-30', 123.4), rain('2026-10-31', 10.01)]}
+        weatherCodeMode="severity" today={today}
+      />,
+    );
+    const mm = (date: string) =>
+      [...container.querySelectorAll(`[data-date="${date}"] div`)].map(el => el.textContent!).find(t => /^\d+mm$/.test(t))?.slice(0, -2) ?? '';
+    expect([mm('2026-10-24'), mm('2026-10-25'), mm('2026-10-26'), mm('2026-10-27')]).toEqual(['2', '', '1', '2']);
+    expect([mm(today), mm('2026-10-29'), mm('2026-10-30'), mm('2026-10-31')]).toEqual(['11', '11', '124', '10']); // 10.01 は誤差として 10
   });
 });

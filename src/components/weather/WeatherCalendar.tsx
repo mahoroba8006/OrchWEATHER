@@ -21,7 +21,9 @@ const SUN_COLOR = '#C2493F';
 const TEMP_MAX_COLOR = '#E0555A';
 const TEMP_MIN_COLOR = '#2E7DD7';
 
-const fmtMm = (v: number | null) => (v === null || v < 0.5 ? '' : v >= 10 ? `${Math.round(v)}` : v.toFixed(1));
+// 雨量は整数に切り上げ（狭いマスで「1.1」と「11」を取り違えないよう小数を出さない）。
+// 時間ごとの足し算の誤差（2.0000001 など）で1つ上がらないよう、0.1mm に丸めてから切り上げる
+const fmtMm = (v: number | null) => (v === null || v < 0.5 ? '' : `${Math.ceil(Math.round(v * 10) / 10)}`);
 
 function probColor(p: number): string {
   if (p >= 70) return 'var(--accent-blue)';
@@ -132,7 +134,6 @@ export function WeatherCalendar({ pastDaily, daily, weatherCodeMode, today, onPi
     <div style={{ padding: '0 0.75rem' }} data-testid="weather-calendar">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '0.5rem', marginBottom: 6 }}>
         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-1)', whiteSpace: 'nowrap' }}>{range}</span>
-        <span style={{ fontSize: '0.62rem', color: 'var(--ink-3)', textAlign: 'right' }}>過去は降った量・8日目以降は目安</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginBottom: 4 }}>
         {DOW.map((w, i) => (
