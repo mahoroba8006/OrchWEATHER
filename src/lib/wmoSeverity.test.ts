@@ -42,6 +42,28 @@ describe('modeCode（概況でみる）', () => {
     expect(modeCode([...rep(51, 3), ...rep(61, 3), ...rep(0, 2)])).toBe(61);
   });
 
+  it('雨量の合計が1mm未満なら1/4の優先をしない（須坂 10/31 午前: 霧雨弱2時間・0.4mm、ほかは晴れ）', () => {
+    const codes = [51, 1, 51, 0, 0, 0, 0, 0];
+    expect(modeCode(codes, 0.4)).toBe(0);
+    expect(modeCode(codes, 1)).toBe(51);
+    expect(modeCode(codes)).toBe(51); // 雨量が分からなければ時間だけで決める
+  });
+
+  it('1mm の判定は 0.1mm に丸めてから（足し算の誤差で 1mm 未満にしない）', () => {
+    expect(modeCode([51, 51, 0, 0, 0, 0, 0, 0], 0.1 + 0.2 + 0.7)).toBe(51);
+    expect(modeCode([51, 51, 0, 0, 0, 0, 0, 0], 0.94)).toBe(0);
+  });
+
+  it('1mm未満でも雨の時間が最も多ければ雨', () => {
+    expect(modeCode([...rep(51, 5), ...rep(0, 3)], 0.5)).toBe(51);
+  });
+
+  it('selectCode は概況でみるに雨量を渡し、リスクでみるは雨量を見ない', () => {
+    const codes = [51, 1, 51, 0, 0, 0, 0, 0];
+    expect(selectCode(codes, 'frequency', 0.4)).toBe(0);
+    expect(selectCode(codes, 'severity', 0.4)).toBe(51);
+  });
+
   it('空の配列は null・リスクでみるは変わらず最も悪いコード', () => {
     expect(modeCode([])).toBeNull();
     expect(selectCode([0, 0, 61, 95, 0], 'severity')).toBe(95);

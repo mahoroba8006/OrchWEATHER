@@ -478,10 +478,10 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   justifyContent: 'flex-start', height: 160, gap: 0, position: 'relative',
                 };
-                const iconCell = (period: Period, codes: number[]) => {
+                const iconCell = (period: Period, codes: number[], precipSum: number | null) => {
                   const isNight = period === 'night';
-                  const main = selectCode(codes, weatherCodeMode);
-                  const alt  = selectCode(codes, altMode);
+                  const main = selectCode(codes, weatherCodeMode, precipSum);
+                  const alt  = selectCode(codes, altMode, precipSum);
                   const click = clickable(day, period);
                   return (
                     <td
@@ -516,9 +516,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                 };
                 return (
                   <Fragment key={day.date}>
-                    {iconCell('am', day.amCodes)}
-                    {iconCell('pm', day.pmCodes)}
-                    {iconCell('night', day.nightCodes)}
+                    {iconCell('am', day.amCodes, day.amPrecipSum)}
+                    {iconCell('pm', day.pmCodes, day.pmPrecipSum)}
+                    {iconCell('night', day.nightCodes, day.nightPrecipSum)}
                   </Fragment>
                 );
               })}

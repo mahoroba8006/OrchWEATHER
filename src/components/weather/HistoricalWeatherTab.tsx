@@ -245,7 +245,7 @@ export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | n
               <span style={{ fontSize: '0.75rem', lineHeight: 1.35, color: 'var(--ink-3)', minWidth: 0 }}>
                 {weatherCodeMode === 'severity'
                   ? '時間帯でいちばん悪い天気を表示'
-                  : '時間帯に多い天気を表示（雨・雪は1/4以上で表示）'}
+                  : '時間帯に多い天気を表示（雨・雪は1/4以上・1mm以上で表示）'}
               </span>
             </div>
             <DailyForecast

@@ -54,7 +54,7 @@ export function buildCalendar(pastDaily: DailyForecastData[], daily: DailyForeca
       date,
       status,
       far: date >= addDays(today, FAR_FROM),
-      code: !has ? null : codes.length > 0 ? selectCode(codes, mode) : d.weatherCode,
+      code: !has ? null : codes.length > 0 ? selectCode(codes, mode, sum3(d)) : d.weatherCode,
       tempMax: has ? d.tempMax : null,
       tempMin: has ? d.tempMin : null,
       precipProb: !has || status === 'past' ? null : probs.length > 0 ? Math.max(...probs) : d.precipProbMax,

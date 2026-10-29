@@ -56,15 +56,19 @@ function mostFrequent<T>(counts: Map<T, number>, rank: (key: T) => number): T {
 /**
  * frequency モードの代表コード。
  * 晴れ／くもり／雨／雪／雷の種類ごとに時間数を数え、雨・雪・雷のいずれかが
- * 全体の1/4以上ならその種類（複数あれば多い方）、なければ最も多い種類を選ぶ。
+ * 全体の1/4以上で、かつ雨量（precipSum）の合計が1mm以上ならその種類（複数あれば多い方）、
+ * なければ最も多い種類を選ぶ。雨量が分からない（undefined/null）ときは時間だけで決める。
+ * 1mm 未満の霧雨が数時間あるだけで、晴れの時間帯が雨にならないようにする。
  * 同数は深刻な方。絵はその種類の中で最も多いコード（同数は深刻度が高い方）。
  * 雨は強さ別にコードが分かれるため、コード単位の最頻値だと晴れ・曇りに負ける。
  */
-export function modeCode(codes: number[]): number | null {
+export function modeCode(codes: number[], precipSum?: number | null): number | null {
   if (codes.length === 0) return null;
+  // 0.1mm に丸めてから比べる（足し算の誤差で 1mm 未満にしない）
+  const enoughRain = precipSum == null || Math.round(precipSum * 10) / 10 >= 1;
   const kindCounts = new Map<Kind, number>();
   for (const c of codes) kindCounts.set(codeKind(c), (kindCounts.get(codeKind(c)) ?? 0) + 1);
-  const wet = new Map([...kindCounts].filter(([k, n]) => WET_KINDS.includes(k) && n * 4 >= codes.length));
+  const wet = new Map([...kindCounts].filter(([k, n]) => enoughRain && WET_KINDS.includes(k) && n * 4 >= codes.length));
   const kindRank = (k: Kind) => KINDS.indexOf(k);
   const kind = mostFrequent(wet.size > 0 ? wet : kindCounts, kindRank);
 
@@ -76,12 +80,12 @@ export function modeCode(codes: number[]): number | null {
 /**
  * モードに応じてコード配列から代表値を選択する統一関数。
  * severity: 最深刻度（デフォルト）
- * frequency: 種類ごとの時間数で選ぶ（雨・雪・雷は1/4以上で優先。modeCode 参照）
+ * frequency: 種類ごとの時間数で選ぶ（雨・雪・雷は1/4以上かつ1mm以上で優先。modeCode 参照）
  */
-export function selectCode(codes: number[], mode: WeatherCodeMode): number | null {
+export function selectCode(codes: number[], mode: WeatherCodeMode, precipSum?: number | null): number | null {
   if (codes.length === 0) return null;
   if (mode === 'severity') {
     return codes.reduce((a, b) => wmoSeverity(a) >= wmoSeverity(b) ? a : b);
   }
-  return modeCode(codes);
+  return modeCode(codes, precipSum);
 }
