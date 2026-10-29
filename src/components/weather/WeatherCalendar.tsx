@@ -129,7 +129,7 @@ export function WeatherCalendar({ pastDaily, daily, weatherCodeMode, today, onPi
     ? `${ymdLabel(first)}〜${md(last)}`
     : `${ymdLabel(first)}〜${ymdLabel(last)}`;
   return (
-    <div style={{ padding: '0 0.75rem 0.9rem' }} data-testid="weather-calendar">
+    <div style={{ padding: '0 0.75rem' }} data-testid="weather-calendar">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '0.5rem', marginBottom: 6 }}>
         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-1)', whiteSpace: 'nowrap' }}>{range}</span>
         <span style={{ fontSize: '0.62rem', color: 'var(--ink-3)', textAlign: 'right' }}>過去は降った量・8日目以降は目安</span>

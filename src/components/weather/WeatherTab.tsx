@@ -393,6 +393,11 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
                 setScrollTarget(`${date}T04:00`);
               }}
             />
+          </section>
+          </Reveal>
+
+          <Reveal index={2}>
+          <section className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <DailyForecast
               daily={data.daily}
               weatherCodeMode={weatherCodeMode}
@@ -408,7 +413,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
             午前：4〜12時　　午後：12〜20時　　夜間：20〜翌4時
           </p>
 
-          <Reveal index={2}>
+          <Reveal index={3}>
           <section ref={hourlySectionRef} className="glass-panel" style={{ padding: '1rem 0', overflow: 'hidden' }}>
             <HourlyTable hourly={filteredHourly} daily={data.daily} scrollRef={hourlyScrollRef} scrollTarget={scrollTarget} jmaWarnings={jmaWarning?.items} hiddenRowKeys={hiddenRowKeySet} scenery={hourlyScenery} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem 0' }}>
@@ -431,7 +436,7 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
           </Reveal>
 
           {AI_ADVICE_ENABLED && (
-          <Reveal index={3}>
+          <Reveal index={4}>
           <div ref={aiSectionRef}>
             {aiAllowed ? (
               <AiCommentCard
