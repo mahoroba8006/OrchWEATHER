@@ -74,3 +74,12 @@ export function skyKind(code: number): SkyKind {
   if (code >= 3) return 'cloud';
   return 'clear';
 }
+
+/** 今の時間帯（午前4〜12時・午後12〜20時・夜間20〜翌4時）の始まり "YYYY-MM-DDTHH:00"。0〜4時は前日の夜間 */
+export function currentPeriodStart(now: Date = new Date()): string {
+  const jst = new Date(now.getTime() + 9 * 3600000);
+  const date = jst.toISOString().slice(0, 10);
+  const h = jst.getUTCHours();
+  if (h < 4) return `${addDays(date, -1)}T20:00`;
+  return `${date}T${h >= 20 ? '20' : h >= 12 ? '12' : '04'}:00`;
+}

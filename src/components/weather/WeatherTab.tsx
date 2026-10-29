@@ -10,6 +10,7 @@ import { Skeleton } from '../ui/Skeleton';
 import { Reveal } from '../ui/Reveal';
 import { DailyForecast } from './DailyForecast';
 import { WeatherCalendar } from './WeatherCalendar';
+import { currentPeriodStart } from '../../lib/weatherCalendar';
 import { JmaWarningSummary } from './JmaWarningSummary';
 import { AiCommentCard } from './AiCommentCard';
 import { AiComingSoonCard } from './AiComingSoonCard';
@@ -395,8 +396,8 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
                   return;
                 }
                 setCalendarFocus(f => ({ date, seq: (f?.seq ?? 0) + 1 }));
-                // 時間別の表もその日の朝4時を左端へ（縦には動かさない）
-                setScrollTarget(`${date}T04:00`);
+                // 時間別の表もその日の朝4時を左端へ（縦には動かさない）。今日は今の時間帯の始まりを左端へ
+                setScrollTarget(date === calendarToday ? currentPeriodStart() : `${date}T04:00`);
               }}
             />
           </section>

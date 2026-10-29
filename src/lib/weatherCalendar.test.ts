@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCalendar, calendarRange, skyKind } from './weatherCalendar';
+import { buildCalendar, calendarRange, currentPeriodStart, skyKind } from './weatherCalendar';
 import { addDays } from './dateUtils';
 import type { DailyForecastData } from '../api/forecast';
 
@@ -83,5 +83,22 @@ describe('skyKind', () => {
     expect([51, 61, 80, 66].map(skyKind)).toEqual(['rain', 'rain', 'rain', 'rain']);
     expect([71, 77, 85, 86].map(skyKind)).toEqual(['snow', 'snow', 'snow', 'snow']);
     expect([95, 99].map(skyKind)).toEqual(['thunder', 'thunder']);
+  });
+});
+
+describe('currentPeriodStart', () => {
+  const at = (jst: string) => new Date(`${jst}+09:00`);
+  it('今の時間帯（午前4〜12時・午後12〜20時・夜間20〜翌4時）の始まり', () => {
+    expect(currentPeriodStart(at('2026-10-29T04:00'))).toBe('2026-10-29T04:00');
+    expect(currentPeriodStart(at('2026-10-29T11:59'))).toBe('2026-10-29T04:00');
+    expect(currentPeriodStart(at('2026-10-29T12:00'))).toBe('2026-10-29T12:00');
+    expect(currentPeriodStart(at('2026-10-29T19:30'))).toBe('2026-10-29T12:00');
+    expect(currentPeriodStart(at('2026-10-29T20:00'))).toBe('2026-10-29T20:00');
+    expect(currentPeriodStart(at('2026-10-29T23:59'))).toBe('2026-10-29T20:00');
+  });
+
+  it('0〜4時は前日の夜間の始まり（月をまたいでも）', () => {
+    expect(currentPeriodStart(at('2026-10-30T03:59'))).toBe('2026-10-29T20:00');
+    expect(currentPeriodStart(at('2026-11-01T00:00'))).toBe('2026-10-31T20:00');
   });
 });
