@@ -154,4 +154,13 @@ describe('DailyForecast のカレンダーからの移動', () => {
     expect(markedCell(container)).toBe('2026-10-01-pm');
     vi.useRealTimers();
   });
+
+  it('押されたら表をページの先頭（固定ヘッダーの下）へ送る', () => {
+    const scrollBy = vi.spyOn(window, 'scrollBy').mockImplementation(() => {});
+    const { rerender } = renderWithMotion(<DailyForecast daily={fixture} weatherCodeMode="severity" />);
+    expect(scrollBy).not.toHaveBeenCalled();
+    rerender(<DailyForecast daily={fixture} weatherCodeMode="severity" focus={{ date: '2026-10-02', seq: 1 }} />);
+    expect(scrollBy).toHaveBeenCalledWith({ top: -56, behavior: 'smooth' }); // jsdom では表の上端が 0
+    scrollBy.mockRestore();
+  });
 });

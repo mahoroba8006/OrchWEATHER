@@ -387,7 +387,11 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
               daily={data.daily}
               weatherCodeMode={weatherCodeMode}
               today={new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)}
-              onPick={date => setCalendarFocus(f => ({ date, seq: (f?.seq ?? 0) + 1 }))}
+              onPick={date => {
+                setCalendarFocus(f => ({ date, seq: (f?.seq ?? 0) + 1 }));
+                // 時間別の表もその日の朝4時を左端へ（縦には動かさない）
+                setScrollTarget(`${date}T04:00`);
+              }}
             />
             <DailyForecast
               daily={data.daily}

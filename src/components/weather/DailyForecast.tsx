@@ -318,7 +318,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
   const [selected, setSelected] = useState<{ date: string; period: Period } | null>(() =>
     daily.some(d => d.date === nowSlot.date) ? nowSlot : null,
   );
-  // カレンダーで押された日へ送る（今日なら今の時間帯、ほかの日は午前に枠）
+  // カレンダーで押された日へ送る（今日なら今の時間帯、ほかの日は午前に枠）。表はページの先頭へ
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!focus) return;
@@ -326,7 +326,9 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
     if (i < 0) return;
     setSelected({ date: focus.date, period: focus.date === nowSlot.date ? nowSlot.period : 'am' });
     scrollRef.current?.scrollTo?.({ left: dayX?.[i] ?? 0, behavior: 'smooth' });
-    scrollRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    // 日別の表をページの先頭へ（固定ヘッダー 56px の下）
+    const top = scrollRef.current?.getBoundingClientRect().top;
+    if (top !== undefined) window.scrollBy?.({ top: top - 56, behavior: 'smooth' });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 押されたときだけ動かす
   }, [focus]);
 
