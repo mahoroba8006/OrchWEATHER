@@ -184,6 +184,7 @@ async function fetchViaForecastEndpoint(
   lon: number,
   startDate: string,
   endDate: string,
+  hourlyBefore: string,
 ): Promise<ForecastData> {
   const hourlyParams = [
     'temperature_2m', 'precipitation', 'precipitation_probability',
@@ -236,7 +237,7 @@ async function fetchViaForecastEndpoint(
     sunshine:      (raw.hourly.sunshine_duration?.[i]        ?? 0) / 60,
     snowfall:      raw.hourly.snowfall?.[i]                  ?? 0,
     uvIndex:       raw.hourly.uv_index?.[i]                  ?? 0,
-  }));
+  })).filter(h => h.time < hourlyBefore);
 
   const dayAmPm = buildDayAmPmMap(hourly);
 
@@ -280,6 +281,7 @@ async function fetchViaArchiveApi(
   lon: number,
   startDate: string,
   endDate: string,
+  hourlyBefore: string,
 ): Promise<ForecastData> {
   // ecmwf_ifs: アーカイブAPIでCAPEを提供できる唯一のモデル（ERA5はCAPEなし）
   // freezinglevel_height は全モデルで取得不可（null → 9999 でフォールバック）
@@ -335,7 +337,7 @@ async function fetchViaArchiveApi(
     sunshine:      (raw.hourly.sunshine_duration?.[i]     ?? 0) / 60,
     snowfall:      raw.hourly.snowfall?.[i]               ?? 0,
     uvIndex:       0,    // archive API はUV指数なし
-  }));
+  })).filter(h => h.time < hourlyBefore);
 
   const dayAmPm = buildDayAmPmMap(hourly);
 
@@ -398,6 +400,10 @@ export async function fetchHistoricalForecast(
   // API に渡す終了日: 表示の最終日と昨日の小さい方
   const tentativeEnd = addDays(startDate, HISTORY_DAYS - 1);
   const apiEndDate   = tentativeEnd < yesterday ? tentativeEnd : yesterday;
+  // 最終日の夜間（20時〜翌4時）を欠かさないよう翌日まで取り、時間別は翌日の4時より前・今の時刻より前で切る
+  const fetchEnd = addDays(apiEndDate, 1);
+  const nowHour = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 13) + ':00';
+  const hourlyBefore = `${fetchEnd}T04:00` < nowHour ? `${fetchEnd}T04:00` : nowHour;
 
   let apiData: ForecastData | null = null;
   if (startDate <= yesterday) {
@@ -405,17 +411,17 @@ export async function fetchHistoricalForecast(
       // 段階1: 直近14日 → forecast API（完全データ）
       apiData = await fetchViaForecastEndpoint(
         'https://api.open-meteo.com/v1/forecast',
-        lat, lon, startDate, apiEndDate,
+        lat, lon, startDate, fetchEnd, hourlyBefore,
       );
     } else if (startDate >= HISTORICAL_FORECAST_START) {
       // 段階2: 2022-01-01 以降 → historical-forecast API（完全データ）
       apiData = await fetchViaForecastEndpoint(
         'https://historical-forecast-api.open-meteo.com/v1/forecast',
-        lat, lon, startDate, apiEndDate,
+        lat, lon, startDate, fetchEnd, hourlyBefore,
       );
     } else {
       // 段階3: 2022年より前 → archive API + ecmwf_ifs（CAPE取得可）
-      apiData = await fetchViaArchiveApi(lat, lon, startDate, apiEndDate);
+      apiData = await fetchViaArchiveApi(lat, lon, startDate, fetchEnd, hourlyBefore);
     }
   }
 
