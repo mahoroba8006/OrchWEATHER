@@ -372,8 +372,8 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
                 ariaLabel="天気アイコンの表示基準"
                 layoutId="weather-code-mode"
                 options={[
-                  { value: 'frequency', label: '概況でみる' },
-                  { value: 'severity', label: 'リスクでみる' },
+                  { value: 'frequency', label: 'おおむね' },
+                  { value: 'severity', label: 'ねんのため' },
                 ]}
                 value={weatherCodeMode}
                 onChange={updateWeatherCodeMode}

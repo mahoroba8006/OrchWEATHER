@@ -93,7 +93,7 @@ export function logLpChapterView(chapter: string): void {
   track('lp_chapter_view', { chapter });
 }
 
-/** LP の空もようで「リスクでみる／概況でみる」が押された（触れる仕掛けが効いているか） */
+/** LP の空もようで「ねんのため／おおむね」が押された（触れる仕掛けが効いているか） */
 export function logLpMoyoToggle(mode: string): void {
   track('lp_moyo_toggle', { mode });
 }

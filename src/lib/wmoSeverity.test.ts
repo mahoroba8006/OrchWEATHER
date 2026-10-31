@@ -3,7 +3,7 @@ import { modeCode, selectCode } from './wmoSeverity';
 
 const rep = (code: number, n: number) => Array<number>(n).fill(code);
 
-describe('modeCode（概況でみる）', () => {
+describe('modeCode（おおむね）', () => {
   it('降っていない時間（晴れ＋曇り）が長ければ、雨の時間がまとまっていても降っていない方（高山村 10/31: 晴れ18・霧雨弱6）', () => {
     expect(modeCode([...rep(1, 10), ...rep(0, 8), ...rep(51, 6)])).toBe(1);
   });
@@ -35,7 +35,7 @@ describe('modeCode（概況でみる）', () => {
     expect(modeCode([...rep(51, 3), ...rep(61, 3), ...rep(0, 2)])).toBe(61);
   });
 
-  it('空の配列は null・リスクでみるは変わらず最も悪いコード', () => {
+  it('空の配列は null・ねんのためは変わらず最も悪いコード', () => {
     expect(modeCode([])).toBeNull();
     expect(selectCode([0, 0, 61, 95, 0], 'severity')).toBe(95);
     expect(selectCode([0, 0, 61, 95, 0], 'frequency')).toBe(0);

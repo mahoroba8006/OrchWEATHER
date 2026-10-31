@@ -1,6 +1,6 @@
 // src/components/lp/MoyoChapter.tsx
-// 4. 空もよう（午後・晩夏）。写真の直前の「概況でみる／リスクでみる」を押すと、カレンダーと午前・午後・夜間の写真が一緒に切り替わる。
-// 押されるまでは、見えている間だけ自動で切り替える（最初は概況＝アプリの既定）。一度押したら自動切替は止める。
+// 4. 空もよう（午後・晩夏）。写真の直前の「おおむね／ねんのため」を押すと、カレンダーと午前・午後・夜間の写真が一緒に切り替わる。
+// 押されるまでは、見えている間だけ自動で切り替える（最初はおおむね＝アプリの既定）。一度押したら自動切替は止める。
 // 動きを減らす設定では、自動切替と切り替えの動きだけを止め、押して切り替える操作は同じにする。
 import { useEffect, useState, type CSSProperties } from 'react';
 import { logLpMoyoToggle } from '../../lib/analytics';
@@ -9,19 +9,19 @@ import { LineReveal, Shot } from './primitives';
 import './moyo.css';
 
 const MODES = [
-  { key: 'gaikyo', label: '概況でみる' },
-  { key: 'risk', label: 'リスクでみる' },
+  { key: 'gaikyo', label: 'おおむね' },
+  { key: 'risk', label: 'ねんのため' },
 ] as const;
-// 画面は東京・2026年10月30日朝の表示（10月29日夜の予報）。見かたごとに1枚ずつ
+// 画面は東京・2026年11月1日朝の表示（10月31日夕方の予報）。見かたごとに1枚ずつ
 const SHOTS = [
-  { key: 'calendar', name: 'カレンダー', width: 780, height: 1046, caption: ['先週の天気、今日の天気、', 'この先の天気を、ひと目で'] },
+  { key: 'calendar', name: 'カレンダー', width: 780, height: 846, caption: ['先週の天気、今日の天気、', 'この先の天気を、ひと目で'] },
   { key: 'daily', name: '午前・午後・夜間の表', width: 780, height: 608, caption: ['作業時間に合わせて、', '午前（4時〜12時）・', '午後（12時〜20時）・', '夜間（20時〜翌4時）で表示'] },
 ] as const;
 const RAIN_WORDS = ['ぽつぽつ', 'カッパ？', 'カッパ！'];
 // 折り返しは意味のまとまり（lp-phrase）ごと
 const POINTS: { text: string[]; sub?: string[] }[] = [
-  { text: ['概況でみる：', 'いちばん長い天気'], sub: ['雨の予報でも、', '晴れ・くもりの時間が', '長ければその天気に'] },
-  { text: ['リスクでみる：', 'いちばん悪い天気'], sub: ['晴れの予報でも、', 'にわか雨や雷が', '見落としにくい'] },
+  { text: ['おおむね：', 'いちばん長い天気'], sub: ['雨の予報でも、', '晴れ・くもりの時間が', '長ければその天気に'] },
+  { text: ['ねんのため：', 'いちばん悪い天気'], sub: ['晴れの予報でも、', 'にわか雨や雷が', '見落としにくい'] },
   { text: ['1日を、作業時間にあわせた3つに'], sub: ['午前（4時〜12時）・', '午後（12時〜20時）・', '夜間（20時〜翌4時）'] },
   { text: ['1時間ごと、', '2週間先までの予報を表示'] },
 ];
@@ -106,7 +106,7 @@ export function MoyoChapter() {
             </figure>
           ))}
         </div>
-        <p className="lp-moyo__tablenote">画面は東京・2026年10月30日朝の表示（10月29日時点の予報）。</p>
+        <p className="lp-moyo__tablenote">画面は東京・2026年11月1日朝の表示（10月31日時点の予報）。</p>
       </div>
       <div ref={hourlyRef} className={hourlySeen || reduced ? 'lp-moyo__hourly is-in' : 'lp-moyo__hourly'}>
         <p className="lp-moyo__hourlylead"><span className="lp-phrase">1時間ごとの空がわかる。</span><span className="lp-phrase">作業が決まる。</span></p>

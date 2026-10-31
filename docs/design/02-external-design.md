@@ -373,7 +373,7 @@ NoSQL ドキュメント指向。永続データはユーザー本人ドキュ�
 |------|-----|------|
 | `geoStatus` | `idle` / `loading` / `error` | 現在地取得の状態 |
 | 仮想地点ID | `__geo__` | GPS現在地（Firestore非保存の一時地点） |
-| `WeatherCodeMode` | `severity` / `frequency` | リスクでみる / 概況でみる |
+| `WeatherCodeMode` | `severity` / `frequency` | ねんのため / おおむね |
 | GAイベント | `guest_start` / `login` / `weather_view` | ゲスト開始 / ログインクリック / 天気参照（1ロード1回） |
 | HTTPステータス（Functions） | 401 / 403 / 400 / 405 / 500 / 502 | 未認証 / 許可外 / 不正JSON / メソッド不許可 / キー未設定 / Gemini失敗 |
 | 単位 | 風速=m/s（`wind_speed_unit=ms`）、飽差=g/m³、日射=MJ/m²、日照=h、積算温度=℃日 | ― |

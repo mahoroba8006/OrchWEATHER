@@ -469,7 +469,7 @@ export function DailyForecast({ daily, weatherCodeMode, onHalfDayClick, jmaWarni
                   );
                 }
                 const altMode         = weatherCodeMode === 'severity' ? 'frequency' : 'severity';
-                const altModeLabel    = altMode === 'frequency' ? '概況' : 'リスク';
+                const altModeLabel    = altMode === 'frequency' ? 'おおむね' : 'ねんのため';
                 const altModeTagStyle: CSSProperties = altMode === 'frequency'
                   ? { background: 'white', color: 'var(--accent)', border: '1px solid rgba(var(--accent-rgb),0.3)' }
                   : { background: 'white', color: '#7a2840',       border: '1px solid rgba(244,167,185,0.6)' };

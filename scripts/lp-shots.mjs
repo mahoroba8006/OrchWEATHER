@@ -48,9 +48,9 @@ try {
     process.exit(0);
   }
 
-  // 1) 空もよう: 「リスクでみる」「概況でみる」の2枚（空に節気・候が写る）
+  // 1) 空もよう: 「ねんのため」「おおむね」の2枚（空に節気・候が写る）
   await page.evaluate(() => window.scrollTo(0, 0));
-  for (const [label, name] of [['リスクでみる', 'moyo-risk'], ['概況でみる', 'moyo-gaikyo']]) {
+  for (const [label, name] of [['ねんのため', 'moyo-risk'], ['おおむね', 'moyo-gaikyo']]) {
     await page.getByRole('tab', { name: label }).first().click();
     await page.waitForTimeout(1200);
     await page.screenshot({ path: join(outDir, `${name}.png`), clip: { x: 0, y: 0, width: 390, height: 844 } });

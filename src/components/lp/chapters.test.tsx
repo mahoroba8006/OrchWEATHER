@@ -82,12 +82,12 @@ describe('KurabeChapter', () => {
 });
 
 describe('MoyoChapter', () => {
-  it('見出し・2つの見かたの説明・画面写真2枚と説明。最初は「概況でみる」', () => {
+  it('見出し・2つの見かたの説明・画面写真2枚と説明。最初は「おおむね」', () => {
     const { container } = render(<MoyoChapter />);
     expect(screen.getByRole('heading', { name: '雨マークの日でも、畑に出られる時間がすぐわかる。' })).toBeTruthy();
     const buttons = within(container.querySelector('.lp-moyo__modes') as HTMLElement).getAllByRole('button').map((b) => b.textContent);
-    expect(buttons).toEqual(['概況でみる', 'リスクでみる']);
-    expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('true');
+    expect(buttons).toEqual(['おおむね', 'ねんのため']);
+    expect(screen.getByRole('button', { name: 'おおむね' }).getAttribute('aria-pressed')).toBe('true');
     expect(container.querySelector('.lp-moyo__tap')!.textContent).toBe('タップで切り替え');
     // 切り替えは見出しの下ではなく、写真のすぐ前
     expect(container.querySelector('.lp-moyo__copy .lp-moyo__modes')).toBeNull();
@@ -96,8 +96,8 @@ describe('MoyoChapter', () => {
     expect(screens.firstElementChild!.nextElementSibling!.classList.contains('lp-moyo__shots')).toBe(true);
     expect(container.querySelector('.lp-moyo__caption')!.textContent).toBe('天気の見かたを、2つから選べる。');
     const points = container.querySelector('.lp-moyo__points')!.textContent;
-    expect(points).toContain('概況でみる：いちばん長い天気雨の予報でも、晴れ・くもりの時間が長ければその天気に');
-    expect(points).toContain('リスクでみる：いちばん悪い天気晴れの予報でも、にわか雨や雷が見落としにくい');
+    expect(points).toContain('おおむね：いちばん長い天気雨の予報でも、晴れ・くもりの時間が長ければその天気に');
+    expect(points).toContain('ねんのため：いちばん悪い天気晴れの予報でも、にわか雨や雷が見落としにくい');
     expect(points).toContain('午前（4時〜12時）・午後（12時〜20時）・夜間（20時〜翌4時）');
     expect(points).toContain('1時間ごと、2週間先までの予報を表示');
     expect(points).not.toContain('タップで切り替え');
@@ -110,7 +110,7 @@ describe('MoyoChapter', () => {
       '先週の天気、今日の天気、この先の天気を、ひと目で',
       '作業時間に合わせて、午前（4時〜12時）・午後（12時〜20時）・夜間（20時〜翌4時）で表示',
     ]);
-    expect(screen.getByText('画面は東京・2026年10月30日朝の表示（10月29日時点の予報）。')).toBeTruthy();
+    expect(screen.getByText('画面は東京・2026年11月1日朝の表示（10月31日時点の予報）。')).toBeTruthy();
     for (const w of ['ぽつぽつ', 'カッパ？', 'カッパ！']) expect(screen.getByText(w)).toBeTruthy();
     expect(container.querySelector('.lp-moyo__tablewrap .lp-moyo__rain')).toBeTruthy();
     expect(container.querySelector('.lp-moyo__hourlylead')!.textContent).toBe('1時間ごとの空がわかる。作業が決まる。');
@@ -119,10 +119,10 @@ describe('MoyoChapter', () => {
   });
   it('押すと2枚の写真が一緒に切り替わり、GA4 に記録する（動きを減らす設定でも押せる）', () => {
     const { container } = render(<MoyoChapter />);
-    fireEvent.click(screen.getByRole('button', { name: 'リスクでみる' }));
-    expect(screen.getByRole('button', { name: 'リスクでみる' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: '概況でみる' }).getAttribute('aria-pressed')).toBe('false');
-    expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('リスクでみる');
+    fireEvent.click(screen.getByRole('button', { name: 'ねんのため' }));
+    expect(screen.getByRole('button', { name: 'ねんのため' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'おおむね' }).getAttribute('aria-pressed')).toBe('false');
+    expect(container.querySelector('[aria-live="polite"]')!.textContent).toBe('ねんのため');
     const on = Array.from(container.querySelectorAll('.lp-moyo__shots img.is-on')).map((im) => im.getAttribute('src'));
     expect(on).toEqual(['/lp/moyo-calendar-risk.webp', '/lp/moyo-daily-risk.webp']);
     expect(logLpMoyoToggle).toHaveBeenCalledWith('risk');

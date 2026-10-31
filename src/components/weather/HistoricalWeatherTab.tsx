@@ -236,8 +236,8 @@ export function HistoricalWeatherTab({ request }: { request?: HistoryRequest | n
                 ariaLabel="天気アイコンの表示基準"
                 layoutId="history-code-mode"
                 options={[
-                  { value: 'frequency', label: '概況でみる' },
-                  { value: 'severity', label: 'リスクでみる' },
+                  { value: 'frequency', label: 'おおむね' },
+                  { value: 'severity', label: 'ねんのため' },
                 ]}
                 value={weatherCodeMode}
                 onChange={updateWeatherCodeMode}
