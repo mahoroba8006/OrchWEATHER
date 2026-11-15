@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { weatherFetch } from '../lib/weatherFetch';
+import { weatherFetchJson } from '../lib/weatherFetch';
 
 /** 当年分は日々データが伸びるため、この時間で取り直す（過去年は確定値なので無期限） */
 const CURRENT_YEAR_TTL_MS = 6 * 60 * 60 * 1000;
@@ -85,8 +85,7 @@ export async function fetchWeatherData(lat: number, lon: number, year: number): 
   const { baseUrl, modelParam } = getApiConfig(year);
   const url = `${baseUrl}?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,shortwave_radiation_sum,sunshine_duration&timezone=Asia%2FTokyo${modelParam}`;
 
-  const response = await weatherFetch(url);
-  const rawData = await response.json();
+  const rawData = await weatherFetchJson(url);
   const daily = rawData.daily;
 
   const processedData: DailyWeather[] = [];
@@ -150,7 +149,7 @@ async function fetchActualsRange(lat: number, lon: number, startDate: string, en
     + `&start_date=${startDate}&end_date=${endDate}`
     + '&daily=temperature_2m_mean,temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration'
     + '&timezone=Asia%2FTokyo&models=jma_msm';
-  const raw = await (await weatherFetch(url)).json();
+  const raw = await weatherFetchJson(url);
   const d = raw.daily;
   const data: DailyActual[] = [];
   (d.time as string[]).forEach((date, i) => {

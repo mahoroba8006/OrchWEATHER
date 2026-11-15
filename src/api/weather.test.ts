@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../lib/weatherFetch', () => ({ weatherFetch: vi.fn() }));
-import { weatherFetch } from '../lib/weatherFetch';
+vi.mock('../lib/weatherFetch', () => ({ weatherFetchJson: vi.fn() }));
+import { weatherFetchJson } from '../lib/weatherFetch';
 import { fetchDailyActuals, fetchWeatherData, hasStoredPast } from './weather';
 
 const body = {
@@ -18,8 +18,8 @@ const HOUR = 60 * 60 * 1000;
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2026-10-03T03:00:00Z'));
-  vi.mocked(weatherFetch).mockReset();
-  vi.mocked(weatherFetch).mockImplementation(async () => new Response(JSON.stringify(body)));
+  vi.mocked(weatherFetchJson).mockReset();
+  vi.mocked(weatherFetchJson).mockImplementation(async () => body);
   // 年境界の月平均（素の fetch）は失敗させて null 扱いにする
   vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 500 })));
 });
@@ -33,36 +33,36 @@ describe('fetchWeatherData のキャッシュ', () => {
   it('当年分は6時間で取り直す', async () => {
     await fetchWeatherData(35.1, 139.1, 2026);
     await fetchWeatherData(35.1, 139.1, 2026);
-    expect(weatherFetch).toHaveBeenCalledTimes(1);
+    expect(weatherFetchJson).toHaveBeenCalledTimes(1);
     vi.setSystemTime(new Date(Date.now() + 6 * HOUR + 1));
     await fetchWeatherData(35.1, 139.1, 2026);
-    expect(weatherFetch).toHaveBeenCalledTimes(2);
+    expect(weatherFetchJson).toHaveBeenCalledTimes(2);
   });
 
   it('過去年は確定値なので取り直さない', async () => {
     await fetchWeatherData(35.2, 139.2, 2025);
     vi.setSystemTime(new Date(Date.now() + 7 * HOUR));
     await fetchWeatherData(35.2, 139.2, 2025);
-    expect(weatherFetch).toHaveBeenCalledTimes(1);
+    expect(weatherFetchJson).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('fetchDailyActuals（過去年は端末に保存し、今年分だけ取り直す）', () => {
   // URL の start_date〜end_date に合わせて毎日 10℃・雨1mm・日照1h を返す。nullDate の日は未確定（null）
   function archiveMock(nullDate?: string) {
-    vi.mocked(weatherFetch).mockImplementation(async (url: string) => {
+    vi.mocked(weatherFetchJson).mockImplementation(async (url: string) => {
       const start = url.match(/start_date=([\d-]+)/)![1];
       const end = url.match(/end_date=([\d-]+)/)![1];
       const time: string[] = [];
       for (let t = Date.parse(start); t <= Date.parse(end); t += 86400000) time.push(new Date(t).toISOString().slice(0, 10));
       const v = (x: number) => time.map(d => (d === nullDate ? null : x));
-      return new Response(JSON.stringify({ daily: {
+      return { daily: {
         time, temperature_2m_mean: v(10), temperature_2m_max: v(15), temperature_2m_min: v(5),
         precipitation_sum: v(1), sunshine_duration: v(3600),
-      } }));
+      } };
     });
   }
-  const ranges = () => vi.mocked(weatherFetch).mock.calls.map(([u]) => `${u.match(/start_date=([\d-]+)/)![1]}..${u.match(/end_date=([\d-]+)/)![1]}`);
+  const ranges = () => vi.mocked(weatherFetchJson).mock.calls.map(([u]) => `${u.match(/start_date=([\d-]+)/)![1]}..${u.match(/end_date=([\d-]+)/)![1]}`);
   beforeEach(() => localStorage.clear());
 
   it('過去年と今年分の2回に分けて順に取得し、つなげて返す（日照は時間に直す）', async () => {
@@ -113,9 +113,9 @@ describe('fetchDailyActuals（過去年は端末に保存し、今年分だけ�
     archiveMock();
     await fetchDailyActuals(35.35, 139.35, '2026-01-01', '2026-10-03');
     await fetchDailyActuals(35.35, 139.35, '2026-01-01', '2026-10-03');
-    expect(weatherFetch).toHaveBeenCalledTimes(1);
+    expect(weatherFetchJson).toHaveBeenCalledTimes(1);
     vi.setSystemTime(new Date(Date.now() + 6 * HOUR + 1));
     await fetchDailyActuals(35.35, 139.35, '2026-01-01', '2026-10-03');
-    expect(weatherFetch).toHaveBeenCalledTimes(2);
+    expect(weatherFetchJson).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,7 +1,7 @@
 // src/api/forecast.ts
 
 import { addDays } from '../lib/dateUtils';
-import { weatherFetch, weatherDataError } from '../lib/weatherFetch';
+import { weatherFetchJson, weatherDataError } from '../lib/weatherFetch';
 
 export interface HourlyForecast {
   time: string;          // "2026-05-21T15:00"
@@ -112,8 +112,7 @@ export async function fetchForecast(lat: number, lon: number): Promise<ForecastD
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
-  const res = await weatherFetch(url);
-  const raw = await res.json();
+  const raw = await weatherFetchJson(url);
 
   if (!raw?.hourly?.time || !raw?.daily?.time) {
     throw weatherDataError();

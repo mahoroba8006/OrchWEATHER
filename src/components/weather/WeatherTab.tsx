@@ -293,6 +293,11 @@ export function WeatherTab({ onOpenHistory }: { onOpenHistory?: (req: HistoryReq
           }}
         >
           {error}
+          {data && lastUpdated && (
+            <div style={{ marginTop: '0.3rem', color: 'var(--ink-2)', fontSize: '0.8rem' }}>
+              いまは {lastUpdated.getMonth() + 1}/{lastUpdated.getDate()} {lastUpdated.getHours()}:{String(lastUpdated.getMinutes()).padStart(2, '0')} 時点の予報を表示しています。
+            </div>
+          )}
         </div>
       )}
 

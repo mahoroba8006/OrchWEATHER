@@ -15,7 +15,7 @@
 //
 import type { ForecastData, DailyForecastData, HourlyForecast, FieldAvailability } from './forecast';
 import { addDays } from '../lib/dateUtils';
-import { weatherFetch, weatherDataError } from '../lib/weatherFetch';
+import { weatherFetchJson, weatherDataError } from '../lib/weatherFetch';
 
 // ── 定数 ──────────────────────────────────────────────────────────────────────
 
@@ -212,8 +212,7 @@ async function fetchViaForecastEndpoint(
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
-  const res = await weatherFetch(url);
-  const raw = await res.json();
+  const raw = await weatherFetchJson(url);
 
   if (!raw?.hourly?.time || !raw?.daily?.time) {
     throw weatherDataError();
@@ -312,8 +311,7 @@ async function fetchViaArchiveApi(
     + `&hourly=${hourlyParams}`
     + `&daily=${dailyParams}`;
 
-  const res = await weatherFetch(url);
-  const raw = await res.json();
+  const raw = await weatherFetchJson(url);
 
   if (!raw?.hourly?.time || !raw?.daily?.time) {
     throw weatherDataError();
