@@ -112,7 +112,7 @@ store ─┬ locationRepository ─ firebase(Firestore)
 
 | モジュール | 責務 | 処理概要 |
 |-----------|------|----------|
-| `useForecast.ts` | 予報取得 | `fetchForecast(lat,lon)`。メモリキャッシュ（キー`lat,lon`・TTL30分）、`activeKey` で stale レスポンス破棄、`inflightRef` で多重発火中の loading 管理、`refresh` で強制再取得。 |
+| `useForecast.ts` | 予報取得 | `fetchForecast(lat,lon)`。メモリキャッシュ（キー`lat,lon`・TTL30分）＋端末保存（`forecastStore`・開いた直後に前回の予報を表示）、画面復帰・`online` で古ければ取り直し、`activeKey` で stale レスポンス破棄、`inflightRef` で多重発火中の loading 管理、`refresh` で強制再取得。 |
 | `useWeather.ts` | 年比較取得 | 空くらべ用。複数 `CompareTarget`（地点×年）の `fetchWeatherData` を管理。 |
 | `useHistoricalForecast.ts` | 過去取得 | 空しらべ用。`fetchHistoricalForecast(lat,lon,startDate)` の状態管理。 |
 | `useJmaWarning.ts` | 警報取得 | `jmaAreaCode`→`prefCodeFromAreaCode`→`fetchJmaWarnings`。コードが無ければ無効。 |
@@ -144,7 +144,7 @@ store ─┬ locationRepository ─ firebase(Firestore)
 | `jmaAreaResolver.ts` | エリア解決 | 緯度経度→GSI逆ジオ→`muniCd`→`jmaAreaLookup`→class20sコード。`prefCodeFromAreaCode`（北海道/鹿児島/沖縄の特例）、`getAreaName`。 |
 | `aiCommentInput.ts` | AI入力生成 | 予報＋警報から標準/カスタムの入力ペイロードを構築。飽差計算・風向ラベル・4時間バケット時刻丸め・djb2ハッシュ（キャッシュキー）。 |
 | `aiCommentCache.ts` | AIキャッシュ | Firestore `/users/{uid}/aiComments/{hash}`（標準）・`c:{hash}`（カスタム）の read/write。TTL4時間判定。 |
-| `weatherFetch.ts` | フェッチ＋エラー分類 | Open-Meteo フェッチを offline/upstream/data に分類し日本語メッセージ付き例外を投げる。 |
+| `weatherFetch.ts` | フェッチ＋エラー分類 | Open-Meteo フェッチ（`weatherFetchJson`）。一時的な失敗は計3回まで取り直し、offline/network/upstream/busy/data に分類して日本語メッセージ付き例外を投げる。 |
 | `warningGantt.ts` | ガント配置 | 警報をグリーディ区間スケジューリングで非重複レーンに配置。レベル別配色。 |
 | `geo.ts` | 位置情報定数 | `GEO_OPTIONS`、GPSエラーメッセージ、対応判定。 |
 | `analytics.ts` | GA4計測 | measurementId未設定/非対応で no-op のイベント送信ラッパー（guest_start/login/weather_view）。 |

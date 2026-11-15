@@ -9,8 +9,11 @@ import type { ForecastData } from '../api/forecast';
 
 const KEY = 'orch.forecast.v1';
 const MAX_ENTRIES = 3;
-/** これより古い予報は出さない（時間別の表の始まりが取得時刻基準のため、古すぎると今日がずれる） */
+/** これより古い予報は出さない（時間別の表の始まりが取得時刻基準のため） */
 export const STORED_FORECAST_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+/** 日本時間の日付（yyyy-mm-dd）。予報の「今日」と過去・これからの分け目は取得時のこの日付で決まる */
+const jstDate = (ms: number) => new Date(ms + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 type Entry = { key: string; data: ForecastData };
 
@@ -32,11 +35,13 @@ function isForecastShape(d: unknown): d is ForecastData {
     && typeof f.fetchedAt === 'number';
 }
 
-/** 保存済みの予報（12時間以内のもの）。無ければ null */
+/** 保存済みの予報（今日＝日本時間で取得した12時間以内のもの）。無ければ null。
+ *  日付をまたいだ予報は「今日」が昨日のままなので出さない（夜に見て朝に開くとき） */
 export function loadStoredForecast(lat: number, lon: number, now = Date.now()): ForecastData | null {
   const hit = readAll().find(e => e?.key === locKey(lat, lon));
   if (!hit || !isForecastShape(hit.data)) return null;
   if (now - hit.data.fetchedAt > STORED_FORECAST_MAX_AGE_MS) return null;
+  if (jstDate(hit.data.fetchedAt) !== jstDate(now)) return null;
   return hit.data;
 }
 

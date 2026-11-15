@@ -38,6 +38,9 @@ export class WeatherFetchError extends Error {
 const RETRY_DELAYS_MS = [1000, 3000];
 /** 1回の通信の時間切れ。電波の弱い所でいつまでも待たせない */
 const TIMEOUT_MS = 20_000;
+/** 過去データ（archive）は年数が多いと正常でも10秒を超えることがある（10年分で12.6秒を実測）ので長めに */
+const ARCHIVE_TIMEOUT_MS = 60_000;
+const timeoutFor = (url: string) => (url.includes('archive-api.open-meteo.com') ? ARCHIVE_TIMEOUT_MS : TIMEOUT_MS);
 /** オフラインのとき、通信が戻るのを待つ上限 */
 const ONLINE_WAIT_MS = 10_000;
 
@@ -65,7 +68,7 @@ function waitForOnline(maxMs: number): Promise<void> {
 /** 1回分の取得。本文の読み込みまで含めて時間切れを掛ける */
 async function attempt(url: string): Promise<unknown> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutFor(url));
   try {
     let res: Response;
     try {

@@ -19,6 +19,12 @@ describe('前回の予報を端末に保存', () => {
     expect(loadStoredForecast(35, 139, NOW + STORED_FORECAST_MAX_AGE_MS)).not.toBeNull();
     expect(loadStoredForecast(35, 139, NOW + STORED_FORECAST_MAX_AGE_MS + 1)).toBeNull();
   });
+  it('日本時間で日付をまたいだ予報は出さない（23:59 に取って 0:01 に開く）', () => {
+    const t = Date.parse('2026-11-14T23:59:00+09:00');
+    saveStoredForecast(fc(35, 139, t), 35, 139);
+    expect(loadStoredForecast(35, 139, Date.parse('2026-11-14T23:59:59+09:00'))).not.toBeNull();
+    expect(loadStoredForecast(35, 139, Date.parse('2026-11-15T00:01:00+09:00'))).toBeNull();
+  });
   it('新しい順に3地点まで残し、同じ地点は置き換える', () => {
     for (const lat of [1, 2, 3, 4]) saveStoredForecast(fc(lat, 0), lat, 0);
     saveStoredForecast(fc(3, 0, NOW + 1), 3, 0);

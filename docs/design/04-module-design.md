@@ -18,7 +18,7 @@
 ### A-1. `api/forecast.ts` — 予報取得・整形（`fetchForecast`）
 **責務:** Open-Meteo Forecast を1回取得し、時間別・日別・過去日別に整形。
 
-**処理の流れ:** URL 構築（15日・384時間）→ 取得（`weatherFetch`）→ hourly 整形 → 時間帯集計（Map）→ daily 整形 → 今日基準で past/future 分割。
+**処理の流れ:** URL 構築（15日・384時間）→ 取得（`weatherFetchJson`・取り直しあり）→ hourly 整形 → 時間帯集計（Map）→ daily 整形 → 今日基準で past/future 分割。
 
 **分岐・判断ロジック:**
 - レスポンス検証: `raw.hourly.time` または `raw.daily.time` が無ければ `weatherDataError()` を throw。
@@ -124,13 +124,15 @@
 
 **検証観点:** 4h経過で null（再生成）になるか／標準とカスタムが衝突しないか。
 
-### B-5. `lib/weatherFetch.ts` — フェッチ＋エラー分類
+### B-5. `lib/weatherFetch.ts` — フェッチ＋取り直し＋エラー分類
 **分岐・判断ロジック:**
-- `fetch` が reject → `navigator.onLine === false` なら `offline`、∴ `upstream`（オンラインなのに到達不能はグレーだが取得元側に寄せる）。
-- `!res.ok`: `status >= 500 || status === 429` → `upstream`、∴ `data`。
+- `weatherFetchJson(url)` が本文の JSON まで読む。1回の時間切れは 20秒（archive-api は 60秒。10年分で 12.6秒を実測）。
+- `fetch` が reject／時間切れ／本文の途中切れ → `navigator.onLine === false` なら `offline`、∴ `network`（通信が不安定か取得元に一時的につながらない）。
+- `!res.ok`: `429` → `busy`、`>= 500` → `upstream`、∴ `data`。本文が JSON でない → `data`。
+- `offline`・`network`・`upstream` は 1秒→3秒 待って計3回まで試す（オフラインなら `online` を最大10秒待つ）。`busy`・`data` は取り直さない（429 は悪化するため）。
 - 各 kind に固定の日本語メッセージ。
 
-**検証観点:** オフライン端末で offline 文言／5xx・429 で upstream 文言／4xx で汎用文言。
+**検証観点:** 1回目だけ届かない→成功／3回とも届かない→network 文言（「メンテナンス」と言わない）／5xx×3→upstream／429・4xx は1回で終わる／20秒で打ち切る／archive は60秒待つ。
 
 ### B-6. `lib/warningGantt.ts` — ガント配置
 **分岐・判断ロジック:**
@@ -182,7 +184,7 @@
 ### D-1. `useForecast` / `useHistoricalForecast`
 **分岐・判断ロジック（共通パターン）:**
 - lat/lon（+startDate）が null → data=null で中断。
-- キャッシュ: `useForecast` TTL30分（キー`lat,lon`・モード非依存）、`useHistoricalForecast` TTL60分（過去不変のため長め）。ヒット時は即セット。
+- キャッシュ: `useForecast` TTL30分（キー`lat,lon`・モード非依存）。さらに `lib/forecastStore.ts` で最後に取れた予報を localStorage（`orch.forecast.v1`・最大3地点）に保存し、開いた直後は通信を待たずに表示して古ければ裏で取り直す（日本時間で今日取得した12時間以内のみ。日付をまたぐと「今日」がずれるため）。画面を前に戻したとき・`online` で、古ければ取り直す。`useHistoricalForecast` TTL60分（過去不変のため長め）。ヒット時は即セット。
 - **stale制御:** `activeKey.current !== key` の応答は破棄（地点連打時の古い応答無視）。
 - `useForecast` は `inflightRef` で多重発火中の loading を管理し、`refresh(force)` でキャッシュ無視再取得。
 

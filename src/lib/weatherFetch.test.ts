@@ -91,6 +91,15 @@ describe('weatherFetchJson の取り直し', () => {
     expect(fn).toHaveBeenCalledTimes(2);
     await expect(p).resolves.toEqual({ a: 1 });
   });
+  it('過去データ（archive）は60秒まで待つ', async () => {
+    let resolveSlow: (r: Response) => void = () => {};
+    const fn = stubFetch(() => new Promise<Response>(r => { resolveSlow = r; }));
+    const p = weatherFetchJson('https://archive-api.open-meteo.com/v1/archive?x');
+    await vi.advanceTimersByTimeAsync(30_000);
+    resolveSlow(ok());
+    await expect(p).resolves.toEqual({ a: 1 });
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
   it('オフラインなら通信が戻るのを待ってから取り直す', async () => {
     let online = false;
     vi.stubGlobal('navigator', { get onLine() { return online; } });
