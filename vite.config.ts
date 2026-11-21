@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { lpPrerender } from './build/lpPrerender'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -8,6 +9,8 @@ export default defineConfig({
   // Vite 8 React plugin compatible at the config boundary.
   plugins: [
     react(),
+    // LP の本文を index.html に入れる（PWA の事前キャッシュより前に済ませる）
+    lpPrerender(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png'],
@@ -47,7 +50,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'build/**/*.test.ts'],
     passWithNoTests: true,
   },
   // server: {

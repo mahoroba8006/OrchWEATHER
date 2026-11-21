@@ -1,8 +1,9 @@
 // LP「一日×一年の空」の組み立てとログイン処理。章の中身は src/components/lp/ にある。
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { logLogin } from '../lib/analytics';
+import { removeLpStatic } from '../lib/lpStatic';
 import { SkyScene } from './lp/SkyScene';
 import { LpNav, SekkiDial } from './lp/LpNav';
 import { LpHero } from './lp/LpHero';
@@ -21,6 +22,8 @@ const isIOSStandalone = () =>
 export function LandingPage({ onTryGuest }: { onTryGuest: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 本物の LP を出したら、ビルド時の LP（index.html の #lp-static）を同じ描画で消す
+  useLayoutEffect(() => removeLpStatic(), []);
 
   const handleLogin = async () => {
     setLoading(true);

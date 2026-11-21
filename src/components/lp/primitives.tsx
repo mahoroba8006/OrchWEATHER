@@ -42,7 +42,8 @@ export function CountUp({ to, decimals = 0, duration = 1400, delay = 0, start = 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [to, duration, delay, start, reduced]);
-  const shown = reduced ? to : v;
+  // ビルド時の描画（window が無い）では最終の値で書き出す（検索エンジン・JS なしで「0日」と読まれないように）
+  const shown = reduced || typeof window === 'undefined' ? to : v;
   return (
     <span className="lp-num">
       <span aria-hidden="true">{shown.toFixed(decimals)}</span>

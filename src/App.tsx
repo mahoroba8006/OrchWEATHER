@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
 import { m } from 'motion/react';
 import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
 import { useAppStore } from './store';
@@ -17,6 +17,7 @@ import { SkyBand } from './components/sky/SkyBand';
 import { springs } from './lib/motion';
 import { EnvironmentGuidance } from './components/EnvironmentGuidance';
 import { logGuestStart } from './lib/analytics';
+import { lpStaticShown, removeLpStatic, rememberSignedIn } from './lib/lpStatic';
 import { AnalysisTab } from './components/analysis/AnalysisTab';
 import { useAnalysisState } from './components/analysis/useAnalysisState';
 import './App.css';
@@ -58,6 +59,8 @@ function AppContent() {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      // 次に開いたとき、ビルド時の LP を最初から隠すための目印
+      rememberSignedIn(!!firebaseUser);
       if (firebaseUser) {
         setGuestMode(false);
         try {
@@ -112,7 +115,15 @@ function AppContent() {
   }, [authLoading]);
 
 
+  // アプリの画面を出すときは、ビルド時の LP（index.html の #lp-static）を同じ描画で消す
+  const showsApp = !authLoading && (!!user || guestMode);
+  useLayoutEffect(() => {
+    if (showsApp) removeLpStatic();
+  }, [showsApp]);
+
   if (authLoading) {
+    // ビルド時の LP が見えているあいだは「読み込み中」に戻さず、そのまま見せておく
+    if (lpStaticShown()) return null;
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <WeatherLoader label="読み込み中" />
@@ -141,7 +152,7 @@ function AppContent() {
 
   if (!user && !guestMode) {
     return (
-      <Suspense fallback={<div style={{ minHeight: '100vh', background: '#3d4f86' }} />}>
+      <Suspense fallback={lpStaticShown() ? null : <div style={{ minHeight: '100vh', background: '#3d4f86' }} />}>
         <LandingPage onTryGuest={() => { logGuestStart(); setGuestMode(true); }} />
       </Suspense>
     );

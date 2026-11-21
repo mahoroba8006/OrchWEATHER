@@ -10,6 +10,7 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { AppErrorFallback } from './components/AppErrorFallback'
 import { logAppError } from './lib/analytics'
 import { startCssGuard } from './lib/cssGuard'
+import { removeLpStatic } from './lib/lpStatic'
 
 registerSW({ immediate: true })
 // 見た目の CSS が当たっていなければ読み直し、原因の手がかりを表示・記録する
@@ -19,7 +20,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MotionProvider>
       {/* どこかの描画エラーで真っ白にしない（原因と立て直す手段を出す） */}
-      <ErrorBoundary onError={e => logAppError('app', e)} fallback={(_reset, error) => <AppErrorFallback error={error} />}>
+      <ErrorBoundary onError={e => { removeLpStatic(); logAppError('app', e) }} fallback={(_reset, error) => <AppErrorFallback error={error} />}>
         <App />
       </ErrorBoundary>
     </MotionProvider>
